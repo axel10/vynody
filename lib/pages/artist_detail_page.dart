@@ -394,6 +394,9 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
                   },
                   isSelectionMode: isSelectionMode,
                   selectedSongPaths: selectedSongPaths,
+                  onOpenAlbum: i < albums.length
+                      ? () => _openAlbumDetail(albums[i])
+                      : null,
                 ),
               ],
             SliverToBoxAdapter(

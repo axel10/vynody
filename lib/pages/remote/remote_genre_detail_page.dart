@@ -9,7 +9,8 @@ import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../player/remote/remote_library_navigation.dart';
 import '../../player/remote/remote_server_models.dart';
 import '../../utils/remote_context_menu_utils.dart';
-import '../../widgets/album_sections.dart' show formatDurationClock;
+import '../../widgets/album_sections.dart'
+    show AlbumSection, AlbumSectionSliver, formatDurationClock;
 import '../../widgets/collection_detail_header.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/remote_artwork_widget.dart';
@@ -331,12 +332,7 @@ class _RemoteGenreDetailContentState
                   horizontalPadding: hPad,
                 )
               else
-                ..._buildAlbumSectionSlivers(
-                  context,
-                  availableWidth: available,
-                  horizontalPadding: hPad,
-                  coverSize: available >= 760 ? 170 : 132,
-                ),
+                ..._buildAlbumSectionSlivers(context),
             ],
           );
         },
@@ -385,60 +381,83 @@ class _RemoteGenreDetailContentState
     ];
   }
 
-  /// 横屏：一张专辑一个分组，左封面 + 右曲目（与本地流派页横屏一致）。
+  /// 横屏：一张专辑一个分组，左封面 + 右曲目。
   ///
-  /// 曲目来自聚合时的同一份数据，不再额外请求专辑接口。
-  List<Widget> _buildAlbumSectionSlivers(
-    BuildContext context, {
-    required double availableWidth,
-    required double horizontalPadding,
-    required double coverSize,
-  }) {
+  /// 直接复用本地媒体库的 [AlbumSectionSliver]，封面尺寸档位、圆角、阴影、
+  /// 内边距、分组标题与曲目行样式随之与本地流派页完全一致，不再各写一份。
+  /// 曲目来自聚合时的同一份数据，不额外请求专辑接口。
+  List<Widget> _buildAlbumSectionSlivers(BuildContext context) {
     final currentPath = ref.watch(audioCurrentMusicProvider)?.path;
+    final slivers = <Widget>[];
+    var startIndex = 0;
 
-    return [
-      SliverPadding(
-        padding: EdgeInsets.fromLTRB(
-          horizontalPadding,
-          0,
-          horizontalPadding,
-          widget.bottomOffset + 24,
+    for (var i = 0; i < _albums.length; i++) {
+      final album = _albums[i];
+      if (i > 0) {
+        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 36)));
+      }
+
+      final section = AlbumSection(
+        title: album.title,
+        songs: album.songs,
+        representativeSong: album.representativeSong,
+        totalDurationMillis: album.durationMillis,
+        startIndex: startIndex,
+      );
+      startIndex += album.songs.length;
+
+      slivers.add(
+        AlbumSectionSliver(
+          key: ValueKey('genre-album-${album.id}-${album.title}'),
+          section: section,
+          currentMusicPath: currentPath,
+          onSongTap: (_, songIndex) =>
+              _playAlbum(album, initialIndex: songIndex),
+          // 远程流派页暂不支持多选，长按先留空。
+          onSongLongPress: (_, _) {},
+          onOpenAlbum: album.canOpen ? () => _openAlbum(context, album) : null,
+          // 整页都是远程内容，封面上的云朵角标没有区分意义，去掉。
+          showRemoteBadge: false,
+          playbackSourceBuilder: (_) => PlaybackSource(
+            type: PlaybackSourceType.genre,
+            id: 'remote-${widget.server.id}-${widget.genreId}-${album.id}',
+            name: album.title,
+          ),
         ),
-        sliver: SliverList.builder(
-          itemCount: _albums.length,
-          itemBuilder: (context, index) {
-            final album = _albums[index];
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: index == _albums.length - 1 ? 0 : 36,
-              ),
-              child: _RemoteGenreAlbumSection(
-                key: ValueKey('genre-album-${album.id}-${album.title}'),
-                server: widget.server,
-                password: widget.password,
-                album: album,
-                coverSize: coverSize,
-                currentPath: currentPath,
-                onPlay: _playAlbum,
-              ),
-            );
-          },
-        ),
+      );
+    }
+
+    slivers.add(
+      SliverToBoxAdapter(
+        child: SizedBox(height: widget.bottomOffset + 24),
       ),
-    ];
+    );
+    return slivers;
   }
 
-  void _playAlbum(
-    _GenreAlbum album, {
-    int initialIndex = 0,
-    bool shuffle = false,
-  }) {
+  void _openAlbum(BuildContext context, _GenreAlbum album) {
+    if (!album.canOpen) return;
+    RemoteLibraryNavUtils.openAlbum(
+      context,
+      ref,
+      server: widget.server,
+      password: widget.password,
+      albumId: album.id,
+      albumName: album.title,
+      artistName: album.artist,
+      coverArtId: album.coverArtId,
+    );
+  }
+
+  /// 播放整张专辑并从 [initialIndex] 开始。
+  ///
+  /// 分组上的「播放全部 / 随机」由 [AlbumSectionSliver] 内部处理，
+  /// 这里只服务曲目行的单曲点击。
+  void _playAlbum(_GenreAlbum album, {int initialIndex = 0}) {
     if (album.songs.isEmpty) return;
-    final playlist =
-        shuffle ? (List<MusicFile>.of(album.songs)..shuffle()) : album.songs;
     ref.read(audioServiceProvider).playPlaylist(
-          playlist,
-          initialIndex: shuffle ? 0 : initialIndex,
+          album.songs,
+          initialIndex: initialIndex,
           source: PlaybackSource(
             type: PlaybackSourceType.genre,
             id: 'remote-${widget.server.id}-${widget.genreId}-${album.id}',
@@ -474,6 +493,21 @@ class _GenreAlbum {
   });
 
   bool get canOpen => id.isNotEmpty;
+
+  /// 用于取封面的代表曲目，优先选带封面的歌。
+  ///
+  /// 复用的 [AlbumSectionSliver] 靠 `SongThumbnail.fromSong` 取图，
+  /// 远程歌曲的 `artworkPath` 是 `subsonic-cover://` / `jellyfin-cover://` 形式，
+  /// 由 `RemoteMediaResolver` 解析成真实 URL。
+  MusicFile get representativeSong {
+    for (final song in songs) {
+      final hasArtwork = (song.artworkPath?.isNotEmpty ?? false) ||
+          (song.artworkBytes?.isNotEmpty ?? false) ||
+          (song.thumbnailPath?.isNotEmpty ?? false);
+      if (hasArtwork) return song;
+    }
+    return songs.first;
+  }
 
   int get durationMillis =>
       songs.fold<int>(0, (sum, song) => sum + (song.durationMillis ?? 0));
@@ -569,225 +603,6 @@ class _RemoteGenreAlbumCard extends ConsumerWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 横屏分组：左封面 + 右曲目列表，曲目已在聚合阶段就位。
-class _RemoteGenreAlbumSection extends ConsumerWidget {
-  final RemoteServer server;
-  final String password;
-  final _GenreAlbum album;
-  final double coverSize;
-  final String? currentPath;
-  final void Function(_GenreAlbum album, {int initialIndex, bool shuffle})
-      onPlay;
-
-  const _RemoteGenreAlbumSection({
-    super.key,
-    required this.server,
-    required this.password,
-    required this.album,
-    required this.coverSize,
-    required this.currentPath,
-    required this.onPlay,
-  });
-
-  void _openAlbum(BuildContext context, WidgetRef ref) {
-    if (!album.canOpen) return;
-    RemoteLibraryNavUtils.openAlbum(
-      context,
-      ref,
-      server: server,
-      password: password,
-      albumId: album.id,
-      albumName: album.title,
-      artistName: album.artist,
-      coverArtId: album.coverArtId,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final durationLabel =
-        formatDurationClock(album.durationMillis) ?? l10n.durationZero;
-    final subtitle =
-        '${l10n.songCount(album.songs.length)} · $durationLabel';
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: album.canOpen ? () => _openAlbum(context, ref) : null,
-          child: RemoteArtworkWidget(
-            server: server,
-            password: password,
-            coverArtId: album.coverArtId,
-            size: coverSize,
-            width: coverSize,
-            height: coverSize,
-            borderRadius: BorderRadius.circular(10),
-            fallbackIcon: Icons.album_rounded,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap:
-                          album.canOpen ? () => _openAlbum(context, ref) : null,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            album.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${album.artist} · $subtitle',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: l10n.playAll,
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                    onPressed:
-                        album.songs.isEmpty ? null : () => onPlay(album),
-                  ),
-                  IconButton(
-                    tooltip: l10n.shuffle,
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.shuffle_rounded, size: 18),
-                    onPressed: album.songs.isEmpty
-                        ? null
-                        : () => onPlay(album, shuffle: true),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              for (int i = 0; i < album.songs.length; i++)
-                _RemoteGenreSongRow(
-                  song: album.songs[i],
-                  index: i,
-                  isCurrent: currentPath != null &&
-                      currentPath == album.songs[i].path,
-                  onTap: () => onPlay(album, initialIndex: i),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 横屏分组内的单首曲目。
-class _RemoteGenreSongRow extends StatelessWidget {
-  final MusicFile song;
-  final int index;
-  final bool isCurrent;
-  final VoidCallback onTap;
-
-  const _RemoteGenreSongRow({
-    required this.song,
-    required this.index,
-    required this.isCurrent,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final title = song.title ?? song.name;
-    final artist = song.artist;
-
-    return Material(
-      color: isCurrent
-          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.45)
-          : Colors.transparent,
-      borderRadius: BorderRadius.circular(6),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(6),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 24,
-                child: Text(
-                  '${index + 1}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: isCurrent
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
-                    fontWeight: isCurrent ? FontWeight.bold : null,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight:
-                            isCurrent ? FontWeight.bold : FontWeight.w500,
-                        color: isCurrent ? theme.colorScheme.primary : null,
-                      ),
-                    ),
-                    if (artist != null && artist.isNotEmpty) ...[
-                      const SizedBox(height: 1),
-                      Text(
-                        artist,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                formatDurationClock(song.durationMillis) ?? '',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

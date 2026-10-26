@@ -39,6 +39,50 @@ class AlbumSection {
   final int startIndex;
 }
 
+/// 横屏专辑分组的封面尺寸档位。
+///
+/// 本地流派 / 年份 / 艺术家详情与远程媒体库的流派页共用同一套档位，
+/// 避免两边各自写一份阈值导致封面大小对不上。
+class AlbumSectionCoverMetrics {
+  const AlbumSectionCoverMetrics({
+    required this.coverSize,
+    required this.gap,
+    required this.radius,
+  });
+
+  /// 封面边长。
+  final double coverSize;
+
+  /// 封面与右侧曲目列表的间距。
+  final double gap;
+
+  /// 封面圆角。
+  final double radius;
+}
+
+/// 按分组可用宽度（已扣除左右内边距）取封面档位。
+AlbumSectionCoverMetrics albumSectionCoverMetrics(double availableWidth) {
+  if (availableWidth >= 1000) {
+    return const AlbumSectionCoverMetrics(
+      coverSize: 350.0,
+      gap: 28.0,
+      radius: 12.0,
+    );
+  }
+  if (availableWidth >= 800) {
+    return const AlbumSectionCoverMetrics(
+      coverSize: 190.0,
+      gap: 24.0,
+      radius: 10.0,
+    );
+  }
+  return const AlbumSectionCoverMetrics(
+    coverSize: 160.0,
+    gap: 20.0,
+    radius: 8.0,
+  );
+}
+
 /// 专辑分组的播放来源（与专辑详情页使用同一套标识方式）。
 PlaybackSource albumPlaybackSource(AlbumSection section) {
   final firstSong = section.songs.firstOrNull;
@@ -184,6 +228,9 @@ class AlbumSectionSliver extends ConsumerWidget {
     this.isSelectionMode = false,
     this.selectedSongPaths = const <String>{},
     this.horizontalPadding,
+    this.onOpenAlbum,
+    this.playbackSourceBuilder,
+    this.showRemoteBadge = true,
   });
 
   final AlbumSection section;
@@ -200,12 +247,29 @@ class AlbumSectionSliver extends ConsumerWidget {
   /// 左右内边距，留空时横屏 28、竖屏 20。
   final double? horizontalPadding;
 
+  /// 点击封面 / 专辑标题时的回调（通常是跳转专辑详情），留空则不可点。
+  final VoidCallback? onOpenAlbum;
+
+  /// 自定义播放来源，留空时用 [albumPlaybackSource]（按专辑名 + 专辑艺术家）。
+  ///
+  /// 远程媒体库的专辑有服务端下发的稳定 id，需要用自己的标识，
+  /// 否则同一张专辑在「远程直连」与「混入本地库」两条路径下会被当成两个来源。
+  final PlaybackSource Function(AlbumSection section)? playbackSourceBuilder;
+
+  /// 封面右上角是否显示远程来源云朵角标。
+  ///
+  /// 本地列表里混入远程歌曲时，角标用来区分「这张专辑有歌在服务器上」，
+  /// 是有用信息；而远程媒体库的流派页整页都是远程内容，角标只是噪声。
+  final bool showRemoteBadge;
+
   void _playAlbum(BuildContext context, WidgetRef ref, {required bool shuffle}) {
     final audio = ref.read(audioServiceProvider);
     final songs = shuffle
         ? (List<MusicFile>.of(section.songs)..shuffle())
         : section.songs;
-    audio.playPlaylist(songs, source: albumPlaybackSource(section));
+    final source =
+        playbackSourceBuilder?.call(section) ?? albumPlaybackSource(section);
+    audio.playPlaylist(songs, source: source);
   }
 
   void _showSongMenu(
@@ -260,8 +324,22 @@ class AlbumSectionSliver extends ConsumerWidget {
     );
   }
 
+  /// 给可点击区域套上鼠标指针；[onOpenAlbum] 为空时原样返回。
+  Widget _maybeTappable(Widget child) {
+    final onTap = onOpenAlbum;
+    if (onTap == null) return child;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: child,
+      ),
+    );
+  }
+
   Widget _buildCover({required double size, double borderRadius = 10}) {
-    return Container(
+    final cover = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -284,9 +362,12 @@ class AlbumSectionSliver extends ConsumerWidget {
           ),
           songs: section.songs,
           title: section.title,
+          showRemoteBadge: showRemoteBadge,
         ),
       ),
     );
+
+    return _maybeTappable(cover);
   }
 
   Widget _buildHeaderRow(
@@ -300,29 +381,31 @@ class AlbumSectionSliver extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                section.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 17,
+          child: _maybeTappable(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  section.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 17,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 12,
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         IconButton(
@@ -382,29 +465,13 @@ class AlbumSectionSliver extends ConsumerWidget {
     WidgetRef ref,
     double availableWidth,
   ) {
-    final double coverSize;
-    final double gap;
-    final double coverRadius;
-
-    if (availableWidth >= 1000) {
-      coverSize = 350.0;
-      gap = 28.0;
-      coverRadius = 12.0;
-    } else if (availableWidth >= 800) {
-      coverSize = 190.0;
-      gap = 24.0;
-      coverRadius = 10.0;
-    } else {
-      coverSize = 160.0;
-      gap = 20.0;
-      coverRadius = 8.0;
-    }
+    final metrics = albumSectionCoverMetrics(availableWidth);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildCover(size: coverSize, borderRadius: coverRadius),
-        SizedBox(width: gap),
+        _buildCover(size: metrics.coverSize, borderRadius: metrics.radius),
+        SizedBox(width: metrics.gap),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/genre_summary.dart';
 import 'package:vynody/models/year_summary.dart';
+import 'package:vynody/pages/album_detail_page.dart';
 import 'package:vynody/pages/genre_detail_page.dart';
 import 'package:vynody/pages/year_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
@@ -199,6 +200,27 @@ void main() {
       find.byWidgetPredicate((w) => w is SongThumbnail && w.size == 190),
       findsWidgets,
     );
+  });
+
+  testWidgets('流派详情页 - 横屏点击专辑封面进入专辑详情', (tester) async {
+    setLandscape(tester);
+    await tester.pumpWidget(
+      buildTestApp(child: GenreDetailPage(genre: sampleGenre)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+
+    final coverFinder = find.byWidgetPredicate(
+      (w) => w is SongThumbnail && w.size == 190,
+    );
+    expect(coverFinder, findsWidgets);
+
+    await tester.tap(coverFinder.first);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(AlbumDetailPage), findsOneWidget);
   });
 
   testWidgets('流派详情页 - 竖屏头部无集合封面，展示专辑网格', (tester) async {
