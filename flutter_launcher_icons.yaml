@@ -26,6 +26,10 @@ flutter_launcher_icons:
     generate: true
     image_path: "assets/images/icon-windows-and-linux.png"
     icon_size: 256
+    # 注意：icon_size 会让生成的 windows/runner/resources/app_icon.ico 只含 256 一档，
+    # 任务栏 16/24/32px 靠系统缩图会发虚。跑完本工具后必须补一次多尺寸 ico：
+    #   cp assets/images/app_icon.ico windows/runner/resources/app_icon.ico
+    # （assets/images/app_icon.ico 含 16/32/48/64/128/256 六档，同源同一张 512 母版）
 
   macos:
     generate: true
