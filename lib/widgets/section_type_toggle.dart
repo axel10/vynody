@@ -10,6 +10,7 @@ class SectionTypeToggle extends StatelessWidget {
     required this.songsLabel,
     required this.albumsLabel,
     this.compact = false,
+    this.fullWidth = false,
   });
 
   final SectionItemType selected;
@@ -17,6 +18,7 @@ class SectionTypeToggle extends StatelessWidget {
   final String songsLabel;
   final String albumsLabel;
   final bool compact;
+  final bool fullWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +26,7 @@ class SectionTypeToggle extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
+      width: fullWidth ? double.infinity : null,
       padding: EdgeInsets.all(compact ? 2.5 : 3.5),
       decoration: BoxDecoration(
         color: isDark
@@ -35,9 +38,9 @@ class SectionTypeToggle extends StatelessWidget {
         ),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
         children: [
-          _buildPill(
+          _buildItem(
             context,
             type: SectionItemType.songs,
             label: songsLabel,
@@ -45,7 +48,7 @@ class SectionTypeToggle extends StatelessWidget {
             isSelected: selected == SectionItemType.songs,
           ),
           SizedBox(width: compact ? 2 : 4),
-          _buildPill(
+          _buildItem(
             context,
             type: SectionItemType.albums,
             label: albumsLabel,
@@ -55,6 +58,26 @@ class SectionTypeToggle extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildItem(
+    BuildContext context, {
+    required SectionItemType type,
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+  }) {
+    final pill = _buildPill(
+      context,
+      type: type,
+      label: label,
+      icon: icon,
+      isSelected: isSelected,
+    );
+    if (fullWidth) {
+      return Expanded(child: pill);
+    }
+    return pill;
   }
 
   Widget _buildPill(
@@ -95,7 +118,8 @@ class SectionTypeToggle extends StatelessWidget {
                 : null,
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisAlignment: fullWidth ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
               Icon(
                 icon,
@@ -103,12 +127,16 @@ class SectionTypeToggle extends StatelessWidget {
                 color: fgColor,
               ),
               SizedBox(width: compact ? 4 : 6),
-              Text(
-                label,
-                style: (compact ? theme.textTheme.labelSmall : theme.textTheme.labelMedium)?.copyWith(
-                  color: fgColor,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  letterSpacing: 0.2,
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: (compact ? theme.textTheme.labelSmall : theme.textTheme.labelMedium)?.copyWith(
+                    color: fgColor,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
             ],

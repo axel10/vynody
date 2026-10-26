@@ -27,7 +27,6 @@ class RecentlyAddedTab extends StatelessWidget {
           ref.watch(recentlyAddedAlbumsRankedProvider(range)),
       selectionScope: LibrarySelectionScope.recentlyAdded,
       title: l10n.recentlyAdded,
-      subtitle: l10n.recentlyAddedDescription,
       emptyText: (loc, range) => range == LibraryTimeRange.allTime
           ? loc.noRecentlyAddedSongs
           : loc.noRecentlyAddedInRange,

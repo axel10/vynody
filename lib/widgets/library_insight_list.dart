@@ -38,7 +38,7 @@ class LibraryInsightList extends ConsumerStatefulWidget {
     super.key,
     required this.type,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.emptyText,
     required this.selectionScope,
     this.songs = const <LibraryInsightSongEntry>[],
@@ -62,7 +62,7 @@ class LibraryInsightList extends ConsumerStatefulWidget {
   /// 当前展示单曲还是专辑。只影响 body 与计数文案，不影响 Widget 类型。
   final SectionItemType type;
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final String emptyText;
 
   /// 多选作用域：四类洞察页各自独立，避免同一 IndexedStack 内互相串选。
@@ -301,6 +301,9 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
         final availableWidth = constraints.maxWidth - widget.contentLeftPadding;
         final contentWidth = math.min(availableWidth, kFolderPageMaxWidth);
 
+        final subtitleText =
+            _searchQuery.isNotEmpty ? countLabel : widget.subtitle;
+
         final largeTitleBlock = Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
@@ -313,17 +316,19 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                 letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                _searchQuery.isNotEmpty ? countLabel : widget.subtitle,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
+            if (subtitleText != null && subtitleText.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  subtitleText,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
+            ],
           ],
         );
 

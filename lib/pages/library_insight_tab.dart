@@ -22,7 +22,7 @@ class LibraryInsightTab extends ConsumerWidget {
     required this.watchAlbums,
     required this.selectionScope,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.emptyText,
     required this.songTrailing,
     this.albumTrailing,
@@ -44,7 +44,7 @@ class LibraryInsightTab extends ConsumerWidget {
   ) watchAlbums;
   final LibrarySelectionScope selectionScope;
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final String Function(AppLocalizations l10n, LibraryTimeRange range) emptyText;
   final Widget Function(BuildContext, LibraryInsightSongEntry) songTrailing;
 
@@ -57,6 +57,8 @@ class LibraryInsightTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final isPortrait =
+        MediaQuery.of(context).orientation == Orientation.portrait;
     final filterState = ref.watch(filter);
     final filterNotifier = ref.read(filter.notifier);
 
@@ -92,6 +94,7 @@ class LibraryInsightTab extends ConsumerWidget {
         onChanged: filterNotifier.setType,
         songsLabel: l10n.songs,
         albumsLabel: l10n.albums,
+        fullWidth: isPortrait,
       ),
       headerTrailing: TimeRangeDropdown(
         selected: filterState.range,

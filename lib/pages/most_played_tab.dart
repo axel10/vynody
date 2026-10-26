@@ -26,7 +26,6 @@ class MostPlayedTab extends StatelessWidget {
       watchAlbums: (ref, range) => ref.watch(mostPlayedAlbumsProvider(range)),
       selectionScope: LibrarySelectionScope.mostPlayed,
       title: l10n.mostPlayed,
-      subtitle: l10n.mostPlayedDescription,
       emptyText: (loc, range) => range == LibraryTimeRange.allTime
           ? loc.noPlayHistory
           : loc.noPlayHistoryInRange,
