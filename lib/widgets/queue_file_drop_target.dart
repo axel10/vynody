@@ -31,7 +31,7 @@ class QueueFileDropTarget extends StatefulWidget {
     this.enabled = true,
     this.showPreview = true,
     this.indicatorHorizontalPadding = 16.0,
-    this.indicatorMaxWidth = kSingleColumnContentMaxWidth,
+    this.indicatorMaxWidth = kFolderPageMaxWidth,
   });
 
   final Widget child;

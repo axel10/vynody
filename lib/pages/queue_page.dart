@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' show lerpDouble;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
@@ -14,7 +17,6 @@ import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
-import 'package:vynody/utils/layout_constants.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/queue_sort_utils.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
@@ -393,7 +395,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
         padding: EdgeInsets.only(top: topBarHeight),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
+            constraints: const BoxConstraints(maxWidth: kFolderPageMaxWidth),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -415,9 +417,13 @@ class _QueuePageState extends ConsumerState<QueuePage>
     } else {
       listOrEmpty = LayoutBuilder(
         builder: (context, constraints) {
+          final contentWidth = math.min(
+            constraints.maxWidth,
+            kFolderPageMaxWidth,
+          );
           return FolderZoomSliverBuilder(
             zoomScale: queueZoomScale,
-            width: constraints.maxWidth,
+            width: contentWidth,
             builder: (context, metrics) {
               return Column(
                 children: [
@@ -434,6 +440,24 @@ class _QueuePageState extends ConsumerState<QueuePage>
                             bottom: bottomOffset,
                           ),
                           itemCount: displayQueue.length,
+                          proxyDecorator: (child, index, animation) {
+                            return AnimatedBuilder(
+                              animation: animation,
+                              builder: (context, child) {
+                                final animValue = Curves.easeInOut.transform(animation.value);
+                                final elevation = lerpDouble(0.0, 8.0, animValue)!;
+                                final theme = Theme.of(context);
+                                return Material(
+                                  elevation: elevation,
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.92),
+                                  shadowColor: Colors.black.withValues(alpha: 0.4),
+                                  child: child,
+                                );
+                              },
+                              child: child,
+                            );
+                          },
                           onReorderItem: (oldIndex, newIndex) {
                             if (_viewIndex != 0) return;
                             _queueReorderController.handleReorder(
@@ -576,7 +600,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
                               key: _songTileKeyFor(index, song),
                               alignment: Alignment.center,
                               child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
+                                constraints: const BoxConstraints(maxWidth: kFolderPageMaxWidth),
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(
                                     horizontal:
@@ -588,7 +612,10 @@ class _QueuePageState extends ConsumerState<QueuePage>
                                   ),
                                   child: SizedBox(
                                     height: metrics.animatedListExtent,
-                                    child: SongZoomItem(
+                                    child: _QueueTileDragStartListener(
+                                      index: index,
+                                      enabled: _viewIndex == 0 && !isSelectionMode,
+                                      child: SongZoomItem(
                                       song: song,
                                       metrics: metrics,
                                       isCurrent: isCurrent,
@@ -683,8 +710,9 @@ class _QueuePageState extends ConsumerState<QueuePage>
                                   ),
                                 ),
                               ),
-                            );
-                          },
+                            ),
+                          );
+                        },
                         ),
                       ),
                     ],
@@ -740,7 +768,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
                       alignment: Alignment.center,
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(
-                          maxWidth: kSingleColumnContentMaxWidth,
+                          maxWidth: kFolderPageMaxWidth,
                         ),
                         child: SizedBox(
                           height: 70.0,
@@ -963,6 +991,45 @@ class _QueuePageState extends ConsumerState<QueuePage>
             ),
         ],
       ),
+    );
+  }
+}
+
+/// A drag start listener tailored for queue items:
+/// - Immediate drag initiation on mouse left-click drag anywhere on the item.
+/// - Passes through right-clicks (context menu) and normal clicks (playback).
+/// - Avoids capturing touch events to preserve smooth touch scrolling on mobile/touch screens.
+class _QueueTileDragStartListener extends ReorderableDragStartListener {
+  const _QueueTileDragStartListener({
+    required super.child,
+    required super.index,
+    super.enabled = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: enabled ? (event) => _handlePointerDown(context, event) : null,
+      child: child,
+    );
+  }
+
+  void _handlePointerDown(BuildContext context, PointerDownEvent event) {
+    // Only trigger for primary mouse button drag (left mouse button).
+    // Secondary click (right-click) is preserved for context menus.
+    if (event.kind != PointerDeviceKind.mouse) {
+      return;
+    }
+    if (event.buttons != 0 && (event.buttons & kPrimaryMouseButton) == 0) {
+      return;
+    }
+
+    final gestureSettings = MediaQuery.maybeGestureSettingsOf(context);
+    final list = SliverReorderableList.maybeOf(context);
+    list?.startItemDragReorder(
+      index: index,
+      event: event,
+      recognizer: createRecognizer()..gestureSettings = gestureSettings,
     );
   }
 }
