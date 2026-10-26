@@ -22,18 +22,12 @@ class RemoteGenreDetailPage extends ConsumerWidget {
   final String genreId;
   final String genreName;
 
-  /// 流派列表里服务器给出的统计，用于让详情页与左栏数字一致。
-  final int? songCount;
-  final int? albumCount;
-
   const RemoteGenreDetailPage({
     super.key,
     required this.server,
     required this.password,
     required this.genreId,
     required this.genreName,
-    this.songCount,
-    this.albumCount,
   });
 
   @override
@@ -57,8 +51,6 @@ class RemoteGenreDetailPage extends ConsumerWidget {
         password: password,
         genreId: genreId,
         genreName: genreName,
-        songCount: songCount,
-        albumCount: albumCount,
         bottomOffset: bottomOffset,
       ),
     );
@@ -70,22 +62,20 @@ class RemoteGenreDetailPage extends ConsumerWidget {
 /// 横屏分栏的右侧面板与竖屏详情页共用这一个组件，
 /// 保证两种布局下的加载态 / 空态 / 播放行为完全一致。
 ///
+/// 数据只有一条来路：把该流派名下的**全部歌曲**分页拉完，再在本地按专辑聚合。
+/// 不额外查「流派下的专辑」——服务器对专辑流派和曲目流派是两套口径，
+/// 混着用会出现「列了 12 张专辑、点开只有 5 张有歌」的矛盾。
+/// 聚合口径下所有数字（歌曲数 / 专辑数 / 每张专辑的曲目）都出自同一份数据，
+/// 天然自洽。
+///
 /// 布局与本地媒体库的流派页对齐：
 /// - 竖屏：专辑封面网格，点专辑进详情；
 /// - 横屏：一张专辑一个分组，左边封面、右边曲目列表。
-///
-/// 专辑列表来自服务器（Jellyfin `/Items?IncludeItemTypes=MusicAlbum&GenreIds=`
-/// / Subsonic `getAlbumList2?type=byGenre`），不能由流派歌曲聚合——服务器统计的
-/// 「专辑数」按专辑实体的流派计算，而曲目的流派标签可能整张缺失，两者会打架。
 class RemoteGenreDetailContent extends ConsumerStatefulWidget {
   final RemoteServer server;
   final String password;
   final String genreId;
   final String genreName;
-
-  /// 列表页已经拿到的统计值；传了就优先用它显示，避免与左栏数字不一致。
-  final int? songCount;
-  final int? albumCount;
 
   /// 底部额外留白（Mini 播放器 / 底栏避让）。
   final double bottomOffset;
@@ -96,8 +86,6 @@ class RemoteGenreDetailContent extends ConsumerStatefulWidget {
     required this.password,
     required this.genreId,
     required this.genreName,
-    this.songCount,
-    this.albumCount,
     this.bottomOffset = 0,
   });
 
@@ -108,19 +96,22 @@ class RemoteGenreDetailContent extends ConsumerStatefulWidget {
 
 class _RemoteGenreDetailContentState
     extends ConsumerState<RemoteGenreDetailContent> {
+  /// 单页条数。两端都支持 count/offset，Jellyfin 走 StartIndex/Limit。
+  static const int _pageSize = 500;
+
+  /// 分页保险丝：最多翻 20 页（1 万首），防止服务端 offset 不推进时死循环。
+  static const int _maxPages = 20;
+
   late final RemoteMediaLibraryClient _client;
 
   bool _isLoading = true;
   String? _error;
 
-  /// 专辑（服务器返回的归一化 map：id/name/title/artist/songCount/coverArt/year）。
-  List<Map<String, dynamic>> _albums = const [];
+  /// 聚合结果，专辑之间按名称升序。
+  List<_GenreAlbum> _albums = const [];
 
-  /// 流派下的歌曲，仅用于「播放全部 / 随机播放」与总时长。
+  /// 全部流派歌曲，顺序与界面一致（按专辑分组后展平），用于播放全部 / 随机。
   List<MusicFile> _songs = const [];
-
-  /// 横屏分组视图中各专辑的曲目缓存，避免来回滚动重复请求。
-  final Map<String, List<MusicFile>> _trackCache = {};
 
   @override
   void initState() {
@@ -138,7 +129,6 @@ class _RemoteGenreDetailContentState
     // 分栏布局切换流派时复用同一个组件，需要重新拉取。
     if (oldWidget.genreId != widget.genreId ||
         oldWidget.server.id != widget.server.id) {
-      _trackCache.clear();
       _load();
     }
   }
@@ -149,34 +139,15 @@ class _RemoteGenreDetailContentState
       _error = null;
     });
     try {
-      final results = await Future.wait<List<Map<String, dynamic>>>([
-        _client.getAlbumsByGenre(
-          genreId: widget.genreId,
-          genreName: widget.genreName,
-          count: 500,
-        ),
-        _client.getSongsByGenre(widget.genreId, count: 500),
-      ]);
+      final raws = await _fetchAllSongs();
       if (!mounted) return;
 
-      final songRaws = results[1];
-      final songs = songRaws.map(_client.buildMusicFile).toList(growable: false);
-      var albums = results[0];
-
-      // 兜底：个别服务端不认 byGenre（返回空）时，退回按歌曲聚合，
-      // 至少保证流派能点开看到专辑，而不是空白页。
-      if (albums.isEmpty && songRaws.isNotEmpty) {
-        final l10n = AppLocalizations.of(context)!;
-        albums = _groupSongsIntoAlbums(
-          songRaws,
-          unknownAlbum: l10n.unknownAlbum,
-          unknownArtist: l10n.unknownArtist,
-        );
-      }
-
+      final albums = _groupSongsIntoAlbums(raws);
       setState(() {
         _albums = albums;
-        _songs = songs;
+        _songs = [
+          for (final album in albums) ...album.songs,
+        ];
         _isLoading = false;
       });
     } catch (e) {
@@ -188,45 +159,81 @@ class _RemoteGenreDetailContentState
     }
   }
 
-  /// 兜底聚合：把歌曲按专辑归并成与 [getAlbumsByGenre] 相同形状的 map。
+  /// 分页拉取该流派名下的全部歌曲。
+  ///
+  /// 终止条件：返回空、返回条数不足一页、去重后无新增（服务端 offset 不推进）、
+  /// 或触达 [_maxPages]。首屏会按实际返回条数收敛页大小——部分服务端
+  /// 会把一页压得比请求的小（例如上限 100），照请求值判断会误判成末页。
+  Future<List<Map<String, dynamic>>> _fetchAllSongs() async {
+    final raws = <Map<String, dynamic>>[];
+    final seenIds = <String>{};
+    var offset = 0;
+    var pageSize = _pageSize;
+
+    for (var page = 0; page < _maxPages; page++) {
+      final batch = await _client.getSongsByGenre(
+        widget.genreId,
+        count: pageSize,
+        offset: offset,
+      );
+      if (batch.isEmpty) break;
+      if (page == 0) pageSize = batch.length;
+
+      var added = 0;
+      for (final raw in batch) {
+        final id = (raw['id'] ?? '').toString();
+        if (id.isNotEmpty && !seenIds.add(id)) continue;
+        raws.add(raw);
+        added++;
+      }
+
+      offset += batch.length;
+      // 一点都没新增，说明服务端没按 offset 推进，再翻也是同一页。
+      if (added == 0) break;
+      if (batch.length < pageSize) break;
+    }
+    return raws;
+  }
+
+  /// 把歌曲按专辑聚合。
   ///
   /// 专辑优先用 `albumId` 分组，缺失时退化为「专辑名 + 专辑艺术家」；
   /// 专辑内按音轨号排序，专辑之间按名称升序，与本地媒体库保持一致。
-  List<Map<String, dynamic>> _groupSongsIntoAlbums(
-    List<Map<String, dynamic>> raws, {
-    required String unknownAlbum,
-    required String unknownArtist,
-  }) {
-    final groups = <String, Map<String, dynamic>>{};
-    final groupedSongs = <String, List<MusicFile>>{};
+  List<_GenreAlbum> _groupSongsIntoAlbums(List<Map<String, dynamic>> raws) {
+    final l10n = AppLocalizations.of(context)!;
+    final order = <String>[];
+    final songsByKey = <String, List<MusicFile>>{};
+    final metaByKey = <String, _GenreAlbum>{};
 
     for (final raw in raws) {
       final song = _client.buildMusicFile(raw);
-      final albumId = (raw['albumId'] ?? raw['AlbumId'] ?? '').toString();
+      final albumId = (raw['albumId'] ?? '').toString().trim();
       final albumName = (song.album ?? '').trim();
       final artistName = (song.albumArtist ?? song.artist ?? '').trim();
       final key = albumId.isNotEmpty
           ? 'id:$albumId'
           : 'name:${albumName.toLowerCase()}::${artistName.toLowerCase()}';
 
-      final existing = groups[key];
+      final existing = metaByKey[key];
       if (existing == null) {
-        groups[key] = {
-          'id': albumId.isNotEmpty ? albumId : key,
-          'name': albumName.isNotEmpty ? albumName : unknownAlbum,
-          'title': albumName.isNotEmpty ? albumName : unknownAlbum,
-          'artist': artistName.isNotEmpty ? artistName : unknownArtist,
-          'coverArt': raw['coverArt'] is String ? raw['coverArt'] : null,
-          'year': song.year,
-        };
-        groupedSongs[key] = <MusicFile>[song];
+        final songs = <MusicFile>[song];
+        order.add(key);
+        metaByKey[key] = _GenreAlbum(
+          id: albumId,
+          title: albumName.isNotEmpty ? albumName : l10n.unknownAlbum,
+          artist: artistName.isNotEmpty ? artistName : l10n.unknownArtist,
+          coverArtId:
+              raw['coverArt'] is String ? raw['coverArt'] as String : null,
+          songs: songs,
+        );
+        songsByKey[key] = songs;
       } else {
-        groupedSongs[key]!.add(song);
+        songsByKey[key]!.add(song);
       }
     }
 
-    for (final entry in groupedSongs.entries) {
-      entry.value.sort((a, b) {
+    for (final key in order) {
+      songsByKey[key]!.sort((a, b) {
         final trackA = a.trackNumber ?? 1 << 20;
         final trackB = b.trackNumber ?? 1 << 20;
         final cmp = trackA.compareTo(trackB);
@@ -235,15 +242,11 @@ class _RemoteGenreDetailContentState
             .toLowerCase()
             .compareTo((b.title ?? b.name).toLowerCase());
       });
-      groups[entry.key]!['songCount'] = entry.value.length;
-      _trackCache[groups[entry.key]!['id'] as String] = entry.value;
     }
 
-    final albums = groups.values.toList();
+    final albums = [for (final key in order) metaByKey[key]!];
     albums.sort(
-      (a, b) => (a['title'] as String? ?? '')
-          .toLowerCase()
-          .compareTo((b['title'] as String? ?? '').toLowerCase()),
+      (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
     );
     return albums;
   }
@@ -289,14 +292,11 @@ class _RemoteGenreDetailContentState
       );
     }
 
-    // 优先用列表页的服务器统计，保证和左栏的「N 首 · M 张专辑」完全一致；
-    // 单独进入（无统计）时才退回本地计数。
-    final songCount = widget.songCount ?? _songs.length;
-    final albumCount = widget.albumCount ?? _albums.length;
+    // 三个数字全部来自同一份聚合结果，任何一处都不会互相打架。
     final durationLabel =
         formatDurationClock(_totalDurationMillis) ?? l10n.durationZero;
-    final metaLine =
-        '${l10n.songCount(songCount)} · ${l10n.albumCount(albumCount)} · $durationLabel';
+    final metaLine = '${l10n.songCount(_songs.length)} · '
+        '${l10n.albumCount(_albums.length)} · $durationLabel';
 
     final isPortrait =
         MediaQuery.orientationOf(context) == Orientation.portrait;
@@ -386,12 +386,16 @@ class _RemoteGenreDetailContentState
   }
 
   /// 横屏：一张专辑一个分组，左封面 + 右曲目（与本地流派页横屏一致）。
+  ///
+  /// 曲目来自聚合时的同一份数据，不再额外请求专辑接口。
   List<Widget> _buildAlbumSectionSlivers(
     BuildContext context, {
     required double availableWidth,
     required double horizontalPadding,
     required double coverSize,
   }) {
+    final currentPath = ref.watch(audioCurrentMusicProvider)?.path;
+
     return [
       SliverPadding(
         padding: EdgeInsets.fromLTRB(
@@ -404,28 +408,43 @@ class _RemoteGenreDetailContentState
           itemCount: _albums.length,
           itemBuilder: (context, index) {
             final album = _albums[index];
-            final albumId = album['id'] as String? ?? '';
             return Padding(
-              padding: EdgeInsets.only(bottom: index == _albums.length - 1 ? 0 : 36),
+              padding: EdgeInsets.only(
+                bottom: index == _albums.length - 1 ? 0 : 36,
+              ),
               child: _RemoteGenreAlbumSection(
-                key: ValueKey('genre-album-$albumId'),
-                client: _client,
+                key: ValueKey('genre-album-${album.id}-${album.title}'),
                 server: widget.server,
                 password: widget.password,
                 album: album,
-                genreId: widget.genreId,
-                genreName: widget.genreName,
                 coverSize: coverSize,
-                cachedSongs: _trackCache[albumId],
-                onSongsLoaded: (songs) {
-                  if (songs.isNotEmpty) _trackCache[albumId] = songs;
-                },
+                currentPath: currentPath,
+                onPlay: _playAlbum,
               ),
             );
           },
         ),
       ),
     ];
+  }
+
+  void _playAlbum(
+    _GenreAlbum album, {
+    int initialIndex = 0,
+    bool shuffle = false,
+  }) {
+    if (album.songs.isEmpty) return;
+    final playlist =
+        shuffle ? (List<MusicFile>.of(album.songs)..shuffle()) : album.songs;
+    ref.read(audioServiceProvider).playPlaylist(
+          playlist,
+          initialIndex: shuffle ? 0 : initialIndex,
+          source: PlaybackSource(
+            type: PlaybackSourceType.genre,
+            id: 'remote-${widget.server.id}-${widget.genreId}-${album.id}',
+            name: album.title,
+          ),
+        );
   }
 
   int get _totalDurationMillis {
@@ -437,11 +456,34 @@ class _RemoteGenreDetailContentState
   }
 }
 
+/// 聚合出来的专辑：曲目与元信息绑在一起，避免再按 id 反查。
+class _GenreAlbum {
+  /// 真实专辑 id；歌曲没有 albumId 时为空串（此时不可跳转专辑详情）。
+  final String id;
+  final String title;
+  final String artist;
+  final String? coverArtId;
+  final List<MusicFile> songs;
+
+  const _GenreAlbum({
+    required this.id,
+    required this.title,
+    required this.artist,
+    required this.coverArtId,
+    required this.songs,
+  });
+
+  bool get canOpen => id.isNotEmpty;
+
+  int get durationMillis =>
+      songs.fold<int>(0, (sum, song) => sum + (song.durationMillis ?? 0));
+}
+
 /// 竖屏网格里的单个专辑卡片。
 class _RemoteGenreAlbumCard extends ConsumerWidget {
   final RemoteServer server;
   final String password;
-  final Map<String, dynamic> album;
+  final _GenreAlbum album;
   final double coverSize;
 
   const _RemoteGenreAlbumCard({
@@ -451,22 +493,17 @@ class _RemoteGenreAlbumCard extends ConsumerWidget {
     required this.coverSize,
   });
 
-  String get _id => album['id'] as String? ?? '';
-  String get _title =>
-      album['title'] as String? ?? album['name'] as String? ?? '';
-  String get _artist => album['artist'] as String? ?? '';
-  String? get _coverArtId => album['coverArt'] as String?;
-
   void _openAlbum(BuildContext context, WidgetRef ref) {
+    if (!album.canOpen) return;
     RemoteLibraryNavUtils.openAlbum(
       context,
       ref,
       server: server,
       password: password,
-      albumId: _id,
-      albumName: _title,
-      artistName: _artist,
-      coverArtId: _coverArtId,
+      albumId: album.id,
+      albumName: album.title,
+      artistName: album.artist,
+      coverArtId: album.coverArtId,
     );
   }
 
@@ -474,32 +511,31 @@ class _RemoteGenreAlbumCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final title = _title.isNotEmpty ? _title : l10n.unknownAlbum;
-    final artist = _artist.isNotEmpty ? _artist : l10n.unknownArtist;
-    final songCount = (album['songCount'] as num?)?.toInt() ?? 0;
-    final subtitle = songCount > 0
-        ? '$artist · ${l10n.trackCountShort(songCount)}'
-        : artist;
+    final subtitle = album.artist.isNotEmpty
+        ? '${album.artist} · ${l10n.trackCountShort(album.songs.length)}'
+        : l10n.trackCountShort(album.songs.length);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: () => _openAlbum(context, ref),
-        onSecondaryTapDown: (details) {
-          showRemoteAlbumContextMenu(
-            context: context,
-            globalPosition: details.globalPosition,
-            ref: ref,
-            server: server,
-            password: password,
-            albumId: _id,
-            albumTitle: title,
-            artistName: artist,
-            coverArtId: _coverArtId,
-            onViewDetails: () => _openAlbum(context, ref),
-          );
-        },
+        onTap: album.canOpen ? () => _openAlbum(context, ref) : null,
+        onSecondaryTapDown: album.canOpen
+            ? (details) {
+                showRemoteAlbumContextMenu(
+                  context: context,
+                  globalPosition: details.globalPosition,
+                  ref: ref,
+                  server: server,
+                  password: password,
+                  albumId: album.id,
+                  albumTitle: album.title,
+                  artistName: album.artist,
+                  coverArtId: album.coverArtId,
+                  onViewDetails: () => _openAlbum(context, ref),
+                );
+              }
+            : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -507,7 +543,7 @@ class _RemoteGenreAlbumCard extends ConsumerWidget {
             RemoteArtworkWidget(
               server: server,
               password: password,
-              coverArtId: _coverArtId,
+              coverArtId: album.coverArtId,
               size: coverSize,
               width: coverSize,
               height: coverSize,
@@ -516,7 +552,7 @@ class _RemoteGenreAlbumCard extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              title,
+              album.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -539,149 +575,61 @@ class _RemoteGenreAlbumCard extends ConsumerWidget {
   }
 }
 
-/// 横屏分组：左封面 + 右曲目列表，曲目按需向服务器拉取（带缓存）。
-class _RemoteGenreAlbumSection extends ConsumerStatefulWidget {
-  final RemoteMediaLibraryClient client;
+/// 横屏分组：左封面 + 右曲目列表，曲目已在聚合阶段就位。
+class _RemoteGenreAlbumSection extends ConsumerWidget {
   final RemoteServer server;
   final String password;
-  final Map<String, dynamic> album;
-  final String genreId;
-  final String genreName;
+  final _GenreAlbum album;
   final double coverSize;
-  final List<MusicFile>? cachedSongs;
-  final void Function(List<MusicFile> songs) onSongsLoaded;
+  final String? currentPath;
+  final void Function(_GenreAlbum album, {int initialIndex, bool shuffle})
+      onPlay;
 
   const _RemoteGenreAlbumSection({
     super.key,
-    required this.client,
     required this.server,
     required this.password,
     required this.album,
-    required this.genreId,
-    required this.genreName,
     required this.coverSize,
-    required this.cachedSongs,
-    required this.onSongsLoaded,
+    required this.currentPath,
+    required this.onPlay,
   });
 
-  @override
-  ConsumerState<_RemoteGenreAlbumSection> createState() =>
-      _RemoteGenreAlbumSectionState();
-}
-
-class _RemoteGenreAlbumSectionState
-    extends ConsumerState<_RemoteGenreAlbumSection> {
-  bool _isLoading = false;
-  String? _error;
-  List<MusicFile> _songs = const [];
-
-  String get _albumId => widget.album['id'] as String? ?? '';
-
-  @override
-  void initState() {
-    super.initState();
-    final cached = widget.cachedSongs;
-    if (cached != null) {
-      _songs = cached;
-    } else {
-      _loadTracks();
-    }
-  }
-
-  Future<void> _loadTracks() async {
-    if (_albumId.isEmpty) return;
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-    try {
-      final raws = await widget.client.getAlbumSongs(_albumId);
-      final songs =
-          raws.map(widget.client.buildMusicFile).toList(growable: false);
-      widget.onSongsLoaded(songs);
-      if (!mounted) return;
-      setState(() {
-        _songs = songs;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _playFrom(int index, {bool shuffle = false}) {
-    if (_songs.isEmpty) return;
-    final playlist =
-        shuffle ? (List<MusicFile>.of(_songs)..shuffle()) : _songs;
-    ref.read(audioServiceProvider).playPlaylist(
-          playlist,
-          initialIndex: shuffle ? 0 : index,
-          source: PlaybackSource(
-            type: PlaybackSourceType.genre,
-            id: 'remote-${widget.server.id}-${widget.genreId}-$_albumId',
-            name: (widget.album['title'] as String?) ?? widget.genreName,
-          ),
-        );
-  }
-
-  void _openAlbum() {
+  void _openAlbum(BuildContext context, WidgetRef ref) {
+    if (!album.canOpen) return;
     RemoteLibraryNavUtils.openAlbum(
       context,
       ref,
-      server: widget.server,
-      password: widget.password,
-      albumId: _albumId,
-      albumName: widget.album['title'] as String? ??
-          widget.album['name'] as String? ??
-          '',
-      artistName: widget.album['artist'] as String?,
-      coverArtId: widget.album['coverArt'] as String?,
+      server: server,
+      password: password,
+      albumId: album.id,
+      albumName: album.title,
+      artistName: album.artist,
+      coverArtId: album.coverArtId,
     );
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final currentPath = ref.watch(audioCurrentMusicProvider)?.path;
-
-    final title = (widget.album['title'] as String?)?.isNotEmpty == true
-        ? widget.album['title'] as String
-        : ((widget.album['name'] as String?)?.isNotEmpty == true
-            ? widget.album['name'] as String
-            : l10n.unknownAlbum);
-    final artist = (widget.album['artist'] as String?)?.isNotEmpty == true
-        ? widget.album['artist'] as String
-        : l10n.unknownArtist;
-    final serverSongCount = (widget.album['songCount'] as num?)?.toInt() ?? 0;
-    final shownSongCount =
-        _songs.isNotEmpty ? _songs.length : serverSongCount;
-    final durationLabel = _songs.isEmpty
-        ? null
-        : formatDurationClock(
-            _songs.fold<int>(0, (sum, s) => sum + (s.durationMillis ?? 0)),
-          );
-    final subtitle = [
-      l10n.songCount(shownSongCount),
-      ?durationLabel,
-    ].join(' · ');
+    final durationLabel =
+        formatDurationClock(album.durationMillis) ?? l10n.durationZero;
+    final subtitle =
+        '${l10n.songCount(album.songs.length)} · $durationLabel';
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GestureDetector(
-          onTap: _openAlbum,
+          onTap: album.canOpen ? () => _openAlbum(context, ref) : null,
           child: RemoteArtworkWidget(
-            server: widget.server,
-            password: widget.password,
-            coverArtId: widget.album['coverArt'] as String?,
-            size: widget.coverSize,
-            width: widget.coverSize,
-            height: widget.coverSize,
+            server: server,
+            password: password,
+            coverArtId: album.coverArtId,
+            size: coverSize,
+            width: coverSize,
+            height: coverSize,
             borderRadius: BorderRadius.circular(10),
             fallbackIcon: Icons.album_rounded,
           ),
@@ -695,13 +643,14 @@ class _RemoteGenreAlbumSectionState
                 children: [
                   Expanded(
                     child: GestureDetector(
-                      onTap: _openAlbum,
+                      onTap:
+                          album.canOpen ? () => _openAlbum(context, ref) : null,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            title,
+                            album.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.titleMedium?.copyWith(
@@ -711,7 +660,7 @@ class _RemoteGenreAlbumSectionState
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '$artist · $subtitle',
+                            '${album.artist} · $subtitle',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -728,55 +677,27 @@ class _RemoteGenreAlbumSectionState
                     visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.play_arrow_rounded, size: 20),
                     onPressed:
-                        _songs.isEmpty ? null : () => _playFrom(0),
+                        album.songs.isEmpty ? null : () => onPlay(album),
                   ),
                   IconButton(
                     tooltip: l10n.shuffle,
                     visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.shuffle_rounded, size: 18),
-                    onPressed: _songs.isEmpty
+                    onPressed: album.songs.isEmpty
                         ? null
-                        : () => _playFrom(0, shuffle: true),
+                        : () => onPlay(album, shuffle: true),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
-              if (_isLoading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              else if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: TextButton(
-                    onPressed: _loadTracks,
-                    child: Text(l10n.retry),
-                  ),
-                )
-              else if (_songs.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    l10n.emptyList,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                )
-              else
-                for (int i = 0; i < _songs.length; i++)
-                  _RemoteGenreSongRow(
-                    song: _songs[i],
-                    index: i,
-                    isCurrent:
-                        currentPath != null && currentPath == _songs[i].path,
-                    onTap: () => _playFrom(i),
-                  ),
+              for (int i = 0; i < album.songs.length; i++)
+                _RemoteGenreSongRow(
+                  song: album.songs[i],
+                  index: i,
+                  isCurrent: currentPath != null &&
+                      currentPath == album.songs[i].path,
+                  onTap: () => onPlay(album, initialIndex: i),
+                ),
             ],
           ),
         ),

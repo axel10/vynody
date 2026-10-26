@@ -736,56 +736,6 @@ class JellyfinClient {
         .toList();
   }
 
-  /// Fetches the albums tagged with a genre.
-  ///
-  /// 必须用专辑实体查询（`IncludeItemTypes=MusicAlbum` + `GenreIds`），
-  /// 不能由流派歌曲聚合：Jellyfin 的专辑流派是专辑实体上的聚合字段
-  /// （例如 `['electronic','j-pop','pop']`），与曲目自身的 `Genres` 可能是
-  /// 两套数据——不少专辑的曲目根本没有流派，此时按歌曲聚合会漏掉专辑，
-  /// 表现就是「侧栏统计 12 张、详情面板只有 5 张」。
-  Future<List<Map<String, dynamic>>> getAlbumsByGenre({
-    required String genreId,
-    required String genreName,
-    int count = 500,
-    int offset = 0,
-  }) async {
-    if (genreId.isEmpty) return const [];
-    final session = await authenticate();
-    final res = await _get('/Users/${session.userId}/Items', {
-      'IncludeItemTypes': 'MusicAlbum',
-      'Recursive': true,
-      'GenreIds': genreId,
-      'StartIndex': offset,
-      'Limit': count,
-      'SortBy': 'SortName',
-      'SortOrder': 'Ascending',
-      'Fields': 'ChildCount,ItemCounts',
-    });
-
-    final items = res['Items'] as List? ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map(normalizeAlbumItem)
-        .toList();
-  }
-
-  /// Fetches only the album's songs (single round trip, no album metadata).
-  Future<List<Map<String, dynamic>>> getAlbumSongs(String albumId) async {
-    if (albumId.isEmpty) return const [];
-    final session = await authenticate();
-    final res = await _get('/Users/${session.userId}/Items', {
-      'ParentId': albumId,
-      'IncludeItemTypes': 'Audio',
-      'SortBy': 'ParentIndexNumber,IndexNumber,SortName',
-      'SortOrder': 'Ascending',
-    });
-    final items = res['Items'] as List? ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map(normalizeSongItem)
-        .toList();
-  }
-
   /// Fetches all playlists.
   Future<List<Map<String, dynamic>>> getPlaylists() async {
     final session = await authenticate();

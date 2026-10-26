@@ -32,29 +32,15 @@ abstract class RemoteMediaLibraryClient {
 
   /// 取某个流派下的歌曲。`genreId` 为该流派在 [getGenres] 中的 `id`
   /// （Subsonic 侧没有独立 ID，传流派名即可）。
+  ///
+  /// 流派页的专辑列表由这里拿到的歌曲在本地聚合，不再单独查「流派下的专辑」：
+  /// 服务器对专辑级流派和曲目级流派是两套口径，混用会出现
+  /// 「列出 12 张专辑、其中 7 张点进去没有该流派的歌」的矛盾。
   Future<List<Map<String, dynamic>>> getSongsByGenre(
     String genreId, {
     int count = 500,
     int offset = 0,
   });
-
-  /// 取某个流派下的专辑，元素形如
-  /// `{id, title, name, artist, songCount, coverArt, year}`。
-  ///
-  /// 之所以单独查专辑而不是由歌曲聚合：服务器统计的「专辑数」是按专辑实体
-  /// 的流派算的，而歌曲列表只包含自身流派命中该流派的曲目，两者可能不一致
-  /// （整张专辑有 20 首，其中只有 3 首带该流派标签时，聚合只能得到 1 张专辑，
-  /// 但服务器的专辑数依然是 1；差异出现在专辑级流派与曲目级流派不同的库）。
-  /// Subsonic 侧流派没有 ID，用流派名走 `getAlbumList2?type=byGenre`。
-  Future<List<Map<String, dynamic>>> getAlbumsByGenre({
-    required String genreId,
-    required String genreName,
-    int count = 500,
-    int offset = 0,
-  });
-
-  /// 只取某张专辑的曲目（不含专辑信息），用于流派页横屏的专辑分组。
-  Future<List<Map<String, dynamic>>> getAlbumSongs(String albumId);
 
   Future<List<Map<String, dynamic>>> getPlaylists();
   Future<Map<String, dynamic>?> getPlaylist(String playlistId);
@@ -165,24 +151,6 @@ class SubsonicMediaLibraryClient implements RemoteMediaLibraryClient {
     int offset = 0,
   }) =>
       client.getSongsByGenre(genreId, count: count, offset: offset);
-
-  @override
-  Future<List<Map<String, dynamic>>> getAlbumsByGenre({
-    required String genreId,
-    required String genreName,
-    int count = 500,
-    int offset = 0,
-  }) =>
-      client.getAlbumsByGenre(
-        genreId: genreId,
-        genreName: genreName,
-        count: count,
-        offset: offset,
-      );
-
-  @override
-  Future<List<Map<String, dynamic>>> getAlbumSongs(String albumId) =>
-      client.getAlbumSongs(albumId);
 
   @override
   Future<List<Map<String, dynamic>>> getPlaylists() => client.getPlaylists();
@@ -324,24 +292,6 @@ class JellyfinMediaLibraryClient implements RemoteMediaLibraryClient {
     int offset = 0,
   }) =>
       client.getSongsByGenre(genreId, count: count, offset: offset);
-
-  @override
-  Future<List<Map<String, dynamic>>> getAlbumsByGenre({
-    required String genreId,
-    required String genreName,
-    int count = 500,
-    int offset = 0,
-  }) =>
-      client.getAlbumsByGenre(
-        genreId: genreId,
-        genreName: genreName,
-        count: count,
-        offset: offset,
-      );
-
-  @override
-  Future<List<Map<String, dynamic>>> getAlbumSongs(String albumId) =>
-      client.getAlbumSongs(albumId);
 
   @override
   Future<List<Map<String, dynamic>>> getPlaylists() => client.getPlaylists();

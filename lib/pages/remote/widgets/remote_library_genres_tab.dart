@@ -105,8 +105,6 @@ class _RemoteLibraryGenresViewState
           password: widget.password,
           genreId: id,
           genreName: name,
-          songCount: (genre['songCount'] as num?)?.toInt(),
-          albumCount: (genre['albumCount'] as num?)?.toInt(),
         ),
       ),
     );
@@ -196,10 +194,6 @@ class _RemoteLibraryGenresViewState
                         password: widget.password,
                         genreId: _genreId(selected),
                         genreName: selected['name'] as String? ?? l10n.genres,
-                        songCount:
-                            (selected['songCount'] as num?)?.toInt(),
-                        albumCount:
-                            (selected['albumCount'] as num?)?.toInt(),
                         bottomOffset: widget.bottomOffset,
                       ),
               ),
@@ -364,7 +358,6 @@ class _RemoteGenreItem extends StatelessWidget {
     final theme = Theme.of(context);
     final name = genre['name'] as String? ?? l10n.genres;
     final songCount = (genre['songCount'] as num?)?.toInt() ?? 0;
-    final albumCount = (genre['albumCount'] as num?)?.toInt() ?? 0;
     final coverArtId = genre['coverArt'] as String?;
 
     return Material(
@@ -409,7 +402,7 @@ class _RemoteGenreItem extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${l10n.songCount(songCount)} · ${l10n.albumCount(albumCount)}',
+                      l10n.songCount(songCount),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
