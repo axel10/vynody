@@ -21,7 +21,7 @@
 | 设置项 | `settings_service.dart` 三段 → 6 处同步：key 常量、`SettingProperty`、getter+setter、`resetXxx()`、`settings_search_registry.dart`、`sections/<组>_section.dart` |
 | 流派聚合键 | `normalizeGenreKey()`（`_genreKeyEquivalents` 收敛 `JPop`→`j pop`）；派生 `queryKey` 与 `matchGenreAssetKey()` 同源；`_acronymDisplays` 吃 `raw.toLowerCase()` 不能跟着改；`_substringAssetRules` 连写 needle 必须留 |
 | 详情三页 | `album_sections.dart`、`collection_detail_content.dart`、`collection_detail_header.dart`、`detail_page_shell.dart`；禁各写分组排序/曲目行；分组宽 ≥600 走「左封面右列表」 |
-| 主从视图搜索 | 输入框唯一实现 `LibrarySearchField`；横屏左栏搜索走 `MasterDetailScaffold.masterPaneHeaderBuilder`（页头传 `LibraryCategoryHeader(showSearch: false)`），禁把列表搜索留在跨两栏的页头里；详情内搜索统一 `filterAlbumSections()`，**过滤后必须重算 `AlbumSection.startIndex`**；复位按 `source.id`/`artist.queryKey`，禁按歌曲列表 identity（播放写入会让曲库快照重算，会清掉正在输入的词） |
+| 主从视图搜索 | 输入框唯一实现 `LibrarySearchField`；横屏左栏搜索走 `MasterDetailScaffold.masterPaneHeaderBuilder`（页头传 `LibraryCategoryHeader(showSearch: false)`），禁把列表搜索留在跨两栏的页头里；详情内搜索统一 `filterAlbumSections()`，**过滤后必须重算 `AlbumSection.startIndex`**；复位按 `source.id`/`artist.queryKey`，禁按歌曲列表 identity（播放写入会让曲库快照重算，会清掉正在输入的词）；**开关固定在操作区行尾最右端**（本地艺术家/流派/年份 + 远程艺术家/流派），禁再单独占一行右对齐 |
 | 洞察页视图状态 | `LibraryInsightFilterNotifier`；复位点唯一 `_LibrarySubHostPageState.dispose`（微任务 `reset()`）；切子分类不销毁宿主 → 保留，回仪表盘才复位 |
 | 子分类导航域 | `library_tab_navigator.dart`（每分类一条 `Navigator` + `HeroController`）挂宿主 `IndexedStack`。切分类只改 provider/索引，**禁 popUntil**；tab 根内边距在路由 builder 重算 |
 | 洞察页列表 | `library_insight_list.dart`（单曲/专辑同一 widget，只换 body sliver）、`insight_metric_text.dart`；禁再写 `LibraryRankedSongList`/`AlbumList`；行内边距唯一来源 `_insightRowPadding` + `kInsightListHorizontalInset` |

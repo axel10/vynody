@@ -983,11 +983,17 @@ class _RemoteArtistDetailContentState
                                     ],
                                     const SizedBox(height: 18),
 
-                                    // Row 3: 按钮占一行（通栏并排两个胶囊按钮 + 下载/收藏圆形快捷按钮）
+                                    // Row 3: 按钮占一行（通栏并排两个胶囊按钮 + 下载/收藏圆形快捷按钮），
+                                    // 搜索开关贴在这行右端；左侧留等宽占位，保证按钮组仍然居中。
                                     Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
                                       children: [
+                                        // 与右侧搜索开关等宽（34），保证按钮组整体仍然居中。
+                                        const SizedBox(width: 34),
+                                        Expanded(
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
                                         ConstrainedBox(
                                           constraints: const BoxConstraints(
                                             minWidth: 124,
@@ -1181,6 +1187,10 @@ class _RemoteArtistDetailContentState
                                             size: 20,
                                           ),
                                         ),
+                                            ],
+                                          ),
+                                        ),
+                                        _buildSearchToggle(l10n, theme),
                                       ],
                                     ),
                                   ],
@@ -1197,7 +1207,7 @@ class _RemoteArtistDetailContentState
                   ),
                 ),
 
-                // 艺术家内搜索：默认收起，展开后在页头下方占一行。
+                // 艺术家内搜索：开关在页头操作行右端，展开后搜索框在页头下方占一行。
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
@@ -1210,10 +1220,6 @@ class _RemoteArtistDetailContentState
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: _buildSearchToggle(l10n, theme),
-                        ),
                         _buildSearchField(l10n),
                       ],
                     ),
@@ -1331,7 +1337,7 @@ class _RemoteArtistDetailContentState
     );
   }
 
-  /// 页头下方的搜索开关。展开时图标高亮，再点一次收起并清空。
+  /// 页头操作行右端的搜索开关。展开时图标高亮，再点一次收起并清空。
   Widget _buildSearchToggle(AppLocalizations l10n, ThemeData theme) {
     return IconButton(
       tooltip: _searchOpen ? l10n.closeSearch : l10n.search,
@@ -1495,10 +1501,16 @@ class _RemoteArtistDetailContentState
           ],
         ),
         const SizedBox(height: 18),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
+        // 操作按钮与搜索开关同一行：搜索贴在这行的右端，既不额外占一行，
+        // 也不会孤零零悬在页头右下方。按钮换行时搜索跟随第一行顶部对齐。
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Expanded(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
             FilledButton.icon(
               onPressed: songs.isNotEmpty
                   ? () => _playAll(shuffle: false, songs: songs)
@@ -1595,6 +1607,15 @@ class _RemoteArtistDetailContentState
                   color: _isStarred ? theme.colorScheme.primary : null,
                 ),
               ),
+            ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Padding(
+              // 搜索按钮 34 高、按钮 44 高，下移 5 让两者视觉中线对齐。
+              padding: const EdgeInsets.only(top: 5),
+              child: _buildSearchToggle(l10n, theme),
             ),
           ],
         ),
