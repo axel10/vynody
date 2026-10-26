@@ -230,7 +230,8 @@ FolderGridFontSizes folderGridFontSizes(double cardWidth) {
 }
 
 /// 目录页列表视图的行间距（相邻两行 `Row` 之间）。
-const double kFolderListRowSpacing = 8.0;
+/// 列表模式下条目之间无额外间距，完全交由条目内部上下 padding 保持留白。
+const double kFolderListRowSpacing = 0.0;
 
 /// 标题横幅高度的兜底值：测不到实测高度时使用（首帧、或横幅已滚出缓存区）。
 const double kFolderHeaderBannerFallbackHeight = 190.0;

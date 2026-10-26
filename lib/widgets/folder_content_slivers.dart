@@ -317,19 +317,16 @@ class FolderSubfoldersSliver extends StatelessWidget {
                       key: const ValueKey('folder_system'),
                       index: index,
                       enabled: false,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: SizedBox(
-                          height: metrics.animatedListExtent,
-                          child: FolderZoomItem(
-                            folder: systemFolder,
-                            metrics: metrics,
-                            songsCount: songsCount,
-                            representativeSong: representativeSong,
-                            subtitle:
-                                hasPermission ? null : systemMediaSubtitle,
-                            onTap: null,
-                          ),
+                      child: SizedBox(
+                        height: metrics.animatedListExtent,
+                        child: FolderZoomItem(
+                          folder: systemFolder,
+                          metrics: metrics,
+                          songsCount: songsCount,
+                          representativeSong: representativeSong,
+                          subtitle:
+                              hasPermission ? null : systemMediaSubtitle,
+                          onTap: null,
                         ),
                       ),
                     );
@@ -348,16 +345,14 @@ class FolderSubfoldersSliver extends StatelessWidget {
                     child: AnimatedOpacity(
                       opacity: isAvailable ? 1.0 : 0.45,
                       duration: const Duration(milliseconds: 180),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: SizedBox(
-                          height: metrics.animatedListExtent,
-                          child: FolderZoomItem(
-                            folder: folder,
-                            metrics: metrics,
-                            songsCount: songsCount,
-                            representativeSong: representativeSong,
-                            isSelected: false,
+                      child: SizedBox(
+                        height: metrics.animatedListExtent,
+                        child: FolderZoomItem(
+                          folder: folder,
+                          metrics: metrics,
+                          songsCount: songsCount,
+                          representativeSong: representativeSong,
+                          isSelected: false,
                             isSelectionMode: false,
                             isSortMode: true,
                             onTap: null,
@@ -384,8 +379,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
                           ),
                         ),
                       ),
-                    ),
-                  );
+                    );
                 },
               ),
             );

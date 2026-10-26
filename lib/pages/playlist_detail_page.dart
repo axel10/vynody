@@ -340,7 +340,6 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: isPortrait ? 8 : 16,
-                    vertical: 2,
                   ),
                   child: SizedBox(
                     height: metrics.animatedListExtent,

@@ -388,38 +388,35 @@ class RemoteServersSliver extends ConsumerWidget {
                   return ReorderableDelayedDragStartListener(
                     key: ValueKey('sort_server_${server.id}'),
                     index: index,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: SizedBox(
-                        height: metrics.animatedListExtent,
-                        child: RemoteServerZoomItem(
-                          server: server,
-                          metrics: metrics,
-                          isProUnlocked: isProUnlocked,
-                          isSortMode: true,
-                          trailing: ReorderableDragStartListener(
-                            index: index,
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Icon(
-                                Icons.drag_handle_rounded,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant
-                                    .withValues(alpha: 0.7),
-                              ),
+                    child: SizedBox(
+                      height: metrics.animatedListExtent,
+                      child: RemoteServerZoomItem(
+                        server: server,
+                        metrics: metrics,
+                        isProUnlocked: isProUnlocked,
+                        isSortMode: true,
+                        trailing: ReorderableDragStartListener(
+                          index: index,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Icon(
+                              Icons.drag_handle_rounded,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.7),
                             ),
                           ),
-                          onTap: null,
-                          onContextMenu: (position) {
-                            showRemoteServerContextMenu(
-                              context: context,
-                              position: position,
-                              server: server,
-                              ref: ref,
-                            );
-                          },
                         ),
+                        onTap: null,
+                        onContextMenu: (position) {
+                          showRemoteServerContextMenu(
+                            context: context,
+                            position: position,
+                            server: server,
+                            ref: ref,
+                          );
+                        },
                       ),
                     ),
                   );

@@ -609,7 +609,6 @@ class _QueuePageState extends ConsumerState<QueuePage>
                                             Orientation.portrait
                                         ? 8
                                         : 16,
-                                    vertical: 4,
                                   ),
                                   child: SizedBox(
                                     height: metrics.animatedListExtent,
