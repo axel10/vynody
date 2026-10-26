@@ -1900,11 +1900,18 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
       MediaQuery.paddingOf(context).top,
     );
 
+    // Rail 文字色与曲目行（SongTile / AlbumSongTile）保持同一套：
+    // 选中 = colorScheme.primary，未选中 = colorScheme.onSurface（正文色，不用变体灰）。
+    // 分区小标题对齐曲目行的副标题（艺术家行）用 onSurfaceVariant，保留层级。
+    // 播放页/小窗叠在封面模糊背景上，统一取白色保证可读。
     final activeColor = widget.isPlayback
         ? Colors.white
         : theme.colorScheme.primary;
     final inactiveColor = widget.isPlayback
-        ? Colors.white.withValues(alpha: 0.80)
+        ? Colors.white
+        : theme.colorScheme.onSurface;
+    final sectionLabelColor = widget.isPlayback
+        ? Colors.white
         : theme.colorScheme.onSurfaceVariant;
 
     final int activeMainIndex = widget.selectedIndex.clamp(
@@ -2002,7 +2009,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
         child: _buildSectionHeader(
           title: l10n.list,
           activeColor: activeColor,
-          inactiveColor: inactiveColor,
+          inactiveColor: sectionLabelColor,
           subDestinations: librarySubDestinations,
         ),
       ),
@@ -2072,7 +2079,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
         child: _buildPlaylistSectionHeader(
           title: l10n.playlist,
           activeColor: activeColor,
-          inactiveColor: inactiveColor,
+          inactiveColor: sectionLabelColor,
           isExpanded: _isPlaylistExpanded,
           onToggleExpand: () {
             setState(() {
@@ -2431,7 +2438,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
                   fontSize: 12.0,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.2,
-                  color: inactiveColor.withValues(alpha: 0.70),
+                  color: inactiveColor,
                 ),
               ),
             ),
@@ -2494,7 +2501,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
                         fontSize: 12.0,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.2,
-                        color: inactiveColor.withValues(alpha: 0.70),
+                        color: inactiveColor,
                       ),
                     ),
                   ),
@@ -2516,7 +2523,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
                           ? Icons.keyboard_arrow_down_rounded
                           : Icons.keyboard_arrow_right_rounded,
                       size: 16.0,
-                      color: inactiveColor.withValues(alpha: 0.85),
+                      color: inactiveColor,
                     ),
                   ),
                 ),

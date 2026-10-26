@@ -551,6 +551,15 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
     final sidebarSections = SettingsSection.sidebarSections;
     final statusBarTop = MediaQuery.paddingOf(context).top;
 
+    // 与 MainLayout 的左侧 Rail 保持同一套文字色：用纯白 / 近黑，
+    // 而不是 onSurfaceVariant（暗色 #9E9EA3 在近黑底上整体发闷发灰，
+    // 会让所有未选中项看起来都像禁用态）。亮色模式下纯黑偏硬，
+    // 压一档透明度略作收敛。
+    final isDark = theme.brightness == Brightness.dark;
+    final itemTextColor = isDark
+        ? Colors.white
+        : Colors.black.withValues(alpha: 0.82);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -608,8 +617,8 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
                   selected: isSelected,
                   selectedTileColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
                   selectedColor: theme.colorScheme.primary,
-                  textColor: theme.colorScheme.onSurfaceVariant,
-                  iconColor: theme.colorScheme.onSurfaceVariant,
+                  textColor: itemTextColor,
+                  iconColor: itemTextColor,
                   leading: Container(
                     width: 28,
                     height: 28,
