@@ -1425,6 +1425,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Titelnummer muss eine ganze Zahl sein';
 
   @override
+  String get genreLabel => 'Genre';
+
+  @override
+  String get yearLabel => 'Jahr';
+
+  @override
+  String get yearMustBeInteger => 'Das Jahr muss eine ganze Zahl sein';
+
+  @override
+  String get genresSeparatorHint => 'Mehrere Genres durch Kommas trennen';
+
+  @override
   String get leaveBlankKeepsCurrentValue =>
       'Leer lassen, um dieses Feld zu leeren';
 

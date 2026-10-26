@@ -1377,6 +1377,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackNumberMustBeInteger => 'トラック番号は整数である必要があります';
 
   @override
+  String get genreLabel => 'ジャンル';
+
+  @override
+  String get yearLabel => '年';
+
+  @override
+  String get yearMustBeInteger => '年は整数である必要があります';
+
+  @override
+  String get genresSeparatorHint => '複数のジャンルはカンマで区切ります';
+
+  @override
   String get leaveBlankKeepsCurrentValue => '空白にするとこのフィールドをクリアします';
 
   @override

@@ -1079,6 +1079,22 @@
   "albumLabel": "专辑",
   "trackNumberLabel": "曲目号",
   "trackNumberMustBeInteger": "曲目号必须是整数",
+  "genreLabel": "流派",
+  "@genreLabel": {
+    "description": "Label for the genre field in the tag edit dialog"
+  },
+  "yearLabel": "年份",
+  "@yearLabel": {
+    "description": "Label for the year field in the tag edit dialog"
+  },
+  "yearMustBeInteger": "年份必须是整数",
+  "@yearMustBeInteger": {
+    "description": "Validation error when the year field is not an integer"
+  },
+  "genresSeparatorHint": "多个流派用逗号分隔",
+  "@genresSeparatorHint": {
+    "description": "Helper text explaining how to enter multiple genres"
+  },
   "leaveBlankKeepsCurrentValue": "留空则清空该项",
   "currentFileFormatCannotWriteBack": "当前文件格式不支持写回源文件，只能保存到 App。",
   "leaveBlankDoesNotClearOriginalValue": "提示：留空会清空对应标签的值。",

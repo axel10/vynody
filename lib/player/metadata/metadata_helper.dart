@@ -246,6 +246,9 @@ class MetadataHelper {
     List<TrackMetadataPicture>? pictures,
     String? fallbackMediaUri,
     bool clearTrackNumber = false,
+    bool writeYear = false,
+    bool clearYear = false,
+    bool clearGenres = false,
   }) async {
     lastWriteError = null;
     if (!isMetadataWritable(filePath)) {
@@ -272,9 +275,14 @@ class MetadataHelper {
       albumArtist: metadata.albumArtist ?? '',
       trackNumber: metadata.trackNumber,
       genres: metadata.genres ?? const <String>[],
+      // Only touch the YEAR/DATE tags when the caller explicitly changed the
+      // year, otherwise writing a year would strip an existing DATE tag.
+      year: writeYear ? metadata.year : null,
       lyrics: lyrics,
       clearArtwork: isArtworkCleared,
       clearTrackNumber: clearTrackNumber,
+      clearGenres: clearGenres,
+      clearYear: writeYear && clearYear,
       pictures:
           pictures ??
           (artworkBytes == null || artworkBytes.isEmpty
@@ -319,6 +327,9 @@ class MetadataHelper {
     int? trackNumber,
     bool clearTrackNumber = false,
     List<String>? genres,
+    bool clearGenres = false,
+    int? year,
+    bool clearYear = false,
     Uint8List? artworkBytes,
     String? artworkPath,
     String? thumbnailPath,
@@ -467,10 +478,18 @@ class MetadataHelper {
             (File(filePath).existsSync()
                 ? File(filePath).lastModifiedSync().millisecondsSinceEpoch
                 : now),
-        genres: genres ?? base.genres,
+        genres: clearGenres
+            ? null
+            : (genres == null
+                ? base.genres
+                : (genres.isEmpty ? null : List<String>.from(genres))),
+        year: clearYear ? null : (year ?? base.year),
         isAppModified: true,
         sourceFlags: resolvedSourceFlags,
       );
+
+      final yearChanged =
+          clearYear || (year != null && year != base.year);
 
       if (writeToFile) {
         final fileUpdated = await _writeSelectionMetadataToFile(
@@ -479,6 +498,9 @@ class MetadataHelper {
           artworkBytes: artworkBytes,
           fallbackMediaUri: fallbackMediaUri,
           clearTrackNumber: clearTrackNumber,
+          writeYear: yearChanged,
+          clearYear: clearYear,
+          clearGenres: clearGenres,
         );
 
         if (!fileUpdated) {

@@ -2709,6 +2709,30 @@ abstract class AppLocalizations {
   /// **'曲目号必须是整数'**
   String get trackNumberMustBeInteger;
 
+  /// Label for the genre field in the tag edit dialog
+  ///
+  /// In zh, this message translates to:
+  /// **'流派'**
+  String get genreLabel;
+
+  /// Label for the year field in the tag edit dialog
+  ///
+  /// In zh, this message translates to:
+  /// **'年份'**
+  String get yearLabel;
+
+  /// Validation error when the year field is not an integer
+  ///
+  /// In zh, this message translates to:
+  /// **'年份必须是整数'**
+  String get yearMustBeInteger;
+
+  /// Helper text explaining how to enter multiple genres
+  ///
+  /// In zh, this message translates to:
+  /// **'多个流派用逗号分隔'**
+  String get genresSeparatorHint;
+
   /// No description provided for @leaveBlankKeepsCurrentValue.
   ///
   /// In zh, this message translates to:

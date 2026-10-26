@@ -1406,6 +1406,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trackNumberMustBeInteger => 'Track number must be an integer';
 
   @override
+  String get genreLabel => 'Genre';
+
+  @override
+  String get yearLabel => 'Year';
+
+  @override
+  String get yearMustBeInteger => 'Year must be an integer';
+
+  @override
+  String get genresSeparatorHint => 'Separate multiple genres with commas';
+
+  @override
   String get leaveBlankKeepsCurrentValue => 'Leave blank to clear this field';
 
   @override

@@ -1409,6 +1409,18 @@ class AppLocalizationsTr extends AppLocalizations {
       'Parça numarası bir tam sayı olmalıdır';
 
   @override
+  String get genreLabel => 'Tür';
+
+  @override
+  String get yearLabel => 'Yıl';
+
+  @override
+  String get yearMustBeInteger => 'Yıl bir tam sayı olmalıdır';
+
+  @override
+  String get genresSeparatorHint => 'Birden fazla türü virgülle ayırın';
+
+  @override
   String get leaveBlankKeepsCurrentValue =>
       'Bu alanı temizlemek için boş bırakın';
 

@@ -117,6 +117,12 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
   late final TextEditingController _albumArtistController;
   late final TextEditingController _albumController;
   late final TextEditingController _trackNumberController;
+  late final TextEditingController _genresController;
+  late final TextEditingController _yearController;
+
+  /// 初始输入值，用于区分「用户主动清空」与「本来就没有值」。
+  late final String _initialGenresText;
+  late final String _initialYearText;
 
   bool _isSaving = false;
   String? _errorMessage;
@@ -151,6 +157,12 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       _trackNumberController = TextEditingController(
         text: song?.trackNumber?.toString() ?? '',
       );
+      final singleGenresText = _joinGenres(song?.genres);
+      _genresController = TextEditingController(text: singleGenresText);
+      _initialGenresText = singleGenresText;
+      final singleYearText = _formatYear(song?.year);
+      _yearController = TextEditingController(text: singleYearText);
+      _initialYearText = singleYearText;
     } else {
       final firstTitle = songs.first.title?.trim();
       final allSameTitle = firstTitle != null &&
@@ -188,6 +200,21 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
             ? (firstTrack?.toString() ?? '')
             : keepTagPlaceholder,
       );
+
+      final firstGenresText = _joinGenres(songs.first.genres);
+      final allSameGenres =
+          songs.every((s) => _joinGenres(s.genres) == firstGenresText);
+      final batchGenresText =
+          allSameGenres ? firstGenresText : keepTagPlaceholder;
+      _genresController = TextEditingController(text: batchGenresText);
+      _initialGenresText = batchGenresText;
+
+      final firstYearText = _formatYear(songs.first.year);
+      final allSameYear =
+          songs.every((s) => _formatYear(s.year) == firstYearText);
+      final batchYearText = allSameYear ? firstYearText : keepTagPlaceholder;
+      _yearController = TextEditingController(text: batchYearText);
+      _initialYearText = batchYearText;
     }
 
     _loadArtwork();
@@ -476,6 +503,29 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     }
   }
 
+  /// 流派统一用「, 」拼接展示，读取时再按多种分隔符拆回去。
+  static String _joinGenres(List<String>? genres) {
+    if (genres == null || genres.isEmpty) return '';
+    return genres
+        .map((genre) => genre.trim())
+        .where((genre) => genre.isNotEmpty)
+        .join(', ');
+  }
+
+  static String _formatYear(int? year) =>
+      (year != null && year > 0) ? year.toString() : '';
+
+  static List<String> _parseGenres(String text) {
+    if (text.trim().isEmpty) return const <String>[];
+    final parsed = <String>[];
+    for (final raw in text.split(RegExp(r'[,，;；、/|]'))) {
+      final value = raw.trim();
+      if (value.isEmpty || parsed.contains(value)) continue;
+      parsed.add(value);
+    }
+    return parsed;
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -483,6 +533,8 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     _albumArtistController.dispose();
     _albumController.dispose();
     _trackNumberController.dispose();
+    _genresController.dispose();
+    _yearController.dispose();
     super.dispose();
   }
 
@@ -502,6 +554,29 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       });
       return;
     }
+
+    final yearText = _yearController.text.trim();
+    final isYearKeep = yearText == keepTagPlaceholder;
+    final year = (yearText.isEmpty || isYearKeep)
+        ? null
+        : int.tryParse(yearText);
+    if (!isYearKeep && yearText.isNotEmpty && year == null) {
+      setState(() {
+        _isSaving = false;
+        _errorMessage = l10n.yearMustBeInteger;
+      });
+      return;
+    }
+    // 只有用户把原本有值的年份清掉时才算「清空」，避免未填写的旧数据被误删。
+    final clearYear =
+        !isYearKeep && yearText.isEmpty && _initialYearText.trim().isNotEmpty;
+
+    final genresText = _genresController.text.trim();
+    final isGenresKeep = genresText == keepTagPlaceholder;
+    final genres = _parseGenres(genresText);
+    final clearGenres = !isGenresKeep &&
+        genres.isEmpty &&
+        _initialGenresText.trim().isNotEmpty;
 
     setState(() {
       _isSaving = true;
@@ -554,6 +629,10 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
         album: resolvedAlbum,
         trackNumber: songTrackNumber,
         clearTrackNumber: songClearTrackNumber,
+        genres: isGenresKeep ? null : genres,
+        clearGenres: clearGenres && !isGenresKeep,
+        year: isYearKeep ? null : year,
+        clearYear: clearYear && !isYearKeep,
         artworkBytes: _isArtworkModified ? _artworkBytes : null,
         existingMetadata: null,
         writeToFile: canWriteThisFile,
@@ -863,9 +942,26 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                         const SizedBox(height: 12),
                         _buildField(
                           context: context,
+                          controller: _genresController,
+                          label: l10n.genreLabel,
+                          icon: Icons.local_offer_rounded,
+                          helperText: l10n.genresSeparatorHint,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildField(
+                          context: context,
                           controller: _trackNumberController,
                           label: l10n.trackNumberLabel,
                           icon: Icons.numbers_rounded,
+                          keyboardType: TextInputType.number,
+                          helperText: l10n.leaveBlankKeepsCurrentValue,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildField(
+                          context: context,
+                          controller: _yearController,
+                          label: l10n.yearLabel,
+                          icon: Icons.event_rounded,
                           keyboardType: TextInputType.number,
                           helperText: l10n.leaveBlankKeepsCurrentValue,
                         ),

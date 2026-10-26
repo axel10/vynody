@@ -1381,6 +1381,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get trackNumberMustBeInteger => '트랙 번호는 정수여야 합니다';
 
   @override
+  String get genreLabel => '장르';
+
+  @override
+  String get yearLabel => '연도';
+
+  @override
+  String get yearMustBeInteger => '연도는 정수여야 합니다';
+
+  @override
+  String get genresSeparatorHint => '여러 장르는 쉼표로 구분하세요';
+
+  @override
   String get leaveBlankKeepsCurrentValue => '비워두면 이 필드가 지워집니다';
 
   @override

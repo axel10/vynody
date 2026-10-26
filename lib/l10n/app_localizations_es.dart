@@ -1424,6 +1424,18 @@ class AppLocalizationsEs extends AppLocalizations {
       'El número de pista debe ser un entero';
 
   @override
+  String get genreLabel => 'Género';
+
+  @override
+  String get yearLabel => 'Año';
+
+  @override
+  String get yearMustBeInteger => 'El año debe ser un entero';
+
+  @override
+  String get genresSeparatorHint => 'Separa varios géneros con comas';
+
+  @override
   String get leaveBlankKeepsCurrentValue =>
       'Dejar en blanco para limpiar este campo';
 

@@ -1365,6 +1365,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get trackNumberMustBeInteger => '曲目号必须是整数';
 
   @override
+  String get genreLabel => '流派';
+
+  @override
+  String get yearLabel => '年份';
+
+  @override
+  String get yearMustBeInteger => '年份必须是整数';
+
+  @override
+  String get genresSeparatorHint => '多个流派用逗号分隔';
+
+  @override
   String get leaveBlankKeepsCurrentValue => '留空则清空该项';
 
   @override
@@ -6737,6 +6749,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get trackNumberMustBeInteger => '曲目號碼必須是整數';
+
+  @override
+  String get genreLabel => '流派';
+
+  @override
+  String get yearLabel => '年份';
+
+  @override
+  String get yearMustBeInteger => '年份必須是整數';
+
+  @override
+  String get genresSeparatorHint => '多個流派用逗號分隔';
 
   @override
   String get leaveBlankKeepsCurrentValue => '留空則清空該項';
