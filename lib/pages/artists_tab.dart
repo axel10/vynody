@@ -30,6 +30,16 @@ import '../widgets/artist_context_menu.dart';
 import '../widgets/master_detail_scaffold.dart';
 import 'main_layout_riverpod.dart';
 
+/// 竖屏艺术家网格与栏头之间的顶部呼吸空间。
+///
+/// 这两点都要靠它：
+/// 1. 不加的话网格第一行直接咬住 `LibraryCategoryHeader` 的底边，视觉上挤成一坨；
+///    默认的单列列表路径（[MasterDetailScaffold] 内建 `fromLTRB(16, 16, 16, …)`）
+///    本来就有这 16，是自定义 sliver 路径漏掉了。
+/// 2. 网格卡片悬停时按 `HoverableCard` 放大到 1.03，会向四外溢出约 `1.5%` 卡高。
+///    顶部没有余量时，这一截溢出就顶在滚动区上边缘被切平，看起来就是「放大被裁」。
+const double kArtistsGridTopInset = 16.0;
+
 class ArtistsTab extends ConsumerStatefulWidget {
   final double contentTopPadding;
   final double contentLeftPadding;
@@ -267,7 +277,11 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
                   );
 
                   return SliverPadding(
-                    padding: EdgeInsets.only(left: hPad, right: hPad),
+                    padding: EdgeInsets.only(
+                      left: hPad,
+                      right: hPad,
+                      top: kArtistsGridTopInset,
+                    ),
                     sliver: SliverGrid(
                       gridDelegate:
                           SliverAnimatedZoomGridDelegate(metrics: metrics),
