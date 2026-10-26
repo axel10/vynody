@@ -32,7 +32,7 @@ class MiniArtwork extends ConsumerWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[900] : Colors.grey[200],
+        color: Theme.of(context).colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: Icon(

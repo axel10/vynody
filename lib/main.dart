@@ -22,6 +22,7 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
 import 'utils/app_log.dart';
 import 'utils/app_orientation_manager.dart';
+import 'utils/app_surface_palette.dart';
 import 'utils/memory_trace.dart';
 import 'utils/startup_profiler.dart';
 import 'package:vynody/player/sharing/security/tls_certificate_service.dart';
@@ -607,20 +608,26 @@ class _MyAppState extends ConsumerState<MyApp>
         ThemeData.estimateBrightnessForColor(primaryColor) == Brightness.dark;
     final onPrimary = isPrimaryDark ? Colors.white : Colors.black;
 
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: primaryColor,
-      brightness: brightness,
-    ).copyWith(
-      primary: primaryColor,
-      onPrimary: onPrimary,
-      surface: isDark ? Colors.black : null,
-    );
-    final snackBarBackground = isDark ? const Color(0xFF1F1F1F) : Colors.white;
+    // 中性色由 AppSurfacePalette 钉死（亮色纯白 / 暗色 #0C0C0C），
+    // 主题色只参与 primary。详见该类的文档注释。
+    final palette = AppSurfacePalette.of(brightness);
+    final colorScheme = palette
+        .applyTo(
+          ColorScheme.fromSeed(
+            seedColor: primaryColor,
+            brightness: brightness,
+          ),
+        )
+        .copyWith(primary: primaryColor, onPrimary: onPrimary);
+    // 暗色 SnackBar 取容器层级里偏亮的一档，保证浮在 #0C0C0C 底色之上仍有层级感。
+    final snackBarBackground = isDark
+        ? colorScheme.surfaceContainerHigh
+        : Colors.white;
     final snackBarForeground = isDark ? Colors.white : Colors.black;
 
     return ThemeData(
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: isDark ? Colors.black : null,
+      scaffoldBackgroundColor: palette.surface,
       useMaterial3: true,
       splashFactory: NoSplash.splashFactory,
       pageTransitionsTheme: const PageTransitionsTheme(

@@ -12,6 +12,7 @@ import '../widgets/folder_zoom_gesture_layer.dart';
 import '../widgets/library_zoom_popover.dart';
 import '../widgets/song_zoom_item.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
+import 'package:vynody/utils/app_surface_palette.dart';
 import 'package:vynody/utils/deleted_song_snack.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
@@ -886,7 +887,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
           width: 1,
         ),
       ),
-      color: isDark ? Colors.grey[900] : theme.colorScheme.surface,
+      color: AppSurfacePalette.elevatedSurface(theme.colorScheme),
       elevation: 8,
       onSelected: (val) {
         setState(() {

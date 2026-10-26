@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../utils/app_surface_palette.dart';
 
 class LyricsStatusToast extends StatelessWidget {
   const LyricsStatusToast({
@@ -19,7 +20,7 @@ class LyricsStatusToast extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final surface = isDark ? const Color(0xFF1F1F1F) : Colors.white;
+    final surface = AppSurfacePalette.elevatedSurface(theme.colorScheme);
     final onSurface = isDark ? Colors.white : Colors.black;
     final colorScheme = theme.colorScheme;
     final (providerLabel, modelNameLabel) = _splitModelLabel(modelLabel);

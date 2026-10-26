@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:vynody/utils/clean_helper.dart';
+import 'package:vynody/utils/app_surface_palette.dart';
 import 'package:vynody/player/metadata/acoustid_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
@@ -1067,7 +1068,7 @@ class _EditSummaryConditionDialogState
     final isDark = theme.brightness == Brightness.dark;
 
     return AlertDialog(
-      backgroundColor: isDark ? const Color(0xFF171717) : theme.colorScheme.surface,
+      backgroundColor: AppSurfacePalette.elevatedSurface(theme.colorScheme),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       title: Text(
         l10n.editQueryCondition,

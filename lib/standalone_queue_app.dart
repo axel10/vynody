@@ -11,6 +11,7 @@ import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/settings/shortcut_bindings.dart';
 import 'package:vynody/utils/drop_data_utils.dart';
+import 'package:vynody/utils/app_surface_palette.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/selection_utils.dart';
@@ -734,23 +735,23 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   }
 
   ThemeData _buildTheme(Brightness brightness, Color primaryColor) {
-    final isDark = brightness == Brightness.dark;
     final isPrimaryDark =
         ThemeData.estimateBrightnessForColor(primaryColor) == Brightness.dark;
     final onPrimary = isPrimaryDark ? Colors.white : Colors.black;
 
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: primaryColor,
-      brightness: brightness,
-    ).copyWith(
-      primary: primaryColor,
-      onPrimary: onPrimary,
-      surface: isDark ? const Color(0xFF141218) : null,
-    );
+    final palette = AppSurfacePalette.of(brightness);
+    final colorScheme = palette
+        .applyTo(
+          ColorScheme.fromSeed(
+            seedColor: primaryColor,
+            brightness: brightness,
+          ),
+        )
+        .copyWith(primary: primaryColor, onPrimary: onPrimary);
 
     return ThemeData(
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: isDark ? const Color(0xFF141218) : null,
+      scaffoldBackgroundColor: palette.surface,
       useMaterial3: true,
       splashFactory: NoSplash.splashFactory,
       fontFamily: (!kIsWeb && Platform.isWindows) ? 'Segoe UI' : null,

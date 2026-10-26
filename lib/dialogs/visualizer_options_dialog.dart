@@ -5,6 +5,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/file_selector_helper.dart';
+import 'package:vynody/utils/app_surface_palette.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
@@ -449,7 +450,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
         onChanged(selection.first);
       },
       style: SegmentedButton.styleFrom(
-        backgroundColor: isDark ? Colors.grey[850] : Colors.grey[200],
+        backgroundColor: theme.colorScheme.surfaceContainerHigh,
         selectedBackgroundColor: theme.colorScheme.primary,
         selectedForegroundColor: theme.colorScheme.onPrimary,
         foregroundColor: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
@@ -488,7 +489,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
             ),
             DropdownButtonFormField<FftAggregationMode>(
               initialValue: options.aggregationMode,
-              dropdownColor: isDark ? Colors.grey[900] : theme.colorScheme.surfaceContainer,
+              dropdownColor: theme.colorScheme.surfaceContainer,
               decoration: InputDecoration(
                 enabledBorder: UnderlineInputBorder(
                   borderSide: BorderSide(
@@ -1202,7 +1203,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: isDark ? Colors.grey[900] : theme.colorScheme.surface,
+          backgroundColor: AppSurfacePalette.elevatedSurface(theme.colorScheme),
           title: Text(
             AppLocalizations.of(context)!.selectColor,
             style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
@@ -1273,7 +1274,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           DropdownButtonFormField<int>(
             key: ValueKey('bg_type_${settings.playbackBackgroundType}_$isProUnlocked'),
             initialValue: settings.playbackBackgroundType,
-            dropdownColor: isDark ? Colors.grey[900] : theme.colorScheme.surfaceContainer,
+            dropdownColor: theme.colorScheme.surfaceContainer,
             decoration: InputDecoration(
               enabledBorder: UnderlineInputBorder(
                 borderSide: BorderSide(
@@ -1698,7 +1699,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           ),
           DropdownButtonFormField<VisualizerStyle>(
             initialValue: settings.visualizerStyle,
-            dropdownColor: isDark ? Colors.grey[900] : theme.colorScheme.surfaceContainer,
+            dropdownColor: theme.colorScheme.surfaceContainer,
             decoration: InputDecoration(
               enabledBorder: UnderlineInputBorder(
                 borderSide: BorderSide(

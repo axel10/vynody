@@ -23,6 +23,7 @@ import '../widgets/volume_controls.dart';
 import '../widgets/dynamic_mesh_background.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/utils/blur_constants.dart';
+import 'package:vynody/utils/app_surface_palette.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/models/music_file.dart';
 import '../dialogs/visualizer_options_dialog.dart';
@@ -672,7 +673,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: isDark ? Colors.grey[900] : theme.colorScheme.surface,
+        backgroundColor: AppSurfacePalette.elevatedSurface(theme.colorScheme),
         title: Text(
           l10n.saveTagsToFile,
           style: TextStyle(
@@ -1994,18 +1995,20 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   }) {
     final l10n = AppLocalizations.of(context)!;
     final dismissText = l10n.gotIt;
+    final tipTheme = Theme.of(context);
+    final tipIsDark = tipTheme.brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: onDismiss,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.grey[900]!.withValues(alpha: 0.9)
-              : Colors.white.withValues(alpha: 0.95),
+          color: AppSurfacePalette.elevatedSurface(
+            tipTheme.colorScheme,
+          ).withValues(alpha: tipIsDark ? 0.9 : 0.95),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Theme.of(context).brightness == Brightness.dark
+            color: tipIsDark
                 ? Colors.white.withValues(alpha: 0.1)
                 : Colors.black.withValues(alpha: 0.08),
             width: 1,

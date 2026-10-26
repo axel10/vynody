@@ -10,6 +10,7 @@ import 'package:vynody/pages/main_layout.dart' show buildMainLayoutRoute;
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/app_surface_palette.dart';
 import '../dialogs/custom_proxy_dialog.dart';
 import '../widgets/settings_dropdown_tile.dart';
 import '../widgets/settings_group_card.dart';
@@ -66,7 +67,7 @@ class GeneralSection extends ConsumerWidget {
       context: context,
       builder: (dialogCtx) {
         return AlertDialog(
-          backgroundColor: isDark ? Colors.grey[900] : theme.colorScheme.surface,
+          backgroundColor: AppSurfacePalette.elevatedSurface(theme.colorScheme),
           title: Text(
             l10n.customThemeColor,
             style: TextStyle(

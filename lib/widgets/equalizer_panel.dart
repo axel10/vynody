@@ -9,6 +9,7 @@ import 'package:vynody/player/audio/equalizer_presets.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/app_snack_bar.dart';
+import '../utils/app_surface_palette.dart';
 import '../utils/blur_constants.dart';
 import 'app_bottom_sheet.dart';
 
@@ -723,8 +724,9 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
               trimmed.isNotEmpty && !isDuplicate && trimmed != initialName;
 
           return AlertDialog(
-            backgroundColor:
-                isDark ? const Color(0xFF1E1E1E) : theme.colorScheme.surface,
+            backgroundColor: AppSurfacePalette.elevatedSurface(
+              theme.colorScheme,
+            ),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Row(
@@ -896,8 +898,9 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
           final canSubmit = trimmed.isNotEmpty && !isDuplicate;
 
           return AlertDialog(
-            backgroundColor:
-                isDark ? const Color(0xFF1E1E1E) : theme.colorScheme.surface,
+            backgroundColor: AppSurfacePalette.elevatedSurface(
+              theme.colorScheme,
+            ),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Row(
@@ -1862,9 +1865,7 @@ class _PresetPickerDialog extends ConsumerWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  color: isDark
-                      ? const Color(0xFF27272A)
-                      : theme.colorScheme.surface,
+                  color: theme.colorScheme.surfaceContainer,
                   tooltip: '',
                   onSelected: (value) {
                     if (value == 'rename') {
@@ -1941,8 +1942,7 @@ class _PresetPickerDialog extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        backgroundColor:
-            isDark ? const Color(0xFF1E1E1E) : theme.colorScheme.surface,
+        backgroundColor: AppSurfacePalette.elevatedSurface(theme.colorScheme),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           l10n.deletePreset,
