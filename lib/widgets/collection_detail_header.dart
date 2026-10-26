@@ -8,6 +8,9 @@ import '../l10n/app_localizations.dart';
 /// 摘要算法），真正可辨识的封面在下方专辑分组里，页头只留标题、统计与播放操作。
 /// 竖屏：标题 / 统计 / 播放 + 随机按钮纵向排列；
 /// 横屏：播放 / 随机播放收为行尾的圆形图标按钮，与艺术家页保持一致。
+///
+/// [trailingAction] 给调用方留一个视图级操作位（如「搜索」开关），两种布局下
+/// 都挂在操作区行尾。不传则与旧版完全一致。
 class CollectionDetailHeader extends StatelessWidget {
   const CollectionDetailHeader({
     super.key,
@@ -15,12 +18,14 @@ class CollectionDetailHeader extends StatelessWidget {
     required this.metaLine,
     required this.onPlayAll,
     required this.onShufflePlay,
+    this.trailingAction,
   });
 
   final String title;
   final String metaLine;
   final VoidCallback onPlayAll;
   final VoidCallback onShufflePlay;
+  final Widget? trailingAction;
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +69,10 @@ class CollectionDetailHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
+          if (trailingAction != null) ...[
+            trailingAction!,
+            const SizedBox(width: 4),
+          ],
           IconButton(
             tooltip: l10n.playAll,
             onPressed: onPlayAll,
@@ -148,6 +157,10 @@ class CollectionDetailHeader extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (trailingAction != null) ...[
+                  const SizedBox(width: 6),
+                  trailingAction!,
+                ],
               ],
             );
           },

@@ -4690,6 +4690,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noMatchingSongs => 'Aucun morceau correspondant';
 
   @override
+  String get searchInGenre => 'Rechercher des albums ou morceaux dans ce genre';
+
+  @override
+  String get noMatchingInGenre => 'Aucun album ni morceau correspondant';
+
+  @override
   String errorLoadingSongs(String error) {
     return 'Erreur lors du chargement des morceaux : $error';
   }

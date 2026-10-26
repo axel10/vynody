@@ -1782,6 +1782,8 @@
   "filterSongs": "노래 필터링...",
   "noSongsOnServer": "서버에서 노래를 찾을 수 없습니다",
   "noMatchingSongs": "일치하는 노래가 없습니다",
+  "searchInGenre": "이 장르에서 앨범 또는 곡 검색",
+  "noMatchingInGenre": "일치하는 앨범이나 곡이 없습니다",
   "errorLoadingSongs": "노래 로드 실패: {error}",
   "starredSongsOnly": "즐겨찾기",
   "loadMore": "더 보기",

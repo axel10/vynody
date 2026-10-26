@@ -1914,6 +1914,8 @@
   "filterSongs": "Şarkıları filtrele...",
   "noSongsOnServer": "Sunucuda şarkı bulunamadı",
   "noMatchingSongs": "Eşleşen şarkı yok",
+  "searchInGenre": "Bu türde albüm veya şarkı ara",
+  "noMatchingInGenre": "Eşleşen albüm veya şarkı yok",
   "errorLoadingSongs": "Şarkılar yüklenirken hata oluştu: {error}",
   "starredSongsOnly": "Yıldızlı",
   "loadMore": "Daha fazla yükle",

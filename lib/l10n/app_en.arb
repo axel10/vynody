@@ -1920,6 +1920,8 @@
   "filterSongs": "Filter songs...",
   "noSongsOnServer": "No songs found on server",
   "noMatchingSongs": "No matching songs",
+  "searchInGenre": "Search albums or songs in this genre",
+  "noMatchingInGenre": "No matching albums or songs",
   "errorLoadingSongs": "Error loading songs: {error}",
   "@errorLoadingSongs": {
     "description": "Error text when loading songs fails",

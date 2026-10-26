@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,6 +17,7 @@ import '../../widgets/collection_detail_header.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/remote_artwork_widget.dart';
 import 'widgets/remote_library_common_widgets.dart';
+import 'widgets/remote_library_toolbar_widgets.dart';
 
 /// 远程流派详情页：竖屏时由流派列表 push 进入。
 class RemoteGenreDetailPage extends ConsumerWidget {
@@ -111,8 +114,15 @@ class _RemoteGenreDetailContentState
   /// 聚合结果，专辑之间按名称升序。
   List<_GenreAlbum> _albums = const [];
 
-  /// 全部流派歌曲，顺序与界面一致（按专辑分组后展平），用于播放全部 / 随机。
-  List<MusicFile> _songs = const [];
+  /// 流派内搜索：默认收起，点标题区行尾的放大镜展开。
+  final TextEditingController _queryController = TextEditingController();
+  final FocusNode _queryFocus = FocusNode();
+  bool _searchOpen = false;
+  String _query = '';
+
+  /// 输入防抖。一个流派上千首歌、上百个专辑分组，
+  /// 每个字符都重建一遍整页分组会掉帧。
+  Timer? _queryDebounce;
 
   @override
   void initState() {
@@ -125,11 +135,25 @@ class _RemoteGenreDetailContentState
   }
 
   @override
+  void dispose() {
+    _queryDebounce?.cancel();
+    _queryController.dispose();
+    _queryFocus.dispose();
+    super.dispose();
+  }
+
+  @override
   void didUpdateWidget(covariant RemoteGenreDetailContent oldWidget) {
     super.didUpdateWidget(oldWidget);
     // 分栏布局切换流派时复用同一个组件，需要重新拉取。
     if (oldWidget.genreId != widget.genreId ||
         oldWidget.server.id != widget.server.id) {
+      // 分栏布局切换流派一般由外层的 ValueKey 触发整体重建；
+      // 这里兜底同 key 复用的场景，避免上一条流派的搜索词跟过来。
+      _queryDebounce?.cancel();
+      _queryController.clear();
+      _query = '';
+      _searchOpen = false;
       _load();
     }
   }
@@ -146,9 +170,6 @@ class _RemoteGenreDetailContentState
       final albums = _groupSongsIntoAlbums(raws);
       setState(() {
         _albums = albums;
-        _songs = [
-          for (final album in albums) ...album.songs,
-        ];
         _isLoading = false;
       });
     } catch (e) {
@@ -252,6 +273,90 @@ class _RemoteGenreDetailContentState
     return albums;
   }
 
+  /// 当前搜索词命中后的专辑列表，空词时原样返回。
+  ///
+  /// 命中口径是「专辑名 / 专辑艺术家 / 曲目名 / 曲目艺术家」的并集：
+  /// - 命中专辑名或艺术家 → 整张专辑保留全部曲目；
+  /// - 只命中某些曲目 → 该专辑只保留命中曲目，分组标题仍是专辑名。
+  ///
+  /// 只按专辑名过滤会漏掉「搜歌手」；只过滤曲目行则搜专辑名等于没过滤。
+  List<_GenreAlbum> _visibleAlbums() {
+    final query = _query.toLowerCase();
+    if (query.isEmpty) return _albums;
+
+    final result = <_GenreAlbum>[];
+    for (final album in _albums) {
+      if (album.title.toLowerCase().contains(query) ||
+          album.artist.toLowerCase().contains(query)) {
+        result.add(album);
+        continue;
+      }
+      final hits = album.songs
+          .where((song) => _matchesQuery(song, query))
+          .toList(growable: false);
+      if (hits.isEmpty) continue;
+      result.add(album.withSongs(hits));
+    }
+    return result;
+  }
+
+  bool _matchesQuery(MusicFile song, String query) {
+    if ((song.title ?? song.name).toLowerCase().contains(query)) return true;
+    if ((song.artist ?? '').toLowerCase().contains(query)) return true;
+    return (song.albumArtist ?? '').toLowerCase().contains(query);
+  }
+
+  void _onQueryChanged(String value) {
+    _queryDebounce?.cancel();
+    _queryDebounce = Timer(const Duration(milliseconds: 180), () {
+      if (!mounted) return;
+      final next = value.trim();
+      if (next == _query) return;
+      setState(() => _query = next);
+    });
+  }
+
+  void _toggleSearch() {
+    final open = !_searchOpen;
+    setState(() {
+      _queryDebounce?.cancel();
+      _searchOpen = open;
+      if (!open) {
+        // 收起必须连带清空，否则列表还停在旧结果上，看起来像数据丢了。
+        _queryController.clear();
+        _query = '';
+      }
+    });
+    if (open) {
+      // 等展开动画铺开再要焦点，避免键盘弹起和尺寸动画打架。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _queryFocus.requestFocus();
+      });
+    } else {
+      _queryFocus.unfocus();
+    }
+  }
+
+  void _clearQuery() {
+    _queryDebounce?.cancel();
+    _queryController.clear();
+    setState(() => _query = '');
+    _queryFocus.requestFocus();
+  }
+
+  /// 展平成一份与界面顺序一致的曲目列表，用于播放全部 / 随机。
+  List<MusicFile> _flatten(List<_GenreAlbum> albums) => [
+        for (final album in albums) ...album.songs,
+      ];
+
+  int _durationMillis(List<_GenreAlbum> albums) {
+    var sum = 0;
+    for (final album in albums) {
+      sum += album.durationMillis;
+    }
+    return sum;
+  }
+
   Future<void> _play(List<MusicFile> songs, {bool shuffle = false}) async {
     if (songs.isEmpty) return;
     final playlist = shuffle ? (List<MusicFile>.of(songs)..shuffle()) : songs;
@@ -282,6 +387,8 @@ class _RemoteGenreDetailContentState
         onRetry: _load,
       );
     }
+
+    // 整个流派确实没内容，沿用统一空态；「搜索没命中」是另一套文案。
     if (_albums.isEmpty) {
       return Center(
         child: Text(
@@ -293,11 +400,14 @@ class _RemoteGenreDetailContentState
       );
     }
 
-    // 三个数字全部来自同一份聚合结果，任何一处都不会互相打架。
-    final durationLabel =
-        formatDurationClock(_totalDurationMillis) ?? l10n.durationZero;
-    final metaLine = '${l10n.songCount(_songs.length)} · '
-        '${l10n.albumCount(_albums.length)} · $durationLabel';
+    final visibleAlbums = _visibleAlbums();
+    final visibleSongs = _flatten(visibleAlbums);
+
+    // 三个数字全部来自同一份（过滤后的）聚合结果，任何一处都不会互相打架。
+    final durationLabel = formatDurationClock(_durationMillis(visibleAlbums)) ??
+        l10n.durationZero;
+    final metaLine = '${l10n.songCount(visibleSongs.length)} · '
+        '${l10n.albumCount(visibleAlbums.length)} · $durationLabel';
 
     final isPortrait =
         MediaQuery.orientationOf(context) == Orientation.portrait;
@@ -316,23 +426,38 @@ class _RemoteGenreDetailContentState
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 18),
-                  child: CollectionDetailHeader(
-                    title: widget.genreName,
-                    metaLine: metaLine,
-                    onPlayAll: () => _play(_songs),
-                    onShufflePlay: () => _play(_songs, shuffle: true),
+                  padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CollectionDetailHeader(
+                        title: widget.genreName,
+                        metaLine: metaLine,
+                        onPlayAll: () => _play(visibleSongs),
+                        onShufflePlay: () =>
+                            _play(visibleSongs, shuffle: true),
+                        trailingAction: _buildSearchToggle(l10n, theme),
+                      ),
+                      _buildSearchField(l10n),
+                    ],
                   ),
                 ),
               ),
-              if (isPortrait)
+              if (visibleAlbums.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _buildNoMatch(l10n, theme),
+                )
+              else if (isPortrait)
                 ..._buildAlbumGridSlivers(
                   context,
+                  albums: visibleAlbums,
                   availableWidth: available,
                   horizontalPadding: hPad,
                 )
               else
-                ..._buildAlbumSectionSlivers(context),
+                ..._buildAlbumSectionSlivers(context, visibleAlbums),
             ],
           );
         },
@@ -340,9 +465,80 @@ class _RemoteGenreDetailContentState
     );
   }
 
+  /// 标题区行尾的搜索开关。展开时图标高亮，再点一次收起并清空。
+  Widget _buildSearchToggle(AppLocalizations l10n, ThemeData theme) {
+    return IconButton(
+      tooltip: _searchOpen ? l10n.closeSearch : l10n.search,
+      onPressed: _toggleSearch,
+      visualDensity: VisualDensity.compact,
+      icon: Icon(
+        _searchOpen ? Icons.search_off_rounded : Icons.search_rounded,
+        size: 22,
+        color: _searchOpen
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+
+  /// 折叠式搜索框：收起时高度为 0，不占版面。
+  Widget _buildSearchField(AppLocalizations l10n) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topLeft,
+      child: _searchOpen
+          ? Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: RemoteSearchBar(
+                controller: _queryController,
+                focusNode: _queryFocus,
+                hintText: l10n.searchInGenre,
+                searchQuery: _query,
+                onChanged: _onQueryChanged,
+                onClear: _clearQuery,
+              ),
+            )
+          : const SizedBox(width: double.infinity, height: 0),
+    );
+  }
+
+  Widget _buildNoMatch(AppLocalizations l10n, ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 32,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              l10n.noMatchingInGenre,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            TextButton.icon(
+              onPressed: _clearQuery,
+              icon: const Icon(Icons.clear_rounded, size: 18),
+              label: Text(l10n.clearSearch),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 竖屏：专辑封面网格。
   List<Widget> _buildAlbumGridSlivers(
     BuildContext context, {
+    required List<_GenreAlbum> albums,
     required double availableWidth,
     required double horizontalPadding,
   }) {
@@ -371,10 +567,10 @@ class _RemoteGenreDetailContentState
             (context, index) => _RemoteGenreAlbumCard(
               server: widget.server,
               password: widget.password,
-              album: _albums[index],
+              album: albums[index],
               coverSize: cellWidth,
             ),
-            childCount: _albums.length,
+            childCount: albums.length,
           ),
         ),
       ),
@@ -386,13 +582,16 @@ class _RemoteGenreDetailContentState
   /// 直接复用本地媒体库的 [AlbumSectionSliver]，封面尺寸档位、圆角、阴影、
   /// 内边距、分组标题与曲目行样式随之与本地流派页完全一致，不再各写一份。
   /// 曲目来自聚合时的同一份数据，不额外请求专辑接口。
-  List<Widget> _buildAlbumSectionSlivers(BuildContext context) {
+  List<Widget> _buildAlbumSectionSlivers(
+    BuildContext context,
+    List<_GenreAlbum> albums,
+  ) {
     final currentPath = ref.watch(audioCurrentMusicProvider)?.path;
     final slivers = <Widget>[];
     var startIndex = 0;
 
-    for (var i = 0; i < _albums.length; i++) {
-      final album = _albums[i];
+    for (var i = 0; i < albums.length; i++) {
+      final album = albums[i];
       if (i > 0) {
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 36)));
       }
@@ -466,14 +665,6 @@ class _RemoteGenreDetailContentState
           ),
         );
   }
-
-  int get _totalDurationMillis {
-    var sum = 0;
-    for (final song in _songs) {
-      sum += song.durationMillis ?? 0;
-    }
-    return sum;
-  }
 }
 
 /// 聚合出来的专辑：曲目与元信息绑在一起，避免再按 id 反查。
@@ -492,6 +683,18 @@ class _GenreAlbum {
     required this.coverArtId,
     required this.songs,
   });
+
+  /// 流派内搜索只命中部分曲目时，用命中集合替换曲目，元信息保持不变。
+  ///
+  /// [representativeSong] 是 getter，会基于新曲目重新挑封面，
+  /// 所以搜索不会把分组封面换成别的东西（只要原代表曲还在结果里）。
+  _GenreAlbum withSongs(List<MusicFile> songs) => _GenreAlbum(
+        id: id,
+        title: title,
+        artist: artist,
+        coverArtId: coverArtId,
+        songs: songs,
+      );
 
   bool get canOpen => id.isNotEmpty;
 

@@ -4475,6 +4475,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noMatchingSongs => '일치하는 노래가 없습니다';
 
   @override
+  String get searchInGenre => '이 장르에서 앨범 또는 곡 검색';
+
+  @override
+  String get noMatchingInGenre => '일치하는 앨범이나 곡이 없습니다';
+
+  @override
   String errorLoadingSongs(String error) {
     return '노래 로드 실패: $error';
   }

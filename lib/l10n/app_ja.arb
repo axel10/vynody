@@ -1881,6 +1881,8 @@
   "filterSongs": "曲を絞り込み...",
   "noSongsOnServer": "サーバーに曲が見つかりません",
   "noMatchingSongs": "一致する曲がありません",
+  "searchInGenre": "このジャンル内のアルバム・曲を検索",
+  "noMatchingInGenre": "一致するアルバムや曲がありません",
   "errorLoadingSongs": "曲の読み込みに失敗しました: {error}",
   "starredSongsOnly": "お気に入り",
   "loadMore": "もっと読み込む",

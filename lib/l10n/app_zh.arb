@@ -2727,6 +2727,8 @@
   "filterSongs": "筛选歌曲...",
   "noSongsOnServer": "服务端未找到歌曲",
   "noMatchingSongs": "没有匹配的歌曲",
+  "searchInGenre": "在这个流派内搜索专辑或歌曲",
+  "noMatchingInGenre": "没有匹配的专辑或歌曲",
   "errorLoadingSongs": "加载歌曲失败: {error}",
   "@errorLoadingSongs": {
     "description": "Error text when loading songs fails",

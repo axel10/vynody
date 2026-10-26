@@ -4688,6 +4688,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noMatchingSongs => 'No hay canciones coincidentes';
 
   @override
+  String get searchInGenre => 'Buscar álbumes o canciones en este género';
+
+  @override
+  String get noMatchingInGenre => 'No hay álbumes ni canciones coincidentes';
+
+  @override
   String errorLoadingSongs(String error) {
     return 'Error al cargar canciones: $error';
   }

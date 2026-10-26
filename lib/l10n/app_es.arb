@@ -1782,6 +1782,8 @@
   "filterSongs": "Filtrar canciones...",
   "noSongsOnServer": "No se encontraron canciones en el servidor",
   "noMatchingSongs": "No hay canciones coincidentes",
+  "searchInGenre": "Buscar álbumes o canciones en este género",
+  "noMatchingInGenre": "No hay álbumes ni canciones coincidentes",
   "errorLoadingSongs": "Error al cargar canciones: {error}",
   "starredSongsOnly": "Favoritos",
   "loadMore": "Cargar más",

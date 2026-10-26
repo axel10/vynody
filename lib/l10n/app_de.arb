@@ -1782,6 +1782,8 @@
   "filterSongs": "Titel filtern...",
   "noSongsOnServer": "Keine Titel auf dem Server gefunden",
   "noMatchingSongs": "Keine passenden Titel",
+  "searchInGenre": "Alben oder Titel in diesem Genre suchen",
+  "noMatchingInGenre": "Keine passenden Alben oder Titel",
   "errorLoadingSongs": "Fehler beim Laden der Titel: {error}",
   "starredSongsOnly": "Favorisiert",
   "loadMore": "Mehr laden",
