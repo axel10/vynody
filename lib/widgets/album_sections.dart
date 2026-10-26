@@ -22,6 +22,8 @@ class AlbumSection {
     required this.representativeSong,
     required this.totalDurationMillis,
     required this.startIndex,
+    this.artist,
+    this.year,
   });
 
   /// 专辑标题（缺失专辑统一显示为本地化的「未知专辑」）。
@@ -37,6 +39,12 @@ class AlbumSection {
 
   /// 本组第一首歌在扁平化后的完整曲目列表中的下标。
   final int startIndex;
+
+  /// 专辑艺术家（可选，留空时从歌曲中自动解析）。
+  final String? artist;
+
+  /// 专辑发行年份（可选，留空时从歌曲中自动解析）。
+  final int? year;
 }
 
 /// 横屏专辑分组的封面尺寸档位。
@@ -165,6 +173,9 @@ List<AlbumSection> buildAlbumSections(
       (sum, song) => sum + (song.durationMillis ?? 0),
     );
 
+    final resolvedArtist = resolveAlbumArtist(albumSongs);
+    final resolvedYear = resolveAlbumYear(albumSongs);
+
     sections.add(
       AlbumSection(
         title: titles[key]!,
@@ -172,12 +183,45 @@ List<AlbumSection> buildAlbumSections(
         representativeSong: representativeSong,
         totalDurationMillis: totalDurationMillis,
         startIndex: startIndex,
+        artist: resolvedArtist,
+        year: resolvedYear,
       ),
     );
     startIndex += albumSongs.length;
   }
 
   return sections;
+}
+
+/// 从专辑歌曲集合中解析出主艺术家（优先取 albumArtist，其次 artist）。
+String? resolveAlbumArtist(List<MusicFile> songs) {
+  for (final song in songs) {
+    final albumArtist = song.albumArtist?.trim();
+    if (albumArtist != null && albumArtist.isNotEmpty) {
+      return albumArtist;
+    }
+  }
+  for (final song in songs) {
+    final artist = song.artist?.trim();
+    if (artist != null && artist.isNotEmpty) {
+      return artist;
+    }
+  }
+  return null;
+}
+
+/// 从专辑歌曲集合中解析出发行年份（取最小正整数年份）。
+int? resolveAlbumYear(List<MusicFile> songs) {
+  int? minYear;
+  for (final song in songs) {
+    final y = song.year;
+    if (y != null && y > 0) {
+      if (minYear == null || y < minYear) {
+        minYear = y;
+      }
+    }
+  }
+  return minYear;
 }
 
 bool _hasArtwork(MusicFile song) =>
@@ -394,16 +438,18 @@ class AlbumSectionSliver extends ConsumerWidget {
                     fontSize: 17,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontSize: 12,
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 12.5,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -455,9 +501,25 @@ class AlbumSectionSliver extends ConsumerWidget {
 
   String _subtitle(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final durationLabel =
-        formatDurationClock(section.totalDurationMillis) ?? l10n.durationZero;
-    return '${l10n.songCount(section.songs.length)} · $durationLabel';
+    var artist = section.artist?.trim();
+    if (artist == null || artist.isEmpty) {
+      artist = resolveAlbumArtist(section.songs);
+    }
+    final year = section.year ?? resolveAlbumYear(section.songs);
+
+    final hasYear = year != null && year > 0;
+    if (artist == null || artist.isEmpty) {
+      artist = hasYear ? null : l10n.unknownArtist;
+    }
+
+    if (artist != null && hasYear) {
+      return '$artist · $year';
+    } else if (artist != null) {
+      return artist;
+    } else if (hasYear) {
+      return '$year';
+    }
+    return '';
   }
 
   Widget _buildWideLayout(
@@ -477,7 +539,7 @@ class AlbumSectionSliver extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeaderRow(context, ref, _subtitle(context)),
-              const SizedBox(height: 8),
+              const SizedBox(height: 14),
               _buildSongList(
                 context,
                 ref,
@@ -504,7 +566,7 @@ class AlbumSectionSliver extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         _buildSongList(context, ref, RemoteMediaHelper.isMixed(section.songs)),
       ],
     );
@@ -545,6 +607,18 @@ class AlbumSongTile extends StatelessWidget {
     final theme = Theme.of(context);
     final durationLabel = formatDurationClock(song.durationMillis);
     final isTileSelected = isSelectionMode ? isSelected : isCurrent;
+    final isDark = theme.brightness == Brightness.dark;
+    final dividerColor = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.18 : 0.12,
+    );
+
+    final rawArtist = song.artist?.trim();
+    final effectiveArtist = (rawArtist != null && rawArtist.isNotEmpty)
+        ? rawArtist
+        : (song.albumArtist?.trim().isNotEmpty == true
+            ? song.albumArtist!.trim()
+            : null);
+    final hasArtist = effectiveArtist != null && effectiveArtist.isNotEmpty;
 
     final tileWidget = RepaintBoundary(
       child: Column(
@@ -553,13 +627,13 @@ class AlbumSongTile extends StatelessWidget {
           if (showTopDivider && !isTileSelected)
             Divider(
               height: 1,
-              thickness: 0.5,
-              indent: 32,
+              thickness: 1.0,
+              indent: 8,
               endIndent: 8,
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+              color: dividerColor,
             ),
           SizedBox(
-            height: 38.0,
+            height: hasArtist ? 48.0 : 38.0,
             child: Material(
               color: isTileSelected
                   ? theme.colorScheme.surfaceContainerHighest
@@ -575,7 +649,7 @@ class AlbumSongTile extends StatelessWidget {
                 onSecondaryTapDown: onSecondaryTapDown,
                 child: Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Row(
                     children: [
                       if (isSelectionMode) ...[
@@ -610,28 +684,49 @@ class AlbumSongTile extends StatelessWidget {
                         const SizedBox(width: 8),
                       ],
                       Expanded(
-                        child: Row(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Flexible(
-                              child: Text(
-                                song.displayName,
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    song.displayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: isCurrent
+                                          ? theme.colorScheme.primary
+                                          : theme.colorScheme.onSurface,
+                                      fontWeight: isCurrent
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                      fontSize: 13.5,
+                                    ),
+                                  ),
+                                ),
+                                RemoteMediaBadge.songTrailing(
+                                  song: song,
+                                  isMixed: showRemoteIndicator,
+                                ),
+                              ],
+                            ),
+                            if (hasArtist) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                effectiveArtist,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodyMedium?.copyWith(
+                                style: theme.textTheme.bodySmall?.copyWith(
                                   color: isCurrent
                                       ? theme.colorScheme.primary
-                                      : theme.colorScheme.onSurface,
-                                  fontWeight: isCurrent
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                  fontSize: 13.5,
+                                          .withValues(alpha: 0.8)
+                                      : theme.colorScheme.onSurfaceVariant,
+                                  fontSize: 11.5,
                                 ),
                               ),
-                            ),
-                            RemoteMediaBadge.songTrailing(
-                              song: song,
-                              isMixed: showRemoteIndicator,
-                            ),
+                            ],
                           ],
                         ),
                       ),

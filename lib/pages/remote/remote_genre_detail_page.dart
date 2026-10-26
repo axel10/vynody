@@ -403,6 +403,7 @@ class _RemoteGenreDetailContentState
         representativeSong: album.representativeSong,
         totalDurationMillis: album.durationMillis,
         startIndex: startIndex,
+        artist: album.artist.isNotEmpty ? album.artist : null,
       );
       startIndex += album.songs.length;
 
