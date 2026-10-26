@@ -1,11 +1,16 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../widgets/draggable_remote_artist_item.dart';
+import '../../../widgets/folder_layout_utils.dart';
+import '../../../widgets/folder_zoom_gesture_layer.dart';
+import '../../../widgets/library_zoom_popover.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../remote_artist_detail_page.dart';
 import 'remote_library_common_widgets.dart';
@@ -165,6 +170,8 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
               starButton,
               const SizedBox(width: 8),
               sortDropdown,
+              const SizedBox(width: 4),
+              const LibraryZoomButton(scope: LibraryZoomScope.artist),
             ],
           );
         }
@@ -176,6 +183,8 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
             starButton,
             const SizedBox(width: 8),
             sortDropdown,
+            const SizedBox(width: 4),
+            const LibraryZoomButton(scope: LibraryZoomScope.artist),
           ],
         );
       },
@@ -236,6 +245,10 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final artistZoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.artistZoomScale),
+    );
+
     if (isLoading) {
       return RemoteLibraryLoadingView(
         server: server,
@@ -279,7 +292,7 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
           );
         }
 
-        // Portrait: Vertical List of Artist Cards
+        // Portrait: Zoomable List / Grid of Artist Cards
         final toolbarSliver = toolbar != null
             ? SliverRemoteContentConstraint(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -287,83 +300,305 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
               )
             : null;
 
-        return artists.isEmpty
-            ? Column(
-                children: [
-                  if (toolbar != null)
-                    RemoteContentConstraint(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                      child: toolbar!,
-                    ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        searchQuery.isEmpty
-                            ? l10n.noArtistsFound
-                            : l10n.noMatchingArtists,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurfaceVariant,
+        final isPortrait =
+            MediaQuery.of(context).orientation == Orientation.portrait;
+        final contentWidth = math.min(
+          constraints.maxWidth,
+          kFolderPageMaxWidth,
+        );
+
+        return FolderZoomGestureLayer(
+          scope: LibraryZoomScope.artist,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: contentWidth),
+              child: artists.isEmpty
+                  ? Column(
+                      children: [
+                        if (toolbar != null)
+                          RemoteContentConstraint(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                            child: toolbar!,
+                          ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              searchQuery.isEmpty
+                                  ? l10n.noArtistsFound
+                                  : l10n.noMatchingArtists,
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            : RefreshIndicator(
-                onRefresh: onRefresh,
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      ?toolbarSliver,
-                      SliverPadding(
-                        padding: EdgeInsets.fromLTRB(16, 0, 16, bottomOffset),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final artist = artists[index];
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 2.0),
-                                child: RemoteLibraryArtistItem(
-                                  server: server,
-                                  password: password,
-                                  artist: artist,
-                                  index: index,
-                                  allArtists: artists,
-                                  isSelected: false,
-                                  isMultiSelected: selectedArtistIds
-                                      .contains(artist['id'] as String? ?? ''),
-                                  isStarred: starredArtistIds
-                                      .contains(artist['id'] as String? ?? ''),
-                                  isSelectionMode: isSelectionMode,
-                                  selectedArtistIds: selectedArtistIds,
-                                  lastArtistAnchorIndex: lastArtistAnchorIndex,
-                                  onSetSelection: onSetSelection,
-                                  onToggleSelection: onToggleSelection,
-                                  onUpdateAnchor: onUpdateAnchor,
-                                  onTap: () {
-                                    RemoteLibraryNavUtils.openArtist(
-                                      context,
-                                      ref,
-                                      server: server,
-                                      password: password,
-                                      artistId: artist['id'] as String? ?? '',
-                                      artistName: artist['name'] as String? ??
-                                          l10n.unknownArtist,
-                                      coverArtId: artist['coverArt'] as String?,
-                                      albumCount: artist['albumCount'] as int?,
-                                    );
-                                  },
+                      ],
+                    )
+                  : RefreshIndicator(
+                      onRefresh: onRefresh,
+                      child: CustomScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
+                          ?toolbarSliver,
+                          FolderZoomSliverBuilder(
+                            zoomScale: snapFolderZoomScale(artistZoomScale),
+                            width: contentWidth,
+                            builder: (context, metrics) {
+                              final hPad = folderContentHorizontalPadding(
+                                isPortrait: isPortrait,
+                                gridMorph: metrics.gridMorph,
+                              );
+
+                              return SliverPadding(
+                                padding: EdgeInsets.fromLTRB(
+                                  hPad,
+                                  0,
+                                  hPad,
+                                  bottomOffset,
+                                ),
+                                sliver: SliverGrid(
+                                  gridDelegate:
+                                      SliverAnimatedZoomGridDelegate(
+                                    metrics: metrics,
+                                  ),
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      final artist = artists[index];
+                                      final artistId =
+                                          artist['id'] as String? ?? '';
+                                      final isMultiSelected = selectedArtistIds
+                                          .contains(artistId);
+                                      final isStarred = starredArtistIds
+                                          .contains(artistId);
+
+                                      return RemoteLibraryArtistZoomItem(
+                                        server: server,
+                                        password: password,
+                                        artist: artist,
+                                        index: index,
+                                        allArtists: artists,
+                                        isMultiSelected: isMultiSelected,
+                                        isStarred: isStarred,
+                                        isSelectionMode: isSelectionMode,
+                                        selectedArtistIds: selectedArtistIds,
+                                        lastArtistAnchorIndex:
+                                            lastArtistAnchorIndex,
+                                        metrics: metrics,
+                                        onSetSelection: onSetSelection,
+                                        onToggleSelection: onToggleSelection,
+                                        onUpdateAnchor: onUpdateAnchor,
+                                        onTap: () {
+                                          RemoteLibraryNavUtils.openArtist(
+                                            context,
+                                            ref,
+                                            server: server,
+                                            password: password,
+                                            artistId: artistId,
+                                            artistName: artist['name'] as String? ??
+                                                l10n.unknownArtist,
+                                            coverArtId: artist['coverArt'] as String?,
+                                            albumCount: artist['albumCount'] as int?,
+                                          );
+                                        },
+                                      );
+                                    },
+                                    childCount: artists.length,
+                                  ),
                                 ),
                               );
                             },
-                            childCount: artists.length,
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
+                    ),
+            ),
+          ),
+        );
       },
+    );
+  }
+}
+
+class RemoteLibraryArtistZoomItem extends ConsumerWidget {
+  final RemoteServer server;
+  final String password;
+  final Map<String, dynamic> artist;
+  final int index;
+  final List<Map<String, dynamic>> allArtists;
+  final bool isMultiSelected;
+  final bool isStarred;
+  final bool isSelectionMode;
+  final Set<String> selectedArtistIds;
+  final int? lastArtistAnchorIndex;
+  final FolderZoomLayoutMetrics metrics;
+  final void Function(Set<String> keys) onSetSelection;
+  final void Function(String artistId) onToggleSelection;
+  final void Function(int? index) onUpdateAnchor;
+  final VoidCallback onTap;
+
+  const RemoteLibraryArtistZoomItem({
+    super.key,
+    required this.server,
+    required this.password,
+    required this.artist,
+    required this.index,
+    required this.allArtists,
+    required this.isMultiSelected,
+    required this.isStarred,
+    required this.isSelectionMode,
+    required this.selectedArtistIds,
+    required this.lastArtistAnchorIndex,
+    required this.metrics,
+    required this.onSetSelection,
+    required this.onToggleSelection,
+    required this.onUpdateAnchor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final name = artist['name'] as String? ?? l10n.unknownArtist;
+    final albumCount = artist['albumCount'] as int? ?? 0;
+    final coverArtId = artist['coverArt'] as String?;
+    final artistId = artist['id'] as String? ?? '';
+    final gridMorph = metrics.gridMorph;
+
+    final avatar = LayoutBuilder(
+      builder: (context, constraints) {
+        final size =
+            constraints.maxWidth.isFinite ? constraints.maxWidth : 48.0;
+        return ClipOval(
+          child: RemoteArtworkWidget(
+            server: server,
+            password: password,
+            coverArtId: coverArtId,
+            size: 200,
+            width: size,
+            height: size,
+            isArtist: true,
+          ),
+        );
+      },
+    );
+
+    final cover = ZoomItemCover(
+      metrics: metrics,
+      isSelected: isMultiSelected,
+      isSelectionMode: isSelectionMode,
+      isCircle: true,
+      centerCheckboxInGrid: true,
+      selectionOverlayColor: Colors.black38,
+      onToggleSelect: () {
+        onUpdateAnchor(index);
+        onToggleSelection(artistId);
+      },
+      child: avatar,
+    );
+
+    final titleColor = isSelectionMode && isMultiSelected
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurface;
+
+    final listCoverSize = getFolderListCoverSize(metrics.animatedZoomScale);
+    final coverProgress = (listCoverSize / 40.0).clamp(0.0, 1.0);
+    final selectionOffset = (isSelectionMode && gridMorph < 0.5)
+        ? (28.0 * (1.0 - coverProgress))
+        : 0.0;
+
+    final fallbackCheckbox = Checkbox(
+      value: isMultiSelected,
+      onChanged: (_) {
+        onUpdateAnchor(index);
+        onToggleSelection(artistId);
+      },
+      fillColor: WidgetStateProperty.all(Colors.white),
+      checkColor: Colors.black,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(4),
+      ),
+    );
+
+    final titleSuffix = isStarred
+        ? const Padding(
+            padding: EdgeInsets.only(left: 4.0),
+            child: Icon(
+              Icons.favorite_rounded,
+              size: 14,
+              color: Colors.redAccent,
+            ),
+          )
+        : null;
+
+    final subtitle = albumCount > 0 ? l10n.albumCount(albumCount) : null;
+
+    final scaffold = ZoomItemScaffold(
+      metrics: metrics,
+      cover: cover,
+      titleText: name,
+      subtitleText: subtitle,
+      titleSuffix: titleSuffix,
+      gridAlignment: Alignment.topCenter,
+      gridCrossAxisAlignment: CrossAxisAlignment.center,
+      titleColor: titleColor,
+      listTitleFontWeight:
+          isMultiSelected ? FontWeight.w700 : FontWeight.w500,
+      listTitleFontSize: 13.5,
+      isSelected: isMultiSelected,
+      isSelectionMode: isSelectionMode,
+      selectionOffset: selectionOffset,
+      wrapHoverableCard: false,
+      fallbackLeadingWhenNoCover: isSelectionMode && gridMorph < 0.5
+          ? fallbackCheckbox
+          : null,
+      onTap: () {
+        SelectionActionHelper.handleItemTap(
+          index: index,
+          itemKey: artistId,
+          items: allArtists,
+          keySelector: (a) => a['id'] as String? ?? '',
+          isSelectionMode: isSelectionMode,
+          selectedKeys: selectedArtistIds,
+          lastAnchorIndex: lastArtistAnchorIndex,
+          onUpdateAnchor: onUpdateAnchor,
+          onSetSelection: onSetSelection,
+          onToggleSelection: onToggleSelection,
+          onNormalTap: onTap,
+        );
+      },
+      onLongPress: () {
+        onUpdateAnchor(index);
+        onToggleSelection(artistId);
+      },
+      onSecondaryTapDown: (details) {
+        if (!isSelectionMode) {
+          showRemoteArtistContextMenu(
+            context: context,
+            globalPosition: details.globalPosition,
+            ref: ref,
+            server: server,
+            password: password,
+            artistId: artistId,
+            artistName: name,
+            isStarred: isStarred,
+            onViewDetails: onTap,
+            onMultiSelect: () {
+              onUpdateAnchor(index);
+              onToggleSelection(artistId);
+            },
+          );
+        }
+      },
+    );
+
+    return DraggableRemoteArtistItem(
+      server: server,
+      artist: artist,
+      isSelectionMode: isSelectionMode,
+      isSelected: isMultiSelected,
+      selectedArtistIds: selectedArtistIds,
+      child: scaffold,
     );
   }
 }
@@ -476,7 +711,7 @@ class RemoteLibraryArtistItem extends ConsumerWidget {
                     server: server,
                     password: password,
                     coverArtId: coverArtId,
-                    size: 38,
+                    size: 200,
                     width: 38,
                     height: 38,
                     isArtist: true,

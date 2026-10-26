@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -325,13 +326,17 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
     BorderRadius radius,
   ) {
     final theme = Theme.of(context);
+    final minSide = math.min(w, h);
+    final effectiveMinSide = minSide.isFinite && minSide > 0 ? minSide : 48.0;
+
     if (widget.isArtist && widget.fallbackIcon == null) {
       return ArtistPlaceholder(
         width: w,
         height: h,
-        iconSize: (widget.size * 0.54).clamp(16.0, 48.0),
         borderRadius: radius,
-        shape: BoxShape.rectangle,
+        shape: widget.borderRadius != null
+            ? BoxShape.rectangle
+            : BoxShape.circle,
       );
     }
 
@@ -355,7 +360,7 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
         child: Icon(
           icon,
           color: iconColor,
-          size: (widget.size * 0.5).clamp(16.0, 48.0),
+          size: (effectiveMinSide * 0.5).clamp(16.0, 48.0),
         ),
       ),
     );

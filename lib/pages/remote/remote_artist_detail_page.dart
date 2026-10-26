@@ -1427,7 +1427,7 @@ class _RemoteArtistDetailContentState
           server: widget.server,
           password: widget.password,
           coverArtId: coverArtId,
-          size: size,
+          size: 200,
           width: size,
           height: size,
           isArtist: true,
