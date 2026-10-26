@@ -4659,6 +4659,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get noMatchingInArtist => 'Eşleşen albüm veya şarkı yok';
 
   @override
+  String get searchInYear => 'Bu yılın albümlerinde veya şarkılarında ara';
+
+  @override
+  String get noMatchingInYear => 'Eşleşen albüm veya şarkı yok';
+
+  @override
   String errorLoadingSongs(String error) {
     return 'Şarkılar yüklenirken hata oluştu: $error';
   }

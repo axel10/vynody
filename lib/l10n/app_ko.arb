@@ -1786,6 +1786,8 @@
   "noMatchingInGenre": "일치하는 앨범이나 곡이 없습니다",
   "searchInArtist": "이 아티스트의 앨범 또는 곡 검색",
   "noMatchingInArtist": "일치하는 앨범이나 곡이 없습니다",
+  "searchInYear": "이 연도의 앨범 또는 곡 검색",
+  "noMatchingInYear": "일치하는 앨범이나 곡이 없습니다",
   "errorLoadingSongs": "노래 로드 실패: {error}",
   "starredSongsOnly": "즐겨찾기",
   "loadMore": "더 보기",

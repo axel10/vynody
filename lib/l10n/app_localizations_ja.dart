@@ -4482,6 +4482,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get noMatchingInArtist => '一致するアルバムや曲がありません';
 
   @override
+  String get searchInYear => 'この年のアルバム・曲を検索';
+
+  @override
+  String get noMatchingInYear => '一致するアルバムや曲がありません';
+
+  @override
   String errorLoadingSongs(String error) {
     return '曲の読み込みに失敗しました: $error';
   }

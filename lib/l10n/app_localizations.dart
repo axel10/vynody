@@ -8259,6 +8259,18 @@ abstract class AppLocalizations {
   /// **'没有匹配的专辑或歌曲'**
   String get noMatchingInArtist;
 
+  /// No description provided for @searchInYear.
+  ///
+  /// In zh, this message translates to:
+  /// **'在这一年里搜索专辑或歌曲'**
+  String get searchInYear;
+
+  /// No description provided for @noMatchingInYear.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有匹配的专辑或歌曲'**
+  String get noMatchingInYear;
+
   /// Error text when loading songs fails
   ///
   /// In zh, this message translates to:

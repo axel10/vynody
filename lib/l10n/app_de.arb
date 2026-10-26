@@ -1786,6 +1786,8 @@
   "noMatchingInGenre": "Keine passenden Alben oder Titel",
   "searchInArtist": "Alben oder Titel dieses Künstlers suchen",
   "noMatchingInArtist": "Keine passenden Alben oder Titel",
+  "searchInYear": "Alben oder Titel dieses Jahres suchen",
+  "noMatchingInYear": "Keine passenden Alben oder Titel",
   "errorLoadingSongs": "Fehler beim Laden der Titel: {error}",
   "starredSongsOnly": "Favorisiert",
   "loadMore": "Mehr laden",

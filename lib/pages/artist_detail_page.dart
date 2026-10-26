@@ -28,6 +28,7 @@ import '../widgets/remote_media_badge.dart';
 import '../widgets/mini_player_wrapper.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
+import '../widgets/library_search_field.dart';
 import '../widgets/detail_page_shell.dart';
 import '../widgets/library_selection_back_guard.dart';
 import 'album_detail_page.dart';
@@ -92,6 +93,16 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
 
   final AlbumSectionsCache _albumCache = AlbumSectionsCache();
 
+  /// 艺术家内搜索：默认收起，点页头下方的放大镜展开。
+  final TextEditingController _queryController = TextEditingController();
+  final FocusNode _queryFocus = FocusNode();
+  bool _searchOpen = false;
+  String _query = '';
+
+  /// 输入防抖。一位艺术家可能挂着几十张专辑全集，
+  /// 每敲一个字都重建一遍分组会掉帧。
+  Timer? _queryDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -107,6 +118,9 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
 
   @override
   void dispose() {
+    _queryDebounce?.cancel();
+    _queryController.dispose();
+    _queryFocus.dispose();
     _imageUpdateSub?.cancel();
     super.dispose();
   }
@@ -115,12 +129,61 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
   void didUpdateWidget(covariant ArtistDetailContent oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.artist.queryKey != widget.artist.queryKey) {
+      // 换艺术家时别把上一位的搜索词带过来。
+      _queryDebounce?.cancel();
+      _queryController.clear();
+      _query = '';
+      _searchOpen = false;
       _cachedImagePath = widget.artist.cachedImagePath;
       _fetchArtistImageIfNeeded();
     } else if (widget.artist.cachedImagePath != null &&
         widget.artist.cachedImagePath != _cachedImagePath) {
       _cachedImagePath = widget.artist.cachedImagePath;
     }
+  }
+
+  /// 当前搜索词命中后的分组，空词时原样返回。
+  ///
+  /// 命中口径统一走 [filterAlbumSections]：整页都是这位艺术家，
+  /// 再按歌手名过滤没有意义，但口径保持一致可以少一套分支。
+  List<AlbumSection> _visibleSections(List<AlbumSection> sections) =>
+      filterAlbumSections(sections, _query);
+
+  void _onQueryChanged(String value) {
+    _queryDebounce?.cancel();
+    _queryDebounce = Timer(const Duration(milliseconds: 180), () {
+      if (!mounted) return;
+      final next = value.trim();
+      if (next == _query) return;
+      setState(() => _query = next);
+    });
+  }
+
+  void _toggleSearch() {
+    final open = !_searchOpen;
+    setState(() {
+      _queryDebounce?.cancel();
+      _searchOpen = open;
+      if (!open) {
+        // 收起必须连带清空，否则列表还停在旧结果上，看起来像数据丢了。
+        _queryController.clear();
+        _query = '';
+      }
+    });
+    if (open) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _queryFocus.requestFocus();
+      });
+    } else {
+      _queryFocus.unfocus();
+    }
+  }
+
+  void _clearQuery() {
+    _queryDebounce?.cancel();
+    _queryController.clear();
+    setState(() => _query = '');
+    _queryFocus.requestFocus();
   }
 
   Future<void> _refreshImage() async {
@@ -302,8 +365,15 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
     final sections = _albumCache.sections;
     final displaySongs = _albumCache.allSongs;
 
+    final visibleSections = _visibleSections(sections);
+    final visibleSongs = identical(visibleSections, sections)
+        ? displaySongs
+        : [
+            for (final section in visibleSections) ...section.songs,
+          ];
+
     final selectedSongs = isSelectionMode
-        ? getSelectedSongs(displaySongs)
+        ? getSelectedSongs(visibleSongs)
         : const <MusicFile>[];
 
     final isPortrait =
@@ -314,7 +384,11 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
     final albumZoomScale = ref.watch(
       settingsServiceProvider.select((s) => s.albumZoomScale),
     );
-    final albums = _buildAlbums(sections, libraryAlbums, widget.artist.name);
+    final albums = _buildAlbums(
+      visibleSections,
+      libraryAlbums,
+      widget.artist.name,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -332,18 +406,37 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
                   horizontalPadding,
                   widget.topPadding > 0 ? widget.topPadding + 12 : 24,
                   horizontalPadding,
-                  isPortrait ? 30.0 : 20.0,
+                  // 搜索框展开时页头收紧，避免「页头间距 + 搜索框间距」叠成双份。
+                  _searchOpen
+                      ? (isPortrait ? 10.0 : 8.0)
+                      : (isPortrait ? 30.0 : 20.0),
                 ),
                 child: _ArtistInfo(
                   artist: widget.artist,
                   cachedImagePath: _cachedImagePath,
+                  songCountOverride: _query.isEmpty ? null : visibleSongs.length,
                   onPlayAll: () =>
-                      audio.playPlaylist(displaySongs, source: _artistSource),
+                      audio.playPlaylist(visibleSongs, source: _artistSource),
                   onShufflePlay: () => audio.playPlaylist(
-                    List.of(displaySongs)..shuffle(),
+                    List.of(visibleSongs)..shuffle(),
                     source: _artistSource,
                   ),
+                  // 与流派 / 年份详情一致：搜索开关挂在操作区行尾，
+                  // 竖屏跟「播放全部 / 随机」同一行，横屏跟圆形图标同排。
+                  trailingAction: _buildSearchToggle(l10n, theme),
                 ),
+              ),
+            ),
+            // 搜索框展开时在页头与专辑分组之间占一行，收起时零高度。
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  0,
+                  horizontalPadding,
+                  _searchOpen ? (isPortrait ? 16.0 : 12.0) : 0,
+                ),
+                child: _buildSearchField(l10n),
               ),
             ),
             if (sections.isEmpty)
@@ -352,6 +445,11 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
                 child: Center(
                   child: Text(l10n.emptyList, style: theme.textTheme.titleMedium),
                 ),
+              )
+            else if (visibleSections.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _buildNoMatch(l10n, theme),
               )
             else if (isPortrait)
               ..._buildPortraitAlbumGridSlivers(
@@ -362,10 +460,10 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
                 albumZoomScale: albumZoomScale,
               )
             else
-              for (int i = 0; i < sections.length; i++) ...[
+              for (int i = 0; i < visibleSections.length; i++) ...[
                 if (i > 0) const SliverToBoxAdapter(child: SizedBox(height: 36)),
                 AlbumSectionSliver(
-                  section: sections[i],
+                  section: visibleSections[i],
                   currentMusicPath: currentMusic?.path,
                   onSongTap: (section, songIndex) {
                     final song = section.songs[songIndex];
@@ -373,10 +471,10 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
                     handleSongTap(
                       index: globalIndex,
                       songPath: song.path,
-                      allSongs: displaySongs,
+                      allSongs: visibleSongs,
                       onNormalTap: () {
                         audio.playPlaylist(
-                          displaySongs,
+                          visibleSongs,
                           initialIndex: globalIndex,
                           source: _artistSource,
                         );
@@ -428,14 +526,86 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
               child: LibrarySelectionPanel(
                 key: const ValueKey('library-selection-panel'),
                 selectedSongs: selectedSongs,
-                allSongs: displaySongs,
-                onToggleSelectAll: () => toggleSelectAllSongs(displaySongs),
+                allSongs: visibleSongs,
+                onToggleSelectAll: () => toggleSelectAllSongs(visibleSongs),
                 onCancel: cancelSongSelection,
               ),
             ),
           ],
         );
       },
+    );
+  }
+
+  /// 页头下方的搜索开关。展开时图标高亮，再点一次收起并清空。
+  Widget _buildSearchToggle(AppLocalizations l10n, ThemeData theme) {
+    return IconButton(
+      tooltip: _searchOpen ? l10n.closeSearch : l10n.search,
+      onPressed: _toggleSearch,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+      icon: Icon(
+        _searchOpen ? Icons.search_off_rounded : Icons.search_rounded,
+        size: 20,
+        color: _searchOpen
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+
+  /// 折叠式搜索框：收起时高度为 0，不占版面。
+  Widget _buildSearchField(AppLocalizations l10n) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topLeft,
+      child: _searchOpen
+          ? Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: LibrarySearchField(
+                controller: _queryController,
+                focusNode: _queryFocus,
+                hintText: l10n.searchInArtist,
+                query: _query,
+                onChanged: _onQueryChanged,
+                onClear: _clearQuery,
+              ),
+            )
+          : const SizedBox(width: double.infinity, height: 0),
+    );
+  }
+
+  Widget _buildNoMatch(AppLocalizations l10n, ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 32,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              l10n.noMatchingInArtist,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            TextButton.icon(
+              onPressed: _clearQuery,
+              icon: const Icon(Icons.clear_rounded, size: 18),
+              label: Text(l10n.clearSearch),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -446,6 +616,8 @@ class _ArtistInfo extends StatelessWidget {
     this.cachedImagePath,
     required this.onPlayAll,
     required this.onShufflePlay,
+    this.songCountOverride,
+    this.trailingAction,
   });
 
   final ArtistSummary artist;
@@ -453,11 +625,18 @@ class _ArtistInfo extends StatelessWidget {
   final VoidCallback onPlayAll;
   final VoidCallback onShufflePlay;
 
+  /// 操作区行尾的视图级按钮（搜索开关）。
+  final Widget? trailingAction;
+
+  /// 搜索命中时的曲目数。为 null 时用艺术家自身的总曲目数，
+  /// 否则会出现「列表只剩 3 首、页头写着 120 首」。
+  final int? songCountOverride;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final songCountLabel = l10n.songCount(artist.songCount);
+    final songCountLabel = l10n.songCount(songCountOverride ?? artist.songCount);
     final playAllLabel = l10n.playAll;
     final shufflePlayLabel = l10n.shufflePlay;
 
@@ -584,6 +763,7 @@ class _ArtistInfo extends StatelessWidget {
                 icon: const Icon(Icons.shuffle),
                 label: Text(shufflePlayLabel),
               ),
+              ?trailingAction,
             ],
           ),
         ],
@@ -679,6 +859,10 @@ class _ArtistInfo extends StatelessWidget {
             color: theme.colorScheme.primary,
           ),
         ),
+        if (trailingAction != null) ...[
+          const SizedBox(width: 4),
+          trailingAction!,
+        ],
       ],
     );
   }

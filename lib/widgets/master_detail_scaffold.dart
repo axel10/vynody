@@ -42,6 +42,7 @@ class MasterDetailScaffold<T> extends ConsumerStatefulWidget {
     required this.detailBuilder,
     required this.detailPageBuilder,
     this.masterToolbarBuilder,
+    this.masterPaneHeaderBuilder,
     this.emptyMasterBuilder,
     this.emptyDetailBuilder,
     this.masterScrollController,
@@ -81,6 +82,14 @@ class MasterDetailScaffold<T> extends ConsumerStatefulWidget {
 
   /// 工具栏构建器（isWide 为 true 表示横屏顶部工具栏，false 表示竖屏顶部工具栏）
   final Widget Function(BuildContext context, bool isWide)? masterToolbarBuilder;
+
+  /// 横屏时贴在左栏内部的栏头（通常是「搜索左侧列表」的输入框）。
+  ///
+  /// 横屏页头横跨两栏，把列表搜索放在页头里会让人分不清它过滤的是哪一栏，
+  /// 右侧详情再有自己的搜索时两个放大镜还会挨在一起；
+  /// 收进左栏后「左搜条目、右搜内容」的关系一眼可见。
+  /// 竖屏不使用（竖屏没有分栏，搜索留在页头即可）。
+  final Widget Function(BuildContext context)? masterPaneHeaderBuilder;
 
   /// 主列表单项构建器（传入当前的 onTap 回调：横屏时为选中并触发联动，竖屏时为 push 二级详情页）
   final MasterItemWidgetBuilder<T> masterItemBuilder;
@@ -393,60 +402,81 @@ class _MasterDetailScaffoldState<T>
                               ),
                             ),
                           ),
-                          child: items.isEmpty
-                              ? (widget.emptyMasterBuilder != null
-                                  ? widget.emptyMasterBuilder!(context)
-                                  : const SizedBox.shrink())
-                              : Scrollbar(
-                                  controller: _effectiveScrollController,
-                                  // 静止时不常驻显示滚动条，仅在滚动/拖动时淡入，
-                                  // 滚动结束后自动淡出（与左侧 Rail 的滚动条行为保持一致）。
-                                  thumbVisibility: false,
-                                  child: ListView.builder(
-                                    controller: _effectiveScrollController,
-                                    padding: EdgeInsets.fromLTRB(
-                                      8,
-                                      8,
-                                      8 + _masterScrollbarReserve,
-                                      bottomPadding,
-                                    ),
-                                    itemCount: items.length,
-                                    itemBuilder: (context, index) {
-                                      final item = items[index];
-                                      final isSelected =
-                                          widget.itemKey(item) ==
-                                          _effectiveSelectedKey;
-                                      void handleTap() => _handleMasterTap(
-                                          item, index, true);
-
-                                      final itemWidget = widget.masterItemBuilder(
-                                        context,
-                                        item,
-                                        index,
-                                        isSelected,
-                                        true,
-                                        handleTap,
-                                      );
-
-                                      return Padding(
-                                        key: ValueKey(widget.itemKey(item)),
-                                        padding: const EdgeInsets.only(bottom: 2),
-                                        child: widget.wrapWithInkWell
-                                            ? InkWell(
-                                                onTap: handleTap,
-                                                onLongPress: widget
-                                                            .onItemLongPress !=
-                                                        null
-                                                    ? () => widget.onItemLongPress!(
-                                                        item, index)
-                                                    : null,
-                                                child: itemWidget,
-                                              )
-                                            : itemWidget,
-                                      );
-                                    },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (widget.masterPaneHeaderBuilder != null)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    10,
+                                    12 + _masterScrollbarReserve,
+                                    6,
                                   ),
+                                  child: widget.masterPaneHeaderBuilder!(context),
                                 ),
+                              Expanded(
+                                child: items.isEmpty
+                                    ? (widget.emptyMasterBuilder != null
+                                        ? widget.emptyMasterBuilder!(context)
+                                        : const SizedBox.shrink())
+                                    : Scrollbar(
+                                        controller: _effectiveScrollController,
+                                        // 静止时不常驻显示滚动条，仅在滚动/拖动时淡入，
+                                        // 滚动结束后自动淡出（与左侧 Rail 的滚动条行为保持一致）。
+                                        thumbVisibility: false,
+                                        child: ListView.builder(
+                                          controller: _effectiveScrollController,
+                                          padding: EdgeInsets.fromLTRB(
+                                            8,
+                                            8,
+                                            8 + _masterScrollbarReserve,
+                                            bottomPadding,
+                                          ),
+                                          itemCount: items.length,
+                                          itemBuilder: (context, index) {
+                                            final item = items[index];
+                                            final isSelected =
+                                                widget.itemKey(item) ==
+                                                    _effectiveSelectedKey;
+                                            void handleTap() => _handleMasterTap(
+                                                item, index, true);
+
+                                            final itemWidget =
+                                                widget.masterItemBuilder(
+                                              context,
+                                              item,
+                                              index,
+                                              isSelected,
+                                              true,
+                                              handleTap,
+                                            );
+
+                                            return Padding(
+                                              key: ValueKey(
+                                                  widget.itemKey(item)),
+                                              padding:
+                                                  const EdgeInsets.only(bottom: 2),
+                                              child: widget.wrapWithInkWell
+                                                  ? InkWell(
+                                                      onTap: handleTap,
+                                                      onLongPress: widget
+                                                                  .onItemLongPress !=
+                                                              null
+                                                          ? () => widget
+                                                              .onItemLongPress!(
+                                                                  item, index)
+                                                          : null,
+                                                      child: itemWidget,
+                                                    )
+                                                  : itemWidget,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       // 右侧 Detail 详情

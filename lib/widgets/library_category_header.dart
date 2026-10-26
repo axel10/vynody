@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../dialogs/library_source_filter_dialog.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
+import 'library_search_field.dart';
 
 /// 本地媒体库二级分类列表（专辑、艺术家、流派、年份等）的轻量统一工具栏。
 ///
@@ -29,6 +30,7 @@ class LibraryCategoryHeader extends ConsumerStatefulWidget {
     this.extraActions,
     this.backgroundColor,
     this.hasBorder = true,
+    this.showSearch = true,
   });
 
   final String? title;
@@ -46,6 +48,13 @@ class LibraryCategoryHeader extends ConsumerStatefulWidget {
   final List<Widget>? extraActions;
   final Color? backgroundColor;
   final bool hasBorder;
+
+  /// 是否在本组件内渲染搜索框。
+  ///
+  /// 横屏主从分栏时搜索框会收进左栏（见 [MasterDetailScaffold] 的
+  /// masterPaneHeaderBuilder）：页头横跨两栏、搜索框右对齐，视觉上认不出
+  /// 它过滤的是左边那条列表，而且会和右侧详情自己的搜索挤在一起。
+  final bool showSearch;
 
   @override
   ConsumerState<LibraryCategoryHeader> createState() => _LibraryCategoryHeaderState();
@@ -76,46 +85,13 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
   }
 
   Widget _buildSearchField(BuildContext context, ThemeData theme, AppLocalizations l10n) {
-    final hint = widget.searchHintText ?? l10n.search;
-    return TextField(
+    return LibrarySearchField(
       controller: widget.searchController,
       focusNode: _focusNode,
+      hintText: widget.searchHintText ?? l10n.search,
+      query: widget.searchQuery,
       onChanged: widget.onSearchChanged,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-          color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.6),
-        ),
-        prefixIcon: Icon(
-          Icons.search_rounded,
-          color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
-          size: 20,
-        ),
-        suffixIcon: widget.searchQuery.isEmpty
-            ? null
-            : IconButton(
-                onPressed: () {
-                  widget.onSearchCleared();
-                },
-                icon: Icon(
-                  Icons.close_rounded,
-                  color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
-                  size: 18,
-                ),
-              ),
-        filled: true,
-        fillColor: theme.colorScheme.secondaryContainer.withValues(alpha: 0.45),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      ),
-      style: TextStyle(
-        color: theme.colorScheme.onSecondaryContainer,
-        fontSize: 14,
-      ),
+      onClear: widget.onSearchCleared,
     );
   }
 
@@ -234,13 +210,15 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
                   const SizedBox(width: 16),
                 ],
                 Expanded(
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 280),
-                      child: _buildSearchField(context, theme, l10n),
-                    ),
-                  ),
+                  child: widget.showSearch
+                      ? Align(
+                          alignment: Alignment.centerRight,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 280),
+                            child: _buildSearchField(context, theme, l10n),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
                 ),
                 const SizedBox(width: 8),
                 Row(
@@ -271,7 +249,7 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
                       child: child,
                     );
                   },
-                  child: _isSearching
+                  child: _isSearching && widget.showSearch
                       ? Row(
                           key: const ValueKey('header_search_active'),
                           children: [
@@ -308,20 +286,21 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
                               ),
                               const SizedBox(width: 4),
                             ],
-                            IconButton(
-                              tooltip: l10n.search,
-                              icon: const Icon(Icons.search_rounded),
-                              onPressed: () {
-                                setState(() {
-                                  _isSearching = true;
-                                });
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  if (mounted) {
-                                    _focusNode.requestFocus();
-                                  }
-                                });
-                              },
-                            ),
+                            if (widget.showSearch)
+                              IconButton(
+                                tooltip: l10n.search,
+                                icon: const Icon(Icons.search_rounded),
+                                onPressed: () {
+                                  setState(() {
+                                    _isSearching = true;
+                                  });
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    if (mounted) {
+                                      _focusNode.requestFocus();
+                                    }
+                                  });
+                                },
+                              ),
                             ...?widget.extraActions,
                             ?filterButton,
                           ],

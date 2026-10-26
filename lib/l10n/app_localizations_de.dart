@@ -4698,6 +4698,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noMatchingInArtist => 'Keine passenden Alben oder Titel';
 
   @override
+  String get searchInYear => 'Alben oder Titel dieses Jahres suchen';
+
+  @override
+  String get noMatchingInYear => 'Keine passenden Alben oder Titel';
+
+  @override
   String errorLoadingSongs(String error) {
     return 'Fehler beim Laden der Titel: $error';
   }

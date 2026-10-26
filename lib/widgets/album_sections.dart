@@ -45,6 +45,32 @@ class AlbumSection {
 
   /// 专辑发行年份（可选，留空时从歌曲中自动解析）。
   final int? year;
+
+  /// 集合内搜索只命中部分曲目时，用命中集合替换曲目。
+  ///
+  /// [startIndex] 必须由调用方按新列表重算：播放与多选都按「扁平列表下标」
+  /// 取歌，沿用旧分组的下标会点 A 播 B。
+  /// 代表曲目仍优先沿用原来那张封面，命中集合里没有它时退回首曲。
+  AlbumSection copyWithSongs({
+    required List<MusicFile> songs,
+    required int startIndex,
+  }) {
+    final keepsRepresentative = songs.any(
+      (song) => song.path == representativeSong.path,
+    );
+    return AlbumSection(
+      title: title,
+      songs: songs,
+      representativeSong: keepsRepresentative ? representativeSong : songs.first,
+      totalDurationMillis: songs.fold<int>(
+        0,
+        (sum, song) => sum + (song.durationMillis ?? 0),
+      ),
+      startIndex: startIndex,
+      artist: artist,
+      year: year,
+    );
+  }
 }
 
 /// 横屏专辑分组的封面尺寸档位。
@@ -243,6 +269,44 @@ int _compareAlbumSongs(MusicFile a, MusicFile b) {
   );
   if (titleCompare != 0) return titleCompare;
   return a.path.toLowerCase().compareTo(b.path.toLowerCase());
+}
+
+/// 集合内搜索：按关键词过滤专辑分组。
+///
+/// 命中口径是「专辑名 / 专辑艺术家 / 曲目名 / 曲目艺术家」的并集：
+/// - 命中专辑名或专辑艺术家 → 整张专辑保留全部曲目；
+/// - 只命中某些曲目 → 该专辑只保留命中曲目，分组标题仍是专辑名。
+///
+/// 只按专辑名过滤会漏掉「搜歌手」，只过滤曲目行则搜专辑名等于没过滤。
+/// 返回的每个分组都已重算 [AlbumSection.startIndex]，
+/// 调用方据此把「组内下标」换算成扁平列表下标（播放 / 多选锚点都靠它）。
+///
+/// [query] 为空时原样返回入参（保留同一个列表实例，调用方可用 identical 判断）。
+List<AlbumSection> filterAlbumSections(
+  List<AlbumSection> sections,
+  String query,
+) {
+  final normalized = query.trim().toLowerCase();
+  if (normalized.isEmpty) return sections;
+
+  bool matchesSong(MusicFile song) =>
+      song.displayName.toLowerCase().contains(normalized) ||
+      (song.artist ?? '').toLowerCase().contains(normalized) ||
+      (song.albumArtist ?? '').toLowerCase().contains(normalized);
+
+  final result = <AlbumSection>[];
+  var startIndex = 0;
+  for (final section in sections) {
+    final albumHit = section.title.toLowerCase().contains(normalized) ||
+        (section.artist ?? '').toLowerCase().contains(normalized);
+    final songs = albumHit
+        ? section.songs
+        : section.songs.where(matchesSong).toList(growable: false);
+    if (songs.isEmpty) continue;
+    result.add(section.copyWithSongs(songs: songs, startIndex: startIndex));
+    startIndex += songs.length;
+  }
+  return result;
 }
 
 /// 通用的时钟式时长文案（`m:ss` / `h:mm:ss`），与语言无关。

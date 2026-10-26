@@ -2731,6 +2731,8 @@
   "noMatchingInGenre": "没有匹配的专辑或歌曲",
   "searchInArtist": "在这位艺术家内搜索专辑或歌曲",
   "noMatchingInArtist": "没有匹配的专辑或歌曲",
+  "searchInYear": "在这一年里搜索专辑或歌曲",
+  "noMatchingInYear": "没有匹配的专辑或歌曲",
   "errorLoadingSongs": "加载歌曲失败: {error}",
   "@errorLoadingSongs": {
     "description": "Error text when loading songs fails",

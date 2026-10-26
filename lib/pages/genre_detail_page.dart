@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:vynody/models/genre_summary.dart';
 import 'package:vynody/player/audio/playback_source.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/collection_detail_content.dart';
 import '../widgets/detail_page_shell.dart';
 import '../widgets/library_selection_back_guard.dart';
@@ -52,6 +53,7 @@ class GenreDetailContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return CollectionDetailContent(
       title: genre.name,
       songCount: genre.songCount,
@@ -67,6 +69,8 @@ class GenreDetailContent extends StatelessWidget {
       hasBottomPanel: hasBottomPanel,
       scrollController: scrollController,
       topPadding: topPadding,
+      searchHintText: l10n.searchInGenre,
+      noMatchText: l10n.noMatchingInGenre,
     );
   }
 }

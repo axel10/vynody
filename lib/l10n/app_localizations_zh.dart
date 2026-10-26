@@ -4403,6 +4403,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noMatchingInArtist => '没有匹配的专辑或歌曲';
 
   @override
+  String get searchInYear => '在这一年里搜索专辑或歌曲';
+
+  @override
+  String get noMatchingInYear => '没有匹配的专辑或歌曲';
+
+  @override
   String errorLoadingSongs(String error) {
     return '加载歌曲失败: $error';
   }
@@ -9799,6 +9805,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get noMatchingInArtist => '沒有匹配的專輯或歌曲';
+
+  @override
+  String get searchInYear => '在這一年裡搜尋專輯或歌曲';
+
+  @override
+  String get noMatchingInYear => '沒有匹配的專輯或歌曲';
 
   @override
   String errorLoadingSongs(String error) {

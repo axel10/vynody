@@ -1924,6 +1924,8 @@
   "noMatchingInGenre": "No matching albums or songs",
   "searchInArtist": "Search albums or songs by this artist",
   "noMatchingInArtist": "No matching albums or songs",
+  "searchInYear": "Search albums or songs in this year",
+  "noMatchingInYear": "No matching albums or songs",
   "errorLoadingSongs": "Error loading songs: {error}",
   "@errorLoadingSongs": {
     "description": "Error text when loading songs fails",

@@ -25,6 +25,7 @@ import '../models/music_file.dart';
 import '../dialogs/sort_options_dialog.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import '../widgets/library_category_header.dart';
+import '../widgets/library_search_field.dart';
 import '../widgets/artist_context_menu.dart';
 import '../widgets/master_detail_scaffold.dart';
 import 'main_layout_riverpod.dart';
@@ -228,6 +229,20 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
           hasPlayingMusic: currentMusic != null,
           isSelectionMode: isSelectionMode || (isLandscape && isSongSelectionMode),
           selectionPanel: selectionPanel,
+          masterPaneHeaderBuilder: (context) => LibrarySearchField(
+            controller: _searchController,
+            hintText: l10n.searchArtists,
+            query: _searchQuery,
+            onChanged: (value) => setState(() {
+              _searchQuery = value.trim();
+            }),
+            onClear: () {
+              _searchController.clear();
+              setState(() {
+                _searchQuery = '';
+              });
+            },
+          ),
           portraitScrollWrapper: (context, child) => FolderZoomGestureLayer(
             scope: LibraryZoomScope.artist,
             child: child,
@@ -325,6 +340,9 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
             title: artistsLabel,
             countLabel: '${visibleArtists.length} $artistsLabel',
             isWide: isWide,
+            // 横屏时搜索收进左栏（见 masterPaneHeaderBuilder），
+            // 免得它右对齐压在详情栏上方、和详情自己的搜索挨在一起。
+            showSearch: !isWide,
             searchController: _searchController,
             searchQuery: _searchQuery,
             searchHintText: l10n.searchArtists,

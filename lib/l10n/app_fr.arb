@@ -1786,6 +1786,8 @@
   "noMatchingInGenre": "Aucun album ni morceau correspondant",
   "searchInArtist": "Rechercher des albums ou morceaux de cet artiste",
   "noMatchingInArtist": "Aucun album ni morceau correspondant",
+  "searchInYear": "Rechercher des albums ou morceaux de cette année",
+  "noMatchingInYear": "Aucun album ni morceau correspondant",
   "errorLoadingSongs": "Erreur lors du chargement des morceaux : {error}",
   "starredSongsOnly": "Favoris",
   "loadMore": "Charger plus",

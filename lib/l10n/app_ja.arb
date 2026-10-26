@@ -1885,6 +1885,8 @@
   "noMatchingInGenre": "一致するアルバムや曲がありません",
   "searchInArtist": "このアーティストのアルバム・曲を検索",
   "noMatchingInArtist": "一致するアルバムや曲がありません",
+  "searchInYear": "この年のアルバム・曲を検索",
+  "noMatchingInYear": "一致するアルバムや曲がありません",
   "errorLoadingSongs": "曲の読み込みに失敗しました: {error}",
   "starredSongsOnly": "お気に入り",
   "loadMore": "もっと読み込む",

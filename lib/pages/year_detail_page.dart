@@ -74,6 +74,8 @@ class YearDetailContent extends StatelessWidget {
       hasBottomPanel: hasBottomPanel,
       scrollController: scrollController,
       topPadding: topPadding,
+      searchHintText: l10n.searchInYear,
+      noMatchText: l10n.noMatchingInYear,
     );
   }
 }

@@ -40,6 +40,8 @@ class _TestContainerState extends State<_TestContainer> {
                 });
               },
               routeName: 'test_detail',
+              masterPaneHeaderBuilder: (context) =>
+                  const Text('pane-header'),
               masterItemBuilder:
                   (context, item, index, isSelected, isWide, onTap) {
                 return ListTile(
@@ -150,6 +152,31 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Detail Page: Item2'), findsNothing);
+      expect(find.text('Item1'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '左栏栏头只在横屏分栏时出现，竖屏退回页头搜索',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(900, 500));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _TestContainer(screenSize: const Size(900, 500)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('pane-header'), findsOneWidget);
+
+      // 竖屏没有分栏：左栏栏头随分栏一起消失。
+      await tester.binding.setSurfaceSize(const Size(400, 800));
+      await tester.pumpWidget(
+        _TestContainer(screenSize: const Size(400, 800)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('pane-header'), findsNothing);
       expect(find.text('Item1'), findsOneWidget);
     },
   );

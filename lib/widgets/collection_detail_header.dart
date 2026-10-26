@@ -9,8 +9,9 @@ import '../l10n/app_localizations.dart';
 /// 竖屏：标题 / 统计 / 播放 + 随机按钮纵向排列；
 /// 横屏：播放 / 随机播放收为行尾的圆形图标按钮，与艺术家页保持一致。
 ///
-/// [trailingAction] 给调用方留一个视图级操作位（如「搜索」开关），两种布局下
-/// 都挂在操作区行尾。不传则与旧版完全一致。
+/// [trailingAction] 给调用方留一个视图级操作位（如「搜索」开关），
+/// 固定挂在操作区**行尾**——横屏排在「播放 / 随机」之后，竖屏靠右对齐，
+/// 与艺术家详情页保持一致。不传则与旧版完全一致。
 class CollectionDetailHeader extends StatelessWidget {
   const CollectionDetailHeader({
     super.key,
@@ -69,10 +70,6 @@ class CollectionDetailHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          if (trailingAction != null) ...[
-            trailingAction!,
-            const SizedBox(width: 4),
-          ],
           IconButton(
             tooltip: l10n.playAll,
             onPressed: onPlayAll,
@@ -100,6 +97,11 @@ class CollectionDetailHeader extends StatelessWidget {
               color: theme.colorScheme.primary,
             ),
           ),
+          // 视图级操作固定在最右端（与艺术家详情页同序）。
+          if (trailingAction != null) ...[
+            const SizedBox(width: 4),
+            trailingAction!,
+          ],
         ],
       );
     }

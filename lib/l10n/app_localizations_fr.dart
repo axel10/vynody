@@ -4703,6 +4703,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noMatchingInArtist => 'Aucun album ni morceau correspondant';
 
   @override
+  String get searchInYear => 'Rechercher des albums ou morceaux de cette année';
+
+  @override
+  String get noMatchingInYear => 'Aucun album ni morceau correspondant';
+
+  @override
   String errorLoadingSongs(String error) {
     return 'Erreur lors du chargement des morceaux : $error';
   }
