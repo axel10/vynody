@@ -20,6 +20,7 @@ import 'widgets/remote_library_common_widgets.dart';
 import 'widgets/remote_library_selection_actions.dart';
 import 'widgets/remote_library_albums_tab.dart';
 import 'widgets/remote_library_artists_tab.dart';
+import 'widgets/remote_library_genres_tab.dart';
 import 'widgets/remote_library_songs_tab.dart';
 import 'widgets/remote_library_playlists_tab.dart';
 import 'widgets/remote_library_search_tab.dart';
@@ -74,6 +75,11 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   String _artistSortField = 'name'; // 'name' or 'albumCount'
   bool _artistStarredOnly = false;
   final Set<String> _starredArtistIds = {};
+
+  // Genres state
+  bool _isLoadingGenres = false;
+  List<Map<String, dynamic>> _genres = [];
+  String? _genresError;
 
   // Songs state
   bool _isLoadingSongs = false;
@@ -546,11 +552,11 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     super.initState();
     final initialIndex = (widget.initialTabIndex != null &&
             widget.initialTabIndex! >= 0 &&
-            widget.initialTabIndex! < 5)
+            widget.initialTabIndex! < 6)
         ? widget.initialTabIndex!
         : 0;
     _tabController = TabController(
-      length: 5,
+      length: 6,
       vsync: this,
       initialIndex: initialIndex,
     );
@@ -599,6 +605,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     _songSortAsc = settings.navidromeSongSortAscending;
     _loadAlbums();
     _loadArtists();
+    _loadGenres();
     _loadSongs();
     _loadPlaylists();
   }
@@ -606,8 +613,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   /// 再次请求加载态使用的分类图标（与各标签页自身的加载视图保持一致）
   IconData get _reloadingContentIcon => switch (_tabController.index) {
         1 => Icons.mic_rounded,
-        2 => Icons.music_note_rounded,
-        3 => Icons.queue_music_rounded,
+        2 => Icons.style_rounded,
+        3 => Icons.music_note_rounded,
+        4 => Icons.queue_music_rounded,
         _ => Icons.album_rounded,
       };
 
@@ -659,12 +667,12 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   @override
   void reassemble() {
     super.reassemble();
-    if (_tabController.length != 5) {
-      final oldIndex = _tabController.index.clamp(0, 4);
+    if (_tabController.length != 6) {
+      final oldIndex = _tabController.index.clamp(0, 5);
       _tabController.removeListener(_handleTabChanged);
       _tabController.dispose();
       _tabController = TabController(
-        length: 5,
+        length: 6,
         vsync: this,
         initialIndex: oldIndex,
       );
@@ -761,6 +769,32 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     } catch (_) {
     } finally {
       _isRevalidatingAlbums = false;
+    }
+  }
+
+  /// 拉取远程流派列表（Jellyfin 走 `/Genres`，Subsonic 走 `getGenres`）。
+  ///
+  /// 流派数据量小、变化少，这里不做本地落盘缓存，
+  /// 只在页面初始化与手动刷新时请求一次。
+  Future<void> _loadGenres({bool forceRefresh = false}) async {
+    if (_isLoadingGenres) return;
+    setState(() {
+      _isLoadingGenres = true;
+      _genresError = null;
+    });
+    try {
+      final list = await _client.getGenres();
+      if (!mounted) return;
+      setState(() {
+        _genres = list;
+        _isLoadingGenres = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _genresError = e.toString();
+        _isLoadingGenres = false;
+      });
     }
   }
 
@@ -1430,6 +1464,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     await Future.wait([
       _loadAlbums(forceRefresh: true),
       _loadArtists(forceRefresh: true),
+      _loadGenres(forceRefresh: true),
       _loadSongs(forceRefresh: true),
       _loadPlaylists(forceRefresh: true),
     ]);
@@ -1758,12 +1793,15 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                 _loadArtists(forceRefresh: true);
                 break;
               case 2:
-                _loadSongs(forceRefresh: true);
+                _loadGenres(forceRefresh: true);
                 break;
               case 3:
-                _loadPlaylists(forceRefresh: true);
+                _loadSongs(forceRefresh: true);
                 break;
               case 4:
+                _loadPlaylists(forceRefresh: true);
+                break;
+              case 5:
                 if (_searchController.text.isNotEmpty) {
                   _onSearchChanged(_searchController.text);
                 }
@@ -1822,6 +1860,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
           tabs: [
             Tab(text: l10n.albums, height: 32),
             Tab(text: l10n.artists, height: 32),
+            Tab(text: l10n.genres, height: 32),
             Tab(text: l10n.songs, height: 32),
             Tab(text: l10n.playlists, height: 32),
             Tab(text: l10n.search, height: 32),
@@ -1887,6 +1926,15 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
             onToggleSelection: _toggleArtistSelection,
             onUpdateAnchor: (a) =>
                 setState(() => _lastArtistAnchorIndex = a),
+          ),
+          RemoteLibraryGenresView(
+            server: widget.server,
+            password: widget.password,
+            genres: _genres,
+            isLoading: _isLoadingGenres,
+            error: _genresError,
+            onRefresh: () => _loadGenres(forceRefresh: true),
+            bottomOffset: bottomOffset,
           ),
           RemoteLibrarySongsView(
             toolbar: _buildSongsToolbar(),

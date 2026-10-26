@@ -398,6 +398,110 @@ class SubsonicClient {
     return const [];
   }
 
+  /// Fetches all music genres with their song / album counts.
+  ///
+  /// Subsonic 的流派没有独立 ID，这里直接把流派名当作 id 使用；
+  /// [getSongsByGenre] 也按流派名查询，两边保持一致。
+  Future<List<Map<String, dynamic>>> getGenres() async {
+    final subsonic = await _getSubsonicData('getGenres.view');
+    final Object? root = subsonic['genres'];
+    final Object? raw = root is Map<String, dynamic> ? root['genre'] : root;
+
+    final List<Map<String, dynamic>> entries;
+    if (raw is List) {
+      entries = raw.whereType<Map<String, dynamic>>().toList();
+    } else if (raw is Map<String, dynamic>) {
+      entries = [raw];
+    } else {
+      entries = const [];
+    }
+
+    final genres = <Map<String, dynamic>>[];
+    for (final entry in entries) {
+      final name = (entry['value'] ?? entry['name'] ?? '').toString().trim();
+      if (name.isEmpty) continue;
+      genres.add({
+        'id': name,
+        'name': name,
+        'songCount': (entry['songCount'] as num?)?.toInt() ?? 0,
+        'albumCount': (entry['albumCount'] as num?)?.toInt() ?? 0,
+        'coverArt': null,
+      });
+    }
+    return genres;
+  }
+
+  /// Fetches songs belonging to a genre (matched by genre name).
+  Future<List<Map<String, dynamic>>> getSongsByGenre(
+    String genre, {
+    int count = 500,
+    int offset = 0,
+  }) async {
+    final subsonic = await _getSubsonicData('getSongsByGenre.view', {
+      'genre': genre,
+      'count': count,
+      'offset': offset,
+    });
+    final Object? root = subsonic['songsByGenre'] ?? subsonic['songs'];
+    final Object? raw = root is Map<String, dynamic> ? root['song'] : root;
+
+    if (raw is List) {
+      return raw.whereType<Map<String, dynamic>>().toList();
+    }
+    if (raw is Map<String, dynamic>) {
+      return [raw];
+    }
+    return const [];
+  }
+
+  /// Fetches the albums tagged with a genre.
+  ///
+  /// Subsonic 没有「按流派查专辑」的专用接口，走 `getAlbumList2?type=byGenre`；
+  /// 该接口按流派名匹配（流派没有独立 ID），所以 [genreName] 为空时退化用
+  /// [genreId]（`getGenres` 里两者本来就同值）。
+  Future<List<Map<String, dynamic>>> getAlbumsByGenre({
+    required String genreId,
+    required String genreName,
+    int count = 500,
+    int offset = 0,
+  }) async {
+    final genre = genreName.trim().isNotEmpty ? genreName.trim() : genreId;
+    if (genre.isEmpty) return const [];
+
+    final subsonic = await _getSubsonicData('getAlbumList2.view', {
+      'type': 'byGenre',
+      'genre': genre,
+      'size': count,
+      'offset': offset,
+    });
+    final Object? albumRoot = subsonic['albumList2'] ?? subsonic['albumList'];
+    final Object? albumData =
+        albumRoot is Map<String, dynamic> ? albumRoot['album'] : null;
+    if (albumData is List) {
+      return albumData.whereType<Map<String, dynamic>>().toList();
+    }
+    if (albumData is Map<String, dynamic>) {
+      return [albumData];
+    }
+    return const [];
+  }
+
+  /// Fetches only the album's songs (single round trip via `getAlbum`).
+  Future<List<Map<String, dynamic>>> getAlbumSongs(String albumId) async {
+    if (albumId.isEmpty) return const [];
+    final subsonic = await _getSubsonicData('getAlbum.view', {'id': albumId});
+    final album = subsonic['album'];
+    if (album is! Map<String, dynamic>) return const [];
+    final raw = album['song'];
+    if (raw is List) {
+      return raw.whereType<Map<String, dynamic>>().toList();
+    }
+    if (raw is Map<String, dynamic>) {
+      return [raw];
+    }
+    return const [];
+  }
+
   /// Fetches details for an album including its songs.
   Future<Map<String, dynamic>?> getAlbum(String albumId) async {
     final subsonic = await _getSubsonicData('getAlbum.view', {'id': albumId});
