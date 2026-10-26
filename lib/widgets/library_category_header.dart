@@ -5,16 +5,16 @@ import '../dialogs/library_source_filter_dialog.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 
-/// 本地媒体库二级分类列表（专辑、艺术家、流派、年份等）的统一顶部栏。
+/// 本地媒体库二级分类列表（专辑、艺术家、流派、年份等）的轻量统一工具栏。
 ///
-/// 遵循响应式排版：
-/// - 横屏（宽屏）：单行排列，左侧标题，中间常驻搜索输入框，右侧操作按钮区。
-/// - 竖屏（窄屏）：首行为标题与数量信息；第二行为按钮行（播放全部、随机播放、排序、搜索、扩展项、来源筛选）。
-///   点击搜索按钮后，第二行动画平滑切换为全宽搜索框与关闭按钮。
+/// 标题统一由外层顶部导航栏（[AppTopNavBar]）承载，本组件专注于内容区操作：
+/// - 横屏（宽屏）：单行排列，左侧可选展示条目数量信息，中间常驻搜索输入框，右侧操作按钮区。
+/// - 竖屏（窄屏）：单行轻量排列（播放全部、随机播放、排序、数量信息、搜索、扩展项、来源筛选）。
+///   点击搜索按钮后，动画平滑切换为全宽搜索框与关闭按钮。
 class LibraryCategoryHeader extends ConsumerStatefulWidget {
   const LibraryCategoryHeader({
     super.key,
-    required this.title,
+    this.title,
     this.countLabel,
     required this.isWide,
     required this.searchController,
@@ -31,7 +31,7 @@ class LibraryCategoryHeader extends ConsumerStatefulWidget {
     this.hasBorder = true,
   });
 
-  final String title;
+  final String? title;
   final String? countLabel;
   final bool isWide;
   final TextEditingController searchController;
@@ -143,27 +143,15 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
           )
         : null;
 
-    final titleBlock = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          widget.title,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        if (widget.countLabel != null) ...[
-          const SizedBox(height: 2),
-          Text(
+    final countText = widget.countLabel != null
+        ? Text(
             widget.countLabel!,
-            style: theme.textTheme.bodyMedium?.copyWith(
+            style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
             ),
-          ),
-        ],
-      ],
-    );
+          )
+        : null;
 
     final sortButton = widget.onSortPressed != null
         ? IconButton(
@@ -198,7 +186,7 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
         : null;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: widget.backgroundColor ?? theme.colorScheme.surface,
         border: border,
@@ -206,9 +194,19 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
       child: widget.isWide
           ? Row(
               children: [
-                Expanded(flex: 3, child: titleBlock),
-                const SizedBox(width: 12),
-                Expanded(flex: 5, child: _buildSearchField(context, theme, l10n)),
+                if (countText != null) ...[
+                  countText,
+                  const SizedBox(width: 16),
+                ],
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 360),
+                      child: _buildSearchField(context, theme, l10n),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -222,68 +220,69 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
                 ),
               ],
             )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                titleBlock,
-                const SizedBox(height: 10),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: child,
-                    );
-                  },
-                  child: _isSearching
-                      ? Row(
-                          key: const ValueKey('header_search_active'),
-                          children: [
-                            Expanded(
-                              child: _buildSearchField(context, theme, l10n),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              tooltip: l10n.cancel,
-                              icon: const Icon(Icons.close_rounded),
-                              onPressed: () {
-                                widget.searchController.clear();
-                                widget.onSearchCleared();
-                                setState(() {
-                                  _isSearching = false;
-                                });
-                              },
-                            ),
-                          ],
-                        )
-                      : Row(
-                          key: const ValueKey('header_actions_normal'),
-                          children: [
-                            ?playAllButton,
-                            ?shufflePlayButton,
-                            ?sortButton,
-                            IconButton(
-                              tooltip: l10n.search,
-                              icon: const Icon(Icons.search_rounded),
-                              onPressed: () {
-                                setState(() {
-                                  _isSearching = true;
-                                });
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  if (mounted) {
-                                    _focusNode.requestFocus();
-                                  }
-                                });
-                              },
-                            ),
-                            const Spacer(),
-                            ...?widget.extraActions,
-                            ?filterButton,
-                          ],
+          : AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+              child: _isSearching
+                  ? Row(
+                      key: const ValueKey('header_search_active'),
+                      children: [
+                        Expanded(
+                          child: _buildSearchField(context, theme, l10n),
                         ),
-                ),
-              ],
+                        const SizedBox(width: 8),
+                        IconButton(
+                          tooltip: l10n.cancel,
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () {
+                            widget.searchController.clear();
+                            widget.onSearchCleared();
+                            setState(() {
+                              _isSearching = false;
+                            });
+                          },
+                        ),
+                      ],
+                    )
+                  : Row(
+                      key: const ValueKey('header_actions_normal'),
+                      children: [
+                        ?playAllButton,
+                        ?shufflePlayButton,
+                        ?sortButton,
+                        const Spacer(),
+                        if (countText != null) ...[
+                          Flexible(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: countText,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                        IconButton(
+                          tooltip: l10n.search,
+                          icon: const Icon(Icons.search_rounded),
+                          onPressed: () {
+                            setState(() {
+                              _isSearching = true;
+                            });
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) {
+                                _focusNode.requestFocus();
+                              }
+                            });
+                          },
+                        ),
+                        ...?widget.extraActions,
+                        ?filterButton,
+                      ],
+                    ),
             ),
     );
   }

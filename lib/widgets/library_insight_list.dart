@@ -301,24 +301,14 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
         final availableWidth = constraints.maxWidth - widget.contentLeftPadding;
         final contentWidth = math.min(availableWidth, kFolderPageMaxWidth);
 
-        final titleBlock = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              widget.title,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              _searchQuery.isNotEmpty ? countLabel : widget.subtitle,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+        final subtitleText = Text(
+          _searchQuery.isNotEmpty ? countLabel : widget.subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         );
 
         final playAllButton = IconButton(
@@ -354,21 +344,23 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                 final isWide = headerConstraints.maxWidth >= 600;
 
                 return Container(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 12 : 16),
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, isWide ? 8 : 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (isWide) ...[
                         Row(
                           children: [
+                            subtitleText,
+                            const SizedBox(width: 16),
                             Expanded(
-                              flex: 3,
-                              child: titleBlock,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 5,
-                              child: _buildSearchField(theme, l10n),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 360),
+                                  child: _buildSearchField(theme, l10n),
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Row(
@@ -391,7 +383,7 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                           ],
                         ),
                         if (widget.centerAction != null) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           Align(
                             alignment: Alignment.centerLeft,
                             child: widget.centerAction!,
@@ -401,8 +393,6 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            titleBlock,
-                            const SizedBox(height: 10),
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 200),
                               transitionBuilder: (child, animation) {
@@ -433,6 +423,14 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                                       children: [
                                         playAllButton,
                                         shufflePlayButton,
+                                        const Spacer(),
+                                        Flexible(
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                                            child: subtitleText,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
                                         IconButton(
                                           tooltip: l10n.search,
                                           icon: const Icon(Icons.search_rounded),
@@ -447,7 +445,6 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                                             });
                                           },
                                         ),
-                                        const Spacer(),
                                         if (widget.headerTrailing != null) widget.headerTrailing!,
                                         if (widget.headerAction != null) ...[
                                           const SizedBox(width: 6),
@@ -459,7 +456,7 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                                     ),
                             ),
                             if (widget.centerAction != null) ...[
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 8),
                               Center(child: widget.centerAction!),
                             ],
                           ],
