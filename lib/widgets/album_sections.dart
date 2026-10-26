@@ -387,7 +387,7 @@ class AlbumSectionSliver extends ConsumerWidget {
     final double coverRadius;
 
     if (availableWidth >= 1000) {
-      coverSize = 220.0;
+      coverSize = 350.0;
       gap = 28.0;
       coverRadius = 12.0;
     } else if (availableWidth >= 800) {
