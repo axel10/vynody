@@ -21,6 +21,7 @@ class AppTopNavBar extends StatelessWidget {
     this.actions,
     this.titleSpacing = 4.0,
     this.onTitleTap,
+    this.titleOpacity = 1.0,
   });
 
   final String? title;
@@ -31,6 +32,10 @@ class AppTopNavBar extends StatelessWidget {
   final List<Widget>? actions;
   final double titleSpacing;
   final VoidCallback? onTitleTap;
+
+  /// 控制标题文字（或自定义标题）的透明度，默认为 1.0。
+  /// 支持折叠大标题模式：在页面处于顶部展开态时可置为 0.0，向下滚动折叠时置为 1.0。
+  final double titleOpacity;
 
   /// 标准内容高度（44px）
   static const double contentHeight = 44.0;
@@ -82,18 +87,23 @@ class AppTopNavBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final safeTopPadding = getSafeTopPadding(context);
 
-    final Widget effectiveTitle = titleWidget ??
-        (title != null
-            ? Text(
-                title!,
-                key: titleKey,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              )
-            : const SizedBox.shrink());
+    final Widget effectiveTitle = AnimatedOpacity(
+      opacity: titleOpacity.clamp(0.0, 1.0),
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOutCubic,
+      child: titleWidget ??
+          (title != null
+              ? Text(
+                  title!,
+                  key: titleKey,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )
+              : const SizedBox.shrink()),
+    );
 
     return ClipRect(
       child: BackdropFilter(

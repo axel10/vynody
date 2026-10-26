@@ -143,6 +143,38 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
           )
         : null;
 
+    final hasTitle = widget.title != null && widget.title!.isNotEmpty;
+
+    final largeTitleBlock = hasTitle
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.title!,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              if (widget.countLabel != null) ...[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    widget.countLabel!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ],
+          )
+        : null;
+
     final countText = widget.countLabel != null
         ? Text(
             widget.countLabel!,
@@ -194,7 +226,10 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
       child: widget.isWide
           ? Row(
               children: [
-                if (countText != null) ...[
+                if (largeTitleBlock != null) ...[
+                  largeTitleBlock,
+                  const SizedBox(width: 20),
+                ] else if (countText != null) ...[
                   countText,
                   const SizedBox(width: 16),
                 ],
@@ -220,69 +255,79 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
                 ),
               ],
             )
-          : AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              transitionBuilder: (child, animation) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: child,
-                );
-              },
-              child: _isSearching
-                  ? Row(
-                      key: const ValueKey('header_search_active'),
-                      children: [
-                        Expanded(
-                          child: _buildSearchField(context, theme, l10n),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          tooltip: l10n.cancel,
-                          icon: const Icon(Icons.close_rounded),
-                          onPressed: () {
-                            widget.searchController.clear();
-                            widget.onSearchCleared();
-                            setState(() {
-                              _isSearching = false;
-                            });
-                          },
-                        ),
-                      ],
-                    )
-                  : Row(
-                      key: const ValueKey('header_actions_normal'),
-                      children: [
-                        ?playAllButton,
-                        ?shufflePlayButton,
-                        ?sortButton,
-                        const Spacer(),
-                        if (countText != null) ...[
-                          Flexible(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              child: countText,
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (largeTitleBlock != null) ...[
+                  largeTitleBlock,
+                  const SizedBox(height: 8),
+                ],
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    );
+                  },
+                  child: _isSearching
+                      ? Row(
+                          key: const ValueKey('header_search_active'),
+                          children: [
+                            Expanded(
+                              child: _buildSearchField(context, theme, l10n),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                        ],
-                        IconButton(
-                          tooltip: l10n.search,
-                          icon: const Icon(Icons.search_rounded),
-                          onPressed: () {
-                            setState(() {
-                              _isSearching = true;
-                            });
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (mounted) {
-                                _focusNode.requestFocus();
-                              }
-                            });
-                          },
+                            const SizedBox(width: 8),
+                            IconButton(
+                              tooltip: l10n.cancel,
+                              icon: const Icon(Icons.close_rounded),
+                              onPressed: () {
+                                widget.searchController.clear();
+                                widget.onSearchCleared();
+                                setState(() {
+                                  _isSearching = false;
+                                });
+                              },
+                            ),
+                          ],
+                        )
+                      : Row(
+                          key: const ValueKey('header_actions_normal'),
+                          children: [
+                            ?playAllButton,
+                            ?shufflePlayButton,
+                            ?sortButton,
+                            const Spacer(),
+                            if (largeTitleBlock == null && countText != null) ...[
+                              Flexible(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  child: countText,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                            ],
+                            IconButton(
+                              tooltip: l10n.search,
+                              icon: const Icon(Icons.search_rounded),
+                              onPressed: () {
+                                setState(() {
+                                  _isSearching = true;
+                                });
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (mounted) {
+                                    _focusNode.requestFocus();
+                                  }
+                                });
+                              },
+                            ),
+                            ...?widget.extraActions,
+                            ?filterButton,
+                          ],
                         ),
-                        ...?widget.extraActions,
-                        ?filterButton,
-                      ],
-                    ),
+                ),
+              ],
             ),
     );
   }

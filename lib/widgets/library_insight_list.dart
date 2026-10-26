@@ -301,14 +301,30 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
         final availableWidth = constraints.maxWidth - widget.contentLeftPadding;
         final contentWidth = math.min(availableWidth, kFolderPageMaxWidth);
 
-        final subtitleText = Text(
-          _searchQuery.isNotEmpty ? countLabel : widget.subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w500,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        final largeTitleBlock = Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.title,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                _searchQuery.isNotEmpty ? countLabel : widget.subtitle,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         );
 
         final playAllButton = IconButton(
@@ -351,8 +367,8 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                       if (isWide) ...[
                         Row(
                           children: [
-                            subtitleText,
-                            const SizedBox(width: 16),
+                            largeTitleBlock,
+                            const SizedBox(width: 20),
                             Expanded(
                               child: Align(
                                 alignment: Alignment.centerLeft,
@@ -393,6 +409,8 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            largeTitleBlock,
+                            const SizedBox(height: 8),
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 200),
                               transitionBuilder: (child, animation) {
@@ -424,13 +442,6 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                                         playAllButton,
                                         shufflePlayButton,
                                         const Spacer(),
-                                        Flexible(
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                                            child: subtitleText,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
                                         IconButton(
                                           tooltip: l10n.search,
                                           icon: const Icon(Icons.search_rounded),

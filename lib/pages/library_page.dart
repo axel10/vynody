@@ -330,6 +330,9 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
   /// 点左上角返回实际弹掉的是二级宿主（直接回媒体库首页），而不是当前分类的详情页。
   final Set<int> _tabsWithChildRoutes = {};
 
+  /// 记录各子分类当前是否已向上滚动离开顶部（用于折叠大标题联动）
+  final Map<int, bool> _tabScrolledPastTop = {};
+
   late final List<GlobalKey<NavigatorState>> _tabNavigatorKeys =
       widget.tabNavigatorKeys ??
       List<GlobalKey<NavigatorState>>.generate(
@@ -441,56 +444,73 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
         ? Duration.zero
         : const Duration(milliseconds: 250);
 
-    final scaffold = AutoHideHeaderScope(
-      forceVisible: isSelectionActive || (!isLandscape && is3DViewActive),
-      builder: (context, isHeaderVisible) => Scaffold(
-        key: const ValueKey('library_subhost_scaffold'),
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            IndexedStack(
-              sizing: StackFit.expand,
-              index: clampedIndex,
-              children: [
-                for (int i = 0; i < 9; i++)
-                  _builtSubTabs.contains(i)
-                      ? LibraryTabNavigator(
-                          key: ValueKey('library_tab_navigator_$i'),
-                          navigatorKey: _tabNavigatorKeys[i],
-                          builder: (_) => _buildSubTabRoot(i),
-                          onHasChildRouteChanged: (hasChild) =>
-                              _handleTabChildRouteChanged(i, hasChild),
-                        )
-                      : const SizedBox.shrink(),
-              ],
-            ),
-            Positioned(
-              top: 0,
-              left: railWidth,
-              right: 0,
-              height: headerHeight,
-              child: AnimatedSlide(
-                offset: hideTopNavBar ? const Offset(0, -1.0) : Offset.zero,
-                duration: headerDuration,
-                curve: Curves.easeInOutCubic,
-                child: AnimatedOpacity(
-                    opacity: hideTopNavBar ? 0.0 : 1.0,
-                    duration: headerDuration,
-                    curve: Curves.easeInOutCubic,
-                    child: IgnorePointer(
-                      ignoring: hideTopNavBar,
-                      child: AutoHideHeader(
-                        isVisible: isHeaderVisible,
-                        child: AppTopNavBar(
-                          key: const ValueKey('library_subhost_top_bar'),
-                          title: title,
+    final bool isPastTop =
+        is3DViewActive || (_tabScrolledPastTop[clampedIndex] ?? false);
+
+    final scaffold = NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.metrics.axis != Axis.vertical) return false;
+        if (_tabsWithChildRoutes.contains(clampedIndex)) return false;
+        final past = notification.metrics.pixels > 36.0;
+        if ((_tabScrolledPastTop[clampedIndex] ?? false) != past) {
+          setState(() {
+            _tabScrolledPastTop[clampedIndex] = past;
+          });
+        }
+        return false;
+      },
+      child: AutoHideHeaderScope(
+        forceVisible: isSelectionActive || (!isLandscape && is3DViewActive),
+        builder: (context, isHeaderVisible) => Scaffold(
+          key: const ValueKey('library_subhost_scaffold'),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              IndexedStack(
+                sizing: StackFit.expand,
+                index: clampedIndex,
+                children: [
+                  for (int i = 0; i < 9; i++)
+                    _builtSubTabs.contains(i)
+                        ? LibraryTabNavigator(
+                            key: ValueKey('library_tab_navigator_$i'),
+                            navigatorKey: _tabNavigatorKeys[i],
+                            builder: (_) => _buildSubTabRoot(i),
+                            onHasChildRouteChanged: (hasChild) =>
+                                _handleTabChildRouteChanged(i, hasChild),
+                          )
+                        : const SizedBox.shrink(),
+                ],
+              ),
+              Positioned(
+                top: 0,
+                left: railWidth,
+                right: 0,
+                height: headerHeight,
+                child: AnimatedSlide(
+                  offset: hideTopNavBar ? const Offset(0, -1.0) : Offset.zero,
+                  duration: headerDuration,
+                  curve: Curves.easeInOutCubic,
+                  child: AnimatedOpacity(
+                      opacity: hideTopNavBar ? 0.0 : 1.0,
+                      duration: headerDuration,
+                      curve: Curves.easeInOutCubic,
+                      child: IgnorePointer(
+                        ignoring: hideTopNavBar,
+                        child: AutoHideHeader(
+                          isVisible: isHeaderVisible,
+                          child: AppTopNavBar(
+                            key: const ValueKey('library_subhost_top_bar'),
+                            title: title,
+                            titleOpacity: isPastTop ? 1.0 : 0.0,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );
