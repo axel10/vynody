@@ -164,8 +164,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     }
   }
 
-  Future<String?> _getDirectoryPath() {
-    return FileSelectorHelper.pickDirectory();
+  Future<DirectoryPickResult> _getDirectoryPath() {
+    return FileSelectorHelper.pickDirectoryDetailed();
   }
 
   Future<void> _pickFolder(ScannerService scanner) async {
@@ -188,7 +188,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       selectedDirectory = grant?.path;
       persistentDocumentId = grant?.documentId;
     } else {
-      selectedDirectory = await _getDirectoryPath();
+      final pick = await _getDirectoryPath();
+      if (pick.accessDenied) {
+        if (!mounted) return;
+        AppSnackBar.show(
+          context,
+          ref,
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.persistentAccessDenied,
+            ),
+          ),
+        );
+        return;
+      }
+      selectedDirectory = pick.path;
     }
 
     if (cwd != null) {

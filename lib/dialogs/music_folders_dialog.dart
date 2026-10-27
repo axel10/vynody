@@ -83,7 +83,22 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
         selectedDirectory = grant?.path;
         persistentDocumentId = grant?.documentId;
       } else {
-        selectedDirectory = await FileSelectorHelper.pickDirectory();
+        final pick = await FileSelectorHelper.pickDirectoryDetailed();
+        if (pick.accessDenied) {
+          if (!mounted) return;
+          final l10n = AppLocalizations.of(context);
+          AppSnackBar.show(
+            context,
+            ref,
+            SnackBar(
+              content: Text(
+                l10n?.persistentAccessDenied ?? '无法保存该目录的访问权限，请重新选择一次',
+              ),
+            ),
+          );
+          return;
+        }
+        selectedDirectory = pick.path;
       }
 
       if (cwd != null) {
