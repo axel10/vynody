@@ -97,6 +97,7 @@ class _RemoteFolderBrowserPageState
   String _searchQuery = '';
   String? _highlightedSongPath;
   Timer? _highlightTimer;
+  double? _lastCrossAxisExtent;
 
   @override
   void initState() {
@@ -1085,7 +1086,7 @@ class _RemoteFolderBrowserPageState
       final isSongGrid = viewMode == FolderViewMode.grid;
 
       final screenWidth = MediaQuery.of(context).size.width;
-      final double crossAxisExtent = screenWidth - 32;
+      final double crossAxisExtent = _lastCrossAxisExtent ?? (screenWidth - 32);
       final int crossAxisCount = getFolderGridCrossAxisCount(crossAxisExtent);
       final isPortrait =
           MediaQuery.of(context).orientation == Orientation.portrait;
@@ -1236,104 +1237,46 @@ class _RemoteFolderBrowserPageState
             ),
           );
 
-    Widget mainContent;
-    if (_isLoading) {
-      mainContent = CustomScrollView(
-        key: PageStorageKey<String>(
-            'webdav-browser-${widget.server.id}-$_currentPath'),
-        controller: _scrollController,
-        cacheExtent: 1000.0,
-        slivers: [
-          if (!isPortrait)
+    Widget buildMainContent(double crossAxisExtent) {
+      if (_isLoading) {
+        return CustomScrollView(
+          key: PageStorageKey<String>(
+              'webdav-browser-${widget.server.id}-$_currentPath'),
+          controller: _scrollController,
+          cacheExtent: 1000.0,
+          slivers: [
+            if (!isPortrait)
+              SliverToBoxAdapter(
+                child: SizedBox(height: headerHeight),
+              ),
             SliverToBoxAdapter(
-              child: SizedBox(height: headerHeight),
-            ),
-          SliverToBoxAdapter(
-            child: _buildBanner(
-              theme: theme,
-              l10n: l10n,
-              title: folderDisplayName,
-              subtitle: folderDisplaySubtitle,
-              audioCount: audioCount,
-              totalDurationMs: totalDurationMs,
-              bannerCoverThumbnailPath: bannerCoverThumbnailPath,
-              bannerCoverVirtualUri: bannerCoverVirtualUri,
-              bannerCoverWidget: bannerCoverWidget,
-              topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
-            ),
-          ),
-          const SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(strokeWidth: 3),
+              child: _buildBanner(
+                theme: theme,
+                l10n: l10n,
+                title: folderDisplayName,
+                subtitle: folderDisplaySubtitle,
+                audioCount: audioCount,
+                totalDurationMs: totalDurationMs,
+                bannerCoverThumbnailPath: bannerCoverThumbnailPath,
+                bannerCoverVirtualUri: bannerCoverVirtualUri,
+                bannerCoverWidget: bannerCoverWidget,
+                topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
               ),
             ),
-          ),
-        ],
-      );
-    } else if (_error != null) {
-      mainContent = CustomScrollView(
-        key: PageStorageKey<String>(
-            'webdav-browser-${widget.server.id}-$_currentPath'),
-        controller: _scrollController,
-        cacheExtent: 1000.0,
-        slivers: [
-          if (!isPortrait)
-            SliverToBoxAdapter(
-              child: SizedBox(height: headerHeight),
-            ),
-          SliverToBoxAdapter(
-            child: _buildBanner(
-              theme: theme,
-              l10n: l10n,
-              title: folderDisplayName,
-              subtitle: folderDisplaySubtitle,
-              audioCount: audioCount,
-              totalDurationMs: totalDurationMs,
-              bannerCoverThumbnailPath: bannerCoverThumbnailPath,
-              bannerCoverVirtualUri: bannerCoverVirtualUri,
-              bannerCoverWidget: bannerCoverWidget,
-              topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
-            ),
-          ),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline_rounded,
-                      size: 48,
-                      color: theme.colorScheme.error,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Error: $_error',
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: () =>
-                          _loadDirectory(_currentPath, forceRefresh: true),
-                      child: Text(l10n.retry),
-                    ),
-                  ],
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(strokeWidth: 3),
                 ),
               ),
             ),
-          ),
-        ],
-      );
-    } else if (_items.isEmpty) {
-      mainContent = RefreshIndicator(
-        onRefresh: () => _loadDirectory(_currentPath, forceRefresh: true),
-        child: CustomScrollView(
+          ],
+        );
+      } else if (_error != null) {
+        return CustomScrollView(
           key: PageStorageKey<String>(
               'webdav-browser-${widget.server.id}-$_currentPath'),
           controller: _scrollController,
@@ -1359,156 +1302,217 @@ class _RemoteFolderBrowserPageState
             ),
             SliverFillRemaining(
               hasScrollBody: false,
-              child: Center(child: Text(l10n.folderIsEmpty)),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 48,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Error: $_error',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: () =>
+                            _loadDirectory(_currentPath, forceRefresh: true),
+                        child: Text(l10n.retry),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
-        ),
-      );
-    } else {
-      mainContent = RefreshIndicator(
-        onRefresh: () => _loadDirectory(_currentPath, forceRefresh: true),
-        child: CustomScrollView(
-          key: PageStorageKey<String>(
-              'webdav-browser-${widget.server.id}-$_currentPath'),
-          controller: _scrollController,
-          cacheExtent: 1000.0,
-          slivers: [
-            if (!isPortrait)
+        );
+      } else if (_items.isEmpty) {
+        return RefreshIndicator(
+          onRefresh: () => _loadDirectory(_currentPath, forceRefresh: true),
+          child: CustomScrollView(
+            key: PageStorageKey<String>(
+                'webdav-browser-${widget.server.id}-$_currentPath'),
+            controller: _scrollController,
+            cacheExtent: 1000.0,
+            slivers: [
+              if (!isPortrait)
+                SliverToBoxAdapter(
+                  child: SizedBox(height: headerHeight),
+                ),
               SliverToBoxAdapter(
-                child: SizedBox(height: headerHeight),
-              ),
-            SliverToBoxAdapter(
-              child: _buildBanner(
-                theme: theme,
-                l10n: l10n,
-                title: folderDisplayName,
-                subtitle: folderDisplaySubtitle,
-                audioCount: audioCount,
-                totalDurationMs: totalDurationMs,
-                bannerCoverThumbnailPath: bannerCoverThumbnailPath,
-                bannerCoverVirtualUri: bannerCoverVirtualUri,
-                bannerCoverWidget: bannerCoverWidget,
-                topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
-              ),
-            ),
-            if (noSearchResults)
-              FolderEmptySearchResultsSliver(
-                message: l10n.noMatchingFoldersOrSongs,
-                isSearching: false,
-              )
-            else ...[
-              // 1. Subfolders Sliver (Grid or List according to viewMode)
-              if (matchedFolders.isNotEmpty)
-                WebDavSubfoldersSliver(
-                  folders: matchedFolders,
-                  viewMode: viewMode,
-                  server: widget.server,
-                  password: widget.password,
-                  isSelectionMode: _isSelectionMode,
-                  selectedFolderPaths: _selectedFolderPaths,
-                  onOpenFolder: (folder) => _openFolder(folder),
-                  onFolderTap: (folder, index) {
-                    SelectionActionHelper.handleItemTap(
-                      index: index,
-                      itemKey: folder.path,
-                      items: matchedFolders,
-                      keySelector: (f) => f.path,
-                      isSelectionMode: _isSelectionMode,
-                      selectedKeys: _selectedFolderPaths,
-                      lastAnchorIndex: _lastFolderAnchorIndex,
-                      onUpdateAnchor: (a) =>
-                          setState(() => _lastFolderAnchorIndex = a),
-                      onSetSelection: (keys) {
-                        _selectionScopeNotifier
-                            .setScope(LibrarySelectionScope.webdav);
-                        setState(() {
-                          _isSelectionMode = true;
-                          _selectedFolderPaths.addAll(keys);
-                        });
-                      },
-                      onToggleSelection: (key) => _toggleFolderSelection(key),
-                      onEnterSelectionMode: () {
-                        _selectionScopeNotifier
-                            .setScope(LibrarySelectionScope.webdav);
-                        setState(() => _isSelectionMode = true);
-                      },
-                      onNormalTap: () => _openFolder(folder),
-                    );
-                  },
-                  onFolderLongPress: (folder, index) {
-                    _lastFolderAnchorIndex = index;
-                    if (!_isSelectionMode) {
-                      _toggleSelectionMode();
-                    }
-                    _toggleFolderSelection(folder.path);
-                  },
-                  onToggleFolderSelection: _toggleFolderSelection,
-                  onToggleSelectionMode: _toggleSelectionMode,
-                  onShowFolderBottomSheet: _handleShowFolderBottomSheet,
+                child: _buildBanner(
+                  theme: theme,
+                  l10n: l10n,
+                  title: folderDisplayName,
+                  subtitle: folderDisplaySubtitle,
+                  audioCount: audioCount,
+                  totalDurationMs: totalDurationMs,
+                  bannerCoverThumbnailPath: bannerCoverThumbnailPath,
+                  bannerCoverVirtualUri: bannerCoverVirtualUri,
+                  bannerCoverWidget: bannerCoverWidget,
+                  topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
                 ),
-
-              // 2. Section divider if both folders and files exist
-              if (matchedFolders.isNotEmpty && matchedFiles.isNotEmpty)
-                FolderSectionHeaderSliver(
-                  title: l10n.songsCountFormat(matchedFiles.length),
+              ),
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: Text(l10n.folderIsEmpty)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        return RefreshIndicator(
+          onRefresh: () => _loadDirectory(_currentPath, forceRefresh: true),
+          child: CustomScrollView(
+            key: PageStorageKey<String>(
+                'webdav-browser-${widget.server.id}-$_currentPath'),
+            controller: _scrollController,
+            cacheExtent: 1000.0,
+            slivers: [
+              if (!isPortrait)
+                SliverToBoxAdapter(
+                  child: SizedBox(height: headerHeight),
                 ),
+              SliverToBoxAdapter(
+                child: _buildBanner(
+                  theme: theme,
+                  l10n: l10n,
+                  title: folderDisplayName,
+                  subtitle: folderDisplaySubtitle,
+                  audioCount: audioCount,
+                  totalDurationMs: totalDurationMs,
+                  bannerCoverThumbnailPath: bannerCoverThumbnailPath,
+                  bannerCoverVirtualUri: bannerCoverVirtualUri,
+                  bannerCoverWidget: bannerCoverWidget,
+                  topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
+                ),
+              ),
+              if (noSearchResults)
+                FolderEmptySearchResultsSliver(
+                  message: l10n.noMatchingFoldersOrSongs,
+                  isSearching: false,
+                )
+              else ...[
+                // 1. Subfolders Sliver (Grid or List according to viewMode)
+                if (matchedFolders.isNotEmpty)
+                  WebDavSubfoldersSliver(
+                    folders: matchedFolders,
+                    viewMode: viewMode,
+                    server: widget.server,
+                    password: widget.password,
+                    isSelectionMode: _isSelectionMode,
+                    selectedFolderPaths: _selectedFolderPaths,
+                    crossAxisExtent: crossAxisExtent,
+                    onOpenFolder: (folder) => _openFolder(folder),
+                    onFolderTap: (folder, index) {
+                      SelectionActionHelper.handleItemTap(
+                        index: index,
+                        itemKey: folder.path,
+                        items: matchedFolders,
+                        keySelector: (f) => f.path,
+                        isSelectionMode: _isSelectionMode,
+                        selectedKeys: _selectedFolderPaths,
+                        lastAnchorIndex: _lastFolderAnchorIndex,
+                        onUpdateAnchor: (a) =>
+                            setState(() => _lastFolderAnchorIndex = a),
+                        onSetSelection: (keys) {
+                          _selectionScopeNotifier
+                              .setScope(LibrarySelectionScope.webdav);
+                          setState(() {
+                            _isSelectionMode = true;
+                            _selectedFolderPaths.addAll(keys);
+                          });
+                        },
+                        onToggleSelection: (key) => _toggleFolderSelection(key),
+                        onEnterSelectionMode: () {
+                          _selectionScopeNotifier
+                              .setScope(LibrarySelectionScope.webdav);
+                          setState(() => _isSelectionMode = true);
+                        },
+                        onNormalTap: () => _openFolder(folder),
+                      );
+                    },
+                    onFolderLongPress: (folder, index) {
+                      _lastFolderAnchorIndex = index;
+                      if (!_isSelectionMode) {
+                        _toggleSelectionMode();
+                      }
+                      _toggleFolderSelection(folder.path);
+                    },
+                    onToggleFolderSelection: _toggleFolderSelection,
+                    onToggleSelectionMode: _toggleSelectionMode,
+                    onShowFolderBottomSheet: _handleShowFolderBottomSheet,
+                  ),
 
-              // 3. Files/Songs Sliver (Grid or List according to viewMode)
-              if (matchedFiles.isNotEmpty)
-                WebDavSongsSliver(
-                  files: matchedFiles,
-                  viewMode: viewMode,
-                  server: widget.server,
-                  password: widget.password,
-                  metadataMap: _metadataMap,
-                  currentMusicPath: currentMusic?.path,
-                  highlightedSongPath: _highlightedSongPath,
-                  isAudioPlaying: isAudioPlaying,
-                  allAudioFiles: _getAudioFiles(sourceList: displayedItems),
-                  isSelectionMode: _isSelectionMode,
-                  selectedSongPaths: _selectedSongPaths,
-                  onSongTap: (file, index) => _handleSongTap(
-                    file,
-                    index,
-                    _getAudioFiles(sourceList: displayedItems),
-                    matchedFiles,
+                // 2. Section divider if both folders and files exist
+                if (matchedFolders.isNotEmpty && matchedFiles.isNotEmpty)
+                  FolderSectionHeaderSliver(
+                    title: l10n.songsCountFormat(matchedFiles.length),
                   ),
-                  onSongLongPress: (file) => _handleSongLongPress(
-                    file,
-                    matchedFiles.indexOf(file),
-                  ),
-                  onSongSecondaryTapDown: (file, details) =>
-                      _handleSongContextMenu(
-                    file,
-                    details.globalPosition,
-                    _getAudioFiles(sourceList: displayedItems),
-                    displayedItems,
-                  ),
-                  onSongMorePressed: (file, btnContext) {
-                    final box = btnContext.findRenderObject() as RenderBox?;
-                    final pos = box != null
-                        ? box.localToGlobal(
-                            Offset(box.size.width / 2, box.size.height / 2))
-                        : Offset.zero;
-                    _handleSongContextMenu(
+
+                // 3. Files/Songs Sliver (Grid or List according to viewMode)
+                if (matchedFiles.isNotEmpty)
+                  WebDavSongsSliver(
+                    files: matchedFiles,
+                    viewMode: viewMode,
+                    server: widget.server,
+                    password: widget.password,
+                    metadataMap: _metadataMap,
+                    currentMusicPath: currentMusic?.path,
+                    highlightedSongPath: _highlightedSongPath,
+                    isAudioPlaying: isAudioPlaying,
+                    allAudioFiles: _getAudioFiles(sourceList: displayedItems),
+                    isSelectionMode: _isSelectionMode,
+                    selectedSongPaths: _selectedSongPaths,
+                    crossAxisExtent: crossAxisExtent,
+                    onSongTap: (file, index) => _handleSongTap(
                       file,
-                      pos,
+                      index,
+                      _getAudioFiles(sourceList: displayedItems),
+                      matchedFiles,
+                    ),
+                    onSongLongPress: (file) => _handleSongLongPress(
+                      file,
+                      matchedFiles.indexOf(file),
+                    ),
+                    onSongSecondaryTapDown: (file, details) =>
+                        _handleSongContextMenu(
+                      file,
+                      details.globalPosition,
                       _getAudioFiles(sourceList: displayedItems),
                       displayedItems,
-                    );
-                  },
-                  bottomPadding: 0,
-                ),
+                    ),
+                    onSongMorePressed: (file, btnContext) {
+                      final box = btnContext.findRenderObject() as RenderBox?;
+                      final pos = box != null
+                          ? box.localToGlobal(
+                              Offset(box.size.width / 2, box.size.height / 2))
+                          : Offset.zero;
+                      _handleSongContextMenu(
+                        file,
+                        pos,
+                        _getAudioFiles(sourceList: displayedItems),
+                        displayedItems,
+                      );
+                    },
+                    bottomPadding: 0,
+                  ),
 
-            ],
-            SliverPadding(
-              padding: EdgeInsets.only(
-                bottom: bottomOffset,
+              ],
+              SliverPadding(
+                padding: EdgeInsets.only(
+                  bottom: bottomOffset,
+                ),
               ),
-            ),
-          ],
-        ),
-      );
+            ],
+          ),
+        );
+      }
     }
 
     final displayedAudio = _getAudioFiles(sourceList: displayedItems);
@@ -1549,7 +1553,12 @@ class _RemoteFolderBrowserPageState
                     const BoxConstraints(maxWidth: folderPageMaxWidth),
                 child: NotificationListener<ScrollNotification>(
                   onNotification: _handleScrollNotification,
-                  child: mainContent,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      _lastCrossAxisExtent = constraints.maxWidth;
+                      return buildMainContent(constraints.maxWidth);
+                    },
+                  ),
                 ),
               ),
             ),
