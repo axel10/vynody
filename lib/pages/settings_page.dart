@@ -220,32 +220,10 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            leading: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: item.section.iconGradient,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(9),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1.5),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Icon(
-                  item.icon ?? item.section.icon,
-                  size: 18,
-                  color: Colors.white,
-                ),
-              ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            leading: Icon(
+              item.icon ?? item.section.icon,
+              color: colorScheme.onSurfaceVariant,
             ),
             title: Text(
               title,
@@ -343,7 +321,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
           child: isSearching
               ? _buildSearchResultsView(context)
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                  padding: const EdgeInsets.only(top: 4, bottom: 32),
                   children: [
                     _SettingsGroupCard(
                       sections: group1,
@@ -619,21 +597,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
                   selectedColor: theme.colorScheme.primary,
                   textColor: itemTextColor,
                   iconColor: itemTextColor,
-                  leading: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: section.iconGradient,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                    child: Center(
-                      child: Icon(icon, size: 16, color: Colors.white),
-                    ),
-                  ),
+                  leading: Icon(icon, size: 20),
                   title: Text(
                     title,
                     maxLines: 1,
@@ -888,11 +852,11 @@ class _SettingsGroupCard extends StatelessWidget {
               _buildTile(context, sections[i]),
               if (i < sections.length - 1)
                 Padding(
-                  padding: const EdgeInsets.only(left: 68, right: 16),
+                  padding: const EdgeInsets.only(left: 54, right: 16),
                   child: Divider(
                     height: 1,
                     thickness: 0.6,
-                    color: theme.dividerColor.withValues(alpha: 0.1),
+                    color: theme.dividerColor.withValues(alpha: isDark ? 0.12 : 0.08),
                   ),
                 ),
             ],
@@ -911,33 +875,15 @@ class _SettingsGroupCard extends StatelessWidget {
       child: InkWell(
         onTap: () => onSectionTap(section),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: section.iconGradient,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1.5),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Icon(
-                    section.icon,
-                    size: 20,
-                    color: Colors.white,
-                  ),
+              SizedBox(
+                width: 24,
+                child: Icon(
+                  section.icon,
+                  size: 22,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(width: 14),

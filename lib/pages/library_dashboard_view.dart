@@ -112,15 +112,15 @@ class LibraryDashboardView extends ConsumerWidget {
                         ),
                       )
                     : Padding(
-                        padding: EdgeInsets.only(
-                          left: horizontalPadding,
-                          right: horizontalPadding,
+                        padding: const EdgeInsets.only(
                           top: 8,
                           bottom: 22,
                         ),
                         child: _PortraitLibraryMenuCard(
                           onTapSubIndex: onNavigateToSubIndex,
                           l10n: l10n,
+                          contentLeftPadding: contentLeftPadding,
+                          horizontalPadding: horizontalPadding,
                         ),
                       ),
               ),
@@ -596,10 +596,14 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
   const _PortraitLibraryMenuCard({
     required this.onTapSubIndex,
     required this.l10n,
+    this.contentLeftPadding = 0.0,
+    this.horizontalPadding = 16.0,
   });
 
   final ValueChanged<int> onTapSubIndex;
   final AppLocalizations l10n;
+  final double contentLeftPadding;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -688,43 +692,24 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
       ),
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark
-            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45)
-            : theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
+    return Column(
+      children: [
+        for (int i = 0; i < items.length; i++) ...[
+          _buildTile(context, items[i]),
+          if (i < items.length - 1)
+            Padding(
+              padding: EdgeInsets.only(
+                left: contentLeftPadding + horizontalPadding + 38 + 14,
+                right: horizontalPadding,
+              ),
+              child: Divider(
+                height: 1,
+                thickness: 0.6,
+                color: theme.dividerColor.withValues(alpha: isDark ? 0.12 : 0.08),
+              ),
+            ),
         ],
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: isDark ? 0.12 : 0.06),
-          width: 0.8,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Column(
-          children: [
-            for (int i = 0; i < items.length; i++) ...[
-              _buildTile(context, items[i]),
-              if (i < items.length - 1)
-                Padding(
-                  padding: const EdgeInsets.only(left: 68, right: 16),
-                  child: Divider(
-                    height: 1,
-                    thickness: 0.6,
-                    color: theme.dividerColor.withValues(alpha: 0.1),
-                  ),
-                ),
-            ],
-          ],
-        ),
-      ),
+      ],
     );
   }
 
@@ -737,7 +722,12 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
       child: InkWell(
         onTap: item.onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          padding: EdgeInsets.only(
+            left: contentLeftPadding + horizontalPadding,
+            right: horizontalPadding,
+            top: 13,
+            bottom: 13,
+          ),
           child: Row(
             children: [
               Container(

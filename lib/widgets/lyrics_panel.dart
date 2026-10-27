@@ -1849,6 +1849,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         final isPortrait = (MediaQuery.of(context).orientation == Orientation.portrait) || isSmallWin;
         final double panelWidth = constraints.maxWidth;
 
+        // 面板被压得过窄（窗口很窄时右侧队列抽屉展开、转场中间态等）：直接不绘制。
+        // 否则 0 宽排版会把每行歌词折成多行，行高/锚点爆炸（曾出现 offset 跳到 33602），
+        // 并让行内 SizedBox 拿到负宽度触发「negative minimum width」断言。
+        if (panelWidth < 48.0) {
+          return const SizedBox.shrink();
+        }
+
         // Base scale based on screen width/resolution
         double baseScale;
         if (screenWidth <= PlaybackPageUiTuning.lyricsBaseScaleSmallScreenWidth) {

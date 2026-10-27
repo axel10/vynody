@@ -420,10 +420,15 @@ class _LyricsPanelTimedLyricsViewState
                                   ? (widget.isSmallWin ? 16.0 : 0.0)
                                   : 24.0;
                               final double effectiveRightPadding = 24.0;
-                              final double layoutMaxWidth =
-                                  widget.maxWidth -
-                                  (effectiveLeftPadding +
-                                      effectiveRightPadding);
+                              // 面板宽度可能被压到 0（播放抽屉被挤压、转场中间态），
+                              // 这里必须夹住，否则 SizedBox 会拿到负宽度触发
+                              // 「BoxConstraints has a negative minimum width」。
+                              final double layoutMaxWidth = math.max(
+                                0.0,
+                                widget.maxWidth -
+                                    (effectiveLeftPadding +
+                                        effectiveRightPadding),
+                              );
 
                               final animatedScaleChild = SizedBox(
                                 width: layoutMaxWidth,
