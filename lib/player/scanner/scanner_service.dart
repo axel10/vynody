@@ -1460,18 +1460,27 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       final registered = await _registerPersistentAccess(normalizedPath);
       if (!registered) {
         debugPrint(
-          '[ScannerService] Failed to register persistent access for $normalizedPath',
-        );
-        return RootPathAddResult(
-          RootPathAddStatus.persistentAccessDenied,
-          path: normalizedPath,
+          '[ScannerService] persistent access registration returned false for '
+          '$normalizedPath; falling back to a readability probe',
         );
       }
 
       final scopedAccessReady = await _ensureScopedRootAccess(normalizedPath);
       if (!scopedAccessReady) {
         debugPrint(
-          '[ScannerService] Failed to begin scoped access for $normalizedPath',
+          '[ScannerService] beginScopedAccess returned false for '
+          '$normalizedPath; falling back to a readability probe',
+        );
+      }
+
+      // The scope flags are advisory: a path can be readable without a
+      // security scope (e.g. ~/Music on macOS). Only the filesystem decides.
+      // Without this probe an unreadable root is added silently and then shows
+      // up as a folder with 0 songs.
+      if (!await _isDirectoryReadable(normalizedPath)) {
+        debugPrint(
+          '[ScannerService] addRootPath rejected: directory is not readable '
+          '$normalizedPath',
         );
         return RootPathAddResult(
           RootPathAddStatus.persistentAccessDenied,
@@ -1484,8 +1493,20 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       final existingFolder = _rootFolders.firstWhereOrNull(
         (folder) => _pathsEqual(folder.path, existingRoot),
       );
+      final isPopulated = existingFolder != null && !existingFolder.isEmpty;
+      if (!isPopulated) {
+        // The folder is already a root but has never produced any track (for
+        // example an iOS folder whose security scope used to fail). Re-picking
+        // it is how the user restores access, so rescan instead of silently
+        // returning "no music".
+        debugPrint(
+          '[ScannerService] existing root has no music, rescanning: '
+          '$existingRoot',
+        );
+        _restartFullRootScan();
+      }
       return RootPathAddResult(
-        existingFolder != null && !existingFolder.isEmpty
+        isPopulated
             ? RootPathAddStatus.alreadyAdded
             : RootPathAddStatus.noMusic,
         path: existingRoot,
@@ -1606,11 +1627,41 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     final controller = _playerController;
     if (controller == null) return true;
     try {
-      return await controller.registerPersistentAccess(path: path);
+      final registered = await controller.registerPersistentAccess(path: path);
+      debugPrint(
+        '[ScannerService] _registerPersistentAccess result=$registered path=$path',
+      );
+      return registered;
     } catch (e) {
       debugPrint(
         '[ScannerService] registerPersistentAccess failed for $path: $e',
       );
+      return false;
+    }
+  }
+
+  /// Probes whether [path] can actually be listed.
+  ///
+  /// iOS hands back a security-scoped URL for folders picked in Files; when the
+  /// scope never got activated, every listing throws `PathAccessException`
+  /// (EPERM). Without this probe such a folder is added silently and then shows
+  /// up with 0 songs and no explanation.
+  Future<bool> _isDirectoryReadable(String path) async {
+    if (path.isEmpty) return false;
+    try {
+      final dir = Directory(path);
+      if (!await dir.exists()) {
+        // Missing / unmounted volumes are the availability logic's business;
+        // do not report them as a permission problem.
+        return true;
+      }
+      await dir.list(followLinks: false).take(1).toList();
+      return true;
+    } on FileSystemException catch (e) {
+      debugPrint('[ScannerService] directory not readable: $path ($e)');
+      return false;
+    } catch (e) {
+      debugPrint('[ScannerService] directory probe failed: $path ($e)');
       return false;
     }
   }

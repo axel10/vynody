@@ -6,6 +6,29 @@ import 'package:flutter/services.dart';
 
 export 'package:file_picker/file_picker.dart' show FileType;
 
+/// Result of a directory pick, keeping the "user cancelled" and "system denied
+/// access" cases distinguishable.
+///
+/// On iOS a picked folder can come back with no usable security scope (for
+/// example a File Provider location). Treating that as a cancellation hides the
+/// problem: the folder gets added to the library and then scans to 0 songs.
+class DirectoryPickResult {
+  const DirectoryPickResult._({this.path, this.accessDenied = false});
+
+  const DirectoryPickResult.picked(String path) : this._(path: path);
+
+  const DirectoryPickResult.cancelled() : this._();
+
+  const DirectoryPickResult.denied() : this._(accessDenied: true);
+
+  final String? path;
+
+  /// True when the picker returned a folder the app is not allowed to read.
+  final bool accessDenied;
+
+  bool get hasPath => path != null && path!.isNotEmpty;
+}
+
 class FileSelectorHelper {
   FileSelectorHelper._();
 
@@ -17,21 +40,50 @@ class FileSelectorHelper {
   /// Uses `audio_core.player` method channel on iOS to retain security-scoped permissions and persist bookmarks,
   /// [file_selector] on Windows, Linux, and macOS, and [file_picker] on other platforms.
   static Future<String?> pickDirectory({bool lockParentWindow = true}) async {
-    String? path;
+    final result = await pickDirectoryDetailed(
+      lockParentWindow: lockParentWindow,
+    );
+    return result.path;
+  }
+
+  /// Same as [pickDirectory] but reports whether the system denied access to
+  /// the picked folder instead of collapsing every failure into `null`.
+  static Future<DirectoryPickResult> pickDirectoryDetailed({
+    bool lockParentWindow = true,
+  }) async {
     if (Platform.isIOS) {
       try {
-        path = await const MethodChannel(
+        final path = await const MethodChannel(
           'audio_core.player',
         ).invokeMethod<String>('pickAndAuthorizeDirectory');
+        if (path == null || path.isEmpty) {
+          return const DirectoryPickResult.cancelled();
+        }
+        return DirectoryPickResult.picked(path);
+      } on PlatformException catch (e) {
+        debugPrint('[FileSelectorHelper] pickAndAuthorizeDirectory failed: $e');
+        if (e.code == 'DIRECTORY_ACCESS_DENIED') {
+          return const DirectoryPickResult.denied();
+        }
+        return const DirectoryPickResult.cancelled();
       } catch (e) {
         debugPrint('[FileSelectorHelper] pickAndAuthorizeDirectory failed: $e');
+        return const DirectoryPickResult.cancelled();
       }
-    } else if (_useFileSelector) {
+    }
+
+    String? path;
+    if (_useFileSelector) {
       path = await file_selector.getDirectoryPath();
     } else {
-      path = await FilePicker.getDirectoryPath(lockParentWindow: lockParentWindow);
+      path = await FilePicker.getDirectoryPath(
+        lockParentWindow: lockParentWindow,
+      );
     }
-    return path;
+    if (path == null || path.isEmpty) {
+      return const DirectoryPickResult.cancelled();
+    }
+    return DirectoryPickResult.picked(path);
   }
 
   /// Picks a single file path.

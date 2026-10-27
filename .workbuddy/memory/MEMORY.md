@@ -34,6 +34,8 @@
 
 ## 硬性禁止
 
+- **iOS security-scoped URL 禁止先标准化再 start**：picker 返回的 URL 一旦过 `standardizedFileURL` / `resolvingSymlinksInPath()` 就丢 scope token，`startAccessingSecurityScopedResource()` 必回 false。start / `bookmarkData` 只能用原始 URL；iOS 持久化 bookmark 必须 `.minimalBookmark`（空 options 跨启动无 scope）。scope 状态只能取 start 返回值，禁止假设成功（`beginScopedAccess` 曾恒返回 true → 目录添加成功但扫描 0 首、EPERM）。**根目录可用性的最终判据是可读性探测，不是 scope 标志**（macOS `~/Music` 无 scope 但可读）。
+
 - **宿主顶栏给三级页让位**：详情在子分类 Navigator 里，宿主 `AppTopNavBar` 后画会盖住 → `onHasChildRouteChanged` → `hideTopNavBar`（`Duration.zero`）。测试取 `library_subhost_top_bar` 外层 `AnimatedOpacity` 的 `.at(1)`。
 - **嵌套 `AutoHideHeaderScope` 各管自己的滚动**：`_ownsNotification()` 按「来源往上最近一个 scope 是否自己」判定，外层不收内层通知。
 - **禁持二进制、禁按字节做 key**：blob 列禁进 `MusicFolder.files` 与 `representativeSongCache`（执行点 `scanner_tree_builder` 三工厂、`_updateMusicFileInFolder`；数据源永远 SQLite）。播放态封面每次新 `Uint8List`，key 只能用品内容指纹。
