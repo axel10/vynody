@@ -737,7 +737,11 @@ class SettingsService extends ChangeNotifier {
   /// 不再有写入方，也不要再引入读取方。
   static const String _keyFolderViewMode = 'folder_view_mode';
   static const String _keyFolderZoomScale = 'folder_zoom_scale';
-  static const double defaultFolderZoomScale = kFolderZoomTierMediumGrid;
+
+  /// 目录页（含复用该记忆域的歌单页）的档位，默认落在最大档 `largeGrid`。
+  ///
+  /// 老版本落到 `mediumGrid`（每行多一列、封面偏小），实测大封面更好认。
+  static const double defaultFolderZoomScale = kFolderZoomTierLargeGrid;
 
   /// 专辑页卡片的档位，与 `folder_zoom_scale` 分开记忆。
   ///

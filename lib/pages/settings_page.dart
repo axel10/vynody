@@ -321,7 +321,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
           child: isSearching
               ? _buildSearchResultsView(context)
               : ListView(
-                  padding: const EdgeInsets.only(top: 4, bottom: 32),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
                   children: [
                     _SettingsGroupCard(
                       sections: group1,
