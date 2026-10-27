@@ -4,9 +4,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/layout_constants.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('drawer width → window width rule', () {
+    test('window width always keeps room for the minimum content width', () {
+      expect(minWindowWidthForDrawer(kDefaultRightQueueDrawerWidth), 740.0);
+      expect(minWindowWidthForDrawer(kMinRightQueueDrawerWidth), 680.0);
+      expect(minWindowWidthForDrawer(kMaxRightQueueDrawerWidth), 1000.0);
+      // 抽屉打开时的窗口最小宽度必须与公式一致，不能是另一个独立常量。
+      expect(
+        kDrawerOpenMinWindowSize.width,
+        minWindowWidthForDrawer(kDefaultRightQueueDrawerWidth),
+      );
+      expect(kMinMainContentWidth, kDefaultRegularMinWindowSize.width);
+    });
+  });
 
   group('RightQueueDrawerNotifier Tests', () {
     test('initial state is false (closed) when no settings provided', () {

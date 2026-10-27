@@ -558,8 +558,15 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                 bottom: 0,
                 child: SidebarResizeHandle(
                   isLeft: true,
-                  onDoubleTap: () =>
-                      ref.read(rightQueueDrawerWidthProvider.notifier).reset(),
+                  onDoubleTap: () {
+                    ref.read(rightQueueDrawerWidthProvider.notifier).reset();
+                    // 抽屉变窄后同步下调窗口最小宽度，避免把窗口锁在过宽的下限上。
+                    unawaited(
+                      ref
+                          .read(rightQueueDrawerProvider.notifier)
+                          .ensureWindowFitsDrawer(),
+                    );
+                  },
                   onDragStart: (_) => ref
                       .read(isDraggingRightQueueDrawerProvider.notifier)
                       .set(true),
@@ -577,9 +584,17 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                         .read(rightQueueDrawerWidthProvider.notifier)
                         .setWidth(next);
                   },
-                  onDragEnd: (_) => ref
-                      .read(isDraggingRightQueueDrawerProvider.notifier)
-                      .set(false),
+                  onDragEnd: (_) {
+                    ref
+                        .read(isDraggingRightQueueDrawerProvider.notifier)
+                        .set(false);
+                    // 拖宽抽屉会把内容区挤薄：按「抽屉宽度 + 内容区最小宽度」把窗口撑开。
+                    unawaited(
+                      ref
+                          .read(rightQueueDrawerProvider.notifier)
+                          .ensureWindowFitsDrawer(),
+                    );
+                  },
                   onDragCancel: () => ref
                       .read(isDraggingRightQueueDrawerProvider.notifier)
                       .set(false),

@@ -342,11 +342,22 @@ void main(List<String> args) async {
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     AppLog.log('initializing window manager', mirrorToConsole: true);
     await windowManager.ensureInitialized();
+    // 抽屉在启动时若是展开状态，窗口初始宽度必须容得下「抽屉 + 内容区最小宽度」，
+    // 否则主界面一进来就被压成一条缝（歌词面板 0 宽 → 负宽度断言）。
+    final double startupMinWindowWidth = settingsService.isRightQueueDrawerOpen
+        ? minWindowWidthForDrawer(settingsService.rightQueueDrawerWidth)
+        : kDefaultRegularMinWindowSize.width;
+    final Size savedRegularSize = settingsService.savedRegularWindowSize;
+    final double startupWindowWidth =
+        savedRegularSize.width < startupMinWindowWidth
+        ? startupMinWindowWidth
+        : savedRegularSize.width;
     WindowOptions windowOptions = WindowOptions(
-      size: settingsService.savedRegularWindowSize,
-      minimumSize: settingsService.isRightQueueDrawerOpen
-          ? kDrawerOpenMinWindowSize
-          : kDefaultRegularMinWindowSize,
+      size: Size(startupWindowWidth, savedRegularSize.height),
+      minimumSize: Size(
+        startupMinWindowWidth,
+        kDefaultRegularMinWindowSize.height,
+      ),
       center: true,
       backgroundColor: Colors.transparent,
       skipTaskbar: false,

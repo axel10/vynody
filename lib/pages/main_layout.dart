@@ -1105,17 +1105,24 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             }
 
             final isDrawerOpen = ref.read(rightQueueDrawerProvider);
+            final double minWindowWidth = isDrawerOpen
+                ? minWindowWidthForDrawer(ref.read(rightQueueDrawerWidthProvider))
+                : kDefaultRegularMinWindowSize.width;
             await windowManager.setMinimumSize(
-              isDrawerOpen
-                  ? kDrawerOpenMinWindowSize
-                  : kDefaultRegularMinWindowSize,
+              Size(minWindowWidth, kDefaultRegularMinWindowSize.height),
             );
             await windowManager.setMaximumSize(const Size(99999, 99999));
             final savedSize = settings.savedRegularWindowSize;
             debugPrint(
-              '[vynody] restoring regular window size: savedSize=$savedSize',
+              '[vynody] restoring regular window size: savedSize=$savedSize '
+              'minWindowWidth=$minWindowWidth',
             );
-            await windowManager.setSize(savedSize);
+            await windowManager.setSize(
+              Size(
+                math.max(savedSize.width, minWindowWidth),
+                savedSize.height,
+              ),
+            );
             await windowManager.setAlwaysOnTop(false);
             if (settings.isRegularWindowMaximized) {
               await windowManager.maximize();
