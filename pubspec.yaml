@@ -86,10 +86,8 @@ dependencies:
   flutter_colorpicker: ^1.1.0
 
   intl: ^0.20.2
-  mesh_gradient: 
-    git:
-      url: https://github.com/axel10/mesh-gradient
-      ref: f905517482c75750403d08a6b5658c85b4b15832
+  mesh_flow:
+    path: ./mesh_flow
   windows_taskbar:
     git:
       url: https://github.com/axel10/windows_taskbar

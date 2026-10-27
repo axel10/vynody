@@ -56,6 +56,7 @@
 - **`TagLibMetadata` 新增标签列要三处同步**：字段 → 四个 reader 赋值 → `processMetadata` 的 `值 ?? base.值` 回落。诊断钩子 `_debugWarnColumnWipe` 打 `[ColumnWipe]` = 还有调用方在拼整行。
 - **排序写入必须显式推进结构版本**：走 `_markSortOrderChanged()`。默认排序 = 音轨号升序；`SortCriteriaX.fromStorageValue` 兜底仍 `filename`（WebDAV 共用）。UI 唯一写入口 `applySortSettings()`。
 - **`Slider` 是受控组件，`onChanged` 必须回流到 `value`**，否则拇指停在按下位置。参照 `_StandardProgressSlider`、`WaveformProgressBar`。
+- **播放页动态流变背景 = `mesh_flow` 包**（`lib/widgets/dynamic_mesh_background.dart`，旧的 `mesh_gradient`/`il` 依赖已摘除）。`MeshFlowPainter.time` 已按 `speed` 缩放，**禁再乘 `flowSpeed`**（平方级把 0.05 压成不动）；`WarpGrid` 的 `time` 是可选项，不传则几何完全静态（只有贴图在转）。给 `MeshFlow` 传 `palette` 会让主题色异步刷新被判定为「封面变了」而反复重启过渡，有真封面时一律传 null。
 
 ## 其它约定 / 环境
 
