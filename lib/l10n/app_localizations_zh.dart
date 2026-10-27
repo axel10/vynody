@@ -644,6 +644,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get normalOpacity => '常规暗色层不透明度';
 
   @override
+  String get autoDarkLayer => '自适应暗色层';
+
+  @override
+  String get autoDarkLayerDesc => '根据背景色彩亮度自动调节暗色层，深暗画面自动去除遮罩';
+
+  @override
   String get lyricsOpacity => '歌词暗色层不透明度';
 
   @override
@@ -6046,6 +6052,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get normalOpacity => '一般暗色層不透明度';
+
+  @override
+  String get autoDarkLayer => '自適應暗色層';
+
+  @override
+  String get autoDarkLayerDesc => '根據背景色彩亮度自動調節暗色層，深暗畫面自動去除遮罩';
 
   @override
   String get lyricsOpacity => '歌詞暗色層不透明度';

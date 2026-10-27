@@ -214,6 +214,8 @@
   "customColor": "Couleur personnalisée",
   "uploadImage": "Sélectionner une image",
   "normalOpacity": "Opacité de la couche sombre normale",
+  "autoDarkLayer": "Couche sombre automatique",
+  "autoDarkLayerDesc": "Ajuste automatiquement la couche sombre selon la luminosité de l'arrière-plan",
   "lyricsOpacity": "Opacité de la couche sombre des paroles",
   "chooseImageError": "Échec de la sélection de l'image",
   "noImageSelected": "Aucune image sélectionnée",

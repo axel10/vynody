@@ -663,6 +663,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get normalOpacity => 'Normale Dunkelschicht-Deckkraft';
 
   @override
+  String get autoDarkLayer => 'Automatische Dunkelschicht';
+
+  @override
+  String get autoDarkLayerDesc =>
+      'Dunkelschicht automatisch an die Hintergrundhelligkeit anpassen';
+
+  @override
   String get lyricsOpacity => 'Text-Dunkelschicht-Deckkraft';
 
   @override

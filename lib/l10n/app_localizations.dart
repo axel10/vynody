@@ -1317,6 +1317,18 @@ abstract class AppLocalizations {
   /// **'常规暗色层不透明度'**
   String get normalOpacity;
 
+  /// No description provided for @autoDarkLayer.
+  ///
+  /// In zh, this message translates to:
+  /// **'自适应暗色层'**
+  String get autoDarkLayer;
+
+  /// No description provided for @autoDarkLayerDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'根据背景色彩亮度自动调节暗色层，深暗画面自动去除遮罩'**
+  String get autoDarkLayerDesc;
+
   /// No description provided for @lyricsOpacity.
   ///
   /// In zh, this message translates to:

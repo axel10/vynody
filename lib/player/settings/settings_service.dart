@@ -618,6 +618,8 @@ class SettingsService extends ChangeNotifier {
 
   static const double defaultPlaybackBackgroundNormalOpacity = 0.20;
   static const double defaultPlaybackBackgroundLyricsOpacity = 0.30;
+  static const double defaultPlaybackMeshBackgroundNormalOpacity = 0.0;
+  static const bool defaultPlaybackMeshBackgroundAutoDarkLayer = false;
   static const double defaultPlaybackBlurredArtworkBlurSigma = 30.0;
   static const double defaultPlaybackCustomImageBlurSigma = 0.0;
 
@@ -654,6 +656,10 @@ class SettingsService extends ChangeNotifier {
       'playback_custom_image_blur_sigma';
   static const String _keyPlaybackMeshBackgroundSpeed =
       'playback_mesh_background_speed';
+  static const String _keyPlaybackMeshBackgroundNormalOpacity =
+      'playback_mesh_background_normal_opacity';
+  static const String _keyPlaybackMeshBackgroundAutoDarkLayer =
+      'playback_mesh_background_auto_dark_layer';
   static const String _keyPortraitFrequencyGroups =
       'visualizer_portrait_frequency_groups';
   static const String _keyLandscapeFrequencyGroups =
@@ -1975,6 +1981,22 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _playbackMeshBackgroundNormalOpacityProperty =
+      SettingProperty<double>(
+        key: _keyPlaybackMeshBackgroundNormalOpacity,
+        defaultValue: defaultPlaybackMeshBackgroundNormalOpacity,
+        prefs: _prefs,
+        onChanged: notifyListeners,
+      );
+
+  late final _playbackMeshBackgroundAutoDarkLayerProperty =
+      SettingProperty<bool>(
+        key: _keyPlaybackMeshBackgroundAutoDarkLayer,
+        defaultValue: defaultPlaybackMeshBackgroundAutoDarkLayer,
+        prefs: _prefs,
+        onChanged: notifyListeners,
+      );
+
   late final _portraitFrequencyGroupsProperty = SettingProperty<int>(
     key: _keyPortraitFrequencyGroups,
     defaultValue: 100,
@@ -3118,6 +3140,16 @@ class SettingsService extends ChangeNotifier {
   set playbackMeshBackgroundSpeed(double value) =>
       _playbackMeshBackgroundSpeedProperty.value = value;
 
+  double get playbackMeshBackgroundNormalOpacity =>
+      _playbackMeshBackgroundNormalOpacityProperty.value;
+  set playbackMeshBackgroundNormalOpacity(double value) =>
+      _playbackMeshBackgroundNormalOpacityProperty.value = value;
+
+  bool get playbackMeshBackgroundAutoDarkLayer =>
+      _playbackMeshBackgroundAutoDarkLayerProperty.value;
+  set playbackMeshBackgroundAutoDarkLayer(bool value) =>
+      _playbackMeshBackgroundAutoDarkLayerProperty.value = value;
+
   bool getIsAutoModeForStyle(VisualizerStyle style) {
     final key = 'visualizer_auto_mode_${style.name}';
     final stored = _prefs.getBool(key);
@@ -3569,6 +3601,8 @@ class SettingsService extends ChangeNotifier {
     _isVisualizerDynamicStartColorProperty.reset();
     _isVisualizerDynamicEndColorProperty.reset();
     _playbackMeshBackgroundSpeedProperty.reset();
+    _playbackMeshBackgroundNormalOpacityProperty.reset();
+    _playbackMeshBackgroundAutoDarkLayerProperty.reset();
     _playbackBackgroundColorProperty.reset();
     _playbackRadialGradientEnabledProperty.reset();
     _playbackBackgroundCustomImagePathProperty.reset();

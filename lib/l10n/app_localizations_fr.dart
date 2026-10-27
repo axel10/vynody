@@ -664,6 +664,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get normalOpacity => 'Opacité de la couche sombre normale';
 
   @override
+  String get autoDarkLayer => 'Couche sombre automatique';
+
+  @override
+  String get autoDarkLayerDesc =>
+      'Ajuste automatiquement la couche sombre selon la luminosité de l\'arrière-plan';
+
+  @override
   String get lyricsOpacity => 'Opacité de la couche sombre des paroles';
 
   @override

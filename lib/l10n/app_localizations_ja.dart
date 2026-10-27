@@ -647,6 +647,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get normalOpacity => '通常時暗色レイヤーの不透明度';
 
   @override
+  String get autoDarkLayer => '自動ダークレイヤー';
+
+  @override
+  String get autoDarkLayerDesc => '背景色の明度に応じて暗色レイヤーを自動調整します';
+
+  @override
   String get lyricsOpacity => '歌詞表示時暗色レイヤーの不透明度';
 
   @override

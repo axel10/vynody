@@ -648,6 +648,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get normalOpacity => '일반 어두운 레이어 불투명도';
 
   @override
+  String get autoDarkLayer => '자동 어두운 레이어';
+
+  @override
+  String get autoDarkLayerDesc => '배경 밝기에 따라 어두운 레이어를 자동으로 조절합니다';
+
+  @override
   String get lyricsOpacity => '가사 어두운 레이어 불투명도';
 
   @override

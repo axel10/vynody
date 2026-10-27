@@ -197,6 +197,8 @@
   "customColor": "自訂顏色",
   "uploadImage": "選擇圖片",
   "normalOpacity": "一般暗色層不透明度",
+  "autoDarkLayer": "自適應暗色層",
+  "autoDarkLayerDesc": "根據背景色彩亮度自動調節暗色層，深暗畫面自動去除遮罩",
   "lyricsOpacity": "歌詞暗色層不透明度",
   "chooseImageError": "選擇圖片失敗",
   "noImageSelected": "未選擇圖片",

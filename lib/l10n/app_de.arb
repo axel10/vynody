@@ -214,6 +214,8 @@
   "customColor": "Benutzerdefinierte Farbe",
   "uploadImage": "Bild auswählen",
   "normalOpacity": "Normale Dunkelschicht-Deckkraft",
+  "autoDarkLayer": "Automatische Dunkelschicht",
+  "autoDarkLayerDesc": "Dunkelschicht automatisch an die Hintergrundhelligkeit anpassen",
   "lyricsOpacity": "Text-Dunkelschicht-Deckkraft",
   "chooseImageError": "Fehler beim Auswählen des Bildes",
   "noImageSelected": "Kein Bild ausgewählt",

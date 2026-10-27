@@ -664,6 +664,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get normalOpacity => 'Opacidad de capa oscura normal';
 
   @override
+  String get autoDarkLayer => 'Capa oscura automática';
+
+  @override
+  String get autoDarkLayerDesc =>
+      'Ajusta automáticamente la capa oscura según la luminosidad del fondo';
+
+  @override
   String get lyricsOpacity => 'Opacidad de capa oscura de letras';
 
   @override

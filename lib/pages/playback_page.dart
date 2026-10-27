@@ -22,6 +22,7 @@ import '../widgets/playback/blurred_artwork_rasterizer.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/dynamic_mesh_background.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import '../player/settings/theme_color_helper.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/app_surface_palette.dart';
 import 'package:vynody/utils/playback_utils.dart';
@@ -1719,8 +1720,29 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     SettingsService settings,
     bool isSmallWin,
   ) {
-    double opacity = 0.30;
-    if (backgroundType == 0 || backgroundType == 2 || backgroundType == 3) {
+    double opacity = 0.0;
+    if (backgroundType == 1) {
+      if (settings.playbackMeshBackgroundAutoDarkLayer) {
+        final themeColors = ref.watch(audioCurrentThemeColorsMapProvider);
+        final dynamicStartColor = ref.watch(audioDynamicStartColorProvider);
+        final dynamicEndColor = ref.watch(audioDynamicEndColorProvider);
+        final colors = ThemeColorHelper.resolveMeshColors(
+          themeColors,
+          dynamicStartColor: dynamicStartColor,
+          dynamicEndColor: dynamicEndColor,
+        );
+        final double baseTargetOpacity =
+            settings.playbackMeshBackgroundNormalOpacity > 0.0
+                ? settings.playbackMeshBackgroundNormalOpacity
+                : 0.30;
+        opacity = ThemeColorHelper.calculateAutoMeshDarkOpacity(
+          colors,
+          targetOpacity: baseTargetOpacity,
+        );
+      } else {
+        opacity = settings.playbackMeshBackgroundNormalOpacity;
+      }
+    } else if (backgroundType == 0 || backgroundType == 2 || backgroundType == 3) {
       opacity = settings.playbackBackgroundNormalOpacity;
     }
 

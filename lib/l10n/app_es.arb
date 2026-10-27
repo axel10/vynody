@@ -214,6 +214,8 @@
   "customColor": "Color personalizado",
   "uploadImage": "Seleccionar imagen",
   "normalOpacity": "Opacidad de capa oscura normal",
+  "autoDarkLayer": "Capa oscura automática",
+  "autoDarkLayerDesc": "Ajusta automáticamente la capa oscura según la luminosidad del fondo",
   "lyricsOpacity": "Opacidad de capa oscura de letras",
   "chooseImageError": "Error al seleccionar imagen",
   "noImageSelected": "Ninguna imagen seleccionada",

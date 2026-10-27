@@ -286,6 +286,8 @@
   "customColor": "Özel Renk",
   "uploadImage": "Resim Seç",
   "normalOpacity": "Normal Koyu Katman Opaklığı",
+  "autoDarkLayer": "Otomatik Koyu Katman",
+  "autoDarkLayerDesc": "Koyu katmanı arka plan parlaklığına göre otomatik olarak ayarlar",
   "lyricsOpacity": "Şarkı Sözü Koyu Katman Opaklığı",
   "chooseImageError": "Resim seçilemedi",
   "noImageSelected": "Resim seçilmedi",

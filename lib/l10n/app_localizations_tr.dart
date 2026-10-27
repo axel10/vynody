@@ -658,6 +658,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get normalOpacity => 'Normal Koyu Katman Opaklığı';
 
   @override
+  String get autoDarkLayer => 'Otomatik Koyu Katman';
+
+  @override
+  String get autoDarkLayerDesc =>
+      'Koyu katmanı arka plan parlaklığına göre otomatik olarak ayarlar';
+
+  @override
   String get lyricsOpacity => 'Şarkı Sözü Koyu Katman Opaklığı';
 
   @override

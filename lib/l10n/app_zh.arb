@@ -776,6 +776,8 @@
   "customColor": "自定义颜色",
   "uploadImage": "选择图片",
   "normalOpacity": "常规暗色层不透明度",
+  "autoDarkLayer": "自适应暗色层",
+  "autoDarkLayerDesc": "根据背景色彩亮度自动调节暗色层，深暗画面自动去除遮罩",
   "lyricsOpacity": "歌词暗色层不透明度",
   "chooseImageError": "选择图片失败",
   "noImageSelected": "未选择图片",

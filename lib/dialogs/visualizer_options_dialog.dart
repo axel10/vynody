@@ -764,6 +764,62 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                       setDialogState(() {});
                     },
                   ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    contentPadding: isPortrait
+                        ? EdgeInsets.zero
+                        : const EdgeInsets.symmetric(horizontal: 12),
+                    shape: isPortrait
+                        ? null
+                        : RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                    title: Text(
+                      l10n.autoDarkLayer,
+                      style: TextStyle(
+                        color:
+                            isDark ? Colors.white : theme.colorScheme.onSurface,
+                        fontSize: 13,
+                      ),
+                    ),
+                    subtitle: Text(
+                      l10n.autoDarkLayerDesc,
+                      style: TextStyle(
+                        color: isDark
+                            ? Colors.white54
+                            : theme.colorScheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                    ),
+                    value: settings.playbackMeshBackgroundAutoDarkLayer,
+                    activeThumbColor: theme.colorScheme.primary,
+                    activeTrackColor:
+                        theme.colorScheme.primary.withValues(alpha: 0.5),
+                    onChanged: (val) {
+                      settings.playbackMeshBackgroundAutoDarkLayer = val;
+                      setDialogState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Opacity(
+                    opacity: settings.playbackMeshBackgroundAutoDarkLayer
+                        ? 0.45
+                        : 1.0,
+                    child: IgnorePointer(
+                      ignoring: settings.playbackMeshBackgroundAutoDarkLayer,
+                      child: _buildOptionSlider(
+                        context,
+                        label: l10n.normalOpacity,
+                        value: settings.playbackMeshBackgroundNormalOpacity,
+                        min: 0.0,
+                        max: 1.0,
+                        onChanged: (val) {
+                          settings.playbackMeshBackgroundNormalOpacity = val;
+                          setDialogState(() {});
+                        },
+                      ),
+                    ),
+                  ),
                 ],
                 if (isSolidColorBackground)
                   _buildSolidColorControls(context, settings, setDialogState),

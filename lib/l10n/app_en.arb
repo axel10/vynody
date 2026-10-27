@@ -222,6 +222,8 @@
   "customColor": "Custom Color",
   "uploadImage": "Select Image",
   "normalOpacity": "Normal Dark Layer Opacity",
+  "autoDarkLayer": "Auto Dark Layer",
+  "autoDarkLayerDesc": "Automatically adjust dark layer based on artwork luminance, removing it on dark backgrounds",
   "lyricsOpacity": "Lyrics Dark Layer Opacity",
   "chooseImageError": "Failed to select image",
   "noImageSelected": "No image selected",

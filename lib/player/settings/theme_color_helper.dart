@@ -104,4 +104,31 @@ class ThemeColorHelper {
     final spread = hueSpread(colors.first, colors.sublist(1));
     return spread > threshold;
   }
+
+  /// 计算流变背景在自动暗色层模式下的透明度。
+  ///
+  /// 根据当前主题色彩中的最高相对亮度，自适应调整遮罩不透明度：
+  /// - 若最高相对亮度 <= 0.22（画面全为深暗色调），返回 0.0（完全不加暗色层）；
+  /// - 若最高相对亮度 >= 0.55（画面含有亮浅色或高光），返回基准 [targetOpacity]；
+  /// - 位于两者之间时，进行平滑线性过渡。
+  static double calculateAutoMeshDarkOpacity(
+    List<Color> colors, {
+    double targetOpacity = 0.30,
+  }) {
+    if (colors.isEmpty) return targetOpacity;
+    double maxLuminance = 0.0;
+    for (final color in colors) {
+      final lum = color.computeLuminance();
+      if (lum > maxLuminance) {
+        maxLuminance = lum;
+      }
+    }
+    const double lowerThreshold = 0.22;
+    const double upperThreshold = 0.55;
+    if (maxLuminance <= lowerThreshold) return 0.0;
+    if (maxLuminance >= upperThreshold) return targetOpacity;
+    final t =
+        (maxLuminance - lowerThreshold) / (upperThreshold - lowerThreshold);
+    return targetOpacity * t;
+  }
 }

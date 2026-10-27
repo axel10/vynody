@@ -658,6 +658,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get normalOpacity => 'Normal Dark Layer Opacity';
 
   @override
+  String get autoDarkLayer => 'Auto Dark Layer';
+
+  @override
+  String get autoDarkLayerDesc =>
+      'Automatically adjust dark layer based on artwork luminance, removing it on dark backgrounds';
+
+  @override
   String get lyricsOpacity => 'Lyrics Dark Layer Opacity';
 
   @override

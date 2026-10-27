@@ -214,6 +214,8 @@
   "customColor": "カスタム色",
   "uploadImage": "画像を選択",
   "normalOpacity": "通常時暗色レイヤーの不透明度",
+  "autoDarkLayer": "自動ダークレイヤー",
+  "autoDarkLayerDesc": "背景色の明度に応じて暗色レイヤーを自動調整します",
   "lyricsOpacity": "歌詞表示時暗色レイヤーの不透明度",
   "chooseImageError": "画像の選択に失敗しました",
   "noImageSelected": "画像が選択されていません",

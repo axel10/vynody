@@ -214,6 +214,8 @@
   "customColor": "사용자 지정 색상",
   "uploadImage": "이미지 선택",
   "normalOpacity": "일반 어두운 레이어 불투명도",
+  "autoDarkLayer": "자동 어두운 레이어",
+  "autoDarkLayerDesc": "배경 밝기에 따라 어두운 레이어를 자동으로 조절합니다",
   "lyricsOpacity": "가사 어두운 레이어 불투명도",
   "chooseImageError": "이미지 선택 실패",
   "noImageSelected": "선택된 이미지 없음",
