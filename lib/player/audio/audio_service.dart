@@ -2057,7 +2057,24 @@ class AudioService extends Notifier<AudioSnapshot> {
   Uint8List? getCachedArtwork(String? path) {
     if (path == null) return null;
     final cached = _artworkCache[path];
-    if (cached != null) return cached;
+    if (cached != null) {
+      // 同一首歌会先后产生两种规格的封面字节：扫描/后台流程落的是 500px 缩略图，
+      // 播放页解码内嵌得到的是原图。若只按「先写入先命中」，缩略图一旦进入缓存就
+      // 永久占位 —— currentMusic 后来拿到原图，播放页仍停在缩略图（观感就是封面糊）。
+      // 这里收敛为「字节更大者更清晰」：当前曲目的权威值更大时直接替换缓存。
+      final current = currentMusic;
+      final authoritative = current?.artworkBytes;
+      if (current != null &&
+          authoritative != null &&
+          authoritative.isNotEmpty &&
+          authoritative.length > cached.length &&
+          (current.path == path ||
+              safeDecodeUri(current.path) == safeDecodeUri(path))) {
+        _artworkCache[path] = authoritative;
+        return authoritative;
+      }
+      return cached;
+    }
     if (path.contains('%')) {
       final decoded = safeDecodeUri(path);
       final decodedCached = _artworkCache[decoded];
