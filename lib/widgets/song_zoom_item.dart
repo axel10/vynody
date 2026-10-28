@@ -201,8 +201,7 @@ class SongZoomItem extends ConsumerWidget {
     }
 
     // 字体样式与平滑字号
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = metrics.isPortrait;
     final titleSize = metrics.animatedTitleFontSize;
     final subSize = metrics.animatedSubtitleFontSize;
     final infoSize = metrics.animatedInfoFontSize;
@@ -367,8 +366,7 @@ class _SongZoomContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = metrics.isPortrait;
     final gridMorph = metrics.gridMorph;
     final compactMorph = metrics.compactMorph;
 

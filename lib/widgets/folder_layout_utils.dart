@@ -190,11 +190,23 @@ double calculateFolderZoomGridTextHeight(
   BuildContext context, {
   required double zoomScale,
 }) {
-  final isPortrait =
-      MediaQuery.of(context).orientation == Orientation.portrait;
-  final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
+  return folderZoomGridTextHeightFor(
+    tier: getFolderZoomTier(zoomScale),
+    isPortrait: MediaQuery.of(context).orientation == Orientation.portrait,
+    textScale: folderZoomTextScaleOf(context),
+  );
+}
+
+/// [calculateFolderZoomGridTextHeight] 的纯函数版本：不碰 `MediaQuery`。
+///
+/// 每帧都要算目标布局时（捏合跟手、字号插值）必须用这个版本，
+/// 否则一次 `_calculateTargets` 里要摸两次 `MediaQuery`。
+double folderZoomGridTextHeightFor({
+  required FolderZoomTier tier,
+  required bool isPortrait,
+  required double textScale,
+}) {
   final clampedScale = textScale.clamp(1.0, 1.3);
-  final tier = getFolderZoomTier(zoomScale);
   final double baseHeight = switch (tier) {
     FolderZoomTier.smallGrid => isPortrait ? 58.0 : 62.0,
     FolderZoomTier.mediumGrid => isPortrait ? 64.0 : 68.0,
@@ -202,6 +214,23 @@ double calculateFolderZoomGridTextHeight(
   };
   return baseHeight * clampedScale;
 }
+
+/// 系统文字缩放系数（以 `10pt` 为基准），统一走这一个入口。
+double folderZoomTextScaleOf(BuildContext context) =>
+    MediaQuery.textScalerOf(context).scale(10) / 10;
+
+/// 插值字号的对齐步长。
+///
+/// `fontSize` 每变一点，`RenderParagraph` 就要重造一次 `Paragraph`（shaping +
+/// 排版）。捏合跟手时每个可见条目每帧三套字号都在变，网格 6~8 列就是每帧上
+/// 百次重排版。对齐到 `0.5` 后，一次档位过渡里每个字号只会真正变 2~4 次，
+/// 视觉上看不出差别（半像素的字号），排版次数降一个数量级。
+const double kFolderZoomFontSizeQuantum = 0.5;
+
+/// 把插值出来的字号对齐到 [kFolderZoomFontSizeQuantum]。
+double quantizeFolderZoomFontSize(double fontSize) =>
+    (fontSize / kFolderZoomFontSizeQuantum).roundToDouble() *
+    kFolderZoomFontSizeQuantum;
 
 /// 网格条目的字号三元组：（标题、副标题、第三行信息）。
 typedef FolderGridFontSizes = ({double title, double subtitle, double info});
@@ -506,6 +535,13 @@ class FolderZoomLayoutMetrics {
   /// 平滑插值的第三行（详细信息）字号。
   final double animatedInfoFontSize;
 
+  /// 当前是否竖屏。
+  ///
+  /// 条目层以前各自 `MediaQuery.of(context).orientation`，一个画面里几十个条目
+  /// 每帧各摸一次；方向本来就在 [FolderZoomSliverBuilder] 算目标布局时拿到了，
+  /// 统一从这里下发。默认值只服务测试里手工构造 metrics 的场景。
+  final bool isPortrait;
+
   const FolderZoomLayoutMetrics({
     required this.targetZoomScale,
     required this.animatedZoomScale,
@@ -518,6 +554,7 @@ class FolderZoomLayoutMetrics {
     this.animatedTitleFontSize = 14.0,
     this.animatedSubtitleFontSize = 12.0,
     this.animatedInfoFontSize = 11.0,
+    this.isPortrait = false,
   });
 
   bool get isGridTarget => isFolderZoomGrid(targetZoomScale);
@@ -629,14 +666,23 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
   double _eval(double from, double to) =>
       lerpDouble(from, to, _curved.value) ?? to;
 
-  _ZoomTargets _calculateTargets(double zoomScale) {
-    final isPortrait =
-        MediaQuery.maybeOrientationOf(context) == Orientation.portrait;
+  /// 计算某个 `zoomScale` 对应的目标布局值。
+  ///
+  /// [isPortrait] / [textScale] 可由调用方带入：`build` 里本来就要取一次
+  /// `MediaQuery`，再让这个函数自己摸一遍等于每帧多做两次查找。
+  _ZoomTargets _calculateTargets(
+    double zoomScale, {
+    bool? isPortrait,
+    double? textScale,
+  }) {
+    final portrait = isPortrait ??
+        (MediaQuery.maybeOrientationOf(context) == Orientation.portrait);
+    final scaled = textScale ?? folderZoomTextScaleOf(context);
     final tier = getFolderZoomTier(zoomScale);
     final gridCols = FolderZoomPolicy.calculateCrossAxisCount(
       width: widget.width,
       tier: tier,
-      isPortrait: isPortrait,
+      isPortrait: portrait,
     );
     final cardWidth = FolderZoomPolicy.gridCardWidth(
       contentWidth: math.max(
@@ -648,21 +694,54 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
     final fontSizes = resolveFolderZoomFontSizes(
       tier: tier,
       cardWidth: cardWidth,
-      isPortrait: isPortrait,
+      isPortrait: portrait,
     );
     return (
       gridMorph: isFolderZoomGrid(zoomScale) ? 1.0 : 0.0,
       compactMorph: isFolderZoomCompactList(zoomScale) ? 1.0 : 0.0,
       gridCols: gridCols.toDouble(),
-      gridTextHeight: calculateFolderZoomGridTextHeight(
-        context,
-        zoomScale: zoomScale,
+      gridTextHeight: folderZoomGridTextHeightFor(
+        tier: tier,
+        isPortrait: portrait,
+        textScale: scaled,
       ),
       listExtent: getFolderListTileExtent(zoomScale),
       cardWidth: cardWidth,
       titleFontSize: fontSizes.title,
       subtitleFontSize: fontSizes.subtitle,
       infoFontSize: fontSizes.info,
+    );
+  }
+
+  // ── 捏合期间的目标值缓存 ────────────────────────────────────────────
+  //
+  // 捏合时 `from` / `to` 两个档位在整个手势里是固定的，没必要每帧重算；
+  // `build` 每帧都会来取，缓存下来把每帧 2~3 次 `_calculateTargets` 降到 0。
+  final Map<double, _ZoomTargets> _pinchTargetsCache = <double, _ZoomTargets>{};
+  double _pinchCacheWidth = -1;
+  bool _pinchCacheIsPortrait = false;
+  double _pinchCacheTextScale = -1;
+
+  _ZoomTargets _cachedTargets(
+    double zoomScale, {
+    required bool isPortrait,
+    required double textScale,
+  }) {
+    if (_pinchCacheWidth != widget.width ||
+        _pinchCacheIsPortrait != isPortrait ||
+        _pinchCacheTextScale != textScale) {
+      _pinchTargetsCache.clear();
+      _pinchCacheWidth = widget.width;
+      _pinchCacheIsPortrait = isPortrait;
+      _pinchCacheTextScale = textScale;
+    }
+    return _pinchTargetsCache.putIfAbsent(
+      zoomScale,
+      () => _calculateTargets(
+        zoomScale,
+        isPortrait: isPortrait,
+        textScale: textScale,
+      ),
     );
   }
 
@@ -711,20 +790,30 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final targets = _targets();
-    if (!_initialized) {
-      _applyTargets(targets, animate: false);
-      _initialized = true;
-    }
+    // 只有首帧需要在这里取初值。
+    //
+    // 本 State 依赖 `FolderZoomPinchScope`，捏合期间每帧都会 notify，
+    // `didChangeDependencies` 也就每帧被调一次——不提前返回的话，这里会白白
+    // 算一遍 `_targets()`（结果直接丢掉），叠加 build 里的两次就是每帧三次。
+    if (_initialized) return;
+    _applyTargets(_targets(), animate: false);
+    _initialized = true;
   }
 
   @override
   void didUpdateWidget(FolderZoomSliverBuilder oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    final bool scaleChanged =
+        (oldWidget.zoomScale - widget.zoomScale).abs() > 1e-4;
+    final bool widthChanged = (oldWidget.width - widget.width).abs() > 0.5;
+    // 父级因为别的原因重建（播放状态、筛选、选中态…）时不必重算目标布局。
+    if (!scaleChanged && !widthChanged) return;
+
     final targets = _targets();
     final pinch = FolderZoomPinchScope.maybeOf(context);
 
-    if ((oldWidget.zoomScale - widget.zoomScale).abs() > 1e-4) {
+    if (scaleChanged) {
       if (pinch != null &&
           pinch.committedScale != null &&
           (pinch.committedScale! - widget.zoomScale).abs() < 1e-4) {
@@ -733,7 +822,7 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       } else {
         _applyTargets(targets, animate: true);
       }
-    } else if ((oldWidget.width - widget.width).abs() > 0.5) {
+    } else if (widthChanged) {
       // Window resize: update column count immediately without lag.
       _fromGridCols = _toGridCols = targets.gridCols;
       _fromGridTextHeight = _toGridTextHeight = targets.gridTextHeight;
@@ -753,12 +842,26 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
 
   @override
   Widget build(BuildContext context) {
+    // 一个 build 里只取一次 MediaQuery，下面两条分支共用。
+    final isPortrait =
+        MediaQuery.maybeOrientationOf(context) == Orientation.portrait;
+    final textScale = folderZoomTextScaleOf(context);
+
     final pinch = FolderZoomPinchScope.maybeOf(context);
     if (pinch != null && pinch.isActive) {
       final fromScale = pinch.baseZoomScale;
       final toScale = pinch.targetZoomScale;
-      final targetsFrom = _calculateTargets(fromScale);
-      final targetsTo = _calculateTargets(toScale);
+      // 两个档位的目标布局在整个手势里是固定的：缓存住，别每帧重算。
+      final targetsFrom = _cachedTargets(
+        fromScale,
+        isPortrait: isPortrait,
+        textScale: textScale,
+      );
+      final targetsTo = _cachedTargets(
+        toScale,
+        isPortrait: isPortrait,
+        textScale: textScale,
+      );
       final t = pinch.progress;
       final activeTarget = t > 0.5 ? toScale : fromScale;
 
@@ -788,19 +891,23 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
             lerpDouble(targetsFrom.listExtent, targetsTo.listExtent, t) ??
             targetsFrom.listExtent,
         targetCardWidth: t > 0.5 ? targetsTo.cardWidth : targetsFrom.cardWidth,
-        animatedTitleFontSize:
-            lerpDouble(targetsFrom.titleFontSize, targetsTo.titleFontSize, t) ??
-            targetsFrom.titleFontSize,
-        animatedSubtitleFontSize:
-            lerpDouble(
+        animatedTitleFontSize: quantizeFolderZoomFontSize(
+          lerpDouble(targetsFrom.titleFontSize, targetsTo.titleFontSize, t) ??
+              targetsFrom.titleFontSize,
+        ),
+        animatedSubtitleFontSize: quantizeFolderZoomFontSize(
+          lerpDouble(
+                targetsFrom.subtitleFontSize,
+                targetsTo.subtitleFontSize,
+                t,
+              ) ??
               targetsFrom.subtitleFontSize,
-              targetsTo.subtitleFontSize,
-              t,
-            ) ??
-            targetsFrom.subtitleFontSize,
-        animatedInfoFontSize:
-            lerpDouble(targetsFrom.infoFontSize, targetsTo.infoFontSize, t) ??
-            targetsFrom.infoFontSize,
+        ),
+        animatedInfoFontSize: quantizeFolderZoomFontSize(
+          lerpDouble(targetsFrom.infoFontSize, targetsTo.infoFontSize, t) ??
+              targetsFrom.infoFontSize,
+        ),
+        isPortrait: isPortrait,
       );
       return widget.builder(context, metrics);
     }
@@ -814,10 +921,16 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       animatedGridTextHeight: _eval(_fromGridTextHeight, _toGridTextHeight),
       animatedListExtent: _eval(_fromListExtent, _toListExtent),
       targetCardWidth: _targetCardWidth,
-      animatedTitleFontSize: _eval(_fromTitleFontSize, _toTitleFontSize),
-      animatedSubtitleFontSize:
-          _eval(_fromSubtitleFontSize, _toSubtitleFontSize),
-      animatedInfoFontSize: _eval(_fromInfoFontSize, _toInfoFontSize),
+      animatedTitleFontSize: quantizeFolderZoomFontSize(
+        _eval(_fromTitleFontSize, _toTitleFontSize),
+      ),
+      animatedSubtitleFontSize: quantizeFolderZoomFontSize(
+        _eval(_fromSubtitleFontSize, _toSubtitleFontSize),
+      ),
+      animatedInfoFontSize: quantizeFolderZoomFontSize(
+        _eval(_fromInfoFontSize, _toInfoFontSize),
+      ),
+      isPortrait: isPortrait,
     );
     return widget.builder(context, metrics);
   }

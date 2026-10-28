@@ -97,38 +97,50 @@ class FolderZoomPinchController extends ChangeNotifier {
     if (scale <= 0 || scale.isNaN) return;
     _currentScale = scale;
 
+    final double candidateTarget;
     final double rawProgress;
     if (scale >= 1.0) {
       // 放大方向：目标是下一档
       // 双指距离移动到原本两倍（scale = 2.0）时正好达到 1.0
-      final nextScale = stepFolderZoomScale(_baseZoomScale, 1).clamp(
+      candidateTarget = stepFolderZoomScale(_baseZoomScale, 1).clamp(
         minScale,
         maxScale,
       );
-      _targetZoomScale = nextScale;
       rawProgress = scale - 1.0;
     } else {
       // 缩小方向：目标是上一档
       // 两根手指完全捏在一起（scale -> 0）时正好达到 1.0
-      final prevScale = stepFolderZoomScale(_baseZoomScale, -1).clamp(
+      candidateTarget = stepFolderZoomScale(_baseZoomScale, -1).clamp(
         minScale,
         maxScale,
       );
-      _targetZoomScale = prevScale;
       rawProgress = 1.0 - scale;
     }
 
-    final hasTarget = (_targetZoomScale - _baseZoomScale).abs() > 1e-4;
+    final bool hasTarget = (candidateTarget - _baseZoomScale).abs() > 1e-4;
+    // 有目标档位时跟手线性推进；已经在最值档位时施加橡皮筋阻尼。
+    final double nextProgress = hasTarget
+        ? rawProgress.clamp(0.0, 1.0)
+        : (rawProgress * 0.15).clamp(0.0, 0.2);
+
+    // 目标与进度都没变 => 这一帧没有任何视觉变化，不 notify。
+    //
+    // 触控板的双指平移、以及同一比例被两路指针源重复上报，都会走到这里；
+    // 白 notify 一次就是整屏可见条目重建一遍，代价远大于这里的两次比较。
+    if ((nextProgress - _progress).abs() < 1e-6 &&
+        (candidateTarget - _targetZoomScale).abs() < 1e-6) {
+      return;
+    }
+
+    _targetZoomScale = candidateTarget;
+    _progress = nextProgress;
 
     if (!hasTarget) {
-      // 已经在最值档位，施加橡皮筋阻尼
-      _progress = (rawProgress * 0.15).clamp(0.0, 0.2);
       if (_isCommitted) {
         _isCommitted = false;
         onThresholdCrossed?.call();
       }
     } else {
-      _progress = rawProgress.clamp(0.0, 1.0);
       if (!_isCommitted) {
         if (_progress >= kCommitThreshold - 1e-4) {
           _isCommitted = true;
@@ -151,6 +163,18 @@ class FolderZoomPinchController extends ChangeNotifier {
   /// 若超过阈值，平滑动画吸附至 `1.0`，完成后调用 [onCommit] 持久化新档位。
   void endPinch({required void Function(double newScale) onCommit}) {
     if (!_isActive || _isEnding) return;
+
+    // 从头到尾没有跟手位移，也没有确认换档（触控板轻扫、双指平移、误触）：
+    // 不必跑 200ms 的吸附动画，直接收尾。
+    //
+    // 否则每一次双指滚动都会多挂 200ms 的捏合态，期间整个可见列表仍在重建。
+    if (!_isCommitted && _progress.abs() < 1e-3) {
+      _isActive = false;
+      _progress = 0.0;
+      notifyListeners();
+      return;
+    }
+
     _isEnding = true;
 
     final startProgress = _progress;

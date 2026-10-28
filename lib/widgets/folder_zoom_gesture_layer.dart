@@ -186,20 +186,33 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
 
   // ── 触控板捏合（PointerPanZoom） ───────────────────────────────────
 
-  void _handlePanZoomStart(PointerPanZoomStartEvent event) {
-    _startPinchGesture();
+  /// 捏合比例偏离 `1.0` 超过这个量才把捏合态「激活」。
+  ///
+  /// **不要在手势开始（`panZoomStart` / 第二根手指落下）时就激活**：
+  /// 触控板的双指滚动走的是同一套 panZoom 事件，只有 scale 才区分捏合与滚动。
+  /// 一上来就激活的话，普通滚动每一笔都会让 `FolderZoomSliverBuilder` 走
+  /// 捏合分支，整屏可见条目白重建一遍（以前滚动是零重建），松手还要多挂
+  /// 200ms 的吸附动画。
+  static const double _kPinchActivateRatio = 1e-3;
+
+  /// 三路指针源（panZoom / 触屏指针表 / 手势识别器）唯一的更新入口。
+  ///
+  /// 统一在这里做「偏离够大才激活」的判断，避免每条路径各写一遍又写歪。
+  void _pushPinchScale(double scale) {
+    if (_pinchController.isEnding) return;
+    if (!_pinchController.isActive) {
+      if ((scale - 1.0).abs() < _kPinchActivateRatio) return;
+      _startPinchGesture();
+    }
+    _pinchController.updatePinch(
+      scale: scale,
+      onThresholdCrossed: () => HapticFeedback.selectionClick(),
+    );
   }
 
   void _handlePanZoomUpdate(PointerPanZoomUpdateEvent event) {
     // 触控板双指滚动同样走 panZoom，只有真正捏合（scale 偏离 1）才处理。
-    if (!_pinchController.isActive) {
-      if ((event.scale - 1.0).abs() < 1e-3) return;
-      _startPinchGesture();
-    }
-    _pinchController.updatePinch(
-      scale: event.scale,
-      onThresholdCrossed: () => HapticFeedback.selectionClick(),
-    );
+    _pushPinchScale(event.scale);
   }
 
   void _handlePanZoomEnd(PointerPanZoomEndEvent event) {
@@ -219,10 +232,8 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
     if (!_isTouch(event)) return;
     _touchPointers[event.pointer] = event.position;
     if (_touchPointers.length >= 2) {
+      // 只标定基准间距，不激活捏合：双指同向滑动可能只是滚动。
       _pinchBaseSpan = _currentSpan();
-      if (!_pinchController.isActive) {
-        _startPinchGesture();
-      }
     }
   }
 
@@ -237,13 +248,7 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
     final span = _currentSpan();
     if (span <= 0) return;
 
-    if (!_pinchController.isActive) {
-      _startPinchGesture();
-    }
-    _pinchController.updatePinch(
-      scale: span / base,
-      onThresholdCrossed: () => HapticFeedback.selectionClick(),
-    );
+    _pushPinchScale(span / base);
   }
 
   void _handleTouchUp(PointerEvent event) {
@@ -271,12 +276,6 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
     return maxSpan;
   }
 
-  void _handleScaleStart(ScaleStartDetails details) {
-    if (details.pointerCount >= 2) {
-      _startPinchGesture();
-    }
-  }
-
   void _handleScaleUpdate(ScaleUpdateDetails details) {
     if (details.pointerCount < 2) {
       // 触屏捏合只认双指。当一根手指抬起只剩单指时，立即结束手势，
@@ -286,15 +285,7 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
       }
       return;
     }
-    if (_pinchController.isEnding) return;
-
-    if (!_pinchController.isActive) {
-      _startPinchGesture();
-    }
-    _pinchController.updatePinch(
-      scale: details.scale,
-      onThresholdCrossed: () => HapticFeedback.selectionClick(),
-    );
+    _pushPinchScale(details.scale);
   }
 
   void _handleScaleEnd(ScaleEndDetails details) {
@@ -312,7 +303,8 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
               GestureRecognizerFactoryWithHandlers<_FolderPinchGestureRecognizer>(
                 () => _FolderPinchGestureRecognizer(debugOwner: this),
                 (_FolderPinchGestureRecognizer instance) {
-                  instance.onStart = _handleScaleStart;
+                  // onStart 故意不接：识别器赢下竞技场只说明「双指手势成立」，
+                  // 到底是在捏合还是双指平移，要看 subsequent scale 有没有偏离 1。
                   instance.onUpdate = _handleScaleUpdate;
                   instance.onEnd = _handleScaleEnd;
                 },
@@ -329,7 +321,6 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
                 onPointerUp: _handleTouchUp,
                 onPointerCancel: _handleTouchUp,
                 onPointerSignal: _handlePointerSignal,
-                onPointerPanZoomStart: _handlePanZoomStart,
                 onPointerPanZoomUpdate: _handlePanZoomUpdate,
                 onPointerPanZoomEnd: _handlePanZoomEnd,
               ),

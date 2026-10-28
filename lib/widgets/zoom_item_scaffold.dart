@@ -118,8 +118,7 @@ class ZoomItemTypography {
     double? listTitleFontSize,
   }) {
     final theme = Theme.of(context);
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = metrics.isPortrait;
     final isGridTarget = metrics.isGridTarget;
 
     if (!isGridTarget) {
@@ -310,8 +309,7 @@ class ZoomItemScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = metrics.isPortrait;
     final gridMorph = metrics.gridMorph;
     final isGridTarget = metrics.isGridTarget;
 

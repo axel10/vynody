@@ -743,4 +743,72 @@ void main() {
     expect(settings.folderZoomScale, kFolderZoomTierLargeList);
     expect(capturedMetrics!.animatedTitleFontSize, closeTo(16.5, 0.01));
   });
+
+  testWidgets('触控板双指滚动（scale 恒为 1）不进入捏合态，画面零重建', (tester) async {
+    int buildCount = 0;
+    FolderZoomLayoutMetrics? capturedMetrics;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: FolderZoomGestureLayer(
+              child: CustomScrollView(
+                slivers: [
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final scale = ref.watch(
+                        settingsServiceProvider.select((s) => s.folderZoomScale),
+                      );
+                      return FolderZoomSliverBuilder(
+                        zoomScale: scale,
+                        width: 400,
+                        builder: (context, m) {
+                          buildCount++;
+                          capturedMetrics = m;
+                          return SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: 100,
+                              child: Text('scroll content', style: TextStyle(fontSize: m.animatedTitleFontSize)),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final baseline = buildCount;
+
+    final center = tester.getCenter(find.text('scroll content'));
+    final pointer = TestPointer(1, PointerDeviceKind.trackpad);
+    pointer.hover(center);
+
+    // 触控板的双指滚动走的是同一套 panZoom 事件，只有 scale 区分捏合与滚动。
+    await tester.sendEventToBinding(pointer.panZoomStart(center));
+    for (var i = 0; i < 10; i++) {
+      await tester.sendEventToBinding(
+        pointer.panZoomUpdate(center, pan: const Offset(0, 24)),
+      );
+      await tester.pump();
+    }
+    await tester.sendEventToBinding(pointer.panZoomEnd());
+    await tester.pump();
+
+    // 滚动不该把整屏可见条目拖进捏合分支重建，也不该多挂 200ms 的吸附动画。
+    expect(
+      buildCount,
+      baseline,
+      reason: '纯滚动的 panZoom 事件不应触发 FolderZoomSliverBuilder 重建',
+    );
+    expect(settings.folderZoomScale, kFolderZoomTierStandardList);
+    expect(capturedMetrics!.animatedListExtent, closeTo(80.0, 0.01));
+  });
 }
