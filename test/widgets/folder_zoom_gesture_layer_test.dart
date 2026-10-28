@@ -431,7 +431,7 @@ void main() {
     expect(settings.folderZoomScale, kFolderZoomTierLargeList);
     expect(capturedMetrics!.animatedListExtent, closeTo(104.0, 0.01));
 
-    // 2. 较大幅度缩小：scale = 0.50（缩小 50%，捏合过半，超过 40% 阈值）
+    // 2. 较大幅度缩小：scale = 0.50（缩小 50%，捏合过半，超过 1/3 阈值）
     await tester.sendEventToBinding(pointer.panZoomStart(center));
     await tester.sendEventToBinding(
       pointer.panZoomUpdate(center, scale: 0.50),
@@ -588,15 +588,15 @@ void main() {
     pointer.hover(center);
 
     await tester.sendEventToBinding(pointer.panZoomStart(center));
-    // 先张开 50%（scale = 1.50，进度 50%，已超过 40% 的触发阈值，换档意图已确认）
+    // 先张开 50%（scale = 1.50，进度 50%，已超过 25% 的触发阈值，换档意图已确认）
     await tester.sendEventToBinding(
       pointer.panZoomUpdate(center, scale: 1.50),
     );
     await tester.pump();
 
-    // 手指松手瞬间发生肌肉微收缩，scale 微落到 1.25（进度落到 25%，在 20%~40% 滞后区间内）
+    // 手指松手瞬间发生肌肉微收缩，scale 微落到 1.18（进度落到 18%，在 12.5%~25% 滞后区间内）
     await tester.sendEventToBinding(
-      pointer.panZoomUpdate(center, scale: 1.25),
+      pointer.panZoomUpdate(center, scale: 1.18),
     );
     await tester.pump();
 
@@ -663,13 +663,77 @@ void main() {
     // 进度 t = scale - 1.0 = 0.20，行高从 80 生长到 80 + 0.20 * 24 = 84.8 像素
     expect(capturedMetrics!.animatedListExtent, closeTo(84.8, 0.5));
 
-    // 松手：未达 40% 阈值，退回 80.0
+    // 松手：未达 1/4 (25%) 阈值，退回 80.0
     await left.up();
     await right.up();
     await tester.pumpAndSettle();
 
     expect(settings.folderZoomScale, kFolderZoomTierStandardList);
     expect(capturedMetrics!.animatedListExtent, closeTo(80.0, 0.01));
+  });
+
+  testWidgets('触屏双指移动约两个触摸点距离的四分之一即可触发换挡', (tester) async {
+    FolderZoomLayoutMetrics? capturedMetrics;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: FolderZoomGestureLayer(
+              child: CustomScrollView(
+                slivers: [
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final scale = ref.watch(
+                        settingsServiceProvider.select(
+                          (s) => s.folderZoomScale,
+                        ),
+                      );
+                      return FolderZoomSliverBuilder(
+                        zoomScale: scale,
+                        width: 400,
+                        builder: (context, m) {
+                          capturedMetrics = m;
+                          return SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: m.animatedListExtent,
+                              child: const Text('pinch test'),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(settings.folderZoomScale, kFolderZoomTierStandardList);
+
+    final center = tester.getCenter(find.text('pinch test'));
+    // 初始双指间距 80 像素（每个相对中心 40 像素）
+    final left = await tester.startGesture(center - const Offset(40, 0));
+    final right = await tester.startGesture(center + const Offset(40, 0));
+    await tester.pump();
+
+    // 移动两个触摸点距离的四分之一（80 * 0.25 = 20 像素），即每指各移 10 像素：
+    await left.moveBy(const Offset(-10, 0));
+    await right.moveBy(const Offset(10, 0));
+    await tester.pump();
+
+    // 此时距离为 100，scale = 100 / 80 = 1.25，移动达到 1/4 (25%)，换档意图已确认
+    await left.up();
+    await right.up();
+    await tester.pumpAndSettle();
+
+    // 成功换档到下一档 (LargeList)
+    expect(settings.folderZoomScale, kFolderZoomTierLargeList);
+    expect(capturedMetrics!.animatedListExtent, closeTo(104.0, 0.01));
   });
 
   testWidgets('文字大小在手势缩放途中随动画进程平滑线性插值', (tester) async {

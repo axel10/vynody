@@ -57,11 +57,11 @@ class FolderZoomPinchController extends ChangeNotifier {
   double minScale = kFolderZoomTierMinimalList;
   double maxScale = kFolderZoomTierLargeGrid;
 
-  /// 换档的进度激活阈值（捏合行程完成约 40% 即可确认换档意图并震动）。
-  static const double kCommitThreshold = 0.40;
+  /// 换档的进度激活阈值（移动两个触摸点距离约四分之一，即 25% 即可确认换档意图并震动）。
+  static const double kCommitThreshold = 0.25;
 
-  /// 换档的进度撤销阈值（只有反向缩回到 20% 以下，才取消换档意图）。
-  static const double kCancelThreshold = 0.20;
+  /// 换档的进度撤销阈值（只有反向缩回到四分之一的一半（12.5%）以下，才取消换档意图）。
+  static const double kCancelThreshold = 0.125;
 
   /// 开始捏合手势。
   void startPinch(
