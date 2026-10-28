@@ -499,6 +499,57 @@ class FolderZoomPolicy {
   }
 }
 
+/// 几何插值的**一端**：某个确定档位的稳态布局。
+///
+/// 硬性约束：[crossAxisCount] 必须是**整数**。以前几何是拿插值出来的小数
+/// `animatedGridCols` 直接算格子的，列数每跨过一个整数，同一个条目的格子归属
+/// `i ~/ cols` / `i % cols` 就换到另一格，位置目标中途跳到别处，轨迹于是先往
+/// 一边滑再折返——观感就是「绕了个圈」。几何只能在一组确定布局之间做加权，
+/// 绝不对列数本身插值。
+@immutable
+class FolderZoomGeometryLayer {
+  const FolderZoomGeometryLayer({
+    required this.isGrid,
+    required this.crossAxisCount,
+    required this.gridTextHeight,
+    required this.listExtent,
+    required this.weight,
+  });
+
+  /// 该端是否走网格那套几何；false 时按列表整行算。
+  final bool isGrid;
+
+  /// 网格列数（整数）。
+  final int crossAxisCount;
+
+  /// 网格封面下方文字区高度（[isGrid] 为 false 时无意义）。
+  final double gridTextHeight;
+
+  /// 列表整行高度（[isGrid] 为 true 时无意义）。
+  final double listExtent;
+
+  /// 该端在本次插值中的权重，同一批 layer 的权重之和为 `1`。
+  final double weight;
+
+  @override
+  bool operator ==(Object other) =>
+      other is FolderZoomGeometryLayer &&
+      other.isGrid == isGrid &&
+      other.crossAxisCount == crossAxisCount &&
+      other.gridTextHeight == gridTextHeight &&
+      other.listExtent == listExtent &&
+      other.weight == weight;
+
+  @override
+  int get hashCode => Object.hash(
+        isGrid,
+        crossAxisCount,
+        gridTextHeight,
+        listExtent,
+        weight,
+      );
+}
+
 /// Snapshot of animated layout metrics passed to unified folder/song slivers and items.
 class FolderZoomLayoutMetrics {
   final double targetZoomScale;
@@ -558,6 +609,13 @@ class FolderZoomLayoutMetrics {
   /// 才小于 1，此时条目会多一层 `Opacity`，其余时间不产生额外合成。
   final double contentReveal;
 
+  /// 条目几何的加权层，权重之和为 `1`，由 [FolderZoomSliverBuilder] 逐帧算好。
+  ///
+  /// 每层是一个**确定**档位的布局，条目的位置 = 各层位置的加权和。这样任何
+  /// 一次档位切换里每个条目都只沿一条直线走，列数变化不参与中间插值。
+  /// 为空时用 [resolvedGeometryLayers] 按插值标量兜底（测试直接构造 metrics）。
+  final List<FolderZoomGeometryLayer> geometryLayers;
+
   const FolderZoomLayoutMetrics({
     required this.targetZoomScale,
     required this.animatedZoomScale,
@@ -573,7 +631,22 @@ class FolderZoomLayoutMetrics {
     this.isPortrait = false,
     this.contentIsGrid,
     this.contentReveal = 1.0,
+    this.geometryLayers = const <FolderZoomGeometryLayer>[],
   });
+
+  /// 布局实际使用的加权层；[geometryLayers] 为空时按插值标量合成单层。
+  List<FolderZoomGeometryLayer> get resolvedGeometryLayers {
+    if (geometryLayers.isNotEmpty) return geometryLayers;
+    return <FolderZoomGeometryLayer>[
+      FolderZoomGeometryLayer(
+        isGrid: gridMorph >= 0.5,
+        crossAxisCount: animatedGridCols.round().clamp(1, 12),
+        gridTextHeight: animatedGridTextHeight,
+        listExtent: animatedListExtent,
+        weight: 1.0,
+      ),
+    ];
+  }
 
   bool get isGridTarget => isFolderZoomGrid(targetZoomScale);
 
@@ -688,6 +761,15 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
   /// 内容会逐帧翻转，每次翻转都是一整套文字重新排版。
   int _contentSide = 0;
 
+  /// 几何插值的起点：屏幕上当前这一帧的样子，是若干**确定**档位布局的凸组合。
+  ///
+  /// 不用单个 `_from*` 标量，是因为档位被中途打断时（滚轮连点、拖滑杆）只有
+  /// 保留权重才能让条目从「正在飞到的位置」接着走，而不是跳回某个整数档位。
+  List<({_ZoomTargets targets, double weight})> _geometryFrom = const [];
+
+  /// 几何插值的终点（本轮动画的目标档位）。
+  _ZoomTargets? _geometryTo;
+
   @override
   void initState() {
     super.initState();
@@ -709,6 +791,98 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
 
   double _eval(double from, double to) =>
       lerpDouble(from, to, _curved.value) ?? to;
+
+  /// 把一个确定档位换算成几何层。
+  static FolderZoomGeometryLayer _layerOf(_ZoomTargets targets, double weight) {
+    return FolderZoomGeometryLayer(
+      isGrid: targets.gridMorph >= 1.0,
+      crossAxisCount: targets.gridCols.round().clamp(1, 12),
+      gridTextHeight: targets.gridTextHeight,
+      listExtent: targets.listExtent,
+      weight: weight,
+    );
+  }
+
+  /// 权重低于这个值的层直接丢掉：折算到位置上的误差不到 2%，但能把
+  /// 连点/拖滑杆时累积的层数压在 2~3 个以内。
+  static const double _kGeometryLayerMinWeight = 0.02;
+
+  /// 把「屏幕上当前这一帧的几何」固化成下一轮动画的起点。
+  ///
+  /// 本轮进度 [progress] 之前的部分塌缩成 `(1-progress) × 旧权重 + progress ×
+  /// 本轮目标`，所以新一轮动画从 `progress = 0` 开始时，画面和上一帧完全一致。
+  void _collapseGeometry(double progress) {
+    final double p = progress.clamp(0.0, 1.0);
+    final double inverse = 1.0 - p;
+    final collapsed = <({_ZoomTargets targets, double weight})>[];
+
+    for (final layer in _geometryFrom) {
+      final double weight = layer.weight * inverse;
+      if (weight > _kGeometryLayerMinWeight) {
+        collapsed.add((targets: layer.targets, weight: weight));
+      }
+    }
+    final current = _geometryTo;
+    if (current != null && p > _kGeometryLayerMinWeight) {
+      collapsed.add((targets: current, weight: p));
+    }
+
+    if (collapsed.isEmpty) {
+      final fallback =
+          current ?? (_geometryFrom.isNotEmpty ? _geometryFrom.last.targets : null);
+      if (fallback != null) {
+        _geometryFrom = [(targets: fallback, weight: 1.0)];
+      }
+      return;
+    }
+
+    // 剪枝会带走一点权重，归一化补回来，保证权重之和恒为 1。
+    final double sum =
+        collapsed.fold<double>(0.0, (total, layer) => total + layer.weight);
+    if (sum <= 0.0) return;
+    if ((sum - 1.0).abs() > 1e-6) {
+      for (var i = 0; i < collapsed.length; i++) {
+        collapsed[i] = (
+          targets: collapsed[i].targets,
+          weight: collapsed[i].weight / sum,
+        );
+      }
+    }
+    _geometryFrom = collapsed;
+  }
+
+  /// 本轮动画进度 [progress] 下真正生效的几何层。
+  List<FolderZoomGeometryLayer> _effectiveGeometryLayers(double progress) {
+    final double p = progress.clamp(0.0, 1.0);
+    final double inverse = 1.0 - p;
+    final current = _geometryTo;
+
+    final layers = <FolderZoomGeometryLayer>[];
+    for (final layer in _geometryFrom) {
+      final double weight = layer.weight * inverse;
+      if (weight > 1e-4) layers.add(_layerOf(layer.targets, weight));
+    }
+    if (current != null && p > 1e-4) layers.add(_layerOf(current, p));
+
+    if (layers.isEmpty) {
+      final fallback = current ??
+          (_geometryFrom.isNotEmpty ? _geometryFrom.last.targets : _targets());
+      layers.add(_layerOf(fallback, 1.0));
+    }
+    return layers;
+  }
+
+  /// 捏合跟手：只有「基准档位」和「目标档位」两层。
+  List<FolderZoomGeometryLayer> _pinchGeometryLayers(
+    _ZoomTargets from,
+    _ZoomTargets to,
+    double progress,
+  ) {
+    final double t = progress.clamp(0.0, 1.0);
+    if (t <= 1e-4) return [_layerOf(from, 1.0)];
+    if (t >= 1.0 - 1e-4) return [_layerOf(to, 1.0)];
+    return [_layerOf(from, 1.0 - t), _layerOf(to, t)];
+  }
 
   /// 按滞回决定条目内容渲染哪一侧，并给出交接处的压暗程度。
   ///
@@ -825,6 +999,8 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
     _targetCardWidth = targets.cardWidth;
 
     if (animate) {
+      // 塌缩必须在改写 `_to*` 之前：它读的是「本轮动画当前进度」。
+      _collapseGeometry(_curved.value);
       _fromZoomScale = _eval(_fromZoomScale, _toZoomScale);
       _fromGridMorph = _eval(_fromGridMorph, _toGridMorph);
       _fromCompactMorph = _eval(_fromCompactMorph, _toCompactMorph);
@@ -844,6 +1020,8 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       _fromTitleFontSize = _toTitleFontSize = targets.titleFontSize;
       _fromSubtitleFontSize = _toSubtitleFontSize = targets.subtitleFontSize;
       _fromInfoFontSize = _toInfoFontSize = targets.infoFontSize;
+      _geometryFrom = [(targets: targets, weight: 1.0)];
+      _geometryTo = targets;
       return;
     }
 
@@ -856,6 +1034,7 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
     _toTitleFontSize = targets.titleFontSize;
     _toSubtitleFontSize = targets.subtitleFontSize;
     _toInfoFontSize = targets.infoFontSize;
+    _geometryTo = targets;
 
     _controller.forward(from: 0.0);
   }
@@ -903,6 +1082,9 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       _fromSubtitleFontSize = _toSubtitleFontSize = targets.subtitleFontSize;
       _fromInfoFontSize = _toInfoFontSize = targets.infoFontSize;
       _targetCardWidth = targets.cardWidth;
+      // 列数变了，几何不能再按旧档位的格子插值，直接落到新布局。
+      _geometryFrom = [(targets: targets, weight: 1.0)];
+      _geometryTo = targets;
     }
   }
 
@@ -985,10 +1167,12 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
         isPortrait: isPortrait,
         contentIsGrid: handoff.isGrid,
         contentReveal: handoff.reveal,
+        geometryLayers: _pinchGeometryLayers(targetsFrom, targetsTo, t),
       );
       return widget.builder(context, metrics);
     }
 
+    final double progress = _curved.value;
     final double gridMorph = _eval(
       _fromGridMorph,
       _toGridMorph,
@@ -1016,15 +1200,18 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       isPortrait: isPortrait,
       contentIsGrid: handoff.isGrid,
       contentReveal: handoff.reveal,
+      geometryLayers: _effectiveGeometryLayers(progress),
     );
     return widget.builder(context, metrics);
   }
 }
 
-/// Unified [SliverGridDelegate] that smoothly interpolates item geometry between
-/// 1-column List View (`gridMorph = 0.0`) and N-column Grid View (`gridMorph = 1.0`),
-/// as well as across column count changes (`animatedGridCols`) and list row height
-/// changes (`listTileExtent`).
+/// [SliverGridDelegate]：把条目摆到若干**确定**档位布局（[FolderZoomGeometryLayer]）
+/// 的加权位置上。
+///
+/// 以前的几何是拿插值出来的小数 `animatedGridCols` 直接推格子的：列数每跨过一个
+/// 整数，同一个条目的格子归属就换一格，目标位置在动画中途跳走，轨迹先往一边滑
+/// 再折返。现在位置只在确定布局之间做加权，每个条目整段动画里只走一条直线。
 class SliverAnimatedZoomGridDelegate extends SliverGridDelegate {
   const SliverAnimatedZoomGridDelegate({
     required this.metrics,
@@ -1040,13 +1227,9 @@ class SliverAnimatedZoomGridDelegate extends SliverGridDelegate {
 
   @override
   SliverGridLayout getLayout(SliverConstraints constraints) {
-    final usableWidth = math.max(1.0, constraints.crossAxisExtent);
     return _SliverAnimatedZoomGridLayout(
-      usableWidth: usableWidth,
-      gridMorph: metrics.gridMorph,
-      animatedGridCols: metrics.animatedGridCols,
-      gridTextHeight: metrics.animatedGridTextHeight,
-      listTileExtent: metrics.animatedListExtent,
+      usableWidth: math.max(1.0, constraints.crossAxisExtent),
+      layers: metrics.resolvedGeometryLayers,
       listMainAxisSpacing: listMainAxisSpacing,
       gridCrossAxisSpacing: gridCrossAxisSpacing,
       gridMainAxisSpacing: gridMainAxisSpacing,
@@ -1055,53 +1238,64 @@ class SliverAnimatedZoomGridDelegate extends SliverGridDelegate {
 
   @override
   bool shouldRelayout(SliverAnimatedZoomGridDelegate oldDelegate) {
-    return oldDelegate.metrics.gridMorph != metrics.gridMorph ||
-        oldDelegate.metrics.animatedGridCols != metrics.animatedGridCols ||
-        oldDelegate.metrics.animatedGridTextHeight !=
-            metrics.animatedGridTextHeight ||
-        oldDelegate.metrics.animatedListExtent != metrics.animatedListExtent ||
+    return !_sameLayers(
+          oldDelegate.metrics.resolvedGeometryLayers,
+          metrics.resolvedGeometryLayers,
+        ) ||
         oldDelegate.listMainAxisSpacing != listMainAxisSpacing ||
         oldDelegate.gridCrossAxisSpacing != gridCrossAxisSpacing ||
         oldDelegate.gridMainAxisSpacing != gridMainAxisSpacing;
+  }
+
+  static bool _sameLayers(
+    List<FolderZoomGeometryLayer> a,
+    List<FolderZoomGeometryLayer> b,
+  ) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 }
 
 class _SliverAnimatedZoomGridLayout extends SliverGridLayout {
   const _SliverAnimatedZoomGridLayout({
     required this.usableWidth,
-    required this.gridMorph,
-    required this.animatedGridCols,
-    required this.gridTextHeight,
-    required this.listTileExtent,
+    required this.layers,
     required this.listMainAxisSpacing,
     required this.gridCrossAxisSpacing,
     required this.gridMainAxisSpacing,
   });
 
   final double usableWidth;
-  final double gridMorph;
-  final double animatedGridCols;
-  final double gridTextHeight;
-  final double listTileExtent;
+
+  /// 权重之和为 `1` 的确定布局，见 [FolderZoomGeometryLayer]。
+  final List<FolderZoomGeometryLayer> layers;
+
   final double listMainAxisSpacing;
   final double gridCrossAxisSpacing;
   final double gridMainAxisSpacing;
 
-  int get _cFloor => animatedGridCols.floor().clamp(1, 12);
-  int get _cCeil => animatedGridCols.ceil().clamp(1, 12);
-  double get _colFrac => (animatedGridCols - _cFloor).clamp(0.0, 1.0);
+  /// 静止态只有一层，省掉加权求和。
+  bool get _hasSingleLayer => layers.length == 1;
 
-  SliverGridGeometry _listGeometry(int index) {
-    final stride = listTileExtent + listMainAxisSpacing;
+  SliverGridGeometry _listGeometryFor(int index, double tileExtent) {
+    final stride = tileExtent + listMainAxisSpacing;
     return SliverGridGeometry(
       scrollOffset: index * stride,
       crossAxisOffset: 0.0,
-      mainAxisExtent: listTileExtent,
+      mainAxisExtent: tileExtent,
       crossAxisExtent: usableWidth,
     );
   }
 
-  SliverGridGeometry _gridGeometryForCols(int cols, int index) {
+  SliverGridGeometry _gridGeometryFor(
+    int index,
+    int cols,
+    double textHeight,
+  ) {
     final row = index ~/ cols;
     final col = index % cols;
     final cardWidth = FolderZoomPolicy.gridCardWidth(
@@ -1109,7 +1303,7 @@ class _SliverAnimatedZoomGridLayout extends SliverGridLayout {
       crossAxisCount: cols,
       crossAxisSpacing: gridCrossAxisSpacing,
     );
-    final cardHeight = cardWidth + gridTextHeight;
+    final cardHeight = cardWidth + textHeight;
     final mainStride = cardHeight + gridMainAxisSpacing;
     final crossStride = cardWidth + gridCrossAxisSpacing;
 
@@ -1121,142 +1315,115 @@ class _SliverAnimatedZoomGridLayout extends SliverGridLayout {
     );
   }
 
-  static SliverGridGeometry _lerpGeometry(
-    SliverGridGeometry a,
-    SliverGridGeometry b,
-    double t,
-  ) {
-    if (t <= 0.0) return a;
-    if (t >= 1.0) return b;
-    return SliverGridGeometry(
-      scrollOffset: lerpDouble(a.scrollOffset, b.scrollOffset, t)!,
-      crossAxisOffset: lerpDouble(a.crossAxisOffset, b.crossAxisOffset, t)!,
-      mainAxisExtent: lerpDouble(a.mainAxisExtent, b.mainAxisExtent, t)!,
-      crossAxisExtent: lerpDouble(a.crossAxisExtent, b.crossAxisExtent, t)!,
-    );
-  }
-
-  SliverGridGeometry _gridGeometry(int index) {
-    final cFloor = _cFloor;
-    final cCeil = _cCeil;
-    final geomFloor = _gridGeometryForCols(cFloor, index);
-    if (cFloor == cCeil || _colFrac <= 0.0) {
-      return geomFloor;
-    }
-    final geomCeil = _gridGeometryForCols(cCeil, index);
-    return _lerpGeometry(geomFloor, geomCeil, _colFrac);
+  SliverGridGeometry _geometryIn(FolderZoomGeometryLayer layer, int index) {
+    return layer.isGrid
+        ? _gridGeometryFor(index, layer.crossAxisCount, layer.gridTextHeight)
+        : _listGeometryFor(index, layer.listExtent);
   }
 
   @override
   SliverGridGeometry getGeometryForChildIndex(int index) {
-    if (gridMorph <= 0.0) {
-      return _listGeometry(index);
+    if (_hasSingleLayer) {
+      return _geometryIn(layers.first, index);
     }
-    if (gridMorph >= 1.0) {
-      return _gridGeometry(index);
+    double scrollOffset = 0.0;
+    double crossAxisOffset = 0.0;
+    double mainAxisExtent = 0.0;
+    double crossAxisExtent = 0.0;
+    for (final layer in layers) {
+      final geometry = _geometryIn(layer, index);
+      scrollOffset += geometry.scrollOffset * layer.weight;
+      crossAxisOffset += geometry.crossAxisOffset * layer.weight;
+      mainAxisExtent += geometry.mainAxisExtent * layer.weight;
+      crossAxisExtent += geometry.crossAxisExtent * layer.weight;
     }
-    return _lerpGeometry(_listGeometry(index), _gridGeometry(index), gridMorph);
+    return SliverGridGeometry(
+      scrollOffset: scrollOffset,
+      crossAxisOffset: crossAxisOffset,
+      mainAxisExtent: mainAxisExtent,
+      crossAxisExtent: crossAxisExtent,
+    );
   }
 
-  int _minIndexForList(double scrollOffset) {
-    final stride = listTileExtent + listMainAxisSpacing;
-    if (stride <= 0.0 || scrollOffset <= 0.0) return 0;
-    return math.max(0, scrollOffset ~/ stride);
-  }
-
-  int _maxIndexForList(double targetEndScrollOffset) {
-    final stride = listTileExtent + listMainAxisSpacing;
-    if (stride <= 0.0 || targetEndScrollOffset <= 0.0) return 0;
-    return math.max(0, (targetEndScrollOffset / stride).ceil() - 1);
-  }
-
-  /// 每行（含行间距）的纵向步距，供 `getMin/MaxChildIndexForScrollOffset` 与
-  /// `computeMaxScrollOffset` 共用，避免三处各推一遍。
-  double _mainStrideForCols(int cols) {
+  /// 每行（含行间距）的纵向步距，供索引区间与总滚动长度共用，
+  /// 避免三处各推一遍。
+  double _mainStrideIn(FolderZoomGeometryLayer layer) {
+    if (!layer.isGrid) {
+      return layer.listExtent + listMainAxisSpacing;
+    }
     final cardWidth = FolderZoomPolicy.gridCardWidth(
       contentWidth: usableWidth,
-      crossAxisCount: cols,
+      crossAxisCount: layer.crossAxisCount,
       crossAxisSpacing: gridCrossAxisSpacing,
     );
-    return cardWidth + gridTextHeight + gridMainAxisSpacing;
+    return cardWidth + layer.gridTextHeight + gridMainAxisSpacing;
   }
 
-  int _minIndexForCols(int cols, double scrollOffset) {
+  int _minIndexIn(FolderZoomGeometryLayer layer, double scrollOffset) {
     if (scrollOffset <= 0.0) return 0;
-    final mainStride = _mainStrideForCols(cols);
-    if (mainStride <= 0.0) return 0;
-    return math.max(0, cols * (scrollOffset ~/ mainStride));
+    final stride = _mainStrideIn(layer);
+    if (stride <= 0.0) return 0;
+    if (!layer.isGrid) {
+      return math.max(0, scrollOffset ~/ stride);
+    }
+    return math.max(0, layer.crossAxisCount * (scrollOffset ~/ stride));
   }
 
-  int _maxIndexForCols(int cols, double targetEndScrollOffset) {
+  int _maxIndexIn(FolderZoomGeometryLayer layer, double targetEndScrollOffset) {
     if (targetEndScrollOffset <= 0.0) return 0;
-    final mainStride = _mainStrideForCols(cols);
-    if (mainStride <= 0.0) return 0;
-    final rows = (targetEndScrollOffset / mainStride).ceil();
-    return math.max(0, cols * rows - 1);
+    final stride = _mainStrideIn(layer);
+    if (stride <= 0.0) return 0;
+    if (!layer.isGrid) {
+      return math.max(0, (targetEndScrollOffset / stride).ceil() - 1);
+    }
+    final rows = (targetEndScrollOffset / stride).ceil();
+    return math.max(0, layer.crossAxisCount * rows - 1);
   }
 
+  double _maxScrollOffsetIn(FolderZoomGeometryLayer layer, int childCount) {
+    if (childCount <= 0) return 0.0;
+    final stride = _mainStrideIn(layer);
+    if (!layer.isGrid) {
+      return childCount * stride - listMainAxisSpacing;
+    }
+    final rows = (childCount + layer.crossAxisCount - 1) ~/ layer.crossAxisCount;
+    return rows * stride - gridMainAxisSpacing;
+  }
+
+  // 索引区间与总长度取各层的包络：任何一层需要的子项都要构建出来，
+  // 加权后的实际位置永远落在这个包络里。
   @override
   int getMinChildIndexForScrollOffset(double scrollOffset) {
     if (scrollOffset <= 0.0) return 0;
-    if (gridMorph <= 0.0) {
-      return _minIndexForList(scrollOffset);
+    var result = _minIndexIn(layers.first, scrollOffset);
+    for (var i = 1; i < layers.length; i++) {
+      final candidate = _minIndexIn(layers[i], scrollOffset);
+      if (candidate < result) result = candidate;
     }
-    final minGrid = math.min(
-      _minIndexForCols(_cFloor, scrollOffset),
-      _minIndexForCols(_cCeil, scrollOffset),
-    );
-    if (gridMorph >= 1.0) {
-      return minGrid;
-    }
-    return math.min(_minIndexForList(scrollOffset), minGrid);
+    return result;
   }
 
   @override
   int getMaxChildIndexForScrollOffset(double scrollOffset) {
-    if (gridMorph <= 0.0) {
-      return _maxIndexForList(scrollOffset);
+    if (scrollOffset <= 0.0) return 0;
+    var result = _maxIndexIn(layers.first, scrollOffset);
+    for (var i = 1; i < layers.length; i++) {
+      final candidate = _maxIndexIn(layers[i], scrollOffset);
+      if (candidate > result) result = candidate;
     }
-    final maxGrid = math.max(
-      _maxIndexForCols(_cFloor, scrollOffset),
-      _maxIndexForCols(_cCeil, scrollOffset),
-    );
-    if (gridMorph >= 1.0) {
-      return maxGrid;
-    }
-    return math.max(_maxIndexForList(scrollOffset), maxGrid);
-  }
-
-  double _maxScrollOffsetForList(int childCount) {
-    if (childCount <= 0) return 0.0;
-    final stride = listTileExtent + listMainAxisSpacing;
-    return childCount * stride - listMainAxisSpacing;
-  }
-
-  double _maxScrollOffsetForCols(int cols, int childCount) {
-    if (childCount <= 0) return 0.0;
-    final rows = (childCount + cols - 1) ~/ cols;
-    final mainStride = _mainStrideForCols(cols);
-    return rows * mainStride - gridMainAxisSpacing;
+    return result;
   }
 
   @override
   double computeMaxScrollOffset(int childCount) {
     if (childCount <= 0) return 0.0;
-    if (gridMorph <= 0.0) {
-      return _maxScrollOffsetForList(childCount);
+    if (_hasSingleLayer) {
+      return _maxScrollOffsetIn(layers.first, childCount);
     }
-    final gridOffsetFloor = _maxScrollOffsetForCols(_cFloor, childCount);
-    final gridOffsetCeil = _maxScrollOffsetForCols(_cCeil, childCount);
-    final gridOffset =
-        lerpDouble(gridOffsetFloor, gridOffsetCeil, _colFrac) ?? gridOffsetFloor;
-    if (gridMorph >= 1.0) {
-      return gridOffset;
+    var total = 0.0;
+    for (final layer in layers) {
+      total += _maxScrollOffsetIn(layer, childCount) * layer.weight;
     }
-    return lerpDouble(
-      _maxScrollOffsetForList(childCount),
-      gridOffset,
-      gridMorph,
-    )!;
+    return total;
   }
 }
