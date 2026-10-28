@@ -228,53 +228,30 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
 
     if (widget.effectiveSongs.length <= 1) {
       final song = widget.effectiveSongs.first;
-      String? path = song.artworkPath ?? song.thumbnailPath;
-      Uint8List? bytes;
-      if (path != null && path.isNotEmpty) {
-        final file = File(path);
-        if (await file.exists()) {
-          try {
-            bytes = await file.readAsBytes();
-          } catch (_) {}
-        }
-      }
-      if (bytes == null) {
-        bytes = await MetadataHelper.decodeEmbeddedArtwork(song.path);
-        if (bytes != null && bytes.isNotEmpty) {
-          final md5Hex = await calculateMd5(bytes: bytes);
-          final tempDir = await getTemporaryDirectory();
-          final tempFile = File('${tempDir.path}/$md5Hex.jpg');
-          if (!tempFile.existsSync()) {
-            await tempFile.writeAsBytes(bytes);
-          }
-          path = tempFile.path;
-        }
-      }
+      final source = await _resolveArtworkSource(song);
       if (mounted) {
         setState(() {
-          _artworkPath = path;
-          _artworkBytes = bytes;
+          _artworkPath = source.path;
+          _artworkBytes = source.bytes;
           _isLoadingArtwork = false;
         });
       }
     } else {
-      final firstPath = widget.effectiveSongs.first.artworkPath ?? widget.effectiveSongs.first.thumbnailPath;
+      // 批量场景先判断「是不是同一张封面」，再按统一顺序取高清字节。
+      // 缩略图文件名由封面内容哈希派生，同一张封面在批量里指向同一路径，
+      // 所以比较 artworkPath / thumbnailPath 已足够判同，不必逐首解码内嵌图。
+      final first = widget.effectiveSongs.first;
+      final firstPath = first.artworkPath ?? first.thumbnailPath;
       final allSameArtwork = firstPath != null &&
           firstPath.isNotEmpty &&
           widget.effectiveSongs.every((s) => (s.artworkPath ?? s.thumbnailPath) == firstPath);
 
       if (allSameArtwork) {
-        final file = File(firstPath);
-        Uint8List? bytes;
-        if (await file.exists()) {
-          try {
-            bytes = await file.readAsBytes();
-          } catch (_) {}
-        }
+        final source = await _resolveArtworkSource(first);
         if (mounted) {
           setState(() {
-            _artworkPath = firstPath;
-            _artworkBytes = bytes;
+            _artworkPath = source.path;
+            _artworkBytes = source.bytes;
             _isArtworkMixed = false;
             _isLoadingArtwork = false;
           });
@@ -289,6 +266,63 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
           });
         }
       }
+    }
+  }
+
+  /// 按「真值来源」顺序取封面：本地大图 → 音频内嵌封面 → 缩略图。
+  ///
+  /// 顺序与 `ArtworkResolver.findRawArtwork` 对齐。本地曲目在扫描阶段只落
+  /// 500px 缩略图（`artworkPath` 恒为空），若按 `artworkPath ?? thumbnailPath`
+  /// 取值，标签编辑的预览与「导出封面」都会拿到缩略图，跟播放页解码内嵌原图
+  /// 的结果对不上。缩略图只作为最后兜底的展示缓存。
+  Future<({String? path, Uint8List? bytes})> _resolveArtworkSource(
+    MusicFile song,
+  ) async {
+    final largePath = song.artworkPath;
+    if (largePath != null && largePath.isNotEmpty) {
+      final bytes = await _readArtworkFile(largePath);
+      if (bytes != null) return (path: largePath, bytes: bytes);
+    }
+
+    final embedded = await MetadataHelper.decodeEmbeddedArtwork(song.path);
+    if (embedded != null && embedded.isNotEmpty) {
+      return (path: await _stageArtworkBytes(embedded), bytes: embedded);
+    }
+
+    final thumbPath = song.thumbnailPath;
+    if (thumbPath != null && thumbPath.isNotEmpty) {
+      final bytes = await _readArtworkFile(thumbPath);
+      if (bytes != null) return (path: thumbPath, bytes: bytes);
+    }
+
+    return (path: null, bytes: null);
+  }
+
+  static Future<Uint8List?> _readArtworkFile(String path) async {
+    try {
+      final file = File(path);
+      if (!await file.exists()) return null;
+      final bytes = await file.readAsBytes();
+      return bytes.isEmpty ? null : bytes;
+    } catch (e) {
+      debugPrint('Error reading artwork file $path: $e');
+      return null;
+    }
+  }
+
+  /// 把内嵌封面落到临时文件，供 `Image.file` 走路径缓存而不是每次重建解码字节。
+  static Future<String?> _stageArtworkBytes(Uint8List bytes) async {
+    try {
+      final md5Hex = await calculateMd5(bytes: bytes);
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/$md5Hex.jpg');
+      if (!tempFile.existsSync()) {
+        await tempFile.writeAsBytes(bytes, flush: true);
+      }
+      return tempFile.path;
+    } catch (e) {
+      debugPrint('Error staging artwork bytes: $e');
+      return null;
     }
   }
 
