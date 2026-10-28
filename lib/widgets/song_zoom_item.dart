@@ -200,25 +200,12 @@ class SongZoomItem extends ConsumerWidget {
       );
     }
 
-    // 字体样式与分档字号
+    // 字体样式与平滑字号
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
-    final gridFonts = folderGridFontSizes(metrics.targetCardWidth);
-    final (double titleSize, double subSize, double infoSize) =
-        switch (metrics.tier) {
-      FolderZoomTier.minimalList =>
-        isPortrait ? (13.5, 11.5, 11.0) : (14.0, 12.0, 12.0),
-      FolderZoomTier.compactList =>
-        isPortrait ? (14.0, 12.0, 11.0) : (14.5, 12.5, 12.0),
-      FolderZoomTier.standardList =>
-        isPortrait ? (14.0, 12.0, 11.0) : (15.5, 13.0, 13.0),
-      FolderZoomTier.largeList =>
-        isPortrait ? (15.5, 13.0, 11.5) : (16.5, 13.5, 13.5),
-      FolderZoomTier.smallGrid ||
-      FolderZoomTier.mediumGrid ||
-      FolderZoomTier.largeGrid =>
-        (gridFonts.title, gridFonts.subtitle, gridFonts.info),
-    };
+    final titleSize = metrics.animatedTitleFontSize;
+    final subSize = metrics.animatedSubtitleFontSize;
+    final infoSize = metrics.animatedInfoFontSize;
 
     final titleColor = isMissing
         ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.55)

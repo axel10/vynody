@@ -126,30 +126,29 @@ class ZoomItemTypography {
       final title = (theme.textTheme.bodyLarge ?? const TextStyle()).copyWith(
         color: titleColor ?? theme.colorScheme.onSurface,
         fontWeight: listTitleFontWeight ?? FontWeight.w600,
-        fontSize: listTitleFontSize,
+        fontSize: listTitleFontSize ?? metrics.animatedTitleFontSize,
         height: 1.2,
       );
       final subtitle = (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-        fontSize: 12.0,
+        fontSize: metrics.animatedSubtitleFontSize,
         color: subtitleColor ?? theme.colorScheme.onSurfaceVariant,
         height: 1.2,
       );
       return ZoomItemTypography(titleStyle: title, subtitleStyle: subtitle);
     } else {
-      final fonts = folderGridFontSizes(metrics.targetCardWidth);
       final title = ((isPortrait
                   ? theme.textTheme.titleSmall
                   : theme.textTheme.titleMedium) ??
               const TextStyle())
           .copyWith(
         fontWeight: FontWeight.w600,
-        fontSize: fonts.title,
+        fontSize: metrics.animatedTitleFontSize,
         color: titleColor ?? theme.colorScheme.onSurface,
         height: 1.25,
       );
       final subtitle =
           (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-        fontSize: fonts.subtitle,
+        fontSize: metrics.animatedSubtitleFontSize,
         color: subtitleColor ?? theme.colorScheme.onSurfaceVariant,
         height: 1.2,
       );

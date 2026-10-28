@@ -206,6 +206,33 @@ double calculateFolderZoomGridTextHeight(
 /// 网格条目的字号三元组：（标题、副标题、第三行信息）。
 typedef FolderGridFontSizes = ({double title, double subtitle, double info});
 
+/// 根据档位、卡片宽度及屏幕方向，解析出该档位的基准字号三元组（标题、副标题、第三行信息）。
+FolderGridFontSizes resolveFolderZoomFontSizes({
+  required FolderZoomTier tier,
+  required double cardWidth,
+  required bool isPortrait,
+}) {
+  final gridFonts = folderGridFontSizes(cardWidth);
+  return switch (tier) {
+    FolderZoomTier.minimalList => isPortrait
+        ? (title: 13.5, subtitle: 11.5, info: 11.0)
+        : (title: 14.0, subtitle: 12.0, info: 12.0),
+    FolderZoomTier.compactList => isPortrait
+        ? (title: 14.0, subtitle: 12.0, info: 11.0)
+        : (title: 14.5, subtitle: 12.5, info: 12.0),
+    FolderZoomTier.standardList => isPortrait
+        ? (title: 14.0, subtitle: 12.0, info: 11.0)
+        : (title: 15.5, subtitle: 13.0, info: 13.0),
+    FolderZoomTier.largeList => isPortrait
+        ? (title: 15.5, subtitle: 13.0, info: 11.5)
+        : (title: 16.5, subtitle: 13.5, info: 13.5),
+    FolderZoomTier.smallGrid ||
+    FolderZoomTier.mediumGrid ||
+    FolderZoomTier.largeGrid =>
+      gridFonts,
+  };
+}
+
 /// 网格条目字号——按**卡片宽度**分档，而不是屏幕宽度。
 ///
 /// 卡片宽度由列数与窗口宽度共同决定：横屏 8 列时卡片只有约 `142pt`，手机竖屏 4 列
@@ -470,6 +497,15 @@ class FolderZoomLayoutMetrics {
   /// `gridMorph` 连续插值，文字每帧都要重新排版，且字号会在动画中途乱跳。
   final double targetCardWidth;
 
+  /// 平滑插值的标题字号。
+  final double animatedTitleFontSize;
+
+  /// 平滑插值的副标题字号。
+  final double animatedSubtitleFontSize;
+
+  /// 平滑插值的第三行（详细信息）字号。
+  final double animatedInfoFontSize;
+
   const FolderZoomLayoutMetrics({
     required this.targetZoomScale,
     required this.animatedZoomScale,
@@ -479,6 +515,9 @@ class FolderZoomLayoutMetrics {
     required this.animatedGridTextHeight,
     required this.animatedListExtent,
     required this.targetCardWidth,
+    this.animatedTitleFontSize = 14.0,
+    this.animatedSubtitleFontSize = 12.0,
+    this.animatedInfoFontSize = 11.0,
   });
 
   bool get isGridTarget => isFolderZoomGrid(targetZoomScale);
@@ -526,6 +565,9 @@ typedef _ZoomTargets = ({
   double gridTextHeight,
   double listExtent,
   double cardWidth,
+  double titleFontSize,
+  double subtitleFontSize,
+  double infoFontSize,
 });
 
 class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
@@ -550,6 +592,15 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
 
   late double _fromListExtent;
   late double _toListExtent;
+
+  late double _fromTitleFontSize;
+  late double _toTitleFontSize;
+
+  late double _fromSubtitleFontSize;
+  late double _toSubtitleFontSize;
+
+  late double _fromInfoFontSize;
+  late double _toInfoFontSize;
 
   /// 见 [FolderZoomLayoutMetrics.targetCardWidth]：不进动画，只跟着目标值跳。
   double _targetCardWidth = 0.0;
@@ -581,9 +632,22 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
   _ZoomTargets _calculateTargets(double zoomScale) {
     final isPortrait =
         MediaQuery.maybeOrientationOf(context) == Orientation.portrait;
+    final tier = getFolderZoomTier(zoomScale);
     final gridCols = FolderZoomPolicy.calculateCrossAxisCount(
       width: widget.width,
-      tier: getFolderZoomTier(zoomScale),
+      tier: tier,
+      isPortrait: isPortrait,
+    );
+    final cardWidth = FolderZoomPolicy.gridCardWidth(
+      contentWidth: math.max(
+        1.0,
+        widget.width - kGridHorizontalPadding * 2,
+      ),
+      crossAxisCount: gridCols,
+    );
+    final fontSizes = resolveFolderZoomFontSizes(
+      tier: tier,
+      cardWidth: cardWidth,
       isPortrait: isPortrait,
     );
     return (
@@ -595,13 +659,10 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
         zoomScale: zoomScale,
       ),
       listExtent: getFolderListTileExtent(zoomScale),
-      cardWidth: FolderZoomPolicy.gridCardWidth(
-        contentWidth: math.max(
-          1.0,
-          widget.width - kGridHorizontalPadding * 2,
-        ),
-        crossAxisCount: gridCols,
-      ),
+      cardWidth: cardWidth,
+      titleFontSize: fontSizes.title,
+      subtitleFontSize: fontSizes.subtitle,
+      infoFontSize: fontSizes.info,
     );
   }
 
@@ -618,6 +679,9 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       _fromGridCols = _eval(_fromGridCols, _toGridCols);
       _fromGridTextHeight = _eval(_fromGridTextHeight, _toGridTextHeight);
       _fromListExtent = _eval(_fromListExtent, _toListExtent);
+      _fromTitleFontSize = _eval(_fromTitleFontSize, _toTitleFontSize);
+      _fromSubtitleFontSize = _eval(_fromSubtitleFontSize, _toSubtitleFontSize);
+      _fromInfoFontSize = _eval(_fromInfoFontSize, _toInfoFontSize);
     } else {
       _fromZoomScale = _toZoomScale = widget.zoomScale;
       _fromGridMorph = _toGridMorph = targets.gridMorph;
@@ -625,6 +689,9 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       _fromGridCols = _toGridCols = targets.gridCols;
       _fromGridTextHeight = _toGridTextHeight = targets.gridTextHeight;
       _fromListExtent = _toListExtent = targets.listExtent;
+      _fromTitleFontSize = _toTitleFontSize = targets.titleFontSize;
+      _fromSubtitleFontSize = _toSubtitleFontSize = targets.subtitleFontSize;
+      _fromInfoFontSize = _toInfoFontSize = targets.infoFontSize;
       return;
     }
 
@@ -634,6 +701,9 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
     _toGridCols = targets.gridCols;
     _toGridTextHeight = targets.gridTextHeight;
     _toListExtent = targets.listExtent;
+    _toTitleFontSize = targets.titleFontSize;
+    _toSubtitleFontSize = targets.subtitleFontSize;
+    _toInfoFontSize = targets.infoFontSize;
 
     _controller.forward(from: 0.0);
   }
@@ -667,6 +737,9 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       // Window resize: update column count immediately without lag.
       _fromGridCols = _toGridCols = targets.gridCols;
       _fromGridTextHeight = _toGridTextHeight = targets.gridTextHeight;
+      _fromTitleFontSize = _toTitleFontSize = targets.titleFontSize;
+      _fromSubtitleFontSize = _toSubtitleFontSize = targets.subtitleFontSize;
+      _fromInfoFontSize = _toInfoFontSize = targets.infoFontSize;
       _targetCardWidth = targets.cardWidth;
     }
   }
@@ -715,6 +788,19 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
             lerpDouble(targetsFrom.listExtent, targetsTo.listExtent, t) ??
             targetsFrom.listExtent,
         targetCardWidth: t > 0.5 ? targetsTo.cardWidth : targetsFrom.cardWidth,
+        animatedTitleFontSize:
+            lerpDouble(targetsFrom.titleFontSize, targetsTo.titleFontSize, t) ??
+            targetsFrom.titleFontSize,
+        animatedSubtitleFontSize:
+            lerpDouble(
+              targetsFrom.subtitleFontSize,
+              targetsTo.subtitleFontSize,
+              t,
+            ) ??
+            targetsFrom.subtitleFontSize,
+        animatedInfoFontSize:
+            lerpDouble(targetsFrom.infoFontSize, targetsTo.infoFontSize, t) ??
+            targetsFrom.infoFontSize,
       );
       return widget.builder(context, metrics);
     }
@@ -728,6 +814,10 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       animatedGridTextHeight: _eval(_fromGridTextHeight, _toGridTextHeight),
       animatedListExtent: _eval(_fromListExtent, _toListExtent),
       targetCardWidth: _targetCardWidth,
+      animatedTitleFontSize: _eval(_fromTitleFontSize, _toTitleFontSize),
+      animatedSubtitleFontSize:
+          _eval(_fromSubtitleFontSize, _toSubtitleFontSize),
+      animatedInfoFontSize: _eval(_fromInfoFontSize, _toInfoFontSize),
     );
     return widget.builder(context, metrics);
   }

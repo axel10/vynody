@@ -671,4 +671,76 @@ void main() {
     expect(settings.folderZoomScale, kFolderZoomTierStandardList);
     expect(capturedMetrics!.animatedListExtent, closeTo(80.0, 0.01));
   });
+
+  testWidgets('文字大小在手势缩放途中随动画进程平滑线性插值', (tester) async {
+    FolderZoomLayoutMetrics? capturedMetrics;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: FolderZoomGestureLayer(
+              child: CustomScrollView(
+                slivers: [
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final scale = ref.watch(
+                        settingsServiceProvider.select((s) => s.folderZoomScale),
+                      );
+                      return FolderZoomSliverBuilder(
+                        zoomScale: scale,
+                        width: 400,
+                        builder: (context, m) {
+                          capturedMetrics = m;
+                          return SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: 100,
+                              child: Text(
+                                'Title',
+                                style: TextStyle(
+                                  fontSize: m.animatedTitleFontSize,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 初始档位为 standardList，测试默认 800x600 横屏下为 15.5
+    expect(capturedMetrics!.animatedTitleFontSize, closeTo(15.5, 0.01));
+
+    final center = tester.getCenter(find.text('Title'));
+    final pointer = TestPointer(1, PointerDeviceKind.trackpad);
+    pointer.hover(center);
+
+    // 触控板捏合放大：从 standardList (15.5) 向 largeList (16.5) 放大
+    await tester.sendEventToBinding(pointer.panZoomStart(center));
+    // scale = 1.50 -> progress = 0.50 (正好处于正中间)
+    await tester.sendEventToBinding(
+      pointer.panZoomUpdate(center, scale: 1.50),
+    );
+    await tester.pump();
+
+    // 验证字号平滑线性过渡到 15.5 + (16.5 - 15.5) * 0.5 = 16.0
+    expect(capturedMetrics!.animatedTitleFontSize, closeTo(16.0, 0.01));
+
+    // 松手结算完成换档
+    await tester.sendEventToBinding(pointer.panZoomEnd());
+    await tester.pumpAndSettle();
+
+    // 换档完成到达 largeList：16.5
+    expect(settings.folderZoomScale, kFolderZoomTierLargeList);
+    expect(capturedMetrics!.animatedTitleFontSize, closeTo(16.5, 0.01));
+  });
 }
