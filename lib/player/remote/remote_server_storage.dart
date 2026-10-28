@@ -73,6 +73,9 @@ class RemoteServerStorage {
     try {
       await MetadataDatabase().deleteRemoteSongsByServerId(serverId);
     } catch (_) {}
+    try {
+      await MetadataDatabase().clearRemoteLibraryCache(serverId: serverId);
+    } catch (_) {}
   }
 }
 

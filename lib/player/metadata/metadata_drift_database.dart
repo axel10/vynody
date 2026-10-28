@@ -3987,7 +3987,35 @@ extension MetadataSongRatingsOps on MetadataDriftDatabase {
   }
 }
 
+/// 详情类快照缓存（按实体 id 建 key）的保留时长，超过即视为陈旧。
+const Duration _remoteDetailCacheTtl = Duration(days: 7);
+
+/// 详情类快照缓存的 category 前缀。
+/// 这类 key 随浏览过的实体数量线性增长，需要回收；列表类快照是固定条数，不在此列。
+const List<String> _remoteDetailCategoryPrefixes = <String>[
+  'album_detail_',
+  'artist_detail_',
+  'playlist_detail_',
+];
+
 extension MetadataRemoteLibraryCachesOps on MetadataDriftDatabase {
+  /// 回收该服务器下超过保留期的详情类快照缓存，返回删除条数。
+  Future<int> pruneStaleRemoteDetailCaches(String serverId) async {
+    final cleanServerId = serverId.trim();
+    if (cleanServerId.isEmpty) return 0;
+    final cutoff =
+        DateTime.now().subtract(_remoteDetailCacheTtl).millisecondsSinceEpoch;
+
+    return (delete(remoteLibraryCaches)
+          ..where((t) =>
+              t.serverId.equals(cleanServerId) &
+              t.updatedAtMillis.isSmallerThanValue(cutoff) &
+              _remoteDetailCategoryPrefixes
+                  .map((prefix) => t.category.like('$prefix%'))
+                  .reduce((a, b) => a | b)))
+        .go();
+  }
+
   Future<void> saveRemoteLibraryCache({
     required String serverId,
     required String category,
@@ -4007,6 +4035,12 @@ extension MetadataRemoteLibraryCachesOps on MetadataDriftDatabase {
         updatedAtMillis: Value(now),
       ),
     );
+
+    // 写入快照说明用户正在使用该远程库，顺带回收陈旧的详情缓存。
+    // 清理属于附属操作，失败不应影响快照写入本身。
+    try {
+      await pruneStaleRemoteDetailCaches(cleanServerId);
+    } catch (_) {}
   }
 
   Future<({String dataJson, int? count, int updatedAtMillis})?> getRemoteLibraryCache({
