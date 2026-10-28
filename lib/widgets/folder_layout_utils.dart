@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import '../utils/layout_constants.dart';
 import 'folder_nav_bar_scaffold.dart';
+import 'folder_zoom_pinch.dart';
 
 export '../utils/layout_constants.dart';
 export 'zoom_item_scaffold.dart';
 export 'zoom_item_cover.dart';
+export 'folder_zoom_pinch.dart';
 
 /// Discrete fixed tier values for `folderZoomScale`:
 /// List view (4 tiers): 0.0, 1/6, 2/6, 3/6
@@ -576,9 +578,7 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
   double _eval(double from, double to) =>
       lerpDouble(from, to, _curved.value) ?? to;
 
-  /// 当前 `zoomScale` / 宽度对应的目标布局值（动画的终点，也是首帧的起点）。
-  _ZoomTargets _targets() {
-    final zoomScale = widget.zoomScale;
+  _ZoomTargets _calculateTargets(double zoomScale) {
     final isPortrait =
         MediaQuery.maybeOrientationOf(context) == Orientation.portrait;
     final gridCols = FolderZoomPolicy.calculateCrossAxisCount(
@@ -604,6 +604,9 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       ),
     );
   }
+
+  /// 当前 `zoomScale` / 宽度对应的目标布局值（动画的终点，也是首帧的起点）。
+  _ZoomTargets _targets() => _calculateTargets(widget.zoomScale);
 
   void _applyTargets(_ZoomTargets targets, {required bool animate}) {
     _targetCardWidth = targets.cardWidth;
@@ -649,9 +652,17 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
   void didUpdateWidget(FolderZoomSliverBuilder oldWidget) {
     super.didUpdateWidget(oldWidget);
     final targets = _targets();
+    final pinch = FolderZoomPinchScope.maybeOf(context);
 
     if ((oldWidget.zoomScale - widget.zoomScale).abs() > 1e-4) {
-      _applyTargets(targets, animate: true);
+      if (pinch != null &&
+          pinch.committedScale != null &&
+          (pinch.committedScale! - widget.zoomScale).abs() < 1e-4) {
+        // 本次变化由 pinch 手势吸附完成触发，直接同步目标状态，避免二次重复动画。
+        _applyTargets(targets, animate: false);
+      } else {
+        _applyTargets(targets, animate: true);
+      }
     } else if ((oldWidget.width - widget.width).abs() > 0.5) {
       // Window resize: update column count immediately without lag.
       _fromGridCols = _toGridCols = targets.gridCols;
@@ -669,6 +680,45 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
 
   @override
   Widget build(BuildContext context) {
+    final pinch = FolderZoomPinchScope.maybeOf(context);
+    if (pinch != null && pinch.isActive) {
+      final fromScale = pinch.baseZoomScale;
+      final toScale = pinch.targetZoomScale;
+      final targetsFrom = _calculateTargets(fromScale);
+      final targetsTo = _calculateTargets(toScale);
+      final t = pinch.progress;
+      final activeTarget = t > 0.5 ? toScale : fromScale;
+
+      final metrics = FolderZoomLayoutMetrics(
+        targetZoomScale: activeTarget,
+        animatedZoomScale:
+            lerpDouble(fromScale, toScale, t) ?? fromScale,
+        gridMorph:
+            (lerpDouble(targetsFrom.gridMorph, targetsTo.gridMorph, t) ??
+                    targetsFrom.gridMorph)
+                .clamp(0.0, 1.0),
+        compactMorph:
+            (lerpDouble(targetsFrom.compactMorph, targetsTo.compactMorph, t) ??
+                    targetsFrom.compactMorph)
+                .clamp(0.0, 1.0),
+        animatedGridCols:
+            lerpDouble(targetsFrom.gridCols, targetsTo.gridCols, t) ??
+            targetsFrom.gridCols,
+        animatedGridTextHeight:
+            lerpDouble(
+              targetsFrom.gridTextHeight,
+              targetsTo.gridTextHeight,
+              t,
+            ) ??
+            targetsFrom.gridTextHeight,
+        animatedListExtent:
+            lerpDouble(targetsFrom.listExtent, targetsTo.listExtent, t) ??
+            targetsFrom.listExtent,
+        targetCardWidth: t > 0.5 ? targetsTo.cardWidth : targetsFrom.cardWidth,
+      );
+      return widget.builder(context, metrics);
+    }
+
     final metrics = FolderZoomLayoutMetrics(
       targetZoomScale: widget.zoomScale,
       animatedZoomScale: _eval(_fromZoomScale, _toZoomScale),

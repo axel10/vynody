@@ -53,7 +53,22 @@ class FolderZoomGestureLayer extends ConsumerStatefulWidget {
       _FolderZoomGestureLayerState();
 }
 
-class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer> {
+class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
+    with TickerProviderStateMixin {
+  late final FolderZoomPinchController _pinchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pinchController = FolderZoomPinchController(vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _pinchController.dispose();
+    super.dispose();
+  }
+
   /// 当前滚动簇的方向（`1` 放大、`-1` 缩小，`0` 表示还没有簇）与上一笔事件时间戳。
   ///
   /// 旧实现是「按像素累计 + 150ms 冷却」，两个坑叠在一起：
@@ -66,12 +81,6 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
   Duration? _lastWheelStamp;
   int _wheelBurstDirection = 0;
   bool _wheelBurstStepped = false;
-
-  /// 本次捏合是否已经换过档。
-  ///
-  /// 一次捏合（手指按下到抬起）只换一档：档位是离散的六档，连续跟手会把
-  /// 一档一档连成「一捏到底」，很难停在中意的档位上。
-  bool _pinchStepLatched = false;
 
   bool get _isZoomModifierPressed {
     final keyboard = HardwareKeyboard.instance;
@@ -97,6 +106,31 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
     if (haptic) {
       HapticFeedback.selectionClick();
     }
+  }
+
+  void _commitPinchTier(double newScale) {
+    final settings = ref.read(settingsServiceProvider);
+    final current = settings.zoomScaleFor(widget.scope);
+    final next = widget.scope == LibraryZoomScope.queue
+        ? newScale.clamp(
+            kFolderZoomTierMinimalList,
+            kFolderZoomTierLargeList,
+          )
+        : newScale;
+    if ((next - current).abs() < 1e-6) return;
+    settings.setZoomScale(widget.scope, next);
+    HapticFeedback.selectionClick();
+  }
+
+  void _startPinchGesture() {
+    final settings = ref.read(settingsServiceProvider);
+    final current = settings.zoomScaleFor(widget.scope);
+    _pinchController.startPinch(
+      current,
+      max: widget.scope == LibraryZoomScope.queue
+          ? kFolderZoomTierLargeList
+          : kFolderZoomTierLargeGrid,
+    );
   }
 
   // ── 键鼠 / 触控板滚轮 ────────────────────────────────────────────────
@@ -152,20 +186,28 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
 
   // ── 触控板捏合（PointerPanZoom） ───────────────────────────────────
 
+  void _handlePanZoomStart(PointerPanZoomStartEvent event) {
+    _startPinchGesture();
+  }
+
   void _handlePanZoomUpdate(PointerPanZoomUpdateEvent event) {
     // 触控板双指滚动同样走 panZoom，只有真正捏合（scale 偏离 1）才处理。
-    if ((event.scale - 1.0).abs() < 1e-3) return;
-    _applyPinchScale(event.scale, haptic: false);
+    if (!_pinchController.isActive) {
+      if ((event.scale - 1.0).abs() < 1e-3) return;
+      _startPinchGesture();
+    }
+    _pinchController.updatePinch(
+      scale: event.scale,
+      onThresholdCrossed: () => HapticFeedback.selectionClick(),
+    );
+  }
+
+  void _handlePanZoomEnd(PointerPanZoomEndEvent event) {
+    if (!_pinchController.isActive || _pinchController.isEnding) return;
+    _pinchController.endPinch(onCommit: _commitPinchTier);
   }
 
   // ── 触屏捏合 ──────────────────────────────────────────────────────
-  //
-  // 触屏这条路径同时挂了两套检测：
-  // 1. 覆盖层 Listener 里的原始指针表——不参与手势竞技场，所以哪怕
-  //    Scrollable 的拖拽识别器抢走了第一根手指，这里照样能算出双指间距；
-  // 2. [_FolderPinchGestureRecognizer]——它的职责其实是「别让列表跟着滚」，
-  //    顺带也能触发换档。
-  // 两边都走 [_applyPinchScale]，靠 [_pinchStepLatched] 去重，一次捏合只换一档。
 
   /// 当前按在屏幕上的触点（仅触屏），以及双指标定间距。
   final Map<int, Offset> _touchPointers = <int, Offset>{};
@@ -177,9 +219,10 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
     if (!_isTouch(event)) return;
     _touchPointers[event.pointer] = event.position;
     if (_touchPointers.length >= 2) {
-      // 双指（或更多）齐了：以这一刻的间距为基准，本手势只换一档。
       _pinchBaseSpan = _currentSpan();
-      _resetPinch();
+      if (!_pinchController.isActive) {
+        _startPinchGesture();
+      }
     }
   }
 
@@ -187,20 +230,30 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
     if (!_isTouch(event) || !_touchPointers.containsKey(event.pointer)) return;
     _touchPointers[event.pointer] = event.position;
 
+    if (_pinchController.isEnding) return;
+
     final base = _pinchBaseSpan;
     if (base == null || base <= 0) return;
     final span = _currentSpan();
     if (span <= 0) return;
-    _applyPinchScale(span / base, haptic: true);
+
+    if (!_pinchController.isActive) {
+      _startPinchGesture();
+    }
+    _pinchController.updatePinch(
+      scale: span / base,
+      onThresholdCrossed: () => HapticFeedback.selectionClick(),
+    );
   }
 
   void _handleTouchUp(PointerEvent event) {
     if (!_isTouch(event)) return;
     if (_touchPointers.remove(event.pointer) == null) return;
     if (_touchPointers.length < 2) {
-      // 手指少于两根：本次捏合结束，下一次捏合可以再换一档。
       _pinchBaseSpan = null;
-      _resetPinch();
+      if (_pinchController.isActive && !_pinchController.isEnding) {
+        _pinchController.endPinch(onCommit: _commitPinchTier);
+      }
     }
   }
 
@@ -218,57 +271,71 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
     return maxSpan;
   }
 
-  void _handlePinchUpdate(ScaleUpdateDetails details) {
-    _applyPinchScale(details.scale, haptic: true);
+  void _handleScaleStart(ScaleStartDetails details) {
+    if (details.pointerCount >= 2) {
+      _startPinchGesture();
+    }
   }
 
-  void _resetPinch() => _pinchStepLatched = false;
-
-  void _applyPinchScale(double scale, {required bool haptic}) {
-    if (_pinchStepLatched || scale <= 0 || scale.isNaN) return;
-
-    final int steps;
-    if (scale >= kFolderZoomPinchStepRatio) {
-      steps = 1;
-    } else if (scale <= 1 / kFolderZoomPinchStepRatio) {
-      steps = -1;
-    } else {
+  void _handleScaleUpdate(ScaleUpdateDetails details) {
+    if (details.pointerCount < 2) {
+      // 触屏捏合只认双指。当一根手指抬起只剩单指时，立即结束手势，
+      // 绝对不能用重置后的 scale (1.0) 冲刷已判定的换档意图。
+      if (_pinchController.isActive && !_pinchController.isEnding) {
+        _pinchController.endPinch(onCommit: _commitPinchTier);
+      }
       return;
     }
+    if (_pinchController.isEnding) return;
 
-    _pinchStepLatched = true;
-    _stepTier(steps, haptic: haptic);
+    if (!_pinchController.isActive) {
+      _startPinchGesture();
+    }
+    _pinchController.updatePinch(
+      scale: details.scale,
+      onThresholdCrossed: () => HapticFeedback.selectionClick(),
+    );
+  }
+
+  void _handleScaleEnd(ScaleEndDetails details) {
+    if (!_pinchController.isActive || _pinchController.isEnding) return;
+    _pinchController.endPinch(onCommit: _commitPinchTier);
   }
 
   @override
   Widget build(BuildContext context) {
-    return RawGestureDetector(
-      gestures: <Type, GestureRecognizerFactory>{
-        _FolderPinchGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<_FolderPinchGestureRecognizer>(
-              () => _FolderPinchGestureRecognizer(debugOwner: this),
-              (_FolderPinchGestureRecognizer instance) {
-                instance.onUpdate = _handlePinchUpdate;
-              },
+    return FolderZoomPinchScope(
+      notifier: _pinchController,
+      child: RawGestureDetector(
+        gestures: <Type, GestureRecognizerFactory>{
+          _FolderPinchGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<_FolderPinchGestureRecognizer>(
+                () => _FolderPinchGestureRecognizer(debugOwner: this),
+                (_FolderPinchGestureRecognizer instance) {
+                  instance.onStart = _handleScaleStart;
+                  instance.onUpdate = _handleScaleUpdate;
+                  instance.onEnd = _handleScaleEnd;
+                },
+              ),
+        },
+        child: Stack(
+          children: [
+            widget.child,
+            Positioned.fill(
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: _handleTouchDown,
+                onPointerMove: _handleTouchMove,
+                onPointerUp: _handleTouchUp,
+                onPointerCancel: _handleTouchUp,
+                onPointerSignal: _handlePointerSignal,
+                onPointerPanZoomStart: _handlePanZoomStart,
+                onPointerPanZoomUpdate: _handlePanZoomUpdate,
+                onPointerPanZoomEnd: _handlePanZoomEnd,
+              ),
             ),
-      },
-      child: Stack(
-        children: [
-          widget.child,
-          Positioned.fill(
-            child: Listener(
-              behavior: HitTestBehavior.translucent,
-              onPointerDown: _handleTouchDown,
-              onPointerMove: _handleTouchMove,
-              onPointerUp: _handleTouchUp,
-              onPointerCancel: _handleTouchUp,
-              onPointerSignal: _handlePointerSignal,
-              onPointerPanZoomStart: (_) => _resetPinch(),
-              onPointerPanZoomUpdate: _handlePanZoomUpdate,
-              onPointerPanZoomEnd: (_) => _resetPinch(),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

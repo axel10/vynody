@@ -295,4 +295,380 @@ void main() {
     // 依然限制在 largeList，不能进入 smallGrid
     expect(settings.queueZoomScale, kFolderZoomTierLargeList);
   });
+
+  testWidgets('双指捏合只张开一点点（未达阈值）时条目跟手变化，松手后退回原档位', (tester) async {
+    FolderZoomLayoutMetrics? capturedMetrics;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: FolderZoomGestureLayer(
+              child: CustomScrollView(
+                slivers: [
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final scale = ref.watch(
+                        settingsServiceProvider.select(
+                          (s) => s.folderZoomScale,
+                        ),
+                      );
+                      return FolderZoomSliverBuilder(
+                        zoomScale: scale,
+                        width: 400,
+                        builder: (context, metrics) {
+                          capturedMetrics = metrics;
+                          return SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: metrics.animatedListExtent,
+                              child: const Text('content'),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 初始状态：StandardList 行高为 80
+    expect(capturedMetrics!.animatedListExtent, closeTo(80.0, 0.01));
+    expect(settings.folderZoomScale, kFolderZoomTierStandardList);
+
+    final center = tester.getCenter(find.text('content'));
+    // 触控板微捏合：scale = 1.05（仅放大 5%，小于 11% 的 50% 阈值）
+    final pointer = TestPointer(1, PointerDeviceKind.trackpad);
+    pointer.hover(center);
+    await tester.sendEventToBinding(pointer.panZoomStart(center));
+    await tester.sendEventToBinding(
+      pointer.panZoomUpdate(center, scale: 1.05),
+    );
+    await tester.pump();
+
+    // 跟手变化：行高在 80 到 104 之间插值增大（大约 85 左右）
+    expect(capturedMetrics!.animatedListExtent, greaterThan(80.0));
+    expect(capturedMetrics!.animatedListExtent, lessThan(95.0));
+
+    // 松手结算：因为未超过阈值，回弹退回
+    await tester.sendEventToBinding(pointer.panZoomEnd());
+    await tester.pumpAndSettle();
+
+    // 档位未变，行高完全恢复为 80.0
+    expect(settings.folderZoomScale, kFolderZoomTierStandardList);
+    expect(capturedMetrics!.animatedListExtent, closeTo(80.0, 0.01));
+  });
+
+  testWidgets('双指捏合微缩小（未达阈值）松手退回，超过阈值缩小确认减一档', (tester) async {
+    // 初始档位为 LargeList（行高 104）
+    settings.folderZoomScale = kFolderZoomTierLargeList;
+    FolderZoomLayoutMetrics? capturedMetrics;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: FolderZoomGestureLayer(
+              child: CustomScrollView(
+                slivers: [
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final scale = ref.watch(
+                        settingsServiceProvider.select(
+                          (s) => s.folderZoomScale,
+                        ),
+                      );
+                      return FolderZoomSliverBuilder(
+                        zoomScale: scale,
+                        width: 400,
+                        builder: (context, metrics) {
+                          capturedMetrics = metrics;
+                          return SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: metrics.animatedListExtent,
+                              child: const Text('content'),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(capturedMetrics!.animatedListExtent, closeTo(104.0, 0.01));
+
+    final center = tester.getCenter(find.text('content'));
+    final pointer = TestPointer(1, PointerDeviceKind.trackpad);
+    pointer.hover(center);
+
+    // 1. 微缩小：scale = 0.96（缩小 4%，未达到 10% 阈值）
+    await tester.sendEventToBinding(pointer.panZoomStart(center));
+    await tester.sendEventToBinding(
+      pointer.panZoomUpdate(center, scale: 0.96),
+    );
+    await tester.pump();
+
+    // 条目实时变小了一点点（在 80 到 104 之间）
+    expect(capturedMetrics!.animatedListExtent, lessThan(104.0));
+    expect(capturedMetrics!.animatedListExtent, greaterThan(95.0));
+
+    // 松手：未达阈值退回 LargeList
+    await tester.sendEventToBinding(pointer.panZoomEnd());
+    await tester.pumpAndSettle();
+    expect(settings.folderZoomScale, kFolderZoomTierLargeList);
+    expect(capturedMetrics!.animatedListExtent, closeTo(104.0, 0.01));
+
+    // 2. 较大幅度缩小：scale = 0.50（缩小 50%，捏合过半，超过 40% 阈值）
+    await tester.sendEventToBinding(pointer.panZoomStart(center));
+    await tester.sendEventToBinding(
+      pointer.panZoomUpdate(center, scale: 0.50),
+    );
+    await tester.pump();
+
+    // 条目实时显著变小
+    expect(capturedMetrics!.animatedListExtent, lessThan(95.0));
+
+    // 松手：超过阈值减一个档位，平滑吸附到 StandardList
+    await tester.sendEventToBinding(pointer.panZoomEnd());
+    await tester.pumpAndSettle();
+    expect(settings.folderZoomScale, kFolderZoomTierStandardList);
+    expect(capturedMetrics!.animatedListExtent, closeTo(80.0, 0.01));
+  });
+
+  testWidgets('同一作用域内包含多个 FolderZoomSliverBuilder 时，手势换档均静默对齐无二次动画', (tester) async {
+    int builder1Count = 0;
+    int builder2Count = 0;
+    FolderZoomLayoutMetrics? metrics1;
+    FolderZoomLayoutMetrics? metrics2;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: FolderZoomGestureLayer(
+              child: CustomScrollView(
+                slivers: [
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final scale = ref.watch(
+                        settingsServiceProvider.select((s) => s.folderZoomScale),
+                      );
+                      return FolderZoomSliverBuilder(
+                        zoomScale: scale,
+                        width: 400,
+                        builder: (context, m) {
+                          builder1Count++;
+                          metrics1 = m;
+                          return SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: m.animatedListExtent,
+                              child: const Text('list 1'),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final scale = ref.watch(
+                        settingsServiceProvider.select((s) => s.folderZoomScale),
+                      );
+                      return FolderZoomSliverBuilder(
+                        zoomScale: scale,
+                        width: 400,
+                        builder: (context, m) {
+                          builder2Count++;
+                          metrics2 = m;
+                          return SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: m.animatedListExtent,
+                              child: const Text('list 2'),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final center = tester.getCenter(find.text('list 1'));
+    final pointer = TestPointer(1, PointerDeviceKind.trackpad);
+    pointer.hover(center);
+
+    // 捏合放大超过平缓阈值（scale = 1.40）
+    await tester.sendEventToBinding(pointer.panZoomStart(center));
+    await tester.sendEventToBinding(
+      pointer.panZoomUpdate(center, scale: 1.40),
+    );
+    await tester.pump();
+
+    // 松手结算
+    await tester.sendEventToBinding(pointer.panZoomEnd());
+    await tester.pumpAndSettle();
+
+    // 两个列表都必须精准同步到达 LargeList (104.0)
+    expect(settings.folderZoomScale, kFolderZoomTierLargeList);
+    expect(metrics1!.animatedListExtent, closeTo(104.0, 0.01));
+    expect(metrics2!.animatedListExtent, closeTo(104.0, 0.01));
+
+    // 记录换档安定后的 build 次数
+    final b1Stable = builder1Count;
+    final b2Stable = builder2Count;
+
+    // 前进 50ms，验证没有多余的动画在后台继续 tick 重绘
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(builder1Count, b1Stable);
+    expect(builder2Count, b2Stable);
+  });
+
+  testWidgets('双指超过换档阈值后若有微小回缩，滞后区间确保稳稳换档不跳回', (tester) async {
+    FolderZoomLayoutMetrics? capturedMetrics;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: FolderZoomGestureLayer(
+              child: CustomScrollView(
+                slivers: [
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final scale = ref.watch(
+                        settingsServiceProvider.select((s) => s.folderZoomScale),
+                      );
+                      return FolderZoomSliverBuilder(
+                        zoomScale: scale,
+                        width: 400,
+                        builder: (context, m) {
+                          capturedMetrics = m;
+                          return SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: m.animatedListExtent,
+                              child: const Text('content'),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final center = tester.getCenter(find.text('content'));
+    final pointer = TestPointer(1, PointerDeviceKind.trackpad);
+    pointer.hover(center);
+
+    await tester.sendEventToBinding(pointer.panZoomStart(center));
+    // 先张开 50%（scale = 1.50，进度 50%，已超过 40% 的触发阈值，换档意图已确认）
+    await tester.sendEventToBinding(
+      pointer.panZoomUpdate(center, scale: 1.50),
+    );
+    await tester.pump();
+
+    // 手指松手瞬间发生肌肉微收缩，scale 微落到 1.25（进度落到 25%，在 20%~40% 滞后区间内）
+    await tester.sendEventToBinding(
+      pointer.panZoomUpdate(center, scale: 1.25),
+    );
+    await tester.pump();
+
+    // 松手：滞后保护生效，稳稳吸附并确认换档，绝不误弹回！
+    await tester.sendEventToBinding(pointer.panZoomEnd());
+    await tester.pumpAndSettle();
+
+    expect(settings.folderZoomScale, kFolderZoomTierLargeList);
+    expect(capturedMetrics!.animatedListExtent, closeTo(104.0, 0.01));
+  });
+
+  testWidgets('对齐 Poweramp 物理模型：双指移动到两倍时放大一档，完全捏合时缩小一档', (tester) async {
+    FolderZoomLayoutMetrics? capturedMetrics;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: FolderZoomGestureLayer(
+              child: CustomScrollView(
+                slivers: [
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final scale = ref.watch(
+                        settingsServiceProvider.select((s) => s.folderZoomScale),
+                      );
+                      return FolderZoomSliverBuilder(
+                        zoomScale: scale,
+                        width: 400,
+                        builder: (context, m) {
+                          capturedMetrics = m;
+                          return SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: m.animatedListExtent,
+                              child: const Text('touch content'),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(capturedMetrics!.animatedListExtent, closeTo(80.0, 0.01));
+
+    final center = tester.getCenter(find.text('touch content'));
+    // 初始双指间距 100 像素
+    final left = await tester.startGesture(center - const Offset(50, 0));
+    final right = await tester.startGesture(center + const Offset(50, 0));
+    await tester.pump();
+
+    // 双指各微动 10 像素（双指间距从 100 增加到 120 像素，scale = 1.20）：
+    await left.moveBy(const Offset(-10, 0));
+    await right.moveBy(const Offset(10, 0));
+    await tester.pump();
+
+    // 进度 t = scale - 1.0 = 0.20，行高从 80 生长到 80 + 0.20 * 24 = 84.8 像素
+    expect(capturedMetrics!.animatedListExtent, closeTo(84.8, 0.5));
+
+    // 松手：未达 40% 阈值，退回 80.0
+    await left.up();
+    await right.up();
+    await tester.pumpAndSettle();
+
+    expect(settings.folderZoomScale, kFolderZoomTierStandardList);
+    expect(capturedMetrics!.animatedListExtent, closeTo(80.0, 0.01));
+  });
 }
