@@ -646,6 +646,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get dynamicMesh => 'Malla dinámica';
 
   @override
+  String get meshFlowEdgeStyle => 'Estilo de borde de malla';
+
+  @override
+  String get meshFlowEdgeStyleRandom => 'Alternar al azar';
+
+  @override
+  String get meshFlowEdgeStyleSoft => 'Suave y difuso';
+
+  @override
+  String get meshFlowEdgeStyleSharp => 'Nítido y prismático';
+
+  @override
   String get solidColor => 'Color sólido';
 
   @override

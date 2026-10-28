@@ -656,6 +656,8 @@ class SettingsService extends ChangeNotifier {
       'playback_custom_image_blur_sigma';
   static const String _keyPlaybackMeshBackgroundSpeed =
       'playback_mesh_background_speed';
+  static const String _keyPlaybackMeshBackgroundEdgeStyle =
+      'playback_mesh_background_edge_style';
   static const String _keyPlaybackMeshBackgroundNormalOpacity =
       'playback_mesh_background_normal_opacity';
   static const String _keyPlaybackMeshBackgroundAutoDarkLayer =
@@ -1981,6 +1983,13 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _playbackMeshBackgroundEdgeStyleProperty = SettingProperty<int>(
+    key: _keyPlaybackMeshBackgroundEdgeStyle,
+    defaultValue: 0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
   late final _playbackMeshBackgroundNormalOpacityProperty =
       SettingProperty<double>(
         key: _keyPlaybackMeshBackgroundNormalOpacity,
@@ -3140,6 +3149,11 @@ class SettingsService extends ChangeNotifier {
   set playbackMeshBackgroundSpeed(double value) =>
       _playbackMeshBackgroundSpeedProperty.value = value;
 
+  int get playbackMeshBackgroundEdgeStyle =>
+      _playbackMeshBackgroundEdgeStyleProperty.value;
+  set playbackMeshBackgroundEdgeStyle(int value) =>
+      _playbackMeshBackgroundEdgeStyleProperty.value = value;
+
   double get playbackMeshBackgroundNormalOpacity =>
       _playbackMeshBackgroundNormalOpacityProperty.value;
   set playbackMeshBackgroundNormalOpacity(double value) =>
@@ -3601,6 +3615,7 @@ class SettingsService extends ChangeNotifier {
     _isVisualizerDynamicStartColorProperty.reset();
     _isVisualizerDynamicEndColorProperty.reset();
     _playbackMeshBackgroundSpeedProperty.reset();
+    _playbackMeshBackgroundEdgeStyleProperty.reset();
     _playbackMeshBackgroundNormalOpacityProperty.reset();
     _playbackMeshBackgroundAutoDarkLayerProperty.reset();
     _playbackBackgroundColorProperty.reset();

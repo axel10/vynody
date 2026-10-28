@@ -640,6 +640,18 @@ class AppLocalizationsTr extends AppLocalizations {
   String get dynamicMesh => 'Dinamik Akışkan Gradyan';
 
   @override
+  String get meshFlowEdgeStyle => 'Akış Kenar Stili';
+
+  @override
+  String get meshFlowEdgeStyleRandom => 'Rastgele Geçiş';
+
+  @override
+  String get meshFlowEdgeStyleSoft => 'Yumuşak ve Difüz';
+
+  @override
+  String get meshFlowEdgeStyleSharp => 'Keskin ve Prizmatik';
+
+  @override
   String get solidColor => 'Düz Renk';
 
   @override

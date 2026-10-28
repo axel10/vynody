@@ -630,6 +630,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dynamicMesh => '다이나믹 메시';
 
   @override
+  String get meshFlowEdgeStyle => '메시 가장자리 스타일';
+
+  @override
+  String get meshFlowEdgeStyleRandom => '무작위 교차';
+
+  @override
+  String get meshFlowEdgeStyleSoft => '부드러움 및 확산';
+
+  @override
+  String get meshFlowEdgeStyleSharp => '선명함 및 프리즘';
+
+  @override
   String get solidColor => '단색';
 
   @override

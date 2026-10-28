@@ -1281,6 +1281,30 @@ abstract class AppLocalizations {
   /// **'动态流变'**
   String get dynamicMesh;
 
+  /// No description provided for @meshFlowEdgeStyle.
+  ///
+  /// In zh, this message translates to:
+  /// **'流变边缘风格'**
+  String get meshFlowEdgeStyle;
+
+  /// No description provided for @meshFlowEdgeStyleRandom.
+  ///
+  /// In zh, this message translates to:
+  /// **'随机交替'**
+  String get meshFlowEdgeStyleRandom;
+
+  /// No description provided for @meshFlowEdgeStyleSoft.
+  ///
+  /// In zh, this message translates to:
+  /// **'柔和弥散'**
+  String get meshFlowEdgeStyleSoft;
+
+  /// No description provided for @meshFlowEdgeStyleSharp.
+  ///
+  /// In zh, this message translates to:
+  /// **'棱角光刃'**
+  String get meshFlowEdgeStyleSharp;
+
   /// No description provided for @solidColor.
   ///
   /// In zh, this message translates to:

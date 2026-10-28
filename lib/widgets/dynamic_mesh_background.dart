@@ -136,6 +136,16 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground>
         (settings) => settings.playbackMeshBackgroundSpeed,
       ),
     );
+    final edgeStyleIndex = ref.watch(
+      settingsServiceProvider.select(
+        (settings) => settings.playbackMeshBackgroundEdgeStyle,
+      ),
+    );
+    final edgeStyle = switch (edgeStyleIndex) {
+      1 => MeshFlowEdgeStyle.soft,
+      2 => MeshFlowEdgeStyle.sharp,
+      _ => MeshFlowEdgeStyle.random,
+    };
 
     final List<Color> resolvedTarget = ThemeColorHelper.resolveMeshColors(
       themeColors,
@@ -198,6 +208,7 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground>
             // 有真实封面时不再传调色盘：主题色会随播放异步刷新，
             // 传进去会让 MeshFlow 判定「封面变了」而反复重启过渡。
             palette: hasCoverTexture ? null : _stableTargetColors,
+            edgeStyle: edgeStyle,
             speed: meshSpeed,
             // 播放页本身已有径向渐变 / 歌词遮罩两层叠加，这里不再叠暗角。
             vignetteAlpha: 0,

@@ -626,6 +626,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dynamicMesh => '动态流变';
 
   @override
+  String get meshFlowEdgeStyle => '流变边缘风格';
+
+  @override
+  String get meshFlowEdgeStyleRandom => '随机交替';
+
+  @override
+  String get meshFlowEdgeStyleSoft => '柔和弥散';
+
+  @override
+  String get meshFlowEdgeStyleSharp => '棱角光刃';
+
+  @override
   String get solidColor => '纯色';
 
   @override
@@ -6034,6 +6046,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get dynamicMesh => '動態流變';
+
+  @override
+  String get meshFlowEdgeStyle => '流變邊緣風格';
+
+  @override
+  String get meshFlowEdgeStyleRandom => '隨機交替';
+
+  @override
+  String get meshFlowEdgeStyleSoft => '柔和彌散';
+
+  @override
+  String get meshFlowEdgeStyleSharp => '稜角光刃';
 
   @override
   String get solidColor => '純色';

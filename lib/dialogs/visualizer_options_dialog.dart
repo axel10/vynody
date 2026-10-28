@@ -752,7 +752,9 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                   _buildOpacitySettings(context, settings, setDialogState),
                 ],
                 if (isDynamicMeshBackground) ...[
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+                  _buildMeshEdgeStyleDropdown(context, settings, setDialogState),
+                  const SizedBox(height: 16),
                   _buildOptionSlider(
                     context,
                     label: l10n.speed,
@@ -1402,6 +1404,72 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                   }
                 }
                 settings.playbackBackgroundType = val;
+                setDialogState(() {});
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMeshEdgeStyleDropdown(
+    BuildContext context,
+    SettingsService settings,
+    StateSetter setDialogState,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final l10n = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            child: Text(
+              l10n.meshFlowEdgeStyle,
+              style: TextStyle(
+                color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          DropdownButtonFormField<int>(
+            key: ValueKey('mesh_edge_style_${settings.playbackMeshBackgroundEdgeStyle}'),
+            initialValue: settings.playbackMeshBackgroundEdgeStyle,
+            dropdownColor: theme.colorScheme.surfaceContainer,
+            decoration: InputDecoration(
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(
+                  color: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
+                ),
+              ),
+            ),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isDark ? Colors.white : theme.colorScheme.onSurface,
+              fontSize: 14,
+            ),
+            items: [
+              DropdownMenuItem(
+                value: 0,
+                child: Text(l10n.meshFlowEdgeStyleRandom),
+              ),
+              DropdownMenuItem(
+                value: 1,
+                child: Text(l10n.meshFlowEdgeStyleSoft),
+              ),
+              DropdownMenuItem(
+                value: 2,
+                child: Text(l10n.meshFlowEdgeStyleSharp),
+              ),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                settings.playbackMeshBackgroundEdgeStyle = val;
                 setDialogState(() {});
               }
             },
