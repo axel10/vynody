@@ -201,15 +201,11 @@ class ZoomItemDefaultTextColumn extends StatelessWidget {
                   const SizedBox(width: 4),
                 ],
                 Flexible(
-                  child: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOutCubic,
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: titleStyle,
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
                   ),
                 ),
                 if (titleSuffix != null) ...[
@@ -220,15 +216,11 @@ class ZoomItemDefaultTextColumn extends StatelessWidget {
             ),
             if (subtitle != null) ...[
               SizedBox(height: lerpDouble(4.0, 3.0, gridMorph)!),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOutCubic,
+              Text(
+                subtitle!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: subtitleStyle,
-                child: Text(
-                  subtitle!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
               ),
             ],
           ],
@@ -252,6 +244,13 @@ class ZoomItemScaffold extends StatelessWidget {
   final String? titleText;
   final String? subtitleText;
   final Widget? textColumn;
+
+  /// 可选的高性能文本列构建器。
+  ///
+  /// 若提供，将在 [ZoomItemLayout.compute] 计算出文本区域具体尺寸后直接调用，
+  /// 避免内容组件内部再套一层 [LayoutBuilder]，省去全屏条目在 layout 阶段挂起的开销。
+  final Widget Function(BuildContext context, double textWidth, double textHeight)?
+      textColumnBuilder;
   final Widget? trailing;
   final double? trailingWidth;
   final bool isSelected;
@@ -282,6 +281,7 @@ class ZoomItemScaffold extends StatelessWidget {
     this.titleText,
     this.subtitleText,
     this.textColumn,
+    this.textColumnBuilder,
     this.trailing,
     this.trailingWidth,
     this.isSelected = false,
@@ -435,7 +435,13 @@ class ZoomItemScaffold extends StatelessWidget {
                       top: layout.textTop,
                       width: layout.textWidth,
                       height: layout.textHeight,
-                      child: effectiveTextColumn,
+                      child: textColumnBuilder != null
+                          ? textColumnBuilder!(
+                              context,
+                              layout.textWidth,
+                              layout.textHeight,
+                            )
+                          : effectiveTextColumn,
                     ),
                     if (gridMorph < 0.99 && trailing != null)
                       Positioned(
@@ -456,8 +462,11 @@ class ZoomItemScaffold extends StatelessWidget {
       ),
     );
 
-    return (isGridTarget && wrapHoverableCard)
-        ? HoverableCard(child: itemContent)
+    return wrapHoverableCard
+        ? HoverableCard(
+            enabled: isGridTarget,
+            child: itemContent,
+          )
         : itemContent;
   }
 }

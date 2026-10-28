@@ -270,31 +270,31 @@ class SongZoomItem extends ConsumerWidget {
           )
         : null;
 
-    final songContent = _SongZoomContent(
-      metrics: metrics,
-      song: song,
-      isCurrent: isCurrent,
-      isPlaying: isPlaying,
-      isMissing: isMissing,
-      artist: artist,
-      album: album,
-      artistAlbumText: artistAlbumText,
-      trackStr: trackStr,
-      durationStr: durationStr,
-      formatStr: formatStr,
-      durationFormatText: durationFormatText,
-      titleStyle: titleStyle,
-      subtitleStyle: subtitleStyle,
-      infoStyle: infoStyle,
-      titleSize: titleSize,
-      subSize: subSize,
-      infoSize: infoSize,
-    );
-
     final scaffold = ZoomItemScaffold(
       metrics: metrics,
       cover: cover,
-      textColumn: songContent,
+      textColumnBuilder: (context, textWidth, textHeight) => _SongZoomContent(
+        metrics: metrics,
+        song: song,
+        isCurrent: isCurrent,
+        isPlaying: isPlaying,
+        isMissing: isMissing,
+        artist: artist,
+        album: album,
+        artistAlbumText: artistAlbumText,
+        trackStr: trackStr,
+        durationStr: durationStr,
+        formatStr: formatStr,
+        durationFormatText: durationFormatText,
+        titleStyle: titleStyle,
+        subtitleStyle: subtitleStyle,
+        infoStyle: infoStyle,
+        titleSize: titleSize,
+        subSize: subSize,
+        infoSize: infoSize,
+        width: textWidth,
+        height: textHeight,
+      ),
       isSelected: effectiveSelected,
       isSelectionMode: effectiveSelectionMode,
       isHighlighted: isHighlighted,
@@ -342,6 +342,8 @@ class _SongZoomContent extends StatelessWidget {
     required this.titleSize,
     required this.subSize,
     required this.infoSize,
+    this.width,
+    this.height,
   });
 
   final FolderZoomLayoutMetrics metrics;
@@ -362,9 +364,24 @@ class _SongZoomContent extends StatelessWidget {
   final double titleSize;
   final double subSize;
   final double infoSize;
+  final double? width;
+  final double? height;
 
   @override
   Widget build(BuildContext context) {
+    if (width != null && height != null) {
+      return _buildContent(context, width!, height!);
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) => _buildContent(
+        context,
+        constraints.maxWidth,
+        constraints.maxHeight,
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, double W, double H) {
     final theme = Theme.of(context);
     final isPortrait = metrics.isPortrait;
     final compactMorph = metrics.compactMorph;
@@ -375,41 +392,34 @@ class _SongZoomContent extends StatelessWidget {
     const titleSubGap = 2.0;
     final titleSubHeight = titleLineHeight + titleSubGap + subLineHeight;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final W = constraints.maxWidth;
-        final H = constraints.maxHeight;
+    // 任意时刻只构建当前侧的一份。
+    //
+    // 屏外条目本来就由 sliver 懒构建挡掉了，真正白花的是视口与 cacheExtent
+    // 里那批：以前跨「网格 ↔ 列表」时两套布局同时存在、双层 Opacity 交叉
+    // 淡化，每个可见条目每帧要排两份文字、做两次 saveLayer，且整段跟手
+    // 手势期间一直持续。现在两套布局在交接点（metrics.contentIsGrid，按
+    // 滞回翻转）直接互换，`contentReveal` 在交接点附近压暗盖住突变。
+    final Widget content;
+    if (metrics.renderAsGrid) {
+      content = _buildGridCaption(theme, W);
+    } else if (isPortrait) {
+      content = _buildPortraitList(theme, W, H, compactMorph, titleSubHeight);
+    } else {
+      content = _buildLandscapeTable(
+        theme,
+        W,
+        H,
+        titleSubHeight,
+        titleLineHeight,
+        subLineHeight,
+        infoLineHeight,
+      );
+    }
 
-        // 任意时刻只构建当前侧的一份。
-        //
-        // 屏外条目本来就由 sliver 懒构建挡掉了，真正白花的是视口与 cacheExtent
-        // 里那批：以前跨「网格 ↔ 列表」时两套布局同时存在、双层 Opacity 交叉
-        // 淡化，每个可见条目每帧要排两份文字、做两次 saveLayer，且整段跟手
-        // 手势期间一直持续。现在两套布局在交接点（metrics.contentIsGrid，按
-        // 滞回翻转）直接互换，`contentReveal` 在交接点附近压暗盖住突变。
-        final Widget content;
-        if (metrics.renderAsGrid) {
-          content = _buildGridCaption(theme, W);
-        } else if (isPortrait) {
-          content = _buildPortraitList(theme, W, H, compactMorph, titleSubHeight);
-        } else {
-          content = _buildLandscapeTable(
-            theme,
-            W,
-            H,
-            titleSubHeight,
-            titleLineHeight,
-            subLineHeight,
-            infoLineHeight,
-          );
-        }
-
-        final double reveal = metrics.contentReveal;
-        // 只有交接点附近才 < 1；其余时间不套 Opacity，省掉整条的一层合成。
-        if (reveal >= 0.999) return content;
-        return Opacity(opacity: reveal, child: content);
-      },
-    );
+    final double reveal = metrics.contentReveal;
+    // 只有交接点附近才 < 1；其余时间不套 Opacity，省掉整条的一层合成。
+    if (reveal >= 0.999) return content;
+    return Opacity(opacity: reveal, child: content);
   }
 
   /// Grid view caption below the square cover

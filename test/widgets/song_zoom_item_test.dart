@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
+import 'package:vynody/widgets/hoverable_card.dart';
 import 'package:vynody/widgets/song_zoom_item.dart';
 
 void main() {
@@ -298,6 +299,72 @@ void main() {
         (widget) => widget is Opacity && (widget.opacity - 0.7).abs() < 1e-6,
       ),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('列表 ↔ 网格目标档位切换时 HoverableCard 结构恒定，Element 树不被推倒重建', (tester) async {
+    const song = MusicFile(
+      name: 'test_song.flac',
+      path: '/music/test_song.flac',
+      title: 'Song Title',
+      artist: 'Artist One',
+      album: 'Special Album',
+      durationMillis: 185000,
+    );
+
+    FolderZoomLayoutMetrics metricsFor({required double targetScale}) =>
+        FolderZoomLayoutMetrics(
+          targetZoomScale: targetScale,
+          animatedZoomScale: targetScale,
+          gridMorph: isFolderZoomGrid(targetScale) ? 1.0 : 0.0,
+          compactMorph: isFolderZoomCompactList(targetScale) ? 1.0 : 0.0,
+          animatedGridCols: 4.0,
+          animatedGridTextHeight: 58.0,
+          animatedListExtent: 80.0,
+          targetCardWidth: 200.0,
+        );
+
+    Widget buildItem(FolderZoomLayoutMetrics metrics) {
+      return ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              height: 100,
+              child: SongZoomItem(
+                song: song,
+                metrics: metrics,
+                isCurrent: false,
+                isPlaying: false,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 1. 列表档位：目标档位在列表（isGridTarget == false）
+    await tester.pumpWidget(buildItem(metricsFor(targetScale: kFolderZoomTierLargeList)));
+    await tester.pump();
+
+    final hoverableFinder = find.byType(HoverableCard);
+    expect(hoverableFinder, findsOneWidget, reason: '列表档位下也应保留 HoverableCard 包装');
+    final stateBefore = tester.state(hoverableFinder);
+
+    // 2. 网格档位：目标档位在网格（isGridTarget == true）
+    await tester.pumpWidget(buildItem(metricsFor(targetScale: kFolderZoomTierSmallGrid)));
+    await tester.pump();
+
+    expect(hoverableFinder, findsOneWidget);
+    final stateAfter = tester.state(hoverableFinder);
+
+    // 关键断言：State 实例必须是同一个！证明没有被 unmount 销毁并重新 mount！
+    expect(
+      identical(stateBefore, stateAfter),
+      isTrue,
+      reason: '跨档位时 HoverableCard 的 State 必须复用，不可发生 unmount / remount 重构',
     );
   });
 }

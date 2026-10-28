@@ -264,7 +264,12 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
 
   /// 当前触点中最远的两个之间的距离；不足两个返回 `0`。
   double _currentSpan() {
-    if (_touchPointers.length < 2) return 0;
+    final count = _touchPointers.length;
+    if (count < 2) return 0;
+    if (count == 2) {
+      final it = _touchPointers.values;
+      return (it.first - it.last).distance;
+    }
     double maxSpan = 0;
     final points = _touchPointers.values.toList(growable: false);
     for (var i = 0; i < points.length; i++) {
@@ -274,23 +279,6 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
       }
     }
     return maxSpan;
-  }
-
-  void _handleScaleUpdate(ScaleUpdateDetails details) {
-    if (details.pointerCount < 2) {
-      // 触屏捏合只认双指。当一根手指抬起只剩单指时，立即结束手势，
-      // 绝对不能用重置后的 scale (1.0) 冲刷已判定的换档意图。
-      if (_pinchController.isActive && !_pinchController.isEnding) {
-        _pinchController.endPinch(onCommit: _commitPinchTier);
-      }
-      return;
-    }
-    _pushPinchScale(details.scale);
-  }
-
-  void _handleScaleEnd(ScaleEndDetails details) {
-    if (!_pinchController.isActive || _pinchController.isEnding) return;
-    _pinchController.endPinch(onCommit: _commitPinchTier);
   }
 
   @override
@@ -303,10 +291,10 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
               GestureRecognizerFactoryWithHandlers<_FolderPinchGestureRecognizer>(
                 () => _FolderPinchGestureRecognizer(debugOwner: this),
                 (_FolderPinchGestureRecognizer instance) {
-                  // onStart 故意不接：识别器赢下竞技场只说明「双指手势成立」，
-                  // 到底是在捏合还是双指平移，要看 subsequent scale 有没有偏离 1。
-                  instance.onUpdate = _handleScaleUpdate;
-                  instance.onEnd = _handleScaleEnd;
+                  // 此手势识别器的核心职责是在手势竞技场中「接管双指触摸」，
+                  // 避免 Scrollable 的单指/双指滑动识别器抢走手势导致列表滚动。
+                  // 具体精确跟手比例统一由下方的 Listener（_handleTouchMove）
+                  // 基于原始欧氏距离驱动，避免两路数据源同帧重复计算和数值微抖。
                 },
               ),
         },
