@@ -222,4 +222,82 @@ void main() {
     expect(find.text('Album Two'), findsOneWidget);
     expect(find.text('2:00'), findsOneWidget);
   });
+
+  testWidgets('跨网格↔列表过渡时只构建当前侧一份内容', (tester) async {
+    const song = MusicFile(
+      name: 'test_song.flac',
+      path: '/music/test_song.flac',
+      title: 'Song Title',
+      artist: 'Artist One',
+      album: 'Special Album',
+      trackNumber: 7,
+      durationMillis: 185000,
+    );
+
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // 过渡正中间：以前这里会把列表与网格两套布局同时构建、用两层 Opacity
+    // 交叉淡化（每帧两份文字排版 + 两次 saveLayer）；现在按 contentIsGrid
+    // 只构建一份，另一套完全不参与排版。
+    FolderZoomLayoutMetrics metricsFor({required bool isGrid}) =>
+        FolderZoomLayoutMetrics(
+          targetZoomScale: isGrid
+              ? kFolderZoomTierSmallGrid
+              : kFolderZoomTierLargeList,
+          animatedZoomScale: 0.6,
+          gridMorph: 0.5,
+          compactMorph: 0.0,
+          animatedGridCols: 4.0,
+          animatedGridTextHeight: 58.0,
+          animatedListExtent: 104.0,
+          targetCardWidth: 200.0,
+          contentIsGrid: isGrid,
+          contentReveal: 0.7,
+        );
+
+    Future<void> pumpWith(FolderZoomLayoutMetrics metrics) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: SizedBox(
+                width: 1200,
+                height: 104,
+                child: SongZoomItem(
+                  song: song,
+                  metrics: metrics,
+                  isCurrent: false,
+                  isPlaying: false,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    // 列表侧：只有分列信息（格式徽标），没有网格里那条拼好的「艺术家 - 专辑」
+    await pumpWith(metricsFor(isGrid: false));
+    expect(find.text('FLAC'), findsOneWidget);
+    expect(find.text('Artist One - Special Album'), findsNothing);
+
+    // 网格侧：只有拼好的副标题，没有列表的格式徽标
+    await pumpWith(metricsFor(isGrid: true));
+    expect(find.text('Artist One - Special Album'), findsOneWidget);
+    expect(find.text('FLAC'), findsNothing);
+
+    // 交接压暗只落在当前这一份上：单层 Opacity，不是两套各套一层。
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Opacity && (widget.opacity - 0.7).abs() < 1e-6,
+      ),
+      findsOneWidget,
+    );
+  });
 }

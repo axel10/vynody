@@ -811,4 +811,104 @@ void main() {
     expect(settings.folderZoomScale, kFolderZoomTierStandardList);
     expect(capturedMetrics!.animatedListExtent, closeTo(80.0, 0.01));
   });
+
+  testWidgets('跨「列表↔网格」时内容侧按滞回翻转，不会在中点来回跳', (tester) async {
+    // 从 largeList 捏合放大，目标是 smallGrid：这是唯一会发生
+    // 「列表内容 ↔ 网格内容」交接的跨类换档。
+    settings.folderZoomScale = kFolderZoomTierLargeList;
+    FolderZoomLayoutMetrics? capturedMetrics;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: FolderZoomGestureLayer(
+              child: CustomScrollView(
+                slivers: [
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final scale = ref.watch(
+                        settingsServiceProvider.select((s) => s.folderZoomScale),
+                      );
+                      return FolderZoomSliverBuilder(
+                        zoomScale: scale,
+                        width: 400,
+                        builder: (context, m) {
+                          capturedMetrics = m;
+                          return SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: 100,
+                              child: Text(
+                                'handoff',
+                                style: TextStyle(
+                                  fontSize: m.animatedTitleFontSize,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 起始就是列表档，内容侧必须是列表。
+    expect(capturedMetrics!.renderAsGrid, isFalse);
+    expect(capturedMetrics!.contentReveal, 1.0);
+
+    final center = tester.getCenter(find.text('handoff'));
+    final pointer = TestPointer(1, PointerDeviceKind.trackpad);
+    pointer.hover(center);
+    await tester.sendEventToBinding(pointer.panZoomStart(center));
+
+    // 越过中点但没到滞回上界：仍是列表侧（这一帧以前会翻转）。
+    await tester.sendEventToBinding(
+      pointer.panZoomUpdate(center, scale: 1.52),
+    );
+    await tester.pump();
+    expect(capturedMetrics!.gridMorph, closeTo(0.52, 0.01));
+    expect(
+      capturedMetrics!.renderAsGrid,
+      isFalse,
+      reason: '滞回区内应保持上一侧，不能一过 0.5 就翻转',
+    );
+    // 交接点附近内容压暗，盖住两套布局的结构突变。
+    expect(capturedMetrics!.contentReveal, lessThan(1.0));
+
+    // 越过上界才切网格。
+    await tester.sendEventToBinding(
+      pointer.panZoomUpdate(center, scale: 1.62),
+    );
+    await tester.pump();
+    expect(capturedMetrics!.renderAsGrid, isTrue);
+
+    // 回缩到滞回区内部（0.48）：继续留在网格侧，不来回跳。
+    await tester.sendEventToBinding(
+      pointer.panZoomUpdate(center, scale: 1.48),
+    );
+    await tester.pump();
+    expect(
+      capturedMetrics!.renderAsGrid,
+      isTrue,
+      reason: '滞回区内不应回退到列表侧',
+    );
+
+    // 低于下界才回列表侧。
+    await tester.sendEventToBinding(
+      pointer.panZoomUpdate(center, scale: 1.40),
+    );
+    await tester.pump();
+    expect(capturedMetrics!.renderAsGrid, isFalse);
+
+    await tester.sendEventToBinding(pointer.panZoomEnd());
+    await tester.pumpAndSettle();
+  });
 }

@@ -367,7 +367,6 @@ class _SongZoomContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isPortrait = metrics.isPortrait;
-    final gridMorph = metrics.gridMorph;
     final compactMorph = metrics.compactMorph;
 
     final titleLineHeight = titleSize * 1.25;
@@ -381,52 +380,34 @@ class _SongZoomContent extends StatelessWidget {
         final W = constraints.maxWidth;
         final H = constraints.maxHeight;
 
-        // 1. 网格模式布局（gridMorph -> 1.0 时展示）
-        if (gridMorph >= 0.99) {
-          return _buildGridCaption(theme, W);
+        // 任意时刻只构建当前侧的一份。
+        //
+        // 屏外条目本来就由 sliver 懒构建挡掉了，真正白花的是视口与 cacheExtent
+        // 里那批：以前跨「网格 ↔ 列表」时两套布局同时存在、双层 Opacity 交叉
+        // 淡化，每个可见条目每帧要排两份文字、做两次 saveLayer，且整段跟手
+        // 手势期间一直持续。现在两套布局在交接点（metrics.contentIsGrid，按
+        // 滞回翻转）直接互换，`contentReveal` 在交接点附近压暗盖住突变。
+        final Widget content;
+        if (metrics.renderAsGrid) {
+          content = _buildGridCaption(theme, W);
+        } else if (isPortrait) {
+          content = _buildPortraitList(theme, W, H, compactMorph, titleSubHeight);
+        } else {
+          content = _buildLandscapeTable(
+            theme,
+            W,
+            H,
+            titleSubHeight,
+            titleLineHeight,
+            subLineHeight,
+            infoLineHeight,
+          );
         }
 
-        // 2. 纯列表模式下
-        if (gridMorph <= 0.01) {
-          if (isPortrait) {
-            return _buildPortraitList(theme, W, H, compactMorph, titleSubHeight);
-          } else {
-            return _buildLandscapeTable(
-              theme,
-              W,
-              H,
-              titleSubHeight,
-              titleLineHeight,
-              subLineHeight,
-              infoLineHeight,
-            );
-          }
-        }
-
-        // 3. 正在发生 列表 <-> 网格 几何缩放动画
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            Opacity(
-              opacity: (1.0 - gridMorph).clamp(0.0, 1.0),
-              child: isPortrait
-                  ? _buildPortraitList(theme, W, H, compactMorph, titleSubHeight)
-                  : _buildLandscapeTable(
-                      theme,
-                      W,
-                      H,
-                      titleSubHeight,
-                      titleLineHeight,
-                      subLineHeight,
-                      infoLineHeight,
-                    ),
-            ),
-            Opacity(
-              opacity: gridMorph.clamp(0.0, 1.0),
-              child: _buildGridCaption(theme, W),
-            ),
-          ],
-        );
+        final double reveal = metrics.contentReveal;
+        // 只有交接点附近才 < 1；其余时间不套 Opacity，省掉整条的一层合成。
+        if (reveal >= 0.999) return content;
+        return Opacity(opacity: reveal, child: content);
       },
     );
   }

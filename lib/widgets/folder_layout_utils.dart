@@ -542,6 +542,22 @@ class FolderZoomLayoutMetrics {
   /// 统一从这里下发。默认值只服务测试里手工构造 metrics 的场景。
   final bool isPortrait;
 
+  /// 条目内容该渲染网格那套还是列表那套。
+  ///
+  /// 以前这一侧是靠 `gridMorph >= 0.5` 在 [gridMorph] 的 0.5 处单点翻转的，
+  /// 手势在中点附近来回磨时会反复翻转。这里由 [FolderZoomSliverBuilder] 按
+  /// 滞回统一算好下发，保证整屏条目在同一帧一起交接。
+  ///
+  /// 为空时降级为「[gridMorph] >= 0.5」，供测试直接构造 metrics 的场景使用。
+  final bool? contentIsGrid;
+
+  /// 内容交接时的整体不透明度（`1.0` = 完全清晰）。
+  ///
+  /// 网格与列表两套布局的字数/行数不同，交接瞬间会有一次结构突变；在交接点
+  /// 两侧各留一小段压暗把这次突变盖掉。只有 `gridMorph` 落在交接点附近时
+  /// 才小于 1，此时条目会多一层 `Opacity`，其余时间不产生额外合成。
+  final double contentReveal;
+
   const FolderZoomLayoutMetrics({
     required this.targetZoomScale,
     required this.animatedZoomScale,
@@ -555,9 +571,15 @@ class FolderZoomLayoutMetrics {
     this.animatedSubtitleFontSize = 12.0,
     this.animatedInfoFontSize = 11.0,
     this.isPortrait = false,
+    this.contentIsGrid,
+    this.contentReveal = 1.0,
   });
 
   bool get isGridTarget => isFolderZoomGrid(targetZoomScale);
+
+  /// 条目内容实际使用的布局侧，见 [contentIsGrid]。
+  bool get renderAsGrid => contentIsGrid ?? (gridMorph >= 0.5);
+
   FolderZoomTier get tier => getFolderZoomTier(targetZoomScale);
 
   /// Target discrete column count in Grid View (e.g. 6, 7, 8).
@@ -574,6 +596,22 @@ class FolderZoomLayoutMetrics {
         : 1.0;
   }
 }
+
+/// 网格 ↔ 列表内容交接的滞回上界：`gridMorph` 越过这里才切到网格那套。
+const double kFolderZoomContentHandoffUpper = 0.55;
+
+/// 交接滞回下界：低于这里才切回列表那套。
+const double kFolderZoomContentHandoffLower = 0.45;
+
+/// 交接点两侧这么宽的区间里内容压暗到
+/// [kFolderZoomContentHandoffMinOpacity]。
+///
+/// 越宽压暗持续越久；0.12 对应 `gridMorph` 的 0.38~0.62，是「交接前后
+/// 约 5% 行程」的观感，能盖住结构突变又不至于让整段过渡发虚。
+const double kFolderZoomContentHandoffFadeHalfWindow = 0.12;
+
+/// 交接瞬间的内容不透明度下限（不压到全透明，避免中间态看起来像丢失）。
+const double kFolderZoomContentHandoffMinOpacity = 0.55;
 
 /// Animates [FolderZoomLayoutMetrics] smoothly whenever `zoomScale` changes,
 /// and returns the sliver built by [builder].
@@ -644,6 +682,12 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
 
   bool _initialized = false;
 
+  /// 条目内容当前渲染的是哪一侧：`1` 网格、`-1` 列表、`0` 未定。
+  ///
+  /// 滞回要靠它跨帧记忆——只看当前 `gridMorph` 的话，手势磨在交接点附近时
+  /// 内容会逐帧翻转，每次翻转都是一整套文字重新排版。
+  int _contentSide = 0;
+
   @override
   void initState() {
     super.initState();
@@ -665,6 +709,35 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
 
   double _eval(double from, double to) =>
       lerpDouble(from, to, _curved.value) ?? to;
+
+  /// 按滞回决定条目内容渲染哪一侧，并给出交接处的压暗程度。
+  ///
+  /// 网格与列表两套布局的字数、行数都不同，同时构建再交叉淡化意味着每个可见
+  /// 条目每帧要排两份文字、做两次 `saveLayer`。屏外条目本来就由 sliver 懒构建
+  /// 挡掉了，真正白花的是视口和 cacheExtent 里那批——这里改成任何时刻只渲染
+  /// 当前侧一份，把「另一份」的排版和合成全省下来。
+  ///
+  /// 代价是内容在交接点会突变，所以交接点两侧各留一段压暗（[contentReveal]）。
+  ({bool isGrid, double reveal}) _resolveContentHandoff(double morph) {
+    final int side;
+    if (morph >= kFolderZoomContentHandoffUpper) {
+      side = 1;
+    } else if (morph <= kFolderZoomContentHandoffLower) {
+      side = -1;
+    } else {
+      // 滞回区里保持上一帧的侧别；首帧（_contentSide == 0）退回单点判定。
+      side = _contentSide != 0 ? _contentSide : (morph >= 0.5 ? 1 : -1);
+    }
+    _contentSide = side;
+
+    final double distance = (morph - 0.5).abs();
+    final double reveal = distance >= kFolderZoomContentHandoffFadeHalfWindow
+        ? 1.0
+        : kFolderZoomContentHandoffMinOpacity +
+              (1.0 - kFolderZoomContentHandoffMinOpacity) *
+                  (distance / kFolderZoomContentHandoffFadeHalfWindow);
+    return (isGrid: side > 0, reveal: reveal);
+  }
 
   /// 计算某个 `zoomScale` 对应的目标布局值。
   ///
@@ -864,15 +937,17 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       );
       final t = pinch.progress;
       final activeTarget = t > 0.5 ? toScale : fromScale;
+      final double gridMorph =
+          (lerpDouble(targetsFrom.gridMorph, targetsTo.gridMorph, t) ??
+                  targetsFrom.gridMorph)
+              .clamp(0.0, 1.0);
+      final handoff = _resolveContentHandoff(gridMorph);
 
       final metrics = FolderZoomLayoutMetrics(
         targetZoomScale: activeTarget,
         animatedZoomScale:
             lerpDouble(fromScale, toScale, t) ?? fromScale,
-        gridMorph:
-            (lerpDouble(targetsFrom.gridMorph, targetsTo.gridMorph, t) ??
-                    targetsFrom.gridMorph)
-                .clamp(0.0, 1.0),
+        gridMorph: gridMorph,
         compactMorph:
             (lerpDouble(targetsFrom.compactMorph, targetsTo.compactMorph, t) ??
                     targetsFrom.compactMorph)
@@ -908,14 +983,22 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
               targetsFrom.infoFontSize,
         ),
         isPortrait: isPortrait,
+        contentIsGrid: handoff.isGrid,
+        contentReveal: handoff.reveal,
       );
       return widget.builder(context, metrics);
     }
 
+    final double gridMorph = _eval(
+      _fromGridMorph,
+      _toGridMorph,
+    ).clamp(0.0, 1.0);
+    final handoff = _resolveContentHandoff(gridMorph);
+
     final metrics = FolderZoomLayoutMetrics(
       targetZoomScale: widget.zoomScale,
       animatedZoomScale: _eval(_fromZoomScale, _toZoomScale),
-      gridMorph: _eval(_fromGridMorph, _toGridMorph).clamp(0.0, 1.0),
+      gridMorph: gridMorph,
       compactMorph: _eval(_fromCompactMorph, _toCompactMorph).clamp(0.0, 1.0),
       animatedGridCols: _eval(_fromGridCols, _toGridCols),
       animatedGridTextHeight: _eval(_fromGridTextHeight, _toGridTextHeight),
@@ -931,6 +1014,8 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
         _eval(_fromInfoFontSize, _toInfoFontSize),
       ),
       isPortrait: isPortrait,
+      contentIsGrid: handoff.isGrid,
+      contentReveal: handoff.reveal,
     );
     return widget.builder(context, metrics);
   }
