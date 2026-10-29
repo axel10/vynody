@@ -367,4 +367,79 @@ void main() {
       reason: '跨档位时 HoverableCard 的 State 必须复用，不可发生 unmount / remount 重构',
     );
   });
+
+  testWidgets('竖屏列表视图下档位切换时音频信息连续位移且仅单份渲染', (tester) async {
+    const song = MusicFile(
+      name: 'test_song.flac',
+      path: '/music/test_song.flac',
+      title: 'Title',
+      artist: 'Artist',
+      album: 'Album',
+      durationMillis: 235000,
+    );
+
+    Widget buildItem({required double compactMorph}) {
+      final metrics = FolderZoomLayoutMetrics(
+        targetZoomScale: kFolderZoomTierCompactList,
+        animatedZoomScale: kFolderZoomTierCompactList,
+        gridMorph: 0.0,
+        compactMorph: compactMorph,
+        animatedGridCols: 1.0,
+        animatedGridTextHeight: 58.0,
+        animatedListExtent: 70.0,
+        targetCardWidth: 140.0,
+        isPortrait: true,
+      );
+
+      return ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              height: 70,
+              child: SongZoomItem(
+                song: song,
+                metrics: metrics,
+                isCurrent: false,
+                isPlaying: false,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 1. 紧凑档位（compactMorph == 1.0）
+    await tester.pumpWidget(buildItem(compactMorph: 1.0));
+    await tester.pump();
+
+    final infoFinder = find.textContaining('FLAC');
+    expect(infoFinder, findsOneWidget);
+    final pCompact = tester.getTopLeft(infoFinder);
+
+    // 2. 标准档位（compactMorph == 0.0）
+    await tester.pumpWidget(buildItem(compactMorph: 0.0));
+    await tester.pump();
+
+    expect(infoFinder, findsOneWidget);
+    final pStandard = tester.getTopLeft(infoFinder);
+
+    expect(pCompact.dx, greaterThan(pStandard.dx + 50.0));
+    expect(pStandard.dy, greaterThan(pCompact.dy + 5.0));
+
+    // 3. 过渡中点（compactMorph == 0.5）
+    await tester.pumpWidget(buildItem(compactMorph: 0.5));
+    await tester.pump();
+
+    // 关键验证：仅单份 Text 渲染（非双份 Opacity 交叉叠加），且坐标平滑位于两端之间（真实位移）
+    expect(infoFinder, findsOneWidget);
+    final pMid = tester.getTopLeft(infoFinder);
+
+    expect(pMid.dx, greaterThan(pStandard.dx));
+    expect(pMid.dx, lessThan(pCompact.dx));
+    expect(pMid.dy, greaterThan(pCompact.dy));
+    expect(pMid.dy, lessThan(pStandard.dy));
+  });
 }

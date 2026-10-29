@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 import 'dart:math' as math;
+import 'dart:ui' show FontFeature, lerpDouble;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -419,14 +420,17 @@ class _SongZoomContent extends StatelessWidget {
       content = _buildGridCaption(theme, W, effTitleStyle, effSubtitleStyle);
     } else if (isPortrait) {
       content = _buildPortraitList(
-        theme,
-        W,
-        H,
-        compactMorph,
-        titleSubHeight,
-        effTitleStyle,
-        effSubtitleStyle,
-        effInfoStyle,
+        context: context,
+        theme: theme,
+        W: W,
+        H: H,
+        compactMorph: compactMorph,
+        titleLineHeight: titleLineHeight,
+        subLineHeight: subLineHeight,
+        infoLineHeight: infoLineHeight,
+        effTitleStyle: effTitleStyle,
+        effSubtitleStyle: effSubtitleStyle,
+        effInfoStyle: effInfoStyle,
       );
     } else {
       content = _buildLandscapeTable(
@@ -492,131 +496,138 @@ class _SongZoomContent extends StatelessWidget {
     );
   }
 
-  /// Portrait list: Seamlessly switches between 2-line flex layout and 3-line layout
-  Widget _buildPortraitList(
-    ThemeData theme,
-    double W,
-    double H,
-    double compactMorph,
-    double titleSubHeight,
-    TextStyle effTitleStyle,
-    TextStyle effSubtitleStyle,
-    TextStyle effInfoStyle,
-  ) {
+  /// Portrait list: Seamlessly translates and morphs between 2-line compact layout and 3-line standard layout
+  Widget _buildPortraitList({
+    required BuildContext context,
+    required ThemeData theme,
+    required double W,
+    required double H,
+    required double compactMorph,
+    required double titleLineHeight,
+    required double subLineHeight,
+    required double infoLineHeight,
+    required TextStyle effTitleStyle,
+    required TextStyle effSubtitleStyle,
+    required TextStyle effInfoStyle,
+  }) {
     final showEqualizer = isCurrent && !isMissing;
+    final t = (1.0 - compactMorph).clamp(0.0, 1.0); // 0.0 = Compact, 1.0 = Standard
 
-    // A. 紧凑2行弹性布局（Minimal & Compact List）：左右两栏均在行高内垂直居中
-    final compactLayout = Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  if (showEqualizer) ...[
-                    PlayingEqualizerIcon(
-                      color: theme.colorScheme.primary,
-                      size: 15,
-                      isPlaying: isPlaying,
-                    ),
-                    const SizedBox(width: 5),
-                  ],
-                  Expanded(
-                    child: Text(
-                      song.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: effTitleStyle,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 3.0),
-              Text(
-                artistAlbumText,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: effSubtitleStyle,
-              ),
-            ],
-          ),
+    // 测量紧凑模式下音频信息的宽度
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: durationFormatText,
+        style: effInfoStyle.copyWith(
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
-        const SizedBox(width: 12),
-        Text(
-          durationFormatText,
-          style: effInfoStyle.copyWith(
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-          maxLines: 1,
-        ),
-      ],
-    );
+      ),
+      textDirection: Directionality.of(context),
+      maxLines: 1,
+    )..layout();
+    final measuredInfoWidth = (textPainter.width + 2.0).ceilToDouble();
+    final compactInfoWidth =
+        math.min(measuredInfoWidth, math.max(0.0, W * 0.45));
+    final compactTitleWidth =
+        math.max(0.0, W - compactInfoWidth - 12.0);
 
-    // B. 标准3行布局（Standard & Large List）
-    final standardLayout = Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          children: [
-            if (showEqualizer) ...[
-              PlayingEqualizerIcon(
-                color: theme.colorScheme.primary,
-                size: 16,
-                isPlaying: isPlaying,
-              ),
-              const SizedBox(width: 6),
-            ],
-            Expanded(
-              child: Text(
-                song.displayName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: effTitleStyle,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 2.0),
-        Text(
-          artistAlbumText,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: effSubtitleStyle,
-        ),
-        const SizedBox(height: 2.0),
-        Text(
-          durationFormatText,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: effInfoStyle,
-        ),
-      ],
-    );
+    // 1. 紧凑模式坐标（2行文本，音频信息右侧垂直居中）
+    const compactSubGap = 3.0;
+    final compactBlockHeight = titleLineHeight + compactSubGap + subLineHeight;
+    final compactTitleTop =
+        ((H - compactBlockHeight) / 2.0).clamp(0.0, H);
+    final compactInfoTop = ((H - infoLineHeight) / 2.0).clamp(0.0, H);
+    final compactInfoLeft = math.max(0.0, W - compactInfoWidth);
 
-    if (compactMorph >= 0.99) {
-      return Center(child: compactLayout);
-    }
-    if (compactMorph <= 0.01) {
-      return Center(child: standardLayout);
-    }
+    // 2. 标准模式坐标（3行文本，音频信息在第3行）
+    const standardGap = 2.0;
+    final standardBlockHeight =
+        titleLineHeight + standardGap + subLineHeight + standardGap + infoLineHeight;
+    final standardTitleTop =
+        ((H - standardBlockHeight) / 2.0).clamp(0.0, H);
+    final standardSubTop = standardTitleTop + titleLineHeight + standardGap;
+    final standardInfoTop = standardSubTop + subLineHeight + standardGap;
+
+    // 3. 动力学位移插值：
+    // y 轴先向下滑出第 2 行区域（yt 提前完成），x 轴沿第 3 行横向滑入左侧（xt 紧随其后），
+    // 保证过渡期间平滑位移且避免斜穿第 2 行副标题造成文字视觉重叠。
+    final yt = math.pow(t, 0.5).toDouble();
+    final xt = math.pow(t, 1.8).toDouble();
+
+    final titleTop = lerpDouble(compactTitleTop, standardTitleTop, t)!;
+    final titleWidth = lerpDouble(compactTitleWidth, W, yt)!;
+    final subGap = lerpDouble(compactSubGap, standardGap, t)!;
+    final subTop = titleTop + titleLineHeight + subGap;
+    final subWidth = titleWidth;
+
+    final infoTop = lerpDouble(compactInfoTop, standardInfoTop, yt)!;
+    final infoLeft = lerpDouble(compactInfoLeft, 0.0, xt)!;
+    final infoWidth = math.max(compactInfoWidth, W - infoLeft);
+
+    final eqSize = lerpDouble(15.0, 16.0, t)!;
+    final eqGap = lerpDouble(5.0, 6.0, t)!;
 
     return Stack(
-      fit: StackFit.expand,
-      alignment: Alignment.center,
+      clipBehavior: Clip.none,
       children: [
-        Opacity(
-          opacity: compactMorph.clamp(0.0, 1.0),
-          child: Center(child: compactLayout),
+        // 1. 标题行（歌名 + 播放均衡器）
+        Positioned(
+          left: 0.0,
+          top: titleTop,
+          width: titleWidth,
+          height: titleLineHeight,
+          child: Row(
+            children: [
+              if (showEqualizer && titleWidth >= 40.0) ...[
+                PlayingEqualizerIcon(
+                  color: theme.colorScheme.primary,
+                  size: eqSize,
+                  isPlaying: isPlaying,
+                ),
+                SizedBox(width: eqGap),
+              ],
+              Expanded(
+                child: Text(
+                  song.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: effTitleStyle,
+                ),
+              ),
+            ],
+          ),
         ),
-        Opacity(
-          opacity: (1.0 - compactMorph).clamp(0.0, 1.0),
-          child: Center(child: standardLayout),
+
+        // 2. 副标题行（艺术家与专辑）
+        Positioned(
+          left: 0.0,
+          top: subTop,
+          width: subWidth,
+          height: subLineHeight,
+          child: Text(
+            artistAlbumText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: effSubtitleStyle,
+          ),
+        ),
+
+        // 3. 音频信息行（音轨 | 时长 | 格式）：从右侧垂直居中连续平移到左下角第 3 行
+        Positioned(
+          left: infoLeft,
+          top: infoTop,
+          width: infoWidth,
+          height: infoLineHeight,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              durationFormatText,
+              style: effInfoStyle.copyWith(
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ),
       ],
     );
