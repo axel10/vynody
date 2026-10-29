@@ -383,12 +383,27 @@ class _SongZoomContent extends StatelessWidget {
 
   Widget _buildContent(BuildContext context, double W, double H) {
     final theme = Theme.of(context);
-    final isPortrait = metrics.isPortrait;
-    final compactMorph = metrics.compactMorph;
+    final effectiveMetrics =
+        ZoomItemEffectiveMetrics.maybeOf(context) ?? metrics;
+    final isPortrait = effectiveMetrics.isPortrait;
+    final compactMorph = effectiveMetrics.compactMorph;
 
-    final titleLineHeight = titleSize * 1.25;
-    final subLineHeight = subSize * 1.2;
-    final infoLineHeight = infoSize * 1.2;
+    final effTitleStyle = identical(effectiveMetrics, metrics)
+        ? titleStyle
+        : titleStyle.copyWith(fontSize: effectiveMetrics.animatedTitleFontSize);
+    final effSubtitleStyle = identical(effectiveMetrics, metrics)
+        ? subtitleStyle
+        : subtitleStyle.copyWith(
+            fontSize: effectiveMetrics.animatedSubtitleFontSize,
+          );
+    final effInfoStyle = identical(effectiveMetrics, metrics)
+        ? infoStyle
+        : infoStyle.copyWith(fontSize: effectiveMetrics.animatedInfoFontSize);
+    final effInfoSize = effectiveMetrics.animatedInfoFontSize;
+
+    final titleLineHeight = effectiveMetrics.animatedTitleFontSize * 1.25;
+    final subLineHeight = effectiveMetrics.animatedSubtitleFontSize * 1.2;
+    final infoLineHeight = effectiveMetrics.animatedInfoFontSize * 1.2;
     const titleSubGap = 2.0;
     final titleSubHeight = titleLineHeight + titleSubGap + subLineHeight;
 
@@ -400,10 +415,19 @@ class _SongZoomContent extends StatelessWidget {
     // 手势期间一直持续。现在两套布局在交接点（metrics.contentIsGrid，按
     // 滞回翻转）直接互换，`contentReveal` 在交接点附近压暗盖住突变。
     final Widget content;
-    if (metrics.renderAsGrid) {
-      content = _buildGridCaption(theme, W);
+    if (effectiveMetrics.renderAsGrid) {
+      content = _buildGridCaption(theme, W, effTitleStyle, effSubtitleStyle);
     } else if (isPortrait) {
-      content = _buildPortraitList(theme, W, H, compactMorph, titleSubHeight);
+      content = _buildPortraitList(
+        theme,
+        W,
+        H,
+        compactMorph,
+        titleSubHeight,
+        effTitleStyle,
+        effSubtitleStyle,
+        effInfoStyle,
+      );
     } else {
       content = _buildLandscapeTable(
         theme,
@@ -413,17 +437,26 @@ class _SongZoomContent extends StatelessWidget {
         titleLineHeight,
         subLineHeight,
         infoLineHeight,
+        effTitleStyle,
+        effSubtitleStyle,
+        effInfoStyle,
+        effInfoSize,
       );
     }
 
-    final double reveal = metrics.contentReveal;
+    final double reveal = effectiveMetrics.contentReveal;
     // 只有交接点附近才 < 1；其余时间不套 Opacity，省掉整条的一层合成。
     if (reveal >= 0.999) return content;
     return Opacity(opacity: reveal, child: content);
   }
 
   /// Grid view caption below the square cover
-  Widget _buildGridCaption(ThemeData theme, double W) {
+  Widget _buildGridCaption(
+    ThemeData theme,
+    double W,
+    TextStyle effTitleStyle,
+    TextStyle effSubtitleStyle,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -443,7 +476,7 @@ class _SongZoomContent extends StatelessWidget {
                 song.displayName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: titleStyle,
+                style: effTitleStyle,
               ),
             ),
           ],
@@ -453,7 +486,7 @@ class _SongZoomContent extends StatelessWidget {
           artistAlbumText,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: subtitleStyle,
+          style: effSubtitleStyle,
         ),
       ],
     );
@@ -466,6 +499,9 @@ class _SongZoomContent extends StatelessWidget {
     double H,
     double compactMorph,
     double titleSubHeight,
+    TextStyle effTitleStyle,
+    TextStyle effSubtitleStyle,
+    TextStyle effInfoStyle,
   ) {
     final showEqualizer = isCurrent && !isMissing;
 
@@ -494,7 +530,7 @@ class _SongZoomContent extends StatelessWidget {
                       song.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: titleStyle,
+                      style: effTitleStyle,
                     ),
                   ),
                 ],
@@ -504,7 +540,7 @@ class _SongZoomContent extends StatelessWidget {
                 artistAlbumText,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: subtitleStyle,
+                style: effSubtitleStyle,
               ),
             ],
           ),
@@ -512,7 +548,7 @@ class _SongZoomContent extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           durationFormatText,
-          style: infoStyle.copyWith(
+          style: effInfoStyle.copyWith(
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
           maxLines: 1,
@@ -541,7 +577,7 @@ class _SongZoomContent extends StatelessWidget {
                 song.displayName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: titleStyle,
+                style: effTitleStyle,
               ),
             ),
           ],
@@ -551,14 +587,14 @@ class _SongZoomContent extends StatelessWidget {
           artistAlbumText,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: subtitleStyle,
+          style: effSubtitleStyle,
         ),
         const SizedBox(height: 2.0),
         Text(
           durationFormatText,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: infoStyle,
+          style: effInfoStyle,
         ),
       ],
     );
@@ -595,6 +631,10 @@ class _SongZoomContent extends StatelessWidget {
     double titleLineHeight,
     double subLineHeight,
     double infoLineHeight,
+    TextStyle effTitleStyle,
+    TextStyle effSubtitleStyle,
+    TextStyle effInfoStyle,
+    double effInfoSize,
   ) {
     const durationColWidth = 56.0;
     const formatColWidth = 60.0;
@@ -657,7 +697,7 @@ class _SongZoomContent extends StatelessWidget {
                     song.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: titleStyle,
+                    style: effTitleStyle,
                   ),
                 ),
               ],
@@ -673,7 +713,7 @@ class _SongZoomContent extends StatelessWidget {
               artist,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: subtitleStyle,
+              style: effSubtitleStyle,
             ),
           ),
         ],
@@ -689,7 +729,7 @@ class _SongZoomContent extends StatelessWidget {
               album,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: subtitleStyle.copyWith(
+              style: effSubtitleStyle.copyWith(
                 color: isMissing
                     ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
                     : theme.colorScheme.onSurfaceVariant,
@@ -707,7 +747,7 @@ class _SongZoomContent extends StatelessWidget {
             child: trackStr != null
                 ? Text(
                     trackStr!,
-                    style: infoStyle.copyWith(
+                    style: effInfoStyle.copyWith(
                       color: isCurrent
                           ? theme.colorScheme.primary
                           : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
@@ -734,8 +774,8 @@ class _SongZoomContent extends StatelessWidget {
               ),
               child: Text(
                 formatStr,
-                style: infoStyle.copyWith(
-                  fontSize: (infoSize - 1.0).clamp(10.0, 12.0),
+                style: effInfoStyle.copyWith(
+                  fontSize: (effInfoSize - 1.0).clamp(10.0, 12.0),
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.4,
                 ),
@@ -758,7 +798,7 @@ class _SongZoomContent extends StatelessWidget {
               durationStr,
               maxLines: 1,
               textAlign: TextAlign.right,
-              style: infoStyle.copyWith(
+              style: effInfoStyle.copyWith(
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),

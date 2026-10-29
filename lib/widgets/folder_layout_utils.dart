@@ -550,6 +550,59 @@ class FolderZoomGeometryLayer {
       );
 }
 
+/// 单侧可见条目在淡入淡出时的缩放幅度（`0.15` 对应 `0.85 <-> 1.0` 与 `1.0 <-> 1.15`）。
+const double kFolderZoomFadeScaleDelta = 0.15;
+
+/// 记录 Sliver 最近一次稳态视口范围，供档位过渡期间判定条目在起止档位的可见性。
+class FolderZoomViewportTracker {
+  double usableWidth = 0.0;
+  double outerWidth = 0.0;
+  double viewportTop = 0.0;
+  double viewportBottom = 0.0;
+  bool hasMeasurement = false;
+
+  void record({
+    required double usableWidth,
+    required double outerWidth,
+    required double viewportTop,
+    required double viewportBottom,
+    required bool isAnimating,
+  }) {
+    if (!hasMeasurement ||
+        !isAnimating ||
+        (this.outerWidth - outerWidth).abs() > 1.0) {
+      this.usableWidth = usableWidth;
+      this.outerWidth = outerWidth;
+      this.viewportTop = viewportTop;
+      this.viewportBottom = viewportBottom;
+      hasMeasurement = true;
+    }
+  }
+}
+
+/// 单个条目在档位切换过渡期间的呈现方式。
+@immutable
+class FolderZoomItemTransition {
+  const FolderZoomItemTransition({
+    required this.isShared,
+    required this.opacity,
+    required this.scale,
+    required this.effectiveMetrics,
+  });
+
+  /// 是否在起止两个档位都可见（true 时走位移动画，false 时原地淡入淡出+缩放）。
+  final bool isShared;
+
+  /// 条目整体不透明度（[isShared] 为 true 时恒为 `1.0`）。
+  final double opacity;
+
+  /// 条目整体缩放比例（[isShared] 为 true 时恒为 `1.0`）。
+  final double scale;
+
+  /// 条目内部排版使用的度量（单侧可见条目锁定在各自所属档位的稳态度量）。
+  final FolderZoomLayoutMetrics effectiveMetrics;
+}
+
 /// Snapshot of animated layout metrics passed to unified folder/song slivers and items.
 class FolderZoomLayoutMetrics {
   final double targetZoomScale;
@@ -616,6 +669,22 @@ class FolderZoomLayoutMetrics {
   /// 为空时用 [resolvedGeometryLayers] 按插值标量兜底（测试直接构造 metrics）。
   final List<FolderZoomGeometryLayer> geometryLayers;
 
+  /// 外层容器宽度（尚未扣除 [folderContentHorizontalPadding]），用于抵消列表↔网格切换时外层 `SliverPadding` 的内边距动画。
+  final double outerWidth;
+
+  /// 本轮档位变化的缩放差值（`toZoomScale - fromZoomScale`）：
+  /// `> 0` 表示档位变大，`< 0` 表示档位缩小。
+  final double zoomScaleDelta;
+
+  /// 起始档位的稳态度量（供仅在起始档位可见、原地淡出的条目锁定内部排版）。
+  final FolderZoomLayoutMetrics? startEndpointMetrics;
+
+  /// 目标档位的稳态度量（供仅在目标档位可见、原地淡入的条目锁定内部排版）。
+  final FolderZoomLayoutMetrics? targetEndpointMetrics;
+
+  /// 视口范围追踪器，由 [FolderZoomSliverBuilder] 持有并在 [SliverAnimatedZoomGridDelegate] 布局时更新。
+  final FolderZoomViewportTracker? viewportTracker;
+
   const FolderZoomLayoutMetrics({
     required this.targetZoomScale,
     required this.animatedZoomScale,
@@ -629,10 +698,98 @@ class FolderZoomLayoutMetrics {
     this.animatedSubtitleFontSize = 12.0,
     this.animatedInfoFontSize = 11.0,
     this.isPortrait = false,
+    this.outerWidth = 0.0,
     this.contentIsGrid,
     this.contentReveal = 1.0,
     this.geometryLayers = const <FolderZoomGeometryLayer>[],
+    this.zoomScaleDelta = 0.0,
+    this.startEndpointMetrics,
+    this.targetEndpointMetrics,
+    this.viewportTracker,
   });
+
+  /// 解析指定 [index] 在当前帧的过渡状态（双端可见走位移，单端可见走原地淡入淡出+缩放）。
+  FolderZoomItemTransition resolveItemTransition(int index) {
+    final layers = resolvedGeometryLayers;
+    final tracker = viewportTracker;
+    if (layers.length <= 1 || tracker == null || !tracker.hasMeasurement) {
+      return FolderZoomItemTransition(
+        isShared: true,
+        opacity: 1.0,
+        scale: 1.0,
+        effectiveMetrics: this,
+      );
+    }
+
+    final usableWidth = tracker.usableWidth;
+    final effOuterWidth = outerWidth > 0.0 ? outerWidth : tracker.outerWidth;
+    final viewTop = tracker.viewportTop;
+    final viewBottom = tracker.viewportBottom;
+
+    int visibleCount = 0;
+    double visibleWeight = 0.0;
+    bool visibleInTarget = false;
+
+    for (var i = 0; i < layers.length; i++) {
+      final layer = layers[i];
+      final geom = _SliverAnimatedZoomGridLayout.geometryInLayer(
+        layer: layer,
+        index: index,
+        usableWidth: usableWidth,
+        outerWidth: effOuterWidth,
+        isPortrait: isPortrait,
+      );
+      final isVisible = _SliverAnimatedZoomGridLayout.isGeometryVisibleInViewport(
+        geom,
+        viewTop,
+        viewBottom,
+      );
+      if (isVisible) {
+        visibleCount++;
+        visibleWeight += layer.weight;
+        if (i == layers.length - 1) {
+          visibleInTarget = true;
+        }
+      }
+    }
+
+    if (visibleCount == layers.length) {
+      return FolderZoomItemTransition(
+        isShared: true,
+        opacity: 1.0,
+        scale: 1.0,
+        effectiveMetrics: this,
+      );
+    }
+
+    if (visibleCount == 0) {
+      return FolderZoomItemTransition(
+        isShared: false,
+        opacity: 0.0,
+        scale: 1.0,
+        effectiveMetrics: targetEndpointMetrics ?? this,
+      );
+    }
+
+    final double opacity = visibleWeight.clamp(0.0, 1.0);
+    final bool isGrowing = zoomScaleDelta >= 0.0;
+    // 档位缩小（!isGrowing）由大变小，档位变大（isGrowing）由小变大：
+    // - 目标档可见的淡入项（opacity 0 -> 1）：变大时 0.85 -> 1.0，缩小时 1.15 -> 1.0
+    // - 起始档可见的淡出项（opacity 1 -> 0）：变大时 1.0 -> 1.15，缩小时 1.0 -> 0.85
+    final double direction = (isGrowing == visibleInTarget) ? -1.0 : 1.0;
+    final double scale =
+        1.0 + direction * kFolderZoomFadeScaleDelta * (1.0 - opacity);
+    final effective = visibleInTarget
+        ? (targetEndpointMetrics ?? this)
+        : (startEndpointMetrics ?? this);
+
+    return FolderZoomItemTransition(
+      isShared: false,
+      opacity: opacity,
+      scale: scale,
+      effectiveMetrics: effective,
+    );
+  }
 
   /// 布局实际使用的加权层；[geometryLayers] 为空时按插值标量合成单层。
   List<FolderZoomGeometryLayer> get resolvedGeometryLayers {
@@ -707,6 +864,7 @@ class FolderZoomSliverBuilder extends StatefulWidget {
 }
 
 typedef _ZoomTargets = ({
+  double zoomScale,
   double gridMorph,
   double compactMorph,
   double gridCols,
@@ -770,6 +928,10 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
   /// 几何插值的终点（本轮动画的目标档位）。
   _ZoomTargets? _geometryTo;
 
+  /// Sliver 视口范围追踪器：稳态时记录视口区间，过渡期间供双端可见性判定。
+  final FolderZoomViewportTracker _viewportTracker =
+      FolderZoomViewportTracker();
+
   @override
   void initState() {
     super.initState();
@@ -803,9 +965,51 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
     );
   }
 
+  /// 构建某个确定档位的稳态 [FolderZoomLayoutMetrics]，供单侧可见条目锁定内部排版。
+  static FolderZoomLayoutMetrics _endpointMetrics(
+    _ZoomTargets targets, {
+    required bool isPortrait,
+    required double outerWidth,
+  }) {
+    final bool isGrid = targets.gridMorph >= 0.5;
+    return FolderZoomLayoutMetrics(
+      targetZoomScale: targets.zoomScale,
+      animatedZoomScale: targets.zoomScale,
+      gridMorph: targets.gridMorph,
+      compactMorph: targets.compactMorph,
+      animatedGridCols: targets.gridCols,
+      animatedGridTextHeight: targets.gridTextHeight,
+      animatedListExtent: targets.listExtent,
+      targetCardWidth: targets.cardWidth,
+      animatedTitleFontSize: quantizeFolderZoomFontSize(targets.titleFontSize),
+      animatedSubtitleFontSize:
+          quantizeFolderZoomFontSize(targets.subtitleFontSize),
+      animatedInfoFontSize: quantizeFolderZoomFontSize(targets.infoFontSize),
+      isPortrait: isPortrait,
+      outerWidth: outerWidth,
+      contentIsGrid: isGrid,
+      contentReveal: 1.0,
+      geometryLayers: [_layerOf(targets, 1.0)],
+    );
+  }
+
   /// 权重低于这个值的层直接丢掉：折算到位置上的误差不到 2%，但能把
   /// 连点/拖滑杆时累积的层数压在 2~3 个以内。
   static const double _kGeometryLayerMinWeight = 0.02;
+
+  static void _addOrMergeLayer(
+    List<({_ZoomTargets targets, double weight})> list,
+    _ZoomTargets targets,
+    double weight,
+  ) {
+    for (var i = 0; i < list.length; i++) {
+      if ((list[i].targets.zoomScale - targets.zoomScale).abs() < 1e-4) {
+        list[i] = (targets: targets, weight: list[i].weight + weight);
+        return;
+      }
+    }
+    list.add((targets: targets, weight: weight));
+  }
 
   /// 把「屏幕上当前这一帧的几何」固化成下一轮动画的起点。
   ///
@@ -819,12 +1023,12 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
     for (final layer in _geometryFrom) {
       final double weight = layer.weight * inverse;
       if (weight > _kGeometryLayerMinWeight) {
-        collapsed.add((targets: layer.targets, weight: weight));
+        _addOrMergeLayer(collapsed, layer.targets, weight);
       }
     }
     final current = _geometryTo;
     if (current != null && p > _kGeometryLayerMinWeight) {
-      collapsed.add((targets: current, weight: p));
+      _addOrMergeLayer(collapsed, current, p);
     }
 
     if (collapsed.isEmpty) {
@@ -857,12 +1061,24 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
     final double inverse = 1.0 - p;
     final current = _geometryTo;
 
-    final layers = <FolderZoomGeometryLayer>[];
+    if (!_controller.isAnimating) {
+      final settled = current ??
+          (_geometryFrom.isNotEmpty ? _geometryFrom.last.targets : _targets());
+      return [_layerOf(settled, 1.0)];
+    }
+
+    final merged = <({_ZoomTargets targets, double weight})>[];
     for (final layer in _geometryFrom) {
       final double weight = layer.weight * inverse;
-      if (weight > 1e-4) layers.add(_layerOf(layer.targets, weight));
+      _addOrMergeLayer(merged, layer.targets, weight);
     }
-    if (current != null && p > 1e-4) layers.add(_layerOf(current, p));
+    if (current != null) {
+      _addOrMergeLayer(merged, current, p);
+    }
+
+    final layers = <FolderZoomGeometryLayer>[
+      for (final entry in merged) _layerOf(entry.targets, entry.weight),
+    ];
 
     if (layers.isEmpty) {
       final fallback = current ??
@@ -879,8 +1095,6 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
     double progress,
   ) {
     final double t = progress.clamp(0.0, 1.0);
-    if (t <= 1e-4) return [_layerOf(from, 1.0)];
-    if (t >= 1.0 - 1e-4) return [_layerOf(to, 1.0)];
     return [_layerOf(from, 1.0 - t), _layerOf(to, t)];
   }
 
@@ -922,10 +1136,11 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
     bool? isPortrait,
     double? textScale,
   }) {
+    final snapped = snapFolderZoomScale(zoomScale);
     final portrait = isPortrait ??
         (MediaQuery.maybeOrientationOf(context) == Orientation.portrait);
     final scaled = textScale ?? folderZoomTextScaleOf(context);
-    final tier = getFolderZoomTier(zoomScale);
+    final tier = getFolderZoomTier(snapped);
     final gridCols = FolderZoomPolicy.calculateCrossAxisCount(
       width: widget.width,
       tier: tier,
@@ -944,15 +1159,16 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       isPortrait: portrait,
     );
     return (
-      gridMorph: isFolderZoomGrid(zoomScale) ? 1.0 : 0.0,
-      compactMorph: isFolderZoomCompactList(zoomScale) ? 1.0 : 0.0,
+      zoomScale: snapped,
+      gridMorph: isFolderZoomGrid(snapped) ? 1.0 : 0.0,
+      compactMorph: isFolderZoomCompactList(snapped) ? 1.0 : 0.0,
       gridCols: gridCols.toDouble(),
       gridTextHeight: folderZoomGridTextHeightFor(
         tier: tier,
         isPortrait: portrait,
         textScale: scaled,
       ),
-      listExtent: getFolderListTileExtent(zoomScale),
+      listExtent: getFolderListTileExtent(snapped),
       cardWidth: cardWidth,
       titleFontSize: fontSizes.title,
       subtitleFontSize: fontSizes.subtitle,
@@ -1165,9 +1381,22 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
               targetsFrom.infoFontSize,
         ),
         isPortrait: isPortrait,
+        outerWidth: widget.width,
         contentIsGrid: handoff.isGrid,
         contentReveal: handoff.reveal,
         geometryLayers: _pinchGeometryLayers(targetsFrom, targetsTo, t),
+        zoomScaleDelta: toScale - fromScale,
+        startEndpointMetrics: _endpointMetrics(
+          targetsFrom,
+          isPortrait: isPortrait,
+          outerWidth: widget.width,
+        ),
+        targetEndpointMetrics: _endpointMetrics(
+          targetsTo,
+          isPortrait: isPortrait,
+          outerWidth: widget.width,
+        ),
+        viewportTracker: _viewportTracker,
       );
       return widget.builder(context, metrics);
     }
@@ -1178,6 +1407,13 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       _toGridMorph,
     ).clamp(0.0, 1.0);
     final handoff = _resolveContentHandoff(gridMorph);
+    final endTargets = _geometryTo ??
+        (_geometryFrom.isNotEmpty ? _geometryFrom.last.targets : _targets());
+    final startTargets = _geometryFrom.firstWhere(
+      (entry) =>
+          (entry.targets.zoomScale - endTargets.zoomScale).abs() > 1e-4,
+      orElse: () => (targets: endTargets, weight: 1.0),
+    ).targets;
 
     final metrics = FolderZoomLayoutMetrics(
       targetZoomScale: widget.zoomScale,
@@ -1198,9 +1434,22 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
         _eval(_fromInfoFontSize, _toInfoFontSize),
       ),
       isPortrait: isPortrait,
+      outerWidth: widget.width,
       contentIsGrid: handoff.isGrid,
       contentReveal: handoff.reveal,
       geometryLayers: _effectiveGeometryLayers(progress),
+      zoomScaleDelta: _toZoomScale - _fromZoomScale,
+      startEndpointMetrics: _endpointMetrics(
+        startTargets,
+        isPortrait: isPortrait,
+        outerWidth: widget.width,
+      ),
+      targetEndpointMetrics: _endpointMetrics(
+        endTargets,
+        isPortrait: isPortrait,
+        outerWidth: widget.width,
+      ),
+      viewportTracker: _viewportTracker,
     );
     return widget.builder(context, metrics);
   }
@@ -1227,9 +1476,32 @@ class SliverAnimatedZoomGridDelegate extends SliverGridDelegate {
 
   @override
   SliverGridLayout getLayout(SliverConstraints constraints) {
+    final usableWidth = math.max(1.0, constraints.crossAxisExtent);
+    final viewportTop = constraints.scrollOffset;
+    final viewportBottom =
+        constraints.scrollOffset + constraints.remainingPaintExtent;
+    final layers = metrics.resolvedGeometryLayers;
+    final tracker = metrics.viewportTracker;
+    if (tracker != null) {
+      tracker.record(
+        usableWidth: usableWidth,
+        outerWidth: metrics.outerWidth,
+        viewportTop: viewportTop,
+        viewportBottom: viewportBottom,
+        isAnimating: layers.length > 1,
+      );
+    }
     return _SliverAnimatedZoomGridLayout(
-      usableWidth: math.max(1.0, constraints.crossAxisExtent),
-      layers: metrics.resolvedGeometryLayers,
+      usableWidth: usableWidth,
+      outerWidth: metrics.outerWidth,
+      isPortrait: metrics.isPortrait,
+      viewportTop: tracker?.hasMeasurement == true
+          ? tracker!.viewportTop
+          : viewportTop,
+      viewportBottom: tracker?.hasMeasurement == true
+          ? tracker!.viewportBottom
+          : viewportBottom,
+      layers: layers,
       listMainAxisSpacing: listMainAxisSpacing,
       gridCrossAxisSpacing: gridCrossAxisSpacing,
       gridMainAxisSpacing: gridMainAxisSpacing,
@@ -1242,6 +1514,8 @@ class SliverAnimatedZoomGridDelegate extends SliverGridDelegate {
           oldDelegate.metrics.resolvedGeometryLayers,
           metrics.resolvedGeometryLayers,
         ) ||
+        oldDelegate.metrics.outerWidth != metrics.outerWidth ||
+        oldDelegate.metrics.isPortrait != metrics.isPortrait ||
         oldDelegate.listMainAxisSpacing != listMainAxisSpacing ||
         oldDelegate.gridCrossAxisSpacing != gridCrossAxisSpacing ||
         oldDelegate.gridMainAxisSpacing != gridMainAxisSpacing;
@@ -1263,6 +1537,10 @@ class SliverAnimatedZoomGridDelegate extends SliverGridDelegate {
 class _SliverAnimatedZoomGridLayout extends SliverGridLayout {
   const _SliverAnimatedZoomGridLayout({
     required this.usableWidth,
+    required this.outerWidth,
+    required this.isPortrait,
+    required this.viewportTop,
+    required this.viewportBottom,
     required this.layers,
     required this.listMainAxisSpacing,
     required this.gridCrossAxisSpacing,
@@ -1270,6 +1548,10 @@ class _SliverAnimatedZoomGridLayout extends SliverGridLayout {
   });
 
   final double usableWidth;
+  final double outerWidth;
+  final bool isPortrait;
+  final double viewportTop;
+  final double viewportBottom;
 
   /// 权重之和为 `1` 的确定布局，见 [FolderZoomGeometryLayer]。
   final List<FolderZoomGeometryLayer> layers;
@@ -1281,44 +1563,94 @@ class _SliverAnimatedZoomGridLayout extends SliverGridLayout {
   /// 静止态只有一层，省掉加权求和。
   bool get _hasSingleLayer => layers.length == 1;
 
-  SliverGridGeometry _listGeometryFor(int index, double tileExtent) {
-    final stride = tileExtent + listMainAxisSpacing;
-    return SliverGridGeometry(
-      scrollOffset: index * stride,
-      crossAxisOffset: 0.0,
-      mainAxisExtent: tileExtent,
-      crossAxisExtent: usableWidth,
+  /// 判定某个条目几何是否落在可见视口 `[viewportTop, viewportBottom]` 内。
+  static bool isGeometryVisibleInViewport(
+    SliverGridGeometry geometry,
+    double viewportTop,
+    double viewportBottom,
+  ) {
+    if (viewportBottom <= viewportTop + 0.5) return false;
+    return geometry.trailingScrollOffset > viewportTop + 0.5 &&
+        geometry.scrollOffset < viewportBottom - 0.5;
+  }
+
+  static ({double contentWidth, double originOffsetX}) _resolveLayerHorizontal(
+    FolderZoomGeometryLayer layer, {
+    required double usableWidth,
+    required double outerWidth,
+    required bool isPortrait,
+  }) {
+    if (outerWidth <= usableWidth + 0.5) {
+      return (contentWidth: usableWidth, originOffsetX: 0.0);
+    }
+    final currentHPad = (outerWidth - usableWidth) * 0.5;
+    final targetHPad = folderContentHorizontalPadding(
+      isPortrait: isPortrait,
+      gridMorph: layer.isGrid ? 1.0 : 0.0,
+    );
+    final layerWidth = math.max(1.0, outerWidth - targetHPad * 2.0);
+    return (
+      contentWidth: layerWidth,
+      originOffsetX: targetHPad - currentHPad,
     );
   }
 
-  SliverGridGeometry _gridGeometryFor(
-    int index,
-    int cols,
-    double textHeight,
-  ) {
+  static SliverGridGeometry geometryInLayer({
+    required FolderZoomGeometryLayer layer,
+    required int index,
+    required double usableWidth,
+    double outerWidth = 0.0,
+    bool isPortrait = false,
+    double listMainAxisSpacing = kFolderListRowSpacing,
+    double gridCrossAxisSpacing = kGridCrossAxisSpacing,
+    double gridMainAxisSpacing = kGridMainAxisSpacing,
+  }) {
+    final horizontal = _resolveLayerHorizontal(
+      layer,
+      usableWidth: usableWidth,
+      outerWidth: outerWidth,
+      isPortrait: isPortrait,
+    );
+    if (!layer.isGrid) {
+      final stride = layer.listExtent + listMainAxisSpacing;
+      return SliverGridGeometry(
+        scrollOffset: index * stride,
+        crossAxisOffset: horizontal.originOffsetX,
+        mainAxisExtent: layer.listExtent,
+        crossAxisExtent: horizontal.contentWidth,
+      );
+    }
+    final cols = layer.crossAxisCount;
     final row = index ~/ cols;
     final col = index % cols;
     final cardWidth = FolderZoomPolicy.gridCardWidth(
-      contentWidth: usableWidth,
+      contentWidth: horizontal.contentWidth,
       crossAxisCount: cols,
       crossAxisSpacing: gridCrossAxisSpacing,
     );
-    final cardHeight = cardWidth + textHeight;
+    final cardHeight = cardWidth + layer.gridTextHeight;
     final mainStride = cardHeight + gridMainAxisSpacing;
     final crossStride = cardWidth + gridCrossAxisSpacing;
 
     return SliverGridGeometry(
       scrollOffset: row * mainStride,
-      crossAxisOffset: col * crossStride,
+      crossAxisOffset: horizontal.originOffsetX + col * crossStride,
       mainAxisExtent: cardHeight,
       crossAxisExtent: cardWidth,
     );
   }
 
   SliverGridGeometry _geometryIn(FolderZoomGeometryLayer layer, int index) {
-    return layer.isGrid
-        ? _gridGeometryFor(index, layer.crossAxisCount, layer.gridTextHeight)
-        : _listGeometryFor(index, layer.listExtent);
+    return geometryInLayer(
+      layer: layer,
+      index: index,
+      usableWidth: usableWidth,
+      outerWidth: outerWidth,
+      isPortrait: isPortrait,
+      listMainAxisSpacing: listMainAxisSpacing,
+      gridCrossAxisSpacing: gridCrossAxisSpacing,
+      gridMainAxisSpacing: gridMainAxisSpacing,
+    );
   }
 
   @override
@@ -1326,23 +1658,45 @@ class _SliverAnimatedZoomGridLayout extends SliverGridLayout {
     if (_hasSingleLayer) {
       return _geometryIn(layers.first, index);
     }
+    SliverGridGeometry? firstVisibleGeometry;
+    SliverGridGeometry? lastVisibleGeometry;
+    bool visibleInTarget = false;
+    int visibleCount = 0;
+    double visibleWeight = 0.0;
     double scrollOffset = 0.0;
     double crossAxisOffset = 0.0;
     double mainAxisExtent = 0.0;
     double crossAxisExtent = 0.0;
-    for (final layer in layers) {
+    for (var i = 0; i < layers.length; i++) {
+      final layer = layers[i];
       final geometry = _geometryIn(layer, index);
-      scrollOffset += geometry.scrollOffset * layer.weight;
-      crossAxisOffset += geometry.crossAxisOffset * layer.weight;
-      mainAxisExtent += geometry.mainAxisExtent * layer.weight;
-      crossAxisExtent += geometry.crossAxisExtent * layer.weight;
+      if (isGeometryVisibleInViewport(geometry, viewportTop, viewportBottom)) {
+        visibleCount++;
+        firstVisibleGeometry ??= geometry;
+        lastVisibleGeometry = geometry;
+        if (i == layers.length - 1) {
+          visibleInTarget = true;
+        }
+        visibleWeight += layer.weight;
+        scrollOffset += geometry.scrollOffset * layer.weight;
+        crossAxisOffset += geometry.crossAxisOffset * layer.weight;
+        mainAxisExtent += geometry.mainAxisExtent * layer.weight;
+        crossAxisExtent += geometry.crossAxisExtent * layer.weight;
+      }
     }
-    return SliverGridGeometry(
-      scrollOffset: scrollOffset,
-      crossAxisOffset: crossAxisOffset,
-      mainAxisExtent: mainAxisExtent,
-      crossAxisExtent: crossAxisExtent,
-    );
+    if (visibleCount == layers.length && visibleWeight > 1e-6) {
+      final inv = 1.0 / visibleWeight;
+      return SliverGridGeometry(
+        scrollOffset: scrollOffset * inv,
+        crossAxisOffset: crossAxisOffset * inv,
+        mainAxisExtent: mainAxisExtent * inv,
+        crossAxisExtent: crossAxisExtent * inv,
+      );
+    }
+    if (visibleCount > 0) {
+      return visibleInTarget ? lastVisibleGeometry! : firstVisibleGeometry!;
+    }
+    return _geometryIn(layers.last, index);
   }
 
   /// 每行（含行间距）的纵向步距，供索引区间与总滚动长度共用，
@@ -1351,8 +1705,14 @@ class _SliverAnimatedZoomGridLayout extends SliverGridLayout {
     if (!layer.isGrid) {
       return layer.listExtent + listMainAxisSpacing;
     }
+    final horizontal = _resolveLayerHorizontal(
+      layer,
+      usableWidth: usableWidth,
+      outerWidth: outerWidth,
+      isPortrait: isPortrait,
+    );
     final cardWidth = FolderZoomPolicy.gridCardWidth(
-      contentWidth: usableWidth,
+      contentWidth: horizontal.contentWidth,
       crossAxisCount: layer.crossAxisCount,
       crossAxisSpacing: gridCrossAxisSpacing,
     );

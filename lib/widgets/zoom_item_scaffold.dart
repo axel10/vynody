@@ -1,8 +1,30 @@
 import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'folder_layout_utils.dart';
 import 'hoverable_card.dart';
+
+/// 为单侧可见（原地淡入淡出）条目向子树下发锁定的稳态 [FolderZoomLayoutMetrics]。
+class ZoomItemEffectiveMetrics extends InheritedWidget {
+  const ZoomItemEffectiveMetrics({
+    super.key,
+    required this.metrics,
+    required super.child,
+  });
+
+  final FolderZoomLayoutMetrics metrics;
+
+  static FolderZoomLayoutMetrics? maybeOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<ZoomItemEffectiveMetrics>()
+        ?.metrics;
+  }
+
+  @override
+  bool updateShouldNotify(ZoomItemEffectiveMetrics oldWidget) =>
+      !identical(oldWidget.metrics, metrics);
+}
 
 /// Computed geometric layout for an item undergoing animated list-to-grid zoom morphing.
 class ZoomItemLayout {
@@ -306,107 +328,140 @@ class ZoomItemScaffold extends StatelessWidget {
     this.titleSuffix,
   });
 
+  static int? _findSliverChildIndex(BuildContext context) {
+    RenderObject? current = context.findRenderObject();
+    while (current != null) {
+      final parentData = current.parentData;
+      if (parentData is SliverMultiBoxAdaptorParentData) {
+        return parentData.index;
+      }
+      current = current.parent;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isPortrait = metrics.isPortrait;
-    final gridMorph = metrics.gridMorph;
-    final isGridTarget = metrics.isGridTarget;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final childIndex = _findSliverChildIndex(context);
+        final transition = childIndex != null
+            ? metrics.resolveItemTransition(childIndex)
+            : null;
+        final effectiveMetrics = transition?.effectiveMetrics ?? metrics;
+        final isFadeScale = transition != null && !transition.isShared;
 
-    final coverRadiusValue = lerpDouble(8.0, 14.0, gridMorph)!;
-    final effectiveRadius =
-        borderRadius ?? BorderRadius.circular(coverRadiusValue);
+        final theme = Theme.of(context);
+        final isPortrait = effectiveMetrics.isPortrait;
+        final gridMorph = effectiveMetrics.gridMorph;
+        final isGridTarget = effectiveMetrics.isGridTarget;
 
-    // Compute text styles if not using a fully custom textColumn
-    final typography = ZoomItemTypography.resolve(
-      context: context,
-      metrics: metrics,
-      titleColor: titleColor,
-      subtitleColor: subtitleColor,
-      listTitleFontWeight: listTitleFontWeight,
-      listTitleFontSize: listTitleFontSize,
-    );
+        final coverRadiusValue = lerpDouble(8.0, 14.0, gridMorph)!;
+        final effectiveRadius =
+            borderRadius ?? BorderRadius.circular(coverRadiusValue);
 
-    final defaultGridAlignment = gridAlignment ?? Alignment.topLeft;
-    final textAlignAlignment = Alignment.lerp(
-      Alignment.centerLeft,
-      defaultGridAlignment,
-      gridMorph,
-    )!;
-    final textCrossAlign = gridCrossAxisAlignment != null
-        ? (gridMorph > 0.5 ? gridCrossAxisAlignment! : CrossAxisAlignment.start)
-        : CrossAxisAlignment.start;
+        // Compute text styles if not using a fully custom textColumn
+        final typography = ZoomItemTypography.resolve(
+          context: context,
+          metrics: effectiveMetrics,
+          titleColor: titleColor,
+          subtitleColor: subtitleColor,
+          listTitleFontWeight: listTitleFontWeight,
+          listTitleFontSize: listTitleFontSize,
+        );
 
-    final effectiveTextColumn = textColumn ??
-        (titleText != null
-            ? ZoomItemDefaultTextColumn(
-                title: titleText!,
-                subtitle: subtitleText,
-                titleStyle: typography.titleStyle,
-                subtitleStyle: typography.subtitleStyle,
-                gridMorph: gridMorph,
-                alignment: textAlignAlignment,
-                crossAxisAlignment: textCrossAlign,
-                titlePrefix: titlePrefix,
-                titleSuffix: titleSuffix,
-              )
-            : const SizedBox.shrink());
+        final defaultGridAlignment = gridAlignment ?? Alignment.topLeft;
+        final textAlignAlignment = Alignment.lerp(
+          Alignment.centerLeft,
+          defaultGridAlignment,
+          gridMorph,
+        )!;
+        final textCrossAlign = gridCrossAxisAlignment != null
+            ? (gridMorph > 0.5
+                ? gridCrossAxisAlignment!
+                : CrossAxisAlignment.start)
+            : CrossAxisAlignment.start;
 
-    // Resolve unified context menu callback
-    final effectiveSecondaryTapDown = onSecondaryTapDown ??
-        (onContextMenu != null
-            ? (details) => onContextMenu!(details.globalPosition)
-            : null);
-    final effectiveLongPressStart = onLongPressStart ??
-        (onContextMenu != null
-            ? (details) => onContextMenu!(details.globalPosition)
-            : null);
-    final effectiveLongPress = onLongPress ??
-        (onContextMenu != null ? () => onContextMenu!(Offset.zero) : null);
+        final effectiveTextColumn = textColumn ??
+            (titleText != null
+                ? ZoomItemDefaultTextColumn(
+                    title: titleText!,
+                    subtitle: subtitleText,
+                    titleStyle: typography.titleStyle,
+                    subtitleStyle: typography.subtitleStyle,
+                    gridMorph: gridMorph,
+                    alignment: textAlignAlignment,
+                    crossAxisAlignment: textCrossAlign,
+                    titlePrefix: titlePrefix,
+                    titleSuffix: titleSuffix,
+                  )
+                : const SizedBox.shrink());
 
-    final listBgAlpha = (1.0 - gridMorph).clamp(0.0, 1.0);
-    final Color itemBgColor;
-    if (isSelectionMode && isSelected && listBgAlpha > 0.01) {
-      itemBgColor = theme.colorScheme.primaryContainer
-          .withValues(alpha: 0.35 * listBgAlpha);
-    } else if (isHighlighted && listBgAlpha > 0.01) {
-      itemBgColor =
-          theme.colorScheme.primary.withValues(alpha: 0.2 * listBgAlpha);
-    } else {
-      itemBgColor = Colors.transparent;
-    }
+        // Resolve unified context menu callback
+        final effectiveSecondaryTapDown = onSecondaryTapDown ??
+            (onContextMenu != null
+                ? (details) => onContextMenu!(details.globalPosition)
+                : null);
+        final effectiveLongPressStart = onLongPressStart ??
+            (onContextMenu != null
+                ? (details) => onContextMenu!(details.globalPosition)
+                : null);
+        final effectiveLongPress = onLongPress ??
+            (onContextMenu != null ? () => onContextMenu!(Offset.zero) : null);
 
-    final itemContent = GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onSecondaryTapDown: effectiveSecondaryTapDown,
-      onLongPressStart: effectiveLongPressStart,
-      onLongPress: effectiveLongPress,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: itemBgColor,
-          borderRadius: effectiveRadius,
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: effectiveRadius,
-          child: InkWell(
-            borderRadius: effectiveRadius,
-            enableFeedback: false,
-            onTap: onTap,
-            hoverColor: gridMorph < 0.5
-                ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
-                : Colors.transparent,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final layout = ZoomItemLayout.compute(
-                  constraints: constraints,
-                  metrics: metrics,
-                  isPortrait: isPortrait,
-                  trailingWidth: trailingWidth,
-                  selectionOffset: selectionOffset,
-                );
+        final listBgAlpha = (1.0 - gridMorph).clamp(0.0, 1.0);
+        final Color itemBgColor;
+        if (isSelectionMode && isSelected && listBgAlpha > 0.01) {
+          itemBgColor = theme.colorScheme.primaryContainer
+              .withValues(alpha: 0.35 * listBgAlpha);
+        } else if (isHighlighted && listBgAlpha > 0.01) {
+          itemBgColor =
+              theme.colorScheme.primary.withValues(alpha: 0.2 * listBgAlpha);
+        } else {
+          itemBgColor = Colors.transparent;
+        }
 
-                return Stack(
+        final effectiveSelectionOffset = isFadeScale
+            ? ((isSelectionMode && gridMorph < 0.5)
+                ? (28.0 *
+                    (1.0 -
+                        (getFolderListCoverSize(
+                                  effectiveMetrics.animatedZoomScale,
+                                ) /
+                                40.0)
+                            .clamp(0.0, 1.0)))
+                : 0.0)
+            : selectionOffset;
+
+        final layout = ZoomItemLayout.compute(
+          constraints: constraints,
+          metrics: effectiveMetrics,
+          isPortrait: isPortrait,
+          trailingWidth: trailingWidth,
+          selectionOffset: effectiveSelectionOffset,
+        );
+
+        final itemContent = GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onSecondaryTapDown: effectiveSecondaryTapDown,
+          onLongPressStart: effectiveLongPressStart,
+          onLongPress: effectiveLongPress,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: itemBgColor,
+              borderRadius: effectiveRadius,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: effectiveRadius,
+              child: InkWell(
+                borderRadius: effectiveRadius,
+                enableFeedback: false,
+                onTap: onTap,
+                hoverColor: gridMorph < 0.5
+                    ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
+                    : Colors.transparent,
+                child: Stack(
                   clipBehavior: Clip.none,
                   children: [
                     if (layout.coverSize > 0.5 && cover != null)
@@ -423,7 +478,7 @@ class ZoomItemScaffold extends StatelessWidget {
                         left: layout.coverLeft,
                         top: ((constraints.maxHeight.isFinite
                                         ? constraints.maxHeight
-                                        : metrics.animatedListExtent) -
+                                        : effectiveMetrics.animatedListExtent) -
                                     24.0) /
                                 2.0,
                         width: 24.0,
@@ -454,19 +509,38 @@ class ZoomItemScaffold extends StatelessWidget {
                         ),
                       ),
                   ],
-                );
-              },
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-    );
+        );
 
-    return wrapHoverableCard
-        ? HoverableCard(
-            enabled: isGridTarget,
-            child: itemContent,
-          )
-        : itemContent;
+        Widget result = wrapHoverableCard
+            ? HoverableCard(
+                enabled: isGridTarget,
+                child: itemContent,
+              )
+            : itemContent;
+
+        if (isFadeScale) {
+          if (!identical(effectiveMetrics, metrics)) {
+            result = ZoomItemEffectiveMetrics(
+              metrics: effectiveMetrics,
+              child: result,
+            );
+          }
+          result = Opacity(
+            opacity: transition.opacity.clamp(0.0, 1.0),
+            child: Transform.scale(
+              scale: transition.scale,
+              alignment: Alignment.center,
+              child: result,
+            ),
+          );
+        }
+
+        return result;
+      },
+    );
   }
 }

@@ -74,8 +74,10 @@ class _ZoomItemCoverState extends State<ZoomItemCover> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final gridMorph = widget.metrics.gridMorph;
-    final isGridTarget = widget.metrics.isGridTarget;
+    final effectiveMetrics =
+        ZoomItemEffectiveMetrics.maybeOf(context) ?? widget.metrics;
+    final gridMorph = effectiveMetrics.gridMorph;
+    final isGridTarget = effectiveMetrics.isGridTarget;
 
     final coverRadiusValue = lerpDouble(8.0, 12.0, gridMorph)!;
     final effectiveRadius =

@@ -116,7 +116,7 @@ void main() {
     WidgetTester tester, {
     required double from,
     required double to,
-    List<int> indices = const [0, 3, 7, 13],
+    List<int> indices = const [0, 3, 7],
   }) async {
     FolderZoomLayoutMetrics? latest;
     void capture(FolderZoomLayoutMetrics value) => latest = value;
@@ -223,4 +223,157 @@ void main() {
     expect(metrics!.resolvedGeometryLayers.length, 1);
     expect(metrics!.resolvedGeometryLayers.single.crossAxisCount, 6);
   });
+
+  testWidgets('单侧可见条目不发生位移，仅做原地淡入淡出与方向一致的缩放', (tester) async {
+    await useLandscapeSurface(tester);
+
+    FolderZoomLayoutMetrics? latest;
+    void capture(FolderZoomLayoutMetrics value) => latest = value;
+
+    // 1. 列表 -> 小网格（档位变大）：index 13 仅在小网格可见（淡入 + 由小变大 0.85 -> 1.0）
+    await tester.pumpWidget(
+      _host(zoomScale: kFolderZoomTierLargeList, onMetrics: capture),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      _host(zoomScale: kFolderZoomTierSmallGrid, onMetrics: capture),
+    );
+    final enterStartCenter = _centerOf(latest!, 13);
+    final enterStartTransition = latest!.resolveItemTransition(13);
+    expect(enterStartTransition.isShared, isFalse);
+    expect(enterStartTransition.opacity, closeTo(0.0, 1e-4));
+    expect(
+      enterStartTransition.scale,
+      closeTo(1.0 - kFolderZoomFadeScaleDelta, 1e-4),
+    );
+
+    await tester.pump(const Duration(milliseconds: 100));
+    final enterMidCenter = _centerOf(latest!, 13);
+    final enterMidTransition = latest!.resolveItemTransition(13);
+    expect((enterMidCenter - enterStartCenter).distance, lessThan(0.01));
+    expect(enterMidTransition.opacity, greaterThan(0.1));
+    expect(enterMidTransition.opacity, lessThan(0.95));
+    expect(enterMidTransition.scale, greaterThan(enterStartTransition.scale));
+    expect(enterMidTransition.scale, lessThan(1.0));
+
+    // 双端均可见的 index 3 保持位移动画（opacity=1, scale=1）
+    final sharedMidTransition = latest!.resolveItemTransition(3);
+    expect(sharedMidTransition.isShared, isTrue);
+    expect(sharedMidTransition.opacity, 1.0);
+    expect(sharedMidTransition.scale, 1.0);
+
+    await tester.pumpAndSettle();
+    final enterEndCenter = _centerOf(latest!, 13);
+    expect((enterEndCenter - enterStartCenter).distance, lessThan(0.01));
+
+    // 2. 小网格 -> 列表（档位缩小）：index 13 仅在小网格可见（淡出 + 由大变小 1.0 -> 0.85）
+    await tester.pumpWidget(
+      _host(zoomScale: kFolderZoomTierLargeList, onMetrics: capture),
+    );
+    final exitStartCenter = _centerOf(latest!, 13);
+    final exitStartTransition = latest!.resolveItemTransition(13);
+    expect(exitStartTransition.isShared, isFalse);
+    expect(exitStartTransition.opacity, closeTo(1.0, 1e-4));
+    expect(exitStartTransition.scale, closeTo(1.0, 1e-4));
+
+    await tester.pump(const Duration(milliseconds: 100));
+    final exitMidCenter = _centerOf(latest!, 13);
+    final exitMidTransition = latest!.resolveItemTransition(13);
+    expect((exitMidCenter - exitStartCenter).distance, lessThan(0.01));
+    expect(exitMidTransition.opacity, lessThan(0.9));
+    expect(exitMidTransition.opacity, greaterThan(0.05));
+    expect(exitMidTransition.scale, lessThan(1.0));
+    expect(
+      exitMidTransition.scale,
+      greaterThan(1.0 - kFolderZoomFadeScaleDelta),
+    );
+  });
+
+  testWidgets(
+    'List <-> Grid with SliverPadding and multi-tier steps keeps single-side items stationary on screen',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      FolderZoomLayoutMetrics? latest;
+      Widget buildWithPadding(double zoomScale) {
+        return MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1200,
+              height: 900,
+              child: CustomScrollView(
+                slivers: [
+                  FolderZoomSliverBuilder(
+                    zoomScale: zoomScale,
+                    width: 1200,
+                    builder: (context, metrics) {
+                      latest = metrics;
+                      final hPad = folderContentHorizontalPadding(
+                        isPortrait: false,
+                        gridMorph: metrics.gridMorph,
+                      );
+                      return SliverPadding(
+                        padding: EdgeInsets.symmetric(horizontal: hPad),
+                        sliver: SliverGrid(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) => SizedBox.expand(
+                              key: ValueKey('item_$index'),
+                            ),
+                            childCount: 40,
+                          ),
+                          gridDelegate: SliverAnimatedZoomGridDelegate(
+                            metrics: metrics,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      // 起始：标准列表（index 13 不可见）
+      await tester.pumpWidget(buildWithPadding(kFolderZoomTierStandardList));
+      await tester.pumpAndSettle();
+
+      // 连续跨越 列表 -> 大列表 -> 小网格 -> 中网格（模拟滑块或滚轮跨档）
+      await tester.pumpWidget(buildWithPadding(kFolderZoomTierLargeList));
+      await tester.pump(const Duration(milliseconds: 24));
+      await tester.pumpWidget(buildWithPadding(kFolderZoomTierSmallGrid));
+      await tester.pump(const Duration(milliseconds: 24));
+      await tester.pumpWidget(buildWithPadding(kFolderZoomTierMediumGrid));
+      await tester.pump();
+
+      // index 10 在列表不可见，在网格可见；记录其在屏幕上的真实中心坐标与尺寸
+      final startTransition = latest!.resolveItemTransition(10);
+      expect(startTransition.isShared, isFalse);
+
+      await tester.pumpAndSettle();
+      final targetRect = tester.getRect(find.byKey(const ValueKey('item_10')));
+      final targetCenter = targetRect.center;
+
+      // 重新从标准列表连续切到中网格，逐帧验证 index 10 的屏幕中心坐标完全不漂移
+      await tester.pumpWidget(buildWithPadding(kFolderZoomTierStandardList));
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(buildWithPadding(kFolderZoomTierLargeList));
+      await tester.pump(const Duration(milliseconds: 20));
+      await tester.pumpWidget(buildWithPadding(kFolderZoomTierSmallGrid));
+      await tester.pump(const Duration(milliseconds: 20));
+      await tester.pumpWidget(buildWithPadding(kFolderZoomTierMediumGrid));
+
+      for (int i = 0; i < 15; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        final transition = latest!.resolveItemTransition(10);
+        expect(transition.isShared, isFalse);
+        final rect = tester.getRect(find.byKey(const ValueKey('item_10')));
+        expect((rect.center - targetCenter).distance, lessThan(0.05));
+      }
+    },
+  );
 }
