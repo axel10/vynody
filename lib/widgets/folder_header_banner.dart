@@ -639,22 +639,25 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
 const double _kLightModeCoverOpacity = 0.35;
 const double _kLightModeBlurredCoverOpacity = 0.35;
 
-/// 目录页 banner 背景模糊层的 sigma。
+/// 目录页 banner 背景模糊层的 sigma（单位为逻辑像素）。
 ///
-/// 背景层只负责一层颜色氛围。原先取 `AppBlur.heavy`(16)，等于每帧对
-/// 「全宽 × 约 200dp」的区域跑一次 sigma=16 的高斯；转场期间页面在缩放，
-/// raster cache 每帧失效，单帧光栅成本 40~90ms。降到 6（低端机 3）视觉上
-/// 几乎看不出差别，成本掉一个数量级。
-const double _kBannerBackdropBlurSigma = 6.0;
-const double _kBannerBackdropBlurSigmaLowEnd = 3.0;
+/// 取 `AppBlur.heavy`(16) 的原始观感：这一层要的是「均匀的色雾」，不是「隐约
+/// 看得出封面」。低端机保留 10，仍远高于会露块的阈值（见解码宽度的说明）。
+const double _kBannerBackdropBlurSigma = 16.0;
+const double _kBannerBackdropBlurSigmaLowEnd = 10.0;
 
 /// 背景模糊层的解码宽度 = 屏幕物理宽度 × 该比例。
 ///
-/// 该层最终会被糊成色块，不需要任何细节；按 1/8 宽度解码可把纹理像素量降到
-/// 原来的 1/64，免掉「首次进入为原尺寸大图付一次解码 + 纹理上传」。
-const double _kBannerBackdropDecodeScale = 0.125;
-const int _kBannerBackdropDecodeMinWidth = 64;
-const int _kBannerBackdropDecodeMaxWidth = 512;
+/// 关键约束：**放大后的单像素块尺寸必须远小于 sigma，否则高斯糊不住块边缘，
+/// 背景会呈现马赛克/色阶断层**。块尺寸（逻辑像素）= 显示宽 / 解码宽
+/// = 1 / (dpr × scale)。取值 0.5 时手机上块约 0.67dp，配合 sigma=16 完全不可见。
+///
+/// 曾一度取 0.125（块 ≈ 3dp），sigma 同时降到 6，块边界落在 2σ 以内，肉眼可见
+/// 马赛克——这条路走不通。0.5 相比原图仍把纹理像素量降一个量级以上，且高斯本身
+/// 作用在屏幕区域、与源纹理分辨率无关，过度压解码宽度换不到光栅收益。
+const double _kBannerBackdropDecodeScale = 0.5;
+const int _kBannerBackdropDecodeMinWidth = 256;
+const int _kBannerBackdropDecodeMaxWidth = 1024;
 
 /// 背景模糊层该按多宽解码（单位为物理像素，即 `Image.cacheWidth` 的语义）。
 int _bannerBackdropDecodeWidth({
