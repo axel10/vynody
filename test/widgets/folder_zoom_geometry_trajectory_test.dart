@@ -376,4 +376,92 @@ void main() {
       }
     },
   );
+
+  testWidgets(
+    '页面有一定滚动时，切档缩放仍能正确判定共同可见条目，并实现平滑位移与滚动锚定',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+
+      FolderZoomLayoutMetrics? latest;
+      Widget buildPage(double zoomScale) {
+        return MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 1200,
+              height: 900,
+              child: CustomScrollView(
+                controller: scrollController,
+                slivers: [
+                  FolderZoomSliverBuilder(
+                    zoomScale: zoomScale,
+                    width: 1200,
+                    builder: (context, metrics) {
+                      latest = metrics;
+                      return SliverGrid(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => SizedBox.expand(
+                            key: ValueKey('scrolled_item_$index'),
+                          ),
+                          childCount: 100,
+                        ),
+                        gridDelegate: SliverAnimatedZoomGridDelegate(
+                          metrics: metrics,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      // 起始：标准列表（行高 80px，间距 1px，stride 81px）
+      await tester.pumpWidget(buildPage(kFolderZoomTierStandardList));
+      await tester.pumpAndSettle();
+
+      // 滚动到第 25 个条目附近（25 * 81 = 2025px）
+      scrollController.jumpTo(2025.0);
+      await tester.pumpAndSettle();
+
+      // 在当前视口中，index 25, 26, 27 处于可见区域
+      expect(scrollController.offset, 2025.0);
+
+      // 切换到小网格（横屏 1200px 下 8 列网格）
+      await tester.pumpWidget(buildPage(kFolderZoomTierSmallGrid));
+      await tester.pump();
+
+      // 验证共同可见条目判定：index 25 在两端均可见，必须为 isShared = true！
+      final transition25 = latest!.resolveItemTransition(25);
+      expect(
+        transition25.isShared,
+        isTrue,
+        reason: '有滚动时 index 25 应该被识别为共同可见条目',
+      );
+
+      final transition26 = latest!.resolveItemTransition(26);
+      expect(transition26.isShared, isTrue);
+
+      // 随动画推进，验证滚动位置已平滑向目标档位的锚定位置同步
+      await tester.pump(const Duration(milliseconds: 130));
+      expect(scrollController.offset, lessThan(2025.0));
+
+      await tester.pumpAndSettle();
+      // 动画完成，index 25 与 index 26 依然停留在屏幕上（处于视口可见范围内）
+      expect(find.byKey(const ValueKey('scrolled_item_25')), findsOneWidget);
+      expect(find.byKey(const ValueKey('scrolled_item_26')), findsOneWidget);
+      final finalRect25 =
+          tester.getRect(find.byKey(const ValueKey('scrolled_item_25')));
+      final finalRect26 =
+          tester.getRect(find.byKey(const ValueKey('scrolled_item_26')));
+      expect(finalRect25.bottom, greaterThan(0.0));
+      expect(finalRect25.top, lessThan(900.0));
+      expect(finalRect26.top, closeTo(finalRect25.top, 0.01));
+    },
+  );
 }
