@@ -110,4 +110,39 @@ void main() {
     expect(animatedOpacity.opacity, 1.0);
     expect(animatedOpacity.duration, Duration.zero);
   });
+
+  testWidgets('首次播放某首歌（同一首歌补写属性/更新）时缩略图不闪白也不重新淡入', (tester) async {
+    // 初始状态：带有缩略图显示中
+    await tester.pumpWidget(
+      wrap(
+        SongThumbnail(
+          path: '/music/play_test.mp3',
+          thumbnailPath: coverPath,
+          size: 56,
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byType(Image), findsOneWidget);
+    expect(tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity, 1.0);
+
+    // 播放时更新（同一首歌，模拟 AudioService / 扫描器补齐属性重建）
+    await tester.pumpWidget(
+      wrap(
+        SongThumbnail(
+          path: '/music/play_test.mp3',
+          thumbnailPath: coverPath,
+          bytes: pngBytes,
+          size: 56,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // 必须持续展示 Image，不出现空白，不触发额外淡入动画
+    expect(find.byType(Image), findsOneWidget);
+    final animatedOpacity = tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity));
+    expect(animatedOpacity.opacity, 1.0);
+    expect(animatedOpacity.duration, Duration.zero);
+  });
 }

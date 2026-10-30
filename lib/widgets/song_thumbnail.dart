@@ -286,9 +286,9 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         oldWidget.artworkPath != widget.artworkPath ||
         oldWidget.thumbnailPath != widget.thumbnailPath) {
       final isSameSong = oldWidget.path == widget.path;
-      _artworkFilePath = null;
-      _remoteArtworkUrl = null;
       if (!isSameSong) {
+        _artworkFilePath = null;
+        _remoteArtworkUrl = null;
         _shouldFadeIn = false;
         _isGenerating = false;
       }
@@ -390,12 +390,6 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           cacheHeight: targetCacheHeight,
           gaplessPlayback: gaplessPlayback,
           filterQuality: FilterQuality.low,
-          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-            if (wasSynchronouslyLoaded || frame != null) {
-              return child;
-            }
-            return SizedBox(width: layoutWidth, height: layoutHeight);
-          },
           errorBuilder: (_, _, _) {
             if (_artworkFilePath != null) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -428,7 +422,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
             if (wasSynchronouslyLoaded || frame != null) {
               return child;
             }
-            return SizedBox(width: layoutWidth, height: layoutHeight);
+            return _fallbackIcon(layoutWidth, layoutHeight, radius);
           },
           errorBuilder: (_, _, _) {
             if (_remoteArtworkUrl != null) {
