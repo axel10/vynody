@@ -628,6 +628,36 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
 const double _kLightModeCoverOpacity = 0.35;
 const double _kLightModeBlurredCoverOpacity = 0.35;
 
+/// 目录页 banner 背景模糊层的 sigma。
+///
+/// 背景层只负责一层颜色氛围。原先取 `AppBlur.heavy`(16)，等于每帧对
+/// 「全宽 × 约 200dp」的区域跑一次 sigma=16 的高斯；转场期间页面在缩放，
+/// raster cache 每帧失效，单帧光栅成本 40~90ms。降到 6（低端机 3）视觉上
+/// 几乎看不出差别，成本掉一个数量级。
+const double _kBannerBackdropBlurSigma = 6.0;
+const double _kBannerBackdropBlurSigmaLowEnd = 3.0;
+
+/// 背景模糊层的解码宽度 = 屏幕物理宽度 × 该比例。
+///
+/// 该层最终会被糊成色块，不需要任何细节；按 1/8 宽度解码可把纹理像素量降到
+/// 原来的 1/64，免掉「首次进入为原尺寸大图付一次解码 + 纹理上传」。
+const double _kBannerBackdropDecodeScale = 0.125;
+const int _kBannerBackdropDecodeMinWidth = 64;
+const int _kBannerBackdropDecodeMaxWidth = 512;
+
+/// 背景模糊层该按多宽解码（单位为物理像素，即 `Image.cacheWidth` 的语义）。
+int _bannerBackdropDecodeWidth({
+  required double logicalWidth,
+  required double devicePixelRatio,
+}) {
+  return (logicalWidth * devicePixelRatio * _kBannerBackdropDecodeScale)
+      .round()
+      .clamp(
+        _kBannerBackdropDecodeMinWidth,
+        _kBannerBackdropDecodeMaxWidth,
+      );
+}
+
 /// Decoupled Portrait Header Banner Component
 class _FolderPortraitHeaderBanner extends StatelessWidget {
   const _FolderPortraitHeaderBanner({
@@ -687,6 +717,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
     Alignment alignment = Alignment.center,
     double? width,
     double? height,
+    int? cacheWidth,
   }) {
     if (rawArtwork != null && rawArtwork!.isNotEmpty) {
       if (rawArtwork!.bytes != null && rawArtwork!.bytes!.isNotEmpty) {
@@ -696,6 +727,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
           alignment: alignment,
           width: width,
           height: height,
+          cacheWidth: cacheWidth,
           gaplessPlayback: true,
         );
       }
@@ -706,6 +738,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
           alignment: alignment,
           width: width,
           height: height,
+          cacheWidth: cacheWidth,
           gaplessPlayback: true,
         );
       }
@@ -716,6 +749,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
           alignment: alignment,
           width: width,
           height: height,
+          cacheWidth: cacheWidth,
           gaplessPlayback: true,
         );
       }
@@ -727,6 +761,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
         alignment: alignment,
         width: width,
         height: height,
+        cacheWidth: cacheWidth,
         gaplessPlayback: true,
       );
     }
@@ -741,6 +776,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
     final isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
     final desktopTitleBarHeight = isDesktop ? 28.0 : 0.0;
     final hasTopHeader = topHeader != null;
+    final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -787,12 +823,18 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                       Opacity(
                         opacity: isDark ? 1.0 : _kLightModeBlurredCoverOpacity,
                         child: ImageFiltered(
-                          imageFilter: isLowEndDevice
-                              ? AppBlur.lightFilter
-                              : AppBlur.heavyFilter,
+                          imageFilter: AppBlur.filter(
+                            isLowEndDevice
+                                ? _kBannerBackdropBlurSigmaLowEnd
+                                : _kBannerBackdropBlurSigma,
+                          ),
                           child: _buildBannerImage(
                             fit: BoxFit.cover,
                             alignment: Alignment.center,
+                            cacheWidth: _bannerBackdropDecodeWidth(
+                              logicalWidth: constraints.maxWidth,
+                              devicePixelRatio: devicePixelRatio,
+                            ),
                           ),
                         ),
                       ),
@@ -811,6 +853,11 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                             alignment: Alignment.center,
                             width: double.infinity,
                             height: double.infinity,
+                            // 这条分支是把封面 1:1 铺满整宽，解码到「屏幕物理宽」
+                            // 就是它的 1:1 显示尺寸；再大的源图只是把解码 + 纹理
+                            // 上传的成本翻倍（封面常见 1000~3000px）。
+                            cacheWidth: (constraints.maxWidth * devicePixelRatio)
+                                .round(),
                           ),
                         ),
                       ),

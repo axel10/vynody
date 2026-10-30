@@ -12,6 +12,14 @@ import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'default_cover_art.dart';
 
+/// 缩放条目（网格/列表共用条目）里封面的解码尺寸（dp）。
+///
+/// 网格卡片实际宽度只有 100~180dp，而这里会被 [_bucketedSize] 分桶到 250dp
+/// —— 手机上等于 750px 的纹理。首次进入页面时每个封面都按约 5 倍像素量解码
+/// 并上传，这笔开销全落在转场首帧。120dp 桶（手机上 360px）已经比卡片本身更
+/// 清晰，再高的分辨率在屏幕上体现不出来。
+const double kZoomItemThumbnailSize = 120.0;
+
 class SongThumbnail extends ConsumerStatefulWidget {
   final String path;
   final int? id;

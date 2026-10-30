@@ -643,11 +643,17 @@ class _MyAppState extends ConsumerState<MyApp>
       splashFactory: NoSplash.splashFactory,
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          // Android 关闭 Zoom 转场的快照：SnapshotWidget 会在返回时把下层页面的当前
-          // 画面截成静态图播完整个转场，而恢复绘制的第一帧 ink 水波纹还没被 tick 归零，
-          // 于是「返回时入口残留高亮」被定格到动画结束（详见 .workbuddy/memory/2026-10-16.md）。
+          // Android 保留 Zoom 转场的快照。
+          //
+          // 2026-10-16 曾因「返回时入口残留高亮」把它关掉（SnapshotWidget 冻结路由内
+          // 动画，ink 高亮被定格）。现在全局已是 `NoSplash`，水波纹不存在了，重新打开。
+          //
+          // 2026-10-30 的 Performance trace 显示：关掉快照时转场期间新旧两个 route
+          // 每帧都完整重绘 —— `GPURasterizer::Draw` 单帧 74~113ms，其中
+          // `CreateGlyphAtlas`（文字图集重建）10~21ms/帧，因为整页在缩放，字形每帧
+          // 都要按新比例重新栅格化。开快照后两个 route 各冻成一张纹理，只做缩放合成。
           TargetPlatform.android: ZoomPageTransitionsBuilder(
-            allowSnapshotting: false,
+            allowSnapshotting: true,
           ),
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
           TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
