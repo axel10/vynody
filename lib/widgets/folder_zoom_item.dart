@@ -79,6 +79,10 @@ class FolderZoomItem extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         fallbackWidget: defaultCoverWidget,
+        // 目录页条目量大且随滚动成批进入视口：淡入会让每张未就绪的封面各占一个
+        // 离屏图层（AnimatedOpacity → saveLayer），滚动起头 raster 从 5ms 涨到 40ms+。
+        // 这里封面尺寸小，直接出现与淡入的观感差异可忽略，直接关掉。
+        fadeInOnLoaded: false,
       );
     } else {
       coverWidget = defaultCoverWidget;
