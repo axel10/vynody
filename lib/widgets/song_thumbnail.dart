@@ -32,6 +32,10 @@ class SongThumbnail extends ConsumerStatefulWidget {
   /// 否则会短暂显示上一首的封面；只有始终代表「同一张封面」的场景（迷你播放器）才置 true。
   final bool gaplessPlayback;
 
+  /// 是否在异步生成/解析缩略图时保持缩略图区域空白（不展示默认占位图标），
+  /// 并在生成完成后平滑淡入。
+  final bool fadeInOnLoaded;
+
   const SongThumbnail({
     super.key,
     required this.path,
@@ -46,6 +50,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.fallbackWidget,
     this.isAlbum = false,
     this.gaplessPlayback = false,
+    this.fadeInOnLoaded = true,
   });
 
   /// Factory constructor for a [MusicFile].
@@ -59,6 +64,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.fallbackWidget,
     this.isAlbum = false,
     this.gaplessPlayback = false,
+    this.fadeInOnLoaded = true,
   })  : path = song.path,
         id = song.id,
         thumbnailPath = song.thumbnailPath,
@@ -76,6 +82,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.fallbackWidget,
     this.isAlbum = true,
     this.gaplessPlayback = false,
+    this.fadeInOnLoaded = true,
   })  : path = album.representativeSong.path,
         id = album.representativeSong.id,
         thumbnailPath = album.representativeSong.thumbnailPath,
@@ -93,6 +100,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.fallbackWidget,
     this.isAlbum = false,
     this.gaplessPlayback = false,
+    this.fadeInOnLoaded = true,
   })  : path = metadata.path,
         id = metadata.id,
         thumbnailPath = metadata.thumbnailPath,
@@ -120,13 +128,16 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   /// 否则列表行回收复用会短暂显示上一首的封面。
   bool _keepLastFrame = true;
 
+  bool _isGenerating = false;
+  bool _shouldFadeIn = false;
+
   static final Set<String> _failedRemoteUrls = <String>{};
   Animation<double>? _routeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _checkOrQueryArtwork();
+    _checkOrQueryArtwork(fromInitState: true);
   }
 
   @override
@@ -138,7 +149,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     }
   }
 
-  void _checkOrQueryArtwork() {
+  void _checkOrQueryArtwork({bool fromInitState = false}) {
     // 快速路径：直接复用已知缩略图路径，不在 UI 线程同步调用 File.existsSync()
     final scanner = ref.read(scannerServiceProvider);
     final rawExisting = widget.thumbnailPath ??
@@ -149,10 +160,25 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         : null;
     if (existingPath != null && existingPath.isNotEmpty) {
       _artworkFilePath = existingPath;
+      if (_isGenerating && widget.fadeInOnLoaded) {
+        _shouldFadeIn = true;
+      }
+      _isGenerating = false;
       return;
     }
 
-    _scheduleQueryArtwork();
+    if (widget.bytes != null && widget.bytes!.isNotEmpty) {
+      if (_isGenerating && widget.fadeInOnLoaded) {
+        _shouldFadeIn = true;
+      }
+      _isGenerating = false;
+      return;
+    }
+
+    _isGenerating = true;
+    if (!fromInitState) {
+      _scheduleQueryArtwork();
+    }
   }
 
   void _scheduleQueryArtwork() {
@@ -170,7 +196,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   void _handleRouteAnimationStatus(AnimationStatus status) {
     if (status == AnimationStatus.completed) {
       _cleanupRouteAnimation();
-      if (mounted && _artworkFilePath == null && _remoteArtworkUrl == null) {
+      if (mounted && _artworkFilePath == null && _remoteArtworkUrl == null && widget.bytes == null) {
         _queryArtworkAsync();
       }
     }
@@ -210,15 +236,31 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         if (result.startsWith('http://') || result.startsWith('https://')) {
           setState(() {
             _remoteArtworkUrl = result;
+            _isGenerating = false;
+            _shouldFadeIn = widget.fadeInOnLoaded;
           });
         } else {
           setState(() {
             _artworkFilePath = result;
+            _isGenerating = false;
+            _shouldFadeIn = widget.fadeInOnLoaded;
           });
           scanner.updateSongThumbnailPath(widget.path, result);
         }
+      } else {
+        setState(() {
+          _isGenerating = false;
+          _shouldFadeIn = widget.fadeInOnLoaded;
+        });
       }
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+          _shouldFadeIn = widget.fadeInOnLoaded;
+        });
+      }
+    }
   }
 
   double get _bucketedSize {
@@ -243,8 +285,13 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         oldWidget.id != widget.id ||
         oldWidget.artworkPath != widget.artworkPath ||
         oldWidget.thumbnailPath != widget.thumbnailPath) {
+      final isSameSong = oldWidget.path == widget.path;
       _artworkFilePath = null;
       _remoteArtworkUrl = null;
+      if (!isSameSong) {
+        _shouldFadeIn = false;
+        _isGenerating = false;
+      }
       _checkOrQueryArtwork();
     }
   }
@@ -294,8 +341,30 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     final radius = widget.borderRadius ?? BorderRadius.circular(4);
     final bool gaplessPlayback = widget.gaplessPlayback || _keepLastFrame;
 
-    if (widget.bytes != null && widget.bytes!.isNotEmpty) {
-      return ClipRRect(
+    final bool hasValidRemoteUrl = _remoteArtworkUrl != null &&
+        _remoteArtworkUrl!.isNotEmpty &&
+        !_failedRemoteUrls.contains(_remoteArtworkUrl!);
+    final bool hasBytes = widget.bytes != null && widget.bytes!.isNotEmpty;
+    final bool hasImage = imagePath != null;
+
+    final bool isReady = hasBytes || hasImage || hasValidRemoteUrl;
+    if (isReady && _isGenerating) {
+      _isGenerating = false;
+      if (widget.fadeInOnLoaded) {
+        _shouldFadeIn = true;
+      }
+    }
+
+    final bool isEffectivelyGenerating = widget.fadeInOnLoaded && _isGenerating && !isReady;
+
+    final Widget content;
+    if (isEffectivelyGenerating) {
+      content = SizedBox(
+        width: layoutWidth,
+        height: layoutHeight,
+      );
+    } else if (hasBytes) {
+      content = ClipRRect(
         borderRadius: radius,
         child: Image.memory(
           widget.bytes!,
@@ -308,11 +377,9 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           errorBuilder: (_, _, _) => _fallbackIcon(layoutWidth, layoutHeight, radius),
         ),
       );
-    }
-
-    if (imagePath != null) {
+    } else if (hasImage) {
       final file = File(imagePath);
-      return ClipRRect(
+      content = ClipRRect(
         borderRadius: radius,
         child: Image.file(
           file,
@@ -323,12 +390,19 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           cacheHeight: targetCacheHeight,
           gaplessPlayback: gaplessPlayback,
           filterQuality: FilterQuality.low,
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded || frame != null) {
+              return child;
+            }
+            return SizedBox(width: layoutWidth, height: layoutHeight);
+          },
           errorBuilder: (_, _, _) {
             if (_artworkFilePath != null) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted && _artworkFilePath != null) {
                   setState(() {
                     _artworkFilePath = null;
+                    _isGenerating = true;
                   });
                   _scheduleQueryArtwork();
                 }
@@ -338,12 +412,8 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           },
         ),
       );
-    }
-
-    if (_remoteArtworkUrl != null &&
-        _remoteArtworkUrl!.isNotEmpty &&
-        !_failedRemoteUrls.contains(_remoteArtworkUrl!)) {
-      return ClipRRect(
+    } else if (hasValidRemoteUrl) {
+      content = ClipRRect(
         borderRadius: radius,
         child: Image.network(
           _remoteArtworkUrl!,
@@ -358,7 +428,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
             if (wasSynchronouslyLoaded || frame != null) {
               return child;
             }
-            return _fallbackIcon(layoutWidth, layoutHeight, radius);
+            return SizedBox(width: layoutWidth, height: layoutHeight);
           },
           errorBuilder: (_, _, _) {
             if (_remoteArtworkUrl != null) {
@@ -368,9 +438,27 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           },
         ),
       );
+    } else {
+      content = _fallbackIcon(layoutWidth, layoutHeight, radius);
     }
 
-    return _fallbackIcon(layoutWidth, layoutHeight, radius);
+    if (!widget.fadeInOnLoaded) {
+      return content;
+    }
+
+    return AnimatedOpacity(
+      opacity: isEffectivelyGenerating ? 0.0 : 1.0,
+      duration: _shouldFadeIn
+          ? const Duration(milliseconds: 280)
+          : Duration.zero,
+      curve: Curves.easeOutCubic,
+      onEnd: () {
+        if (_shouldFadeIn) {
+          _shouldFadeIn = false;
+        }
+      },
+      child: content,
+    );
   }
 
   Widget _fallbackIcon(double width, double height, BorderRadius radius) {
