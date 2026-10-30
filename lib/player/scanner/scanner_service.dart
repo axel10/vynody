@@ -89,6 +89,15 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   int _lastScanProgressEmitMs = 0;
 
   MusicFolder? _systemMediaFolder;
+  /// 系统媒体元数据后台重读的在途任务。
+  ///
+  /// 启动期 `scanSystemMedia()` 会被多条入口各触发一次（权限检查、`scan()`、
+  /// 媒体观察者），每次扫完都 `unawaited` 地起一场「重读全部条目」的后台任务。
+  /// 两场并发时同一路径会在 `processMetadata` 的「读库 → 写库」窗口里撞车
+  /// （UNIQUE constraint failed: songs.path），还会把上千个文件的标签读两遍。
+  Future<void>? _androidMediaMetadataInFlight;
+  /// 在途期间又被请求重读的最新一批条目。
+  List<AndroidMediaLibraryEntry>? _pendingAndroidMediaEntries;
   bool _hasPermission = false;
   late final ScannerServiceRoots _roots;
   late final ScannerMetadataStore _metadataStore;
@@ -111,8 +120,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   int _skipShortAudioScanThresholdSeconds = _defaultShortAudioThresholdSeconds;
   bool _linuxFlatpak = false;
   final Map<String, String> _linuxDocumentIds = {};
-  final Map<String, int> _rootSongCounts = {};
-  final Map<String, int> _rootSongDurations = {};
+  /// 目录统计的内存镜像，键是归一化目录路径，覆盖所有层级（不只根）。
+  ///
+  /// 值来自 `folder_entries` 表或本次会话的扫描结果；`MusicFolder` 树里有值时不读它，
+  /// 只作为「树还没建好 / 该目录不在当前树里」时的回落，避免目录页先显示 0 首歌。
+  final Map<String, int> _folderSongCounts = {};
+  final Map<String, int> _folderSongDurations = {};
   final Map<String, SongMetadata?> _folderRepresentativeSongs = {};
   final Map<String, String> _folderRepresentativeSongPaths = {};
   final Set<String> _loadedRootPaths = {};
@@ -273,7 +286,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       return count;
     }
     final normalized = _normalizePath(folder.path);
-    return _rootSongCounts[normalized] ?? 0;
+    return _folderSongCounts[normalized] ?? 0;
   }
 
   int getSongDurationForFolder(MusicFolder folder) {
@@ -285,7 +298,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       return duration;
     }
     final normalized = _normalizePath(folder.path);
-    return _rootSongDurations[normalized] ?? 0;
+    return _folderSongDurations[normalized] ?? 0;
   }
 
   void _updateFolderRepSongCache(MusicFolder folder, String songPath, SongMetadata updated) {
@@ -387,7 +400,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     final chain = findFolderChain(folderPath);
     if (chain == null || chain.isEmpty) return;
 
-    final updatedCovers = <String, String>{};
+    final updatedCovers = <String, FolderCoverSnapshot>{};
     final removedFolderPaths = <String>[];
     bool hasChanged = false;
 
@@ -413,12 +426,17 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       if (newSongPath != null) {
+        final rep = newRep!;
         _folderRepresentativeSongPaths[normFolder] = newSongPath;
         final meta = _metadataStore.getMetadata(newSongPath);
         if (meta != null) {
           _folderRepresentativeSongs[normFolder] = meta;
         }
-        updatedCovers[normFolder] = newSongPath;
+        updatedCovers[normFolder] = FolderCoverSnapshot(
+          songPath: newSongPath,
+          thumbnailPath: rep.thumbnailPath ?? meta?.thumbnailPath,
+          artworkPath: rep.artworkPath ?? meta?.artworkPath,
+        );
       } else {
         _folderRepresentativeSongPaths.remove(normFolder);
         _folderRepresentativeSongs.remove(normFolder);
@@ -427,10 +445,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     if (updatedCovers.isNotEmpty) {
-      await _repository.batchUpsertFolderCovers(updatedCovers);
+      await _repository.batchWriteFolderCovers(updatedCovers);
     }
     if (removedFolderPaths.isNotEmpty) {
-      await _repository.removeFolderCoversForPaths(removedFolderPaths);
+      // 只清封面列：这些目录仍然存在于库里，统计不能跟着删。
+      await _repository.clearFolderEntryCovers(removedFolderPaths);
     }
     if (hasChanged) {
       notifyListeners();
@@ -705,25 +724,45 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
 
+    final pendingPaths = <String>[];
     for (final path in matchingPaths) {
       if (!isPathInActiveRoots(path)) continue;
       if (seenPaths.add(path)) {
-        final count = await _repository.getSongCountUnderPath(path);
-        final sortSettings = _resolveSortSettingsForFolder(path);
-        final repSongMeta = await _repository.getRepresentativeSongUnderPath(
-          path,
-          criteria: sortSettings.criteria,
-          order: sortSettings.order,
-        );
-
-        final normalized = _normalizePath(path);
-        _rootSongCounts[normalized] = count;
-        if (repSongMeta != null) {
-          _folderRepresentativeSongs[normalized] = repSongMeta;
-        }
-
-        results.add(MusicFolder(path: path, name: p.basename(path)));
+        pendingPaths.add(path);
       }
+    }
+    if (pendingPaths.isEmpty) return results;
+
+    // 一次 IN 查询拿所有命中目录的统计，换掉「每个命中目录一条全表 COUNT」。
+    final statsByPath = await _repository.getFolderStatsForPaths(pendingPaths);
+
+    for (final path in pendingPaths) {
+      final normalized = _normalizePath(
+        ScannerPathUtils.resolveIosSandboxPath(path),
+      );
+      final stat = statsByPath[normalized];
+      if (stat != null) {
+        _folderSongCounts[normalized] = stat.songCount;
+        _folderSongDurations[normalized] = stat.totalDurationMs;
+      } else {
+        // 表里没有（该目录还没落盘过，或上次扫描中断）：退回一次聚合，
+        // 宁可慢这一次也不要让搜索结果露出 0 首。
+        _folderSongCounts[normalized] =
+            await _repository.getSongCountUnderPath(path);
+      }
+
+      final sortSettings = _resolveSortSettingsForFolder(path);
+      final repSongMeta = await _repository.getRepresentativeSongUnderPath(
+        path,
+        criteria: sortSettings.criteria,
+        order: sortSettings.order,
+      );
+
+      if (repSongMeta != null) {
+        _folderRepresentativeSongs[normalized] = repSongMeta;
+      }
+
+      results.add(MusicFolder(path: path, name: p.basename(path)));
     }
 
     return results;
@@ -794,6 +833,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       onAlbumMetadataMutated: _markAlbumLibraryMutated,
       onThumbnailUpdated: (path, thumb) =>
           unawaited(updateSongThumbnailPath(path, thumb)),
+      onVisibleTreeSongsRemoved: _scheduleFolderIndexPersistForRemovedSongs,
     );
     _scanPipeline = ScannerScanPipeline(
       normalizePath: _normalizePath,
@@ -1227,18 +1267,25 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         _folderRepresentativeSongPaths.remove(folder);
         _folderRepresentativeSongs.remove(folder);
       }
-      await _repository.removeFolderCoversForPaths(staleCovers);
+      // 只清封面列：目录本身还在，统计必须留住。
+      await _repository.clearFolderEntryCovers(staleCovers);
     }
 
     if (allCovers.isNotEmpty) {
       _folderRepresentativeSongPaths.addAll(allCovers);
+      final coverSnapshots = <String, FolderCoverSnapshot>{};
       for (final entry in allCovers.entries) {
         final songMeta = _metadataStore.getMetadata(entry.value);
         if (songMeta != null) {
           _folderRepresentativeSongs[entry.key] = songMeta;
         }
+        coverSnapshots[entry.key] = FolderCoverSnapshot(
+          songPath: entry.value,
+          thumbnailPath: songMeta?.thumbnailPath,
+          artworkPath: songMeta?.artworkPath,
+        );
       }
-      await _repository.batchUpsertFolderCovers(allCovers);
+      await _repository.batchWriteFolderCovers(coverSnapshots);
     }
 
     for (final root in foldersToProcess) {
@@ -1358,6 +1405,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       await _timeInitStep(
         'load cached folder covers from database',
         _loadCachedFolderCoversFromDatabase,
+      );
+      await _timeInitStep(
+        'load folder entries from database',
+        _loadFolderEntriesFromDatabase,
       );
       final cachedSongs = const <SongMetadata>[];
       await _timeInitStep(
@@ -2355,6 +2406,34 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// 冷启动把 `folder_entries` 里的目录统计灌进内存镜像。
+  ///
+  /// 一次全表 SELECT 换掉「每个根两条 LIKE 聚合」。树建好之后由
+  /// [_persistFolderIndex] 用精确值覆盖同一批键，因此这里读到的是**上次**的结果，
+  /// 只用来让目录页在建树之前也有数字可显示。`statsValid = false` 的行
+  /// （上次扫描中断在半路）不采信。
+  Future<void> _loadFolderEntriesFromDatabase() async {
+    try {
+      final rows = await _repository.loadAllFolderEntries();
+      for (final row in rows) {
+        if (!row.statsValid) continue;
+        final normalized = _normalizePath(
+          ScannerPathUtils.resolveIosSandboxPath(row.folderPath),
+        );
+        if (normalized.isEmpty) continue;
+        _folderSongCounts[normalized] = row.songCount;
+        _folderSongDurations[normalized] = row.totalDurationMs;
+      }
+      if (kDebugMode) {
+        debugPrint(
+          '[ScannerService][init] folder_entries seeded ${rows.length} rows',
+        );
+      }
+    } catch (e) {
+      debugPrint('[ScannerService] Failed to load folder entries: $e');
+    }
+  }
+
   Future<void> _loadCachedRootFoldersFromDatabase({
     Iterable<String>? rootPaths,
     List<SongMetadata>? cachedSongs,
@@ -2373,17 +2452,24 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
       for (final root in availableRoots) {
         await loadRootFolderSongs(root);
-        final count = await _repository.getSongCountUnderPath(root);
-        final duration = await _repository.getSongDurationUnderPath(root);
-        final sortSettings = _resolveSortSettingsForFolder(root);
-        final repSong = await _repository.getRepresentativeSongUnderPath(
-          root,
-          criteria: sortSettings.criteria,
-          order: sortSettings.order,
+        // loadRootFolderSongs 建完树后统计已经在内存里了，这里不再跑
+        // COUNT(*) / SUM(duration) 的 LIKE 聚合——那两条是全表扫。
+        final scanned = _scannedRootFolders.firstWhereOrNull(
+          (folder) => _pathsEqual(folder.path, root),
         );
+        if (scanned != null) {
+          _folderSongCounts[root] = scanned.songCount;
+          _folderSongDurations[root] = scanned.totalDurationMs;
+        }
 
-        _rootSongCounts[root] = count;
-        _rootSongDurations[root] = duration;
+        final sortSettings = _resolveSortSettingsForFolder(root);
+        final repSong = _folderRepresentativeSongs[root] ??
+            await _repository.getRepresentativeSongUnderPath(
+              root,
+              criteria: sortSettings.criteria,
+              order: sortSettings.order,
+            );
+
         if (repSong != null) {
           _folderRepresentativeSongs[root] = repSong;
         }
@@ -2445,7 +2531,114 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       _scannedRootFolders.add(folder);
     }
     final normalized = _normalizePath(folder.path);
-    _rootSongCounts[normalized] = folder.allSongs.length;
+    // 用 songCount 而不是 allSongs.length：后者会把整棵树的歌曲摊平成 List
+    // 常驻在缓存里，只为拿一个长度不值得。
+    _folderSongCounts[normalized] = folder.songCount;
+    _folderSongDurations[normalized] = folder.totalDurationMs;
+    // 树刚重建完，统计是权威值：落盘供下次冷启动直接读。
+    _schedulePersistFolderIndex(normalized, folder);
+  }
+
+  final Map<String, Timer> _pendingFolderIndexTimers = {};
+  final Map<String, MusicFolder> _pendingFolderIndexRoots = {};
+
+  /// 合并同一根的高频重建。
+  ///
+  /// 扫描期间 `_upsertScannedRootFolder` 会被反复调用，每次都全量落盘是写放大；
+  /// 这里只保留每个根的最新树引用，静默 800ms 后再写一次。
+  void _schedulePersistFolderIndex(String rootPath, MusicFolder root) {
+    if (_isDisposed) return;
+    _pendingFolderIndexRoots[rootPath] = root;
+    _pendingFolderIndexTimers[rootPath]?.cancel();
+    _pendingFolderIndexTimers[rootPath] = Timer(
+      const Duration(milliseconds: 800),
+      () {
+        _pendingFolderIndexTimers.remove(rootPath);
+        final latest = _pendingFolderIndexRoots.remove(rootPath);
+        if (latest == null || _isDisposed) return;
+        unawaited(_persistFolderIndex(rootPath, latest));
+      },
+    );
+  }
+
+  /// 就地删歌后补一次统计落盘。
+  ///
+  /// `deleteMissingFromCache` 走的是 `_removeSongsFromFolder`，只改内存树，
+  /// 不经过 `_upsertScannedRootFolder`（那是整根重建才走的），所以删歌之后
+  /// `folder_entries` 会一直停在旧数字上，直到下一次根重建。
+  ///
+  /// 这里用「整树重写」而不是「沿父链向上冒泡」：树本来就在内存里，一次 O(N)
+  /// 遍历 + 现有防抖，比维护增量路径安全得多，且同一批删除只会写一次。
+  void _scheduleFolderIndexPersistForRemovedSongs(List<String> removedPaths) {
+    if (_isDisposed || removedPaths.isEmpty) return;
+
+    final affectedRoots = <String>{};
+    for (final path in removedPaths) {
+      affectedRoots.addAll(_rootPathsForDirectoryPath(path));
+    }
+
+    for (final rootPath in affectedRoots) {
+      // system 根不落盘，统计直接读 `_systemMediaFolder`。
+      final normalized = _normalizePath(rootPath);
+      if (normalized == 'system' || normalized.startsWith('system/')) continue;
+      final folder = _scannedRootFolders.firstWhereOrNull(
+        (existing) => _pathsEqual(existing.path, rootPath),
+      );
+      if (folder == null) continue;
+      // songCount / totalDurationMs 是惰性记忆化字段，文件刚被就地删掉，
+      // 不先失效就会把删之前的数字原样写回库。
+      folder.invalidateCache();
+      _schedulePersistFolderIndex(normalized, folder);
+    }
+  }
+
+  /// 把一棵完整树的目录统计写入 `folder_entries`。
+  ///
+  /// 只在根加载成功后调用——此时树是完整的，`statsValid` 才允许置 true。
+  /// 写入走 unawaited，不阻塞目录页首帧。
+  ///
+  /// **只写统计，不写封面。** 封面唯一写入口是 `_refreshFolderCoversForRoots`：
+  /// 这里走过的 `representativeSongCache` 会被 `notifyListeners()` 的
+  /// `invalidateCache()` 清空，取决于 800ms 防抖窗口内有没有人重建过它，
+  /// 采到的是空集或一个不确定的子集——写进去只会制造第二种封面来源。
+  ///
+  /// 覆盖范围是外部目录根（`_upsertScannedRootFolder` 之后调用）。Android 系统媒体库
+  /// 的统计直接读内存树（`getSongCountForFolder` 对 `system` 走 `_systemMediaFolder`），
+  /// 不依赖这张表，所以这里不写 system 根。
+  Future<void> _persistFolderIndex(String rootPath, MusicFolder root) async {
+    final snapshots = <FolderStatsSnapshot>[];
+
+    void walk(MusicFolder folder) {
+      final path = _normalizePath(folder.path);
+      if (path.isNotEmpty) {
+        final count = folder.songCount;
+        final duration = folder.totalDurationMs;
+        snapshots.add(
+          FolderStatsSnapshot(
+            folderPath: path,
+            rootPath: rootPath,
+            songCount: count,
+            totalDurationMs: duration,
+          ),
+        );
+        _folderSongCounts[path] = count;
+        _folderSongDurations[path] = duration;
+      }
+      for (final sub in folder.subFolders) {
+        walk(sub);
+      }
+    }
+
+    walk(root);
+
+    try {
+      await _repository.batchWriteFolderStats(
+        snapshots,
+        statsValid: true,
+      );
+    } catch (e) {
+      debugPrint('[ScannerService] Failed to persist folder index for $rootPath: $e');
+    }
   }
 
   MusicFolder? _buildCachedFolderTree({
@@ -2572,12 +2765,29 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _processAndSaveAndroidSongsBackground(
     List<AndroidMediaLibraryEntry> entries,
   ) async {
-    await _processEntriesBackground(
-      entries,
-      filePathOf: _androidEntryFilePath,
-      songIdOf: (entry) => int.tryParse(entry.id),
-      sourceMask: SongSourceFlags.systemMedia,
-    );
+    _pendingAndroidMediaEntries = entries;
+    if (_androidMediaMetadataInFlight != null) return;
+
+    // 系统媒体元数据重读必须串行（见下方注释）：跑的过程中再来请求，只把最新
+    // 列表存下来，等当前这轮跑完再补一遍，保证新发现的文件不会漏。
+    while (true) {
+      final batch = _pendingAndroidMediaEntries;
+      if (batch == null) break;
+      _pendingAndroidMediaEntries = null;
+
+      final future = _processEntriesBackground(
+        batch,
+        filePathOf: _androidEntryFilePath,
+        songIdOf: (entry) => int.tryParse(entry.id),
+        sourceMask: SongSourceFlags.systemMedia,
+      );
+      _androidMediaMetadataInFlight = future;
+      try {
+        await future;
+      } finally {
+        _androidMediaMetadataInFlight = null;
+      }
+    }
     unawaited(_refreshFolderCoversForRoots(['system']));
   }
 
@@ -3222,7 +3432,15 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     if (normalizedRoots.isEmpty) return;
 
     await _repository.unbindRootPaths(normalizedRoots);
-    await _repository.removeFolderCoversUnderRoots(normalizedRoots);
+    await _repository.removeFolderEntriesUnderRoots(normalizedRoots);
+    for (final root in normalizedRoots) {
+      _folderSongCounts.removeWhere(
+        (path, _) => _pathContains(root, path) || _pathsEqual(root, path),
+      );
+      _folderSongDurations.removeWhere(
+        (path, _) => _pathContains(root, path) || _pathsEqual(root, path),
+      );
+    }
 
     final sweepResult = await _repository.sweepOrphanSongs();
     if (sweepResult.deletedPaths.isEmpty) return;
@@ -4495,6 +4713,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void dispose() {
     _isDisposed = true;
+    _pendingAndroidMediaEntries = null;
     WidgetsBinding.instance.removeObserver(this);
     _stopRootAvailabilityTimer();
     _navigationState.removeListener(_handleNavigationChanged);
@@ -4509,6 +4728,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     _folderCoverRefreshTimer?.cancel();
     _folderCoverRefreshTimer = null;
     _pendingFolderCoverRefreshPaths.clear();
+    for (final timer in _pendingFolderIndexTimers.values) {
+      timer.cancel();
+    }
+    _pendingFolderIndexTimers.clear();
+    _pendingFolderIndexRoots.clear();
     _scanNotifyTimer?.cancel();
     _rootAvailabilityRefreshTimer?.cancel();
     _scanProgressController.close();

@@ -13,7 +13,7 @@ part of 'metadata_database.dart';
     ArtistImageCaches,
     ArtworkCaches,
     RemoteSongs,
-    FolderCovers,
+    FolderEntries,
     RemoteLibraryCaches,
     LyricsHistories,
     SongRatings,
@@ -25,7 +25,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 44;
+  int get schemaVersion => 45;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -54,6 +54,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
       await _repairLegacyLyricsCacheRows();
       await _repairLegacyArtistCacheRows();
+
+      // folder_entries 需要按根批量删/查，rootPath 建索引。
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_folder_entries_root ON folder_entries(rootPath)',
+      );
 
       // Clean up sourceFlags (remove external flag 4 if combined with rootScan or systemMedia)
       if (await _columnExists('songs', 'sourceFlags')) {
@@ -392,9 +397,10 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       }
       if (from < 34) {
         final migrator = createMigrator();
-        final exists = await _tableExists(folderCovers.actualTableName);
+        // v34 引入的是「目录级派生数据」表，v45 起由 folder_entries 承担。
+        final exists = await _tableExists(folderEntries.actualTableName);
         if (!exists) {
-          await migrator.createTable(folderCovers);
+          await migrator.createTable(folderEntries);
         }
       }
       if (from < 35) {
@@ -451,6 +457,49 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
             AND genres IS NULL
             AND (isAppModified = 0 OR isAppModified IS NULL)
         ''');
+      }
+      if (from < 45) {
+        // folder_covers → folder_entries：目录级派生数据（统计 + 封面）收敛到一张表。
+        // 统计列先留 0 且 statsValid = 0，作为「未知」标记，由本次启动后的扫描回填；
+        // 封面列直接从旧表 + songs 表抄过来，保证升级后封面立刻可用。
+        await m.database.customStatement('''
+          CREATE TABLE IF NOT EXISTS folder_entries (
+            folderPath TEXT NOT NULL,
+            rootPath TEXT NOT NULL DEFAULT '',
+            songCount INTEGER NOT NULL DEFAULT 0,
+            totalDurationMs INTEGER NOT NULL DEFAULT 0,
+            coverSongPath TEXT,
+            coverThumbnailPath TEXT,
+            coverArtworkPath TEXT,
+            updatedAtMillis INTEGER NOT NULL,
+            statsValid INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (folderPath)
+          )
+        ''');
+        if (await _tableExists('folder_covers')) {
+          await m.database.customStatement('''
+            INSERT OR IGNORE INTO folder_entries (
+              folderPath, rootPath, songCount, totalDurationMs,
+              coverSongPath, coverThumbnailPath, coverArtworkPath,
+              updatedAtMillis, statsValid
+            )
+            SELECT
+              c.folderPath,
+              COALESCE((
+                SELECT sr.root_path FROM song_roots sr
+                WHERE sr.song_path = c.songPath LIMIT 1
+              ), ''),
+              0, 0,
+              c.songPath,
+              s.thumbnailPath,
+              s.artworkPath,
+              c.updatedAtMillis,
+              0
+            FROM folder_covers c
+            LEFT JOIN songs s ON s.path = c.songPath
+          ''');
+          await m.database.customStatement('DROP TABLE IF EXISTS folder_covers');
+        }
       }
     },
   );
@@ -1616,6 +1665,8 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       return;
     }
 
+    // 这次读只服务两件「必须先读」的事：sourceFlags 合并、整行写入告警。
+    // 千万不能拿它当「要不要 insert」的判据，见下面的 upsert 注释。
     final existing =
         await (select(songs)
               ..where((t) => t.path.equals(normalizedPath))
@@ -1645,14 +1696,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       lastSeenRootScanSessionId: rootScanSessionId,
     );
 
-    if (existing != null) {
-      await (update(
-        songs,
-      )..where((t) => t.path.equals(existing.path))).write(companion);
-      return;
-    }
-
-    await into(songs).insert(companion);
+    // 【必须 upsert，不能「读到 null 就 insert」】
+    // 「读 → 写」之间没有事务：启动期 scanSystemMedia() 会被权限检查、scan()、
+    // 媒体观察者等多条入口各触发一次，每次都以 4 路并发重读全部系统媒体条目。
+    // 两个并发任务同时读到 null 时，后写的那次直接撞 UNIQUE(path)，抛
+    // SqliteException(2067)，整条元数据被丢弃（processMetadata 会 catch 成 null）。
+    // 交给 SQLite 自己判冲突，与 insertOrUpdateSongsMerged 保持一致。
+    await into(songs).insert(
+      companion,
+      onConflict: DoUpdate((old) => companion, target: [songs.path]),
+    );
   }
 
   Future<void> insertOrUpdateSongsMerged(
@@ -2053,7 +2106,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<void> clearAllSongs() async {
     final rows = await select(songs).get();
     await delete(songs).go();
-    await delete(folderCovers).go();
+    await delete(folderEntries).go();
     await _deleteThumbnailFiles(rows.map((row) => row.thumbnailPath));
   }
 
@@ -2381,7 +2434,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
             ? i + chunkSize
             : deletedPaths.length;
         final chunk = deletedPaths.sublist(i, end);
-        await (delete(folderCovers)..where((t) => t.songPath.isIn(chunk))).go();
+        // 歌没了只失效封面，目录行与统计保留——统计由调用方随后重算。
+        await (update(folderEntries)
+              ..where((t) => t.coverSongPath.isIn(chunk)))
+            .write(
+          const FolderEntriesCompanion(
+            coverSongPath: Value(null),
+            coverThumbnailPath: Value(null),
+            coverArtworkPath: Value(null),
+          ),
+        );
       }
     }
 
@@ -3465,9 +3527,29 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           // F. artist_image_cache
           await customStatement('UPDATE artist_image_cache SET imagePath = REPLACE(imagePath, ?, ?) WHERE imagePath LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
 
-          // G. folder_covers
-          await customStatement('UPDATE OR IGNORE folder_covers SET folderPath = REPLACE(folderPath, ?, ?), songPath = REPLACE(songPath, ?, ?) WHERE folderPath LIKE ? OR songPath LIKE ?', <Object>[oldPrefix, newPrefix, oldPrefix, newPrefix, oldLike, oldLike]);
-          await customStatement('DELETE FROM folder_covers WHERE folderPath LIKE ? OR songPath LIKE ?', <Object>[oldLike, oldLike]);
+          // G. folder_entries
+          await customStatement(
+            'UPDATE OR IGNORE folder_entries SET '
+            'folderPath = REPLACE(folderPath, ?, ?), '
+            'rootPath = REPLACE(rootPath, ?, ?), '
+            'coverSongPath = REPLACE(coverSongPath, ?, ?), '
+            'coverThumbnailPath = REPLACE(coverThumbnailPath, ?, ?), '
+            'coverArtworkPath = REPLACE(coverArtworkPath, ?, ?) '
+            'WHERE folderPath LIKE ? OR rootPath LIKE ? OR coverSongPath LIKE ? '
+            'OR coverThumbnailPath LIKE ? OR coverArtworkPath LIKE ?',
+            <Object>[
+              oldPrefix, newPrefix,
+              oldPrefix, newPrefix,
+              oldPrefix, newPrefix,
+              oldPrefix, newPrefix,
+              oldPrefix, newPrefix,
+              oldLike, oldLike, oldLike, oldLike, oldLike,
+            ],
+          );
+          await customStatement(
+            'DELETE FROM folder_entries WHERE folderPath LIKE ?',
+            <Object>[oldLike],
+          );
 
           // H. song_roots
           await customStatement('UPDATE OR IGNORE song_roots SET song_path = REPLACE(song_path, ?, ?), root_path = REPLACE(root_path, ?, ?) WHERE song_path LIKE ? OR root_path LIKE ?', <Object>[oldPrefix, newPrefix, oldPrefix, newPrefix, oldLike, oldLike]);
@@ -3884,13 +3966,36 @@ class RemoteSongs extends Table {
   List<String> get customConstraints => const ['UNIQUE(virtualUri)'];
 }
 
-class FolderCovers extends Table {
+/// 目录级派生数据索引：一个目录一行。
+///
+/// 收敛了三类原本分散或在读时才计算的数据：
+/// 1. 统计：`songCount` / `totalDurationMs`，含整棵子树。`statsValid` 标记该行
+///    是否由一次完整的根加载算出——扫描中断或单根失败时保持 false，读取方据此
+///    回落现算，避免把半截数据当权威值显示。
+/// 2. 封面：`coverSongPath` 是代表歌曲（封面语义的权威来源），
+///    `coverThumbnailPath` / `coverArtworkPath` 是它的冗余快路径。冗余列允许读到后
+///    先验存在性，失效或查不到歌曲时回退 `coverSongPath` 再查 songs，不单独作为
+///    正确性依据。
+/// 3. `rootPath`：所属根目录，用于按根批量清理，避免每次用 LIKE 前缀扫全表。
+class FolderEntries extends Table {
   @override
-  String get tableName => 'folder_covers';
+  String get tableName => 'folder_entries';
 
   TextColumn get folderPath => text().named('folderPath')();
-  TextColumn get songPath => text().named('songPath')();
+  TextColumn get rootPath =>
+      text().withDefault(const Constant('')).named('rootPath')();
+  IntColumn get songCount =>
+      integer().withDefault(const Constant(0)).named('songCount')();
+  IntColumn get totalDurationMs =>
+      integer().withDefault(const Constant(0)).named('totalDurationMs')();
+  TextColumn get coverSongPath => text().nullable().named('coverSongPath')();
+  TextColumn get coverThumbnailPath =>
+      text().nullable().named('coverThumbnailPath')();
+  TextColumn get coverArtworkPath =>
+      text().nullable().named('coverArtworkPath')();
   IntColumn get updatedAtMillis => integer().named('updatedAtMillis')();
+  BoolColumn get statsValid =>
+      boolean().withDefault(const Constant(false)).named('statsValid')();
 
   @override
   Set<Column> get primaryKey => {folderPath};
@@ -4084,58 +4189,242 @@ extension MetadataRemoteLibraryCachesOps on MetadataDriftDatabase {
   }
 }
 
-extension MetadataFolderCoversOps on MetadataDriftDatabase {
-  Future<void> batchUpsertFolderCovers(Map<String, String> covers) async {
+/// 目录统计快照：`folder_entries` 里只属于「统计」的那组列。
+///
+/// 与 [FolderCoverSnapshot] 分开定义，是因为两者写入时机不同：统计随建树刷新，
+/// 封面随代表歌曲冒泡。拆开后各自只更新自己的列，不会互相覆盖。
+class FolderStatsSnapshot {
+  const FolderStatsSnapshot({
+    required this.folderPath,
+    required this.rootPath,
+    required this.songCount,
+    required this.totalDurationMs,
+  });
+
+  final String folderPath;
+  final String rootPath;
+  final int songCount;
+  final int totalDurationMs;
+}
+
+/// 目录封面快照：`folder_entries` 里只属于「封面」的那组列。
+class FolderCoverSnapshot {
+  const FolderCoverSnapshot({
+    required this.songPath,
+    this.thumbnailPath,
+    this.artworkPath,
+  });
+
+  /// 代表歌曲路径，封面语义的权威来源。
+  final String songPath;
+
+  /// 冗余快路径，失效时由 [songPath] 回退补齐。
+  final String? thumbnailPath;
+  final String? artworkPath;
+}
+
+/// 用 `folder_entries` 里冗余的封面路径拼一份最小 [SongMetadata]。
+///
+/// 仅在对应的 songs 行缺失或已软删时使用：此时 title / artist 之类的标签已经不可信，
+/// 只要能撑起封面显示即可，其余字段留默认值。
+SongMetadata? _folderCoverFallbackMetadata(FolderEntry entry) {
+  final songPath = entry.coverSongPath;
+  if (songPath == null || songPath.isEmpty) return null;
+  return SongMetadata(
+    path: songPath,
+    title: p.basenameWithoutExtension(songPath),
+    album: '',
+    artist: '',
+    thumbnailPath: entry.coverThumbnailPath,
+    artworkPath: entry.coverArtworkPath,
+  );
+}
+
+extension MetadataFolderEntriesOps on MetadataDriftDatabase {
+  /// 批量写入目录统计。已存在的行只更新统计列，封面包保持不变。
+  Future<void> batchWriteFolderStats(
+    Iterable<FolderStatsSnapshot> stats, {
+    bool statsValid = true,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final rows = <MapEntry<String, FolderStatsSnapshot>>[];
+    for (final stat in stats) {
+      final path = _normalizePath(stat.folderPath);
+      if (path.isEmpty) continue;
+      rows.add(MapEntry(path, stat));
+    }
+    if (rows.isEmpty) return;
+
+    // 一个根下可能有上万个目录，分块写入避免单条超大语句。
+    const chunkSize = 500;
+    for (var start = 0; start < rows.length; start += chunkSize) {
+      final end =
+          (start + chunkSize < rows.length) ? start + chunkSize : rows.length;
+      final chunk = rows.sublist(start, end);
+      await batch((b) {
+        for (final entry in chunk) {
+          final path = entry.key;
+          final stat = entry.value;
+          final rootPath = _normalizePath(stat.rootPath);
+          b.insert(
+            folderEntries,
+            FolderEntriesCompanion.insert(
+              folderPath: path,
+              rootPath: Value(rootPath),
+              songCount: Value(stat.songCount),
+              totalDurationMs: Value(stat.totalDurationMs),
+              updatedAtMillis: now,
+              statsValid: Value(statsValid),
+            ),
+            onConflict: DoUpdate(
+              (_) => FolderEntriesCompanion(
+                rootPath: Value(rootPath),
+                songCount: Value(stat.songCount),
+                totalDurationMs: Value(stat.totalDurationMs),
+                updatedAtMillis: Value(now),
+                statsValid: Value(statsValid),
+              ),
+              target: [folderEntries.folderPath],
+            ),
+          );
+        }
+      });
+    }
+  }
+
+  /// 批量写入目录封面。已存在的行只更新封面列，统计保持不变。
+  ///
+  /// [thumbnailPath] / [artworkPath] 传 null 表示显式置空（原来有、现在没有了），
+  /// 与「不更新」是两回事，调用方需要按实际情况传。
+  Future<void> batchWriteFolderCovers(
+    Map<String, FolderCoverSnapshot> covers,
+  ) async {
     if (covers.isEmpty) return;
     final now = DateTime.now().millisecondsSinceEpoch;
     await batch((b) {
       for (final entry in covers.entries) {
+        final path = _normalizePath(entry.key);
+        if (path.isEmpty) continue;
+        final cover = entry.value;
+        final songPath = _normalizePath(cover.songPath);
+        final thumbnailPath = cover.thumbnailPath == null
+            ? null
+            : _normalizePath(cover.thumbnailPath!);
+        final artworkPath = cover.artworkPath == null
+            ? null
+            : _normalizePath(cover.artworkPath!);
+
         b.insert(
-          folderCovers,
-          FolderCoversCompanion(
-            folderPath: Value(_normalizePath(entry.key)),
-            songPath: Value(_normalizePath(entry.value)),
-            updatedAtMillis: Value(now),
+          folderEntries,
+          FolderEntriesCompanion.insert(
+            folderPath: path,
+            coverSongPath: Value(songPath),
+            coverThumbnailPath: Value(thumbnailPath),
+            coverArtworkPath: Value(artworkPath),
+            updatedAtMillis: now,
           ),
-          mode: InsertMode.insertOrReplace,
+          onConflict: DoUpdate(
+            (_) => FolderEntriesCompanion(
+              coverSongPath: Value(songPath),
+              coverThumbnailPath: Value(thumbnailPath),
+              coverArtworkPath: Value(artworkPath),
+              updatedAtMillis: Value(now),
+            ),
+            target: [folderEntries.folderPath],
+          ),
         );
       }
     });
   }
 
-  Future<void> upsertFolderCover(String folderPath, String songPath) async {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    await into(folderCovers).insert(
-      FolderCoversCompanion(
-        folderPath: Value(_normalizePath(folderPath)),
-        songPath: Value(_normalizePath(songPath)),
-        updatedAtMillis: Value(now),
+  /// 清空目录封面列，行与统计保留。
+  Future<void> clearFolderEntryCovers(Iterable<String> folderPaths) async {
+    final normalized =
+        folderPaths.map(_normalizePath).where((p) => p.isNotEmpty).toSet();
+    if (normalized.isEmpty) return;
+    await (update(folderEntries)
+          ..where((tbl) => tbl.folderPath.isIn(normalized)))
+        .write(
+      FolderEntriesCompanion(
+        coverSongPath: const Value(null),
+        coverThumbnailPath: const Value(null),
+        coverArtworkPath: const Value(null),
+        updatedAtMillis: Value(DateTime.now().millisecondsSinceEpoch),
       ),
-      mode: InsertMode.insertOrReplace,
     );
   }
 
-  Future<Map<String, String>> getAllFolderCovers() async {
-    final rows = await select(folderCovers).get();
-    final result = <String, String>{};
-    for (final row in rows) {
-      result[row.folderPath] = row.songPath;
+  /// 整表加载目录索引（冷启动 seed 用）。
+  Future<List<FolderEntry>> loadAllFolderEntries() =>
+      select(folderEntries).get();
+
+  /// 按目录路径批量取统计，一次 IN 查询（分块 500）。
+  ///
+  /// 返回值的键是「iOS sandbox 解析 + 归一化」后的路径，与
+  /// [loadAllFolderEntries] 消费侧的键规则一致，调用方不必再自己推。
+  /// 传入路径可以带/不带 sandbox 前缀，两种归一化形式都会拿去匹配。
+  /// `statsValid = false` 的行不返回——调用方应当把它当「表里没有」处理。
+  Future<Map<String, FolderStatsSnapshot>> getFolderStatsForPaths(
+    Iterable<String> folderPaths,
+  ) async {
+    final candidates = <String>{};
+    for (final raw in folderPaths) {
+      if (raw.trim().isEmpty) continue;
+      final normalized = _normalizePath(raw);
+      if (normalized.isNotEmpty) candidates.add(normalized);
+      final resolved =
+          _normalizePath(ScannerPathUtils.resolveIosSandboxPath(raw));
+      if (resolved.isNotEmpty) candidates.add(resolved);
+    }
+    if (candidates.isEmpty) return const {};
+
+    final result = <String, FolderStatsSnapshot>{};
+    final list = candidates.toList(growable: false);
+    const chunkSize = 500;
+    for (var start = 0; start < list.length; start += chunkSize) {
+      final end =
+          (start + chunkSize < list.length) ? start + chunkSize : list.length;
+      final chunk = list.sublist(start, end);
+      final rows = await (select(folderEntries)
+            ..where((tbl) => tbl.folderPath.isIn(chunk)))
+          .get();
+      for (final row in rows) {
+        if (!row.statsValid) continue;
+        final key = _normalizePath(
+          ScannerPathUtils.resolveIosSandboxPath(row.folderPath),
+        );
+        if (key.isEmpty) continue;
+        result[key] = FolderStatsSnapshot(
+          folderPath: key,
+          rootPath: row.rootPath,
+          songCount: row.songCount,
+          totalDurationMs: row.totalDurationMs,
+        );
+      }
     }
     return result;
   }
 
   Future<Map<String, SongMetadata>> getAllFolderRepresentativeMetadata() async {
-    final query = select(folderCovers).join([
-      innerJoin(songs, songs.path.equalsExp(folderCovers.songPath)),
-    ])..where(songs.deletedAt.isNull());
+    // left join：歌曲行被软删或已不存在时，仍用表里冗余的封面路径兜底，
+    // 避免目录封面跟着歌曲一起消失。
+    final query = select(folderEntries).join([
+      leftOuterJoin(songs, songs.path.equalsExp(folderEntries.coverSongPath)),
+    ])..where(folderEntries.coverSongPath.isNotNull());
 
     final rows = await query.get();
     final result = <String, SongMetadata>{};
     for (final row in rows) {
-      final coverRow = row.readTable(folderCovers);
-      final songRow = row.readTable(songs);
-      final resolvedFolder = ScannerPathUtils.resolveIosSandboxPath(coverRow.folderPath);
-      result[resolvedFolder] = _songFromTableRow(songRow);
+      final entryRow = row.readTable(folderEntries);
+      final songRow = row.readTableOrNull(songs);
+      final resolvedFolder =
+          ScannerPathUtils.resolveIosSandboxPath(entryRow.folderPath);
+      final meta = (songRow != null && songRow.deletedAt == null)
+          ? _songFromTableRow(songRow)
+          : _folderCoverFallbackMetadata(entryRow);
+      if (meta != null) {
+        result[resolvedFolder] = meta;
+      }
     }
     return result;
   }
@@ -4143,20 +4432,24 @@ extension MetadataFolderCoversOps on MetadataDriftDatabase {
   Future<SongMetadata?> getFolderRepresentativeMetadata(String folderPath) async {
     final normalized = _normalizePath(folderPath);
     if (normalized.isEmpty) return null;
-    final resolvedFolder = _normalizePath(ScannerPathUtils.resolveIosSandboxPath(folderPath));
-    final sandboxSuffix = MetadataDriftDatabase._extractIosSandboxSuffix(normalized);
+    final resolvedFolder =
+        _normalizePath(ScannerPathUtils.resolveIosSandboxPath(folderPath));
+    final sandboxSuffix =
+        MetadataDriftDatabase._extractIosSandboxSuffix(normalized);
 
-    Expression<bool> whereClause =
-        folderCovers.folderPath.equals(normalized) |
-        folderCovers.folderPath.equals(resolvedFolder);
+    Expression<bool> whereClause = folderEntries.folderPath.equals(normalized) |
+        folderEntries.folderPath.equals(resolvedFolder);
     if (sandboxSuffix != null) {
       whereClause = whereClause |
-          folderCovers.folderPath.like('%/Containers/Data/Application/%$sandboxSuffix');
+          folderEntries.folderPath
+              .like('%/Containers/Data/Application/%$sandboxSuffix');
     }
-    whereClause = whereClause & songs.deletedAt.isNull();
+    whereClause = whereClause &
+        songs.deletedAt.isNull() &
+        folderEntries.coverSongPath.isNotNull();
 
-    final query = select(folderCovers).join([
-      innerJoin(songs, songs.path.equalsExp(folderCovers.songPath)),
+    final query = select(folderEntries).join([
+      innerJoin(songs, songs.path.equalsExp(folderEntries.coverSongPath)),
     ])..where(whereClause);
 
     final row = await query.getSingleOrNull();
@@ -4164,13 +4457,7 @@ extension MetadataFolderCoversOps on MetadataDriftDatabase {
     return _songFromTableRow(row.readTable(songs));
   }
 
-  Future<void> removeFolderCoversForPaths(Iterable<String> folderPaths) async {
-    final normalized = folderPaths.map(_normalizePath).toSet();
-    if (normalized.isEmpty) return;
-    await (delete(folderCovers)..where((tbl) => tbl.folderPath.isIn(normalized))).go();
-  }
-
-  Future<void> removeFolderCoversUnderRoots(Iterable<String> rootPaths) async {
+  Future<void> removeFolderEntriesUnderRoots(Iterable<String> rootPaths) async {
     final normalizedRoots =
         rootPaths.map(_normalizePath).where((p) => p.isNotEmpty).toList();
     if (normalizedRoots.isEmpty) return;
@@ -4179,11 +4466,15 @@ extension MetadataFolderCoversOps on MetadataDriftDatabase {
       final separator = Platform.isWindows ? '\\' : '/';
       final prefixPattern =
           root.endsWith(separator) ? '$root%' : '$root$separator%';
-      await (delete(folderCovers)
+      // 先按 rootPath 精确删（走索引），再兜底处理 rootPath 为空的旧行。
+      await (delete(folderEntries)..where((tbl) => tbl.rootPath.equals(root)))
+          .go();
+      await (delete(folderEntries)
             ..where(
               (tbl) =>
-                  tbl.folderPath.equals(root) |
-                  tbl.folderPath.like(prefixPattern),
+                  tbl.rootPath.equals('') &
+                  (tbl.folderPath.equals(root) |
+                      tbl.folderPath.like(prefixPattern)),
             ))
           .go();
     }

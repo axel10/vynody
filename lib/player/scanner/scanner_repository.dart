@@ -43,16 +43,29 @@ class ScannerRepository {
     );
   }
 
-  Future<void> batchUpsertFolderCovers(Map<String, String> covers) {
-    return _database.batchUpsertFolderCovers(covers);
+  Future<void> batchWriteFolderStats(
+    Iterable<FolderStatsSnapshot> stats, {
+    bool statsValid = true,
+  }) {
+    return _database.batchWriteFolderStats(stats, statsValid: statsValid);
   }
 
-  Future<void> upsertFolderCover(String folderPath, String songPath) {
-    return _database.upsertFolderCover(folderPath, songPath);
+  Future<void> batchWriteFolderCovers(Map<String, FolderCoverSnapshot> covers) {
+    return _database.batchWriteFolderCovers(covers);
   }
 
-  Future<Map<String, String>> getAllFolderCovers() {
-    return _database.getAllFolderCovers();
+  Future<void> clearFolderEntryCovers(Iterable<String> folderPaths) {
+    return _database.clearFolderEntryCovers(folderPaths);
+  }
+
+  Future<List<FolderEntry>> loadAllFolderEntries() {
+    return _database.loadAllFolderEntries();
+  }
+
+  Future<Map<String, FolderStatsSnapshot>> getFolderStatsForPaths(
+    Iterable<String> folderPaths,
+  ) {
+    return _database.getFolderStatsForPaths(folderPaths);
   }
 
   Future<Map<String, SongMetadata>> getAllFolderRepresentativeMetadata() {
@@ -63,12 +76,8 @@ class ScannerRepository {
     return _database.getFolderRepresentativeMetadata(folderPath);
   }
 
-  Future<void> removeFolderCoversForPaths(Iterable<String> folderPaths) {
-    return _database.removeFolderCoversForPaths(folderPaths);
-  }
-
-  Future<void> removeFolderCoversUnderRoots(Iterable<String> rootPaths) {
-    return _database.removeFolderCoversUnderRoots(rootPaths);
+  Future<void> removeFolderEntriesUnderRoots(Iterable<String> rootPaths) {
+    return _database.removeFolderEntriesUnderRoots(rootPaths);
   }
 
   Future<List<SongMetadata>> getSystemMediaSongs() {

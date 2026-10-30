@@ -7708,12 +7708,12 @@ class RemoteSongsCompanion extends UpdateCompanion<RemoteSong> {
   }
 }
 
-class $FolderCoversTable extends FolderCovers
-    with TableInfo<$FolderCoversTable, FolderCover> {
+class $FolderEntriesTable extends FolderEntries
+    with TableInfo<$FolderEntriesTable, FolderEntry> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $FolderCoversTable(this.attachedDatabase, [this._alias]);
+  $FolderEntriesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _folderPathMeta = const VerificationMeta(
     'folderPath',
   );
@@ -7725,16 +7725,74 @@ class $FolderCoversTable extends FolderCovers
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _songPathMeta = const VerificationMeta(
-    'songPath',
+  static const VerificationMeta _rootPathMeta = const VerificationMeta(
+    'rootPath',
   );
   @override
-  late final GeneratedColumn<String> songPath = GeneratedColumn<String>(
-    'songPath',
+  late final GeneratedColumn<String> rootPath = GeneratedColumn<String>(
+    'rootPath',
     aliasedName,
     false,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _songCountMeta = const VerificationMeta(
+    'songCount',
+  );
+  @override
+  late final GeneratedColumn<int> songCount = GeneratedColumn<int>(
+    'songCount',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _totalDurationMsMeta = const VerificationMeta(
+    'totalDurationMs',
+  );
+  @override
+  late final GeneratedColumn<int> totalDurationMs = GeneratedColumn<int>(
+    'totalDurationMs',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _coverSongPathMeta = const VerificationMeta(
+    'coverSongPath',
+  );
+  @override
+  late final GeneratedColumn<String> coverSongPath = GeneratedColumn<String>(
+    'coverSongPath',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _coverThumbnailPathMeta =
+      const VerificationMeta('coverThumbnailPath');
+  @override
+  late final GeneratedColumn<String> coverThumbnailPath =
+      GeneratedColumn<String>(
+        'coverThumbnailPath',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _coverArtworkPathMeta = const VerificationMeta(
+    'coverArtworkPath',
+  );
+  @override
+  late final GeneratedColumn<String> coverArtworkPath = GeneratedColumn<String>(
+    'coverArtworkPath',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _updatedAtMillisMeta = const VerificationMeta(
     'updatedAtMillis',
@@ -7747,16 +7805,41 @@ class $FolderCoversTable extends FolderCovers
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _statsValidMeta = const VerificationMeta(
+    'statsValid',
+  );
   @override
-  List<GeneratedColumn> get $columns => [folderPath, songPath, updatedAtMillis];
+  late final GeneratedColumn<bool> statsValid = GeneratedColumn<bool>(
+    'statsValid',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("statsValid" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    folderPath,
+    rootPath,
+    songCount,
+    totalDurationMs,
+    coverSongPath,
+    coverThumbnailPath,
+    coverArtworkPath,
+    updatedAtMillis,
+    statsValid,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'folder_covers';
+  static const String $name = 'folder_entries';
   @override
   VerificationContext validateIntegrity(
-    Insertable<FolderCover> instance, {
+    Insertable<FolderEntry> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -7769,13 +7852,53 @@ class $FolderCoversTable extends FolderCovers
     } else if (isInserting) {
       context.missing(_folderPathMeta);
     }
-    if (data.containsKey('songPath')) {
+    if (data.containsKey('rootPath')) {
       context.handle(
-        _songPathMeta,
-        songPath.isAcceptableOrUnknown(data['songPath']!, _songPathMeta),
+        _rootPathMeta,
+        rootPath.isAcceptableOrUnknown(data['rootPath']!, _rootPathMeta),
       );
-    } else if (isInserting) {
-      context.missing(_songPathMeta);
+    }
+    if (data.containsKey('songCount')) {
+      context.handle(
+        _songCountMeta,
+        songCount.isAcceptableOrUnknown(data['songCount']!, _songCountMeta),
+      );
+    }
+    if (data.containsKey('totalDurationMs')) {
+      context.handle(
+        _totalDurationMsMeta,
+        totalDurationMs.isAcceptableOrUnknown(
+          data['totalDurationMs']!,
+          _totalDurationMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('coverSongPath')) {
+      context.handle(
+        _coverSongPathMeta,
+        coverSongPath.isAcceptableOrUnknown(
+          data['coverSongPath']!,
+          _coverSongPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('coverThumbnailPath')) {
+      context.handle(
+        _coverThumbnailPathMeta,
+        coverThumbnailPath.isAcceptableOrUnknown(
+          data['coverThumbnailPath']!,
+          _coverThumbnailPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('coverArtworkPath')) {
+      context.handle(
+        _coverArtworkPathMeta,
+        coverArtworkPath.isAcceptableOrUnknown(
+          data['coverArtworkPath']!,
+          _coverArtworkPathMeta,
+        ),
+      );
     }
     if (data.containsKey('updatedAtMillis')) {
       context.handle(
@@ -7788,71 +7911,145 @@ class $FolderCoversTable extends FolderCovers
     } else if (isInserting) {
       context.missing(_updatedAtMillisMeta);
     }
+    if (data.containsKey('statsValid')) {
+      context.handle(
+        _statsValidMeta,
+        statsValid.isAcceptableOrUnknown(data['statsValid']!, _statsValidMeta),
+      );
+    }
     return context;
   }
 
   @override
   Set<GeneratedColumn> get $primaryKey => {folderPath};
   @override
-  FolderCover map(Map<String, dynamic> data, {String? tablePrefix}) {
+  FolderEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return FolderCover(
+    return FolderEntry(
       folderPath: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}folderPath'],
       )!,
-      songPath: attachedDatabase.typeMapping.read(
+      rootPath: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}songPath'],
+        data['${effectivePrefix}rootPath'],
       )!,
+      songCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}songCount'],
+      )!,
+      totalDurationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}totalDurationMs'],
+      )!,
+      coverSongPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}coverSongPath'],
+      ),
+      coverThumbnailPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}coverThumbnailPath'],
+      ),
+      coverArtworkPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}coverArtworkPath'],
+      ),
       updatedAtMillis: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updatedAtMillis'],
+      )!,
+      statsValid: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}statsValid'],
       )!,
     );
   }
 
   @override
-  $FolderCoversTable createAlias(String alias) {
-    return $FolderCoversTable(attachedDatabase, alias);
+  $FolderEntriesTable createAlias(String alias) {
+    return $FolderEntriesTable(attachedDatabase, alias);
   }
 }
 
-class FolderCover extends DataClass implements Insertable<FolderCover> {
+class FolderEntry extends DataClass implements Insertable<FolderEntry> {
   final String folderPath;
-  final String songPath;
+  final String rootPath;
+  final int songCount;
+  final int totalDurationMs;
+  final String? coverSongPath;
+  final String? coverThumbnailPath;
+  final String? coverArtworkPath;
   final int updatedAtMillis;
-  const FolderCover({
+  final bool statsValid;
+  const FolderEntry({
     required this.folderPath,
-    required this.songPath,
+    required this.rootPath,
+    required this.songCount,
+    required this.totalDurationMs,
+    this.coverSongPath,
+    this.coverThumbnailPath,
+    this.coverArtworkPath,
     required this.updatedAtMillis,
+    required this.statsValid,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['folderPath'] = Variable<String>(folderPath);
-    map['songPath'] = Variable<String>(songPath);
+    map['rootPath'] = Variable<String>(rootPath);
+    map['songCount'] = Variable<int>(songCount);
+    map['totalDurationMs'] = Variable<int>(totalDurationMs);
+    if (!nullToAbsent || coverSongPath != null) {
+      map['coverSongPath'] = Variable<String>(coverSongPath);
+    }
+    if (!nullToAbsent || coverThumbnailPath != null) {
+      map['coverThumbnailPath'] = Variable<String>(coverThumbnailPath);
+    }
+    if (!nullToAbsent || coverArtworkPath != null) {
+      map['coverArtworkPath'] = Variable<String>(coverArtworkPath);
+    }
     map['updatedAtMillis'] = Variable<int>(updatedAtMillis);
+    map['statsValid'] = Variable<bool>(statsValid);
     return map;
   }
 
-  FolderCoversCompanion toCompanion(bool nullToAbsent) {
-    return FolderCoversCompanion(
+  FolderEntriesCompanion toCompanion(bool nullToAbsent) {
+    return FolderEntriesCompanion(
       folderPath: Value(folderPath),
-      songPath: Value(songPath),
+      rootPath: Value(rootPath),
+      songCount: Value(songCount),
+      totalDurationMs: Value(totalDurationMs),
+      coverSongPath: coverSongPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(coverSongPath),
+      coverThumbnailPath: coverThumbnailPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(coverThumbnailPath),
+      coverArtworkPath: coverArtworkPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(coverArtworkPath),
       updatedAtMillis: Value(updatedAtMillis),
+      statsValid: Value(statsValid),
     );
   }
 
-  factory FolderCover.fromJson(
+  factory FolderEntry.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return FolderCover(
+    return FolderEntry(
       folderPath: serializer.fromJson<String>(json['folderPath']),
-      songPath: serializer.fromJson<String>(json['songPath']),
+      rootPath: serializer.fromJson<String>(json['rootPath']),
+      songCount: serializer.fromJson<int>(json['songCount']),
+      totalDurationMs: serializer.fromJson<int>(json['totalDurationMs']),
+      coverSongPath: serializer.fromJson<String?>(json['coverSongPath']),
+      coverThumbnailPath: serializer.fromJson<String?>(
+        json['coverThumbnailPath'],
+      ),
+      coverArtworkPath: serializer.fromJson<String?>(json['coverArtworkPath']),
       updatedAtMillis: serializer.fromJson<int>(json['updatedAtMillis']),
+      statsValid: serializer.fromJson<bool>(json['statsValid']),
     );
   }
   @override
@@ -7860,96 +8057,199 @@ class FolderCover extends DataClass implements Insertable<FolderCover> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'folderPath': serializer.toJson<String>(folderPath),
-      'songPath': serializer.toJson<String>(songPath),
+      'rootPath': serializer.toJson<String>(rootPath),
+      'songCount': serializer.toJson<int>(songCount),
+      'totalDurationMs': serializer.toJson<int>(totalDurationMs),
+      'coverSongPath': serializer.toJson<String?>(coverSongPath),
+      'coverThumbnailPath': serializer.toJson<String?>(coverThumbnailPath),
+      'coverArtworkPath': serializer.toJson<String?>(coverArtworkPath),
       'updatedAtMillis': serializer.toJson<int>(updatedAtMillis),
+      'statsValid': serializer.toJson<bool>(statsValid),
     };
   }
 
-  FolderCover copyWith({
+  FolderEntry copyWith({
     String? folderPath,
-    String? songPath,
+    String? rootPath,
+    int? songCount,
+    int? totalDurationMs,
+    Value<String?> coverSongPath = const Value.absent(),
+    Value<String?> coverThumbnailPath = const Value.absent(),
+    Value<String?> coverArtworkPath = const Value.absent(),
     int? updatedAtMillis,
-  }) => FolderCover(
+    bool? statsValid,
+  }) => FolderEntry(
     folderPath: folderPath ?? this.folderPath,
-    songPath: songPath ?? this.songPath,
+    rootPath: rootPath ?? this.rootPath,
+    songCount: songCount ?? this.songCount,
+    totalDurationMs: totalDurationMs ?? this.totalDurationMs,
+    coverSongPath: coverSongPath.present
+        ? coverSongPath.value
+        : this.coverSongPath,
+    coverThumbnailPath: coverThumbnailPath.present
+        ? coverThumbnailPath.value
+        : this.coverThumbnailPath,
+    coverArtworkPath: coverArtworkPath.present
+        ? coverArtworkPath.value
+        : this.coverArtworkPath,
     updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+    statsValid: statsValid ?? this.statsValid,
   );
-  FolderCover copyWithCompanion(FolderCoversCompanion data) {
-    return FolderCover(
+  FolderEntry copyWithCompanion(FolderEntriesCompanion data) {
+    return FolderEntry(
       folderPath: data.folderPath.present
           ? data.folderPath.value
           : this.folderPath,
-      songPath: data.songPath.present ? data.songPath.value : this.songPath,
+      rootPath: data.rootPath.present ? data.rootPath.value : this.rootPath,
+      songCount: data.songCount.present ? data.songCount.value : this.songCount,
+      totalDurationMs: data.totalDurationMs.present
+          ? data.totalDurationMs.value
+          : this.totalDurationMs,
+      coverSongPath: data.coverSongPath.present
+          ? data.coverSongPath.value
+          : this.coverSongPath,
+      coverThumbnailPath: data.coverThumbnailPath.present
+          ? data.coverThumbnailPath.value
+          : this.coverThumbnailPath,
+      coverArtworkPath: data.coverArtworkPath.present
+          ? data.coverArtworkPath.value
+          : this.coverArtworkPath,
       updatedAtMillis: data.updatedAtMillis.present
           ? data.updatedAtMillis.value
           : this.updatedAtMillis,
+      statsValid: data.statsValid.present
+          ? data.statsValid.value
+          : this.statsValid,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('FolderCover(')
+    return (StringBuffer('FolderEntry(')
           ..write('folderPath: $folderPath, ')
-          ..write('songPath: $songPath, ')
-          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write('rootPath: $rootPath, ')
+          ..write('songCount: $songCount, ')
+          ..write('totalDurationMs: $totalDurationMs, ')
+          ..write('coverSongPath: $coverSongPath, ')
+          ..write('coverThumbnailPath: $coverThumbnailPath, ')
+          ..write('coverArtworkPath: $coverArtworkPath, ')
+          ..write('updatedAtMillis: $updatedAtMillis, ')
+          ..write('statsValid: $statsValid')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(folderPath, songPath, updatedAtMillis);
+  int get hashCode => Object.hash(
+    folderPath,
+    rootPath,
+    songCount,
+    totalDurationMs,
+    coverSongPath,
+    coverThumbnailPath,
+    coverArtworkPath,
+    updatedAtMillis,
+    statsValid,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is FolderCover &&
+      (other is FolderEntry &&
           other.folderPath == this.folderPath &&
-          other.songPath == this.songPath &&
-          other.updatedAtMillis == this.updatedAtMillis);
+          other.rootPath == this.rootPath &&
+          other.songCount == this.songCount &&
+          other.totalDurationMs == this.totalDurationMs &&
+          other.coverSongPath == this.coverSongPath &&
+          other.coverThumbnailPath == this.coverThumbnailPath &&
+          other.coverArtworkPath == this.coverArtworkPath &&
+          other.updatedAtMillis == this.updatedAtMillis &&
+          other.statsValid == this.statsValid);
 }
 
-class FolderCoversCompanion extends UpdateCompanion<FolderCover> {
+class FolderEntriesCompanion extends UpdateCompanion<FolderEntry> {
   final Value<String> folderPath;
-  final Value<String> songPath;
+  final Value<String> rootPath;
+  final Value<int> songCount;
+  final Value<int> totalDurationMs;
+  final Value<String?> coverSongPath;
+  final Value<String?> coverThumbnailPath;
+  final Value<String?> coverArtworkPath;
   final Value<int> updatedAtMillis;
+  final Value<bool> statsValid;
   final Value<int> rowid;
-  const FolderCoversCompanion({
+  const FolderEntriesCompanion({
     this.folderPath = const Value.absent(),
-    this.songPath = const Value.absent(),
+    this.rootPath = const Value.absent(),
+    this.songCount = const Value.absent(),
+    this.totalDurationMs = const Value.absent(),
+    this.coverSongPath = const Value.absent(),
+    this.coverThumbnailPath = const Value.absent(),
+    this.coverArtworkPath = const Value.absent(),
     this.updatedAtMillis = const Value.absent(),
+    this.statsValid = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  FolderCoversCompanion.insert({
+  FolderEntriesCompanion.insert({
     required String folderPath,
-    required String songPath,
+    this.rootPath = const Value.absent(),
+    this.songCount = const Value.absent(),
+    this.totalDurationMs = const Value.absent(),
+    this.coverSongPath = const Value.absent(),
+    this.coverThumbnailPath = const Value.absent(),
+    this.coverArtworkPath = const Value.absent(),
     required int updatedAtMillis,
+    this.statsValid = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : folderPath = Value(folderPath),
-       songPath = Value(songPath),
        updatedAtMillis = Value(updatedAtMillis);
-  static Insertable<FolderCover> custom({
+  static Insertable<FolderEntry> custom({
     Expression<String>? folderPath,
-    Expression<String>? songPath,
+    Expression<String>? rootPath,
+    Expression<int>? songCount,
+    Expression<int>? totalDurationMs,
+    Expression<String>? coverSongPath,
+    Expression<String>? coverThumbnailPath,
+    Expression<String>? coverArtworkPath,
     Expression<int>? updatedAtMillis,
+    Expression<bool>? statsValid,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (folderPath != null) 'folderPath': folderPath,
-      if (songPath != null) 'songPath': songPath,
+      if (rootPath != null) 'rootPath': rootPath,
+      if (songCount != null) 'songCount': songCount,
+      if (totalDurationMs != null) 'totalDurationMs': totalDurationMs,
+      if (coverSongPath != null) 'coverSongPath': coverSongPath,
+      if (coverThumbnailPath != null) 'coverThumbnailPath': coverThumbnailPath,
+      if (coverArtworkPath != null) 'coverArtworkPath': coverArtworkPath,
       if (updatedAtMillis != null) 'updatedAtMillis': updatedAtMillis,
+      if (statsValid != null) 'statsValid': statsValid,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
-  FolderCoversCompanion copyWith({
+  FolderEntriesCompanion copyWith({
     Value<String>? folderPath,
-    Value<String>? songPath,
+    Value<String>? rootPath,
+    Value<int>? songCount,
+    Value<int>? totalDurationMs,
+    Value<String?>? coverSongPath,
+    Value<String?>? coverThumbnailPath,
+    Value<String?>? coverArtworkPath,
     Value<int>? updatedAtMillis,
+    Value<bool>? statsValid,
     Value<int>? rowid,
   }) {
-    return FolderCoversCompanion(
+    return FolderEntriesCompanion(
       folderPath: folderPath ?? this.folderPath,
-      songPath: songPath ?? this.songPath,
+      rootPath: rootPath ?? this.rootPath,
+      songCount: songCount ?? this.songCount,
+      totalDurationMs: totalDurationMs ?? this.totalDurationMs,
+      coverSongPath: coverSongPath ?? this.coverSongPath,
+      coverThumbnailPath: coverThumbnailPath ?? this.coverThumbnailPath,
+      coverArtworkPath: coverArtworkPath ?? this.coverArtworkPath,
       updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+      statsValid: statsValid ?? this.statsValid,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -7960,11 +8260,29 @@ class FolderCoversCompanion extends UpdateCompanion<FolderCover> {
     if (folderPath.present) {
       map['folderPath'] = Variable<String>(folderPath.value);
     }
-    if (songPath.present) {
-      map['songPath'] = Variable<String>(songPath.value);
+    if (rootPath.present) {
+      map['rootPath'] = Variable<String>(rootPath.value);
+    }
+    if (songCount.present) {
+      map['songCount'] = Variable<int>(songCount.value);
+    }
+    if (totalDurationMs.present) {
+      map['totalDurationMs'] = Variable<int>(totalDurationMs.value);
+    }
+    if (coverSongPath.present) {
+      map['coverSongPath'] = Variable<String>(coverSongPath.value);
+    }
+    if (coverThumbnailPath.present) {
+      map['coverThumbnailPath'] = Variable<String>(coverThumbnailPath.value);
+    }
+    if (coverArtworkPath.present) {
+      map['coverArtworkPath'] = Variable<String>(coverArtworkPath.value);
     }
     if (updatedAtMillis.present) {
       map['updatedAtMillis'] = Variable<int>(updatedAtMillis.value);
+    }
+    if (statsValid.present) {
+      map['statsValid'] = Variable<bool>(statsValid.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -7974,10 +8292,16 @@ class FolderCoversCompanion extends UpdateCompanion<FolderCover> {
 
   @override
   String toString() {
-    return (StringBuffer('FolderCoversCompanion(')
+    return (StringBuffer('FolderEntriesCompanion(')
           ..write('folderPath: $folderPath, ')
-          ..write('songPath: $songPath, ')
+          ..write('rootPath: $rootPath, ')
+          ..write('songCount: $songCount, ')
+          ..write('totalDurationMs: $totalDurationMs, ')
+          ..write('coverSongPath: $coverSongPath, ')
+          ..write('coverThumbnailPath: $coverThumbnailPath, ')
+          ..write('coverArtworkPath: $coverArtworkPath, ')
           ..write('updatedAtMillis: $updatedAtMillis, ')
+          ..write('statsValid: $statsValid, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -9168,7 +9492,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
       $ArtistImageCachesTable(this);
   late final $ArtworkCachesTable artworkCaches = $ArtworkCachesTable(this);
   late final $RemoteSongsTable remoteSongs = $RemoteSongsTable(this);
-  late final $FolderCoversTable folderCovers = $FolderCoversTable(this);
+  late final $FolderEntriesTable folderEntries = $FolderEntriesTable(this);
   late final $RemoteLibraryCachesTable remoteLibraryCaches =
       $RemoteLibraryCachesTable(this);
   late final $LyricsHistoriesTable lyricsHistories = $LyricsHistoriesTable(
@@ -9191,7 +9515,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
     artistImageCaches,
     artworkCaches,
     remoteSongs,
-    folderCovers,
+    folderEntries,
     remoteLibraryCaches,
     lyricsHistories,
     songRatings,
@@ -12888,24 +13212,36 @@ typedef $$RemoteSongsTableProcessedTableManager =
       RemoteSong,
       PrefetchHooks Function()
     >;
-typedef $$FolderCoversTableCreateCompanionBuilder =
-    FolderCoversCompanion Function({
+typedef $$FolderEntriesTableCreateCompanionBuilder =
+    FolderEntriesCompanion Function({
       required String folderPath,
-      required String songPath,
+      Value<String> rootPath,
+      Value<int> songCount,
+      Value<int> totalDurationMs,
+      Value<String?> coverSongPath,
+      Value<String?> coverThumbnailPath,
+      Value<String?> coverArtworkPath,
       required int updatedAtMillis,
+      Value<bool> statsValid,
       Value<int> rowid,
     });
-typedef $$FolderCoversTableUpdateCompanionBuilder =
-    FolderCoversCompanion Function({
+typedef $$FolderEntriesTableUpdateCompanionBuilder =
+    FolderEntriesCompanion Function({
       Value<String> folderPath,
-      Value<String> songPath,
+      Value<String> rootPath,
+      Value<int> songCount,
+      Value<int> totalDurationMs,
+      Value<String?> coverSongPath,
+      Value<String?> coverThumbnailPath,
+      Value<String?> coverArtworkPath,
       Value<int> updatedAtMillis,
+      Value<bool> statsValid,
       Value<int> rowid,
     });
 
-class $$FolderCoversTableFilterComposer
-    extends Composer<_$MetadataDriftDatabase, $FolderCoversTable> {
-  $$FolderCoversTableFilterComposer({
+class $$FolderEntriesTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $FolderEntriesTable> {
+  $$FolderEntriesTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -12917,8 +13253,33 @@ class $$FolderCoversTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get songPath => $composableBuilder(
-    column: $table.songPath,
+  ColumnFilters<String> get rootPath => $composableBuilder(
+    column: $table.rootPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get songCount => $composableBuilder(
+    column: $table.songCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalDurationMs => $composableBuilder(
+    column: $table.totalDurationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get coverSongPath => $composableBuilder(
+    column: $table.coverSongPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get coverThumbnailPath => $composableBuilder(
+    column: $table.coverThumbnailPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get coverArtworkPath => $composableBuilder(
+    column: $table.coverArtworkPath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12926,11 +13287,16 @@ class $$FolderCoversTableFilterComposer
     column: $table.updatedAtMillis,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<bool> get statsValid => $composableBuilder(
+    column: $table.statsValid,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
-class $$FolderCoversTableOrderingComposer
-    extends Composer<_$MetadataDriftDatabase, $FolderCoversTable> {
-  $$FolderCoversTableOrderingComposer({
+class $$FolderEntriesTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $FolderEntriesTable> {
+  $$FolderEntriesTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -12942,8 +13308,33 @@ class $$FolderCoversTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get songPath => $composableBuilder(
-    column: $table.songPath,
+  ColumnOrderings<String> get rootPath => $composableBuilder(
+    column: $table.rootPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get songCount => $composableBuilder(
+    column: $table.songCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalDurationMs => $composableBuilder(
+    column: $table.totalDurationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get coverSongPath => $composableBuilder(
+    column: $table.coverSongPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get coverThumbnailPath => $composableBuilder(
+    column: $table.coverThumbnailPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get coverArtworkPath => $composableBuilder(
+    column: $table.coverArtworkPath,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -12951,11 +13342,16 @@ class $$FolderCoversTableOrderingComposer
     column: $table.updatedAtMillis,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get statsValid => $composableBuilder(
+    column: $table.statsValid,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
-class $$FolderCoversTableAnnotationComposer
-    extends Composer<_$MetadataDriftDatabase, $FolderCoversTable> {
-  $$FolderCoversTableAnnotationComposer({
+class $$FolderEntriesTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $FolderEntriesTable> {
+  $$FolderEntriesTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -12967,72 +13363,124 @@ class $$FolderCoversTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get songPath =>
-      $composableBuilder(column: $table.songPath, builder: (column) => column);
+  GeneratedColumn<String> get rootPath =>
+      $composableBuilder(column: $table.rootPath, builder: (column) => column);
+
+  GeneratedColumn<int> get songCount =>
+      $composableBuilder(column: $table.songCount, builder: (column) => column);
+
+  GeneratedColumn<int> get totalDurationMs => $composableBuilder(
+    column: $table.totalDurationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get coverSongPath => $composableBuilder(
+    column: $table.coverSongPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get coverThumbnailPath => $composableBuilder(
+    column: $table.coverThumbnailPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get coverArtworkPath => $composableBuilder(
+    column: $table.coverArtworkPath,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get updatedAtMillis => $composableBuilder(
     column: $table.updatedAtMillis,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get statsValid => $composableBuilder(
+    column: $table.statsValid,
+    builder: (column) => column,
+  );
 }
 
-class $$FolderCoversTableTableManager
+class $$FolderEntriesTableTableManager
     extends
         RootTableManager<
           _$MetadataDriftDatabase,
-          $FolderCoversTable,
-          FolderCover,
-          $$FolderCoversTableFilterComposer,
-          $$FolderCoversTableOrderingComposer,
-          $$FolderCoversTableAnnotationComposer,
-          $$FolderCoversTableCreateCompanionBuilder,
-          $$FolderCoversTableUpdateCompanionBuilder,
+          $FolderEntriesTable,
+          FolderEntry,
+          $$FolderEntriesTableFilterComposer,
+          $$FolderEntriesTableOrderingComposer,
+          $$FolderEntriesTableAnnotationComposer,
+          $$FolderEntriesTableCreateCompanionBuilder,
+          $$FolderEntriesTableUpdateCompanionBuilder,
           (
-            FolderCover,
+            FolderEntry,
             BaseReferences<
               _$MetadataDriftDatabase,
-              $FolderCoversTable,
-              FolderCover
+              $FolderEntriesTable,
+              FolderEntry
             >,
           ),
-          FolderCover,
+          FolderEntry,
           PrefetchHooks Function()
         > {
-  $$FolderCoversTableTableManager(
+  $$FolderEntriesTableTableManager(
     _$MetadataDriftDatabase db,
-    $FolderCoversTable table,
+    $FolderEntriesTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$FolderCoversTableFilterComposer($db: db, $table: table),
+              $$FolderEntriesTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$FolderCoversTableOrderingComposer($db: db, $table: table),
+              $$FolderEntriesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$FolderCoversTableAnnotationComposer($db: db, $table: table),
+              $$FolderEntriesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> folderPath = const Value.absent(),
-                Value<String> songPath = const Value.absent(),
+                Value<String> rootPath = const Value.absent(),
+                Value<int> songCount = const Value.absent(),
+                Value<int> totalDurationMs = const Value.absent(),
+                Value<String?> coverSongPath = const Value.absent(),
+                Value<String?> coverThumbnailPath = const Value.absent(),
+                Value<String?> coverArtworkPath = const Value.absent(),
                 Value<int> updatedAtMillis = const Value.absent(),
+                Value<bool> statsValid = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => FolderCoversCompanion(
+              }) => FolderEntriesCompanion(
                 folderPath: folderPath,
-                songPath: songPath,
+                rootPath: rootPath,
+                songCount: songCount,
+                totalDurationMs: totalDurationMs,
+                coverSongPath: coverSongPath,
+                coverThumbnailPath: coverThumbnailPath,
+                coverArtworkPath: coverArtworkPath,
                 updatedAtMillis: updatedAtMillis,
+                statsValid: statsValid,
                 rowid: rowid,
               ),
           createCompanionCallback:
               ({
                 required String folderPath,
-                required String songPath,
+                Value<String> rootPath = const Value.absent(),
+                Value<int> songCount = const Value.absent(),
+                Value<int> totalDurationMs = const Value.absent(),
+                Value<String?> coverSongPath = const Value.absent(),
+                Value<String?> coverThumbnailPath = const Value.absent(),
+                Value<String?> coverArtworkPath = const Value.absent(),
                 required int updatedAtMillis,
+                Value<bool> statsValid = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => FolderCoversCompanion.insert(
+              }) => FolderEntriesCompanion.insert(
                 folderPath: folderPath,
-                songPath: songPath,
+                rootPath: rootPath,
+                songCount: songCount,
+                totalDurationMs: totalDurationMs,
+                coverSongPath: coverSongPath,
+                coverThumbnailPath: coverThumbnailPath,
+                coverArtworkPath: coverArtworkPath,
                 updatedAtMillis: updatedAtMillis,
+                statsValid: statsValid,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -13043,25 +13491,25 @@ class $$FolderCoversTableTableManager
       );
 }
 
-typedef $$FolderCoversTableProcessedTableManager =
+typedef $$FolderEntriesTableProcessedTableManager =
     ProcessedTableManager<
       _$MetadataDriftDatabase,
-      $FolderCoversTable,
-      FolderCover,
-      $$FolderCoversTableFilterComposer,
-      $$FolderCoversTableOrderingComposer,
-      $$FolderCoversTableAnnotationComposer,
-      $$FolderCoversTableCreateCompanionBuilder,
-      $$FolderCoversTableUpdateCompanionBuilder,
+      $FolderEntriesTable,
+      FolderEntry,
+      $$FolderEntriesTableFilterComposer,
+      $$FolderEntriesTableOrderingComposer,
+      $$FolderEntriesTableAnnotationComposer,
+      $$FolderEntriesTableCreateCompanionBuilder,
+      $$FolderEntriesTableUpdateCompanionBuilder,
       (
-        FolderCover,
+        FolderEntry,
         BaseReferences<
           _$MetadataDriftDatabase,
-          $FolderCoversTable,
-          FolderCover
+          $FolderEntriesTable,
+          FolderEntry
         >,
       ),
-      FolderCover,
+      FolderEntry,
       PrefetchHooks Function()
     >;
 typedef $$RemoteLibraryCachesTableCreateCompanionBuilder =
@@ -13752,8 +14200,8 @@ class $MetadataDriftDatabaseManager {
       $$ArtworkCachesTableTableManager(_db, _db.artworkCaches);
   $$RemoteSongsTableTableManager get remoteSongs =>
       $$RemoteSongsTableTableManager(_db, _db.remoteSongs);
-  $$FolderCoversTableTableManager get folderCovers =>
-      $$FolderCoversTableTableManager(_db, _db.folderCovers);
+  $$FolderEntriesTableTableManager get folderEntries =>
+      $$FolderEntriesTableTableManager(_db, _db.folderEntries);
   $$RemoteLibraryCachesTableTableManager get remoteLibraryCaches =>
       $$RemoteLibraryCachesTableTableManager(_db, _db.remoteLibraryCaches);
   $$LyricsHistoriesTableTableManager get lyricsHistories =>

@@ -22,6 +22,7 @@ class ScannerMetadataStore {
     required String Function(String path) normalizePath,
     required bool Function(String left, String right) pathsEqual,
     void Function(String path, String thumbnailPath)? onThumbnailUpdated,
+    void Function(List<String> removedPaths)? onVisibleTreeSongsRemoved,
   }) : _rootFolders = rootFolders,
        _systemMediaFolder = systemMediaFolder,
        _notifyListeners = notifyListeners,
@@ -31,7 +32,8 @@ class ScannerMetadataStore {
        _notifySongMissingState = notifySongMissingState,
        _normalizePath = normalizePath,
        _pathsEqual = pathsEqual,
-       _onThumbnailUpdated = onThumbnailUpdated;
+       _onThumbnailUpdated = onThumbnailUpdated,
+       _onVisibleTreeSongsRemoved = onVisibleTreeSongsRemoved;
 
   final Iterable<MusicFolder> Function() _rootFolders;
   final MusicFolder? Function() _systemMediaFolder;
@@ -43,6 +45,12 @@ class ScannerMetadataStore {
   final String Function(String path) _normalizePath;
   final bool Function(String left, String right) _pathsEqual;
   final void Function(String path, String thumbnailPath)? _onThumbnailUpdated;
+
+  /// 就地删歌后通知宿主：这些路径已从可见树里移除，需要重算受影响目录的统计。
+  ///
+  /// 这条路径不经过 `_upsertScannedRootFolder`（那是整根重建才走的），所以
+  /// 宿主要自己补一次落盘调度，否则 `folder_entries` 里的数字会一直停在删歌前。
+  final void Function(List<String> removedPaths)? _onVisibleTreeSongsRemoved;
 
   final Map<String, SongMetadata> _metadataMap = {};
 
@@ -397,15 +405,27 @@ class ScannerMetadataStore {
   }
 
   void _removePathsFromVisibleTrees(Iterable<String> paths) {
-    final targetLookup = paths.map(_pathLookupKey).toSet();
+    final normalizedPaths = paths.toList(growable: false);
+    final targetLookup = normalizedPaths.map(_pathLookupKey).toSet();
     if (targetLookup.isEmpty) return;
 
+    var removedAny = false;
     for (final root in _rootFolders()) {
-      _removeSongsFromFolder(root, targetLookup);
+      if (_removeSongsFromFolder(root, targetLookup)) {
+        removedAny = true;
+      }
     }
     final systemFolder = _systemMediaFolder();
     if (systemFolder != null) {
-      _removeSongsFromFolder(systemFolder, targetLookup);
+      if (_removeSongsFromFolder(systemFolder, targetLookup)) {
+        removedAny = true;
+      }
+    }
+
+    // 只有真的删掉了才通知：路径可能早就不在树里（重复删/树还没建），
+    // 无差别通知会让宿主白跑一次整树落盘。
+    if (removedAny) {
+      _onVisibleTreeSongsRemoved?.call(normalizedPaths);
     }
   }
 
@@ -455,11 +475,23 @@ class ScannerMetadataStore {
     }
   }
 
+  /// 从可见树里摘掉这些歌曲，返回是否真的删到了东西。
   bool _removeSongsFromFolder(MusicFolder folder, Set<String> targetLookup) {
-    folder.files.removeWhere((file) => targetLookup.contains(_pathLookupKey(file.path)));
-    folder.subFolders.removeWhere(
-      (subFolder) => _removeSongsFromFolder(subFolder, targetLookup),
-    );
-    return folder.isEmpty;
+    var removedAny = false;
+    folder.files.removeWhere((file) {
+      final hit = targetLookup.contains(_pathLookupKey(file.path));
+      if (hit) {
+        removedAny = true;
+      }
+      return hit;
+    });
+    folder.subFolders.removeWhere((subFolder) {
+      if (_removeSongsFromFolder(subFolder, targetLookup)) {
+        removedAny = true;
+      }
+      // 保持原语义：子目录空了就一并摘掉。
+      return subFolder.isEmpty;
+    });
+    return removedAny;
   }
 }

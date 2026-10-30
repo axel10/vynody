@@ -190,9 +190,15 @@ void main() {
       await db.insertOrUpdateSong(song1);
       await db.insertOrUpdateSong(song2);
 
-      await db.batchUpsertFolderCovers({
-        '/music/rock': song1.path,
-        '/music/jazz': song2.path,
+      await db.batchWriteFolderCovers({
+        '/music/rock': FolderCoverSnapshot(
+          songPath: song1.path,
+          artworkPath: song1.artworkPath,
+        ),
+        '/music/jazz': FolderCoverSnapshot(
+          songPath: song2.path,
+          thumbnailPath: song2.thumbnailPath,
+        ),
       });
 
       final allMetadata = await db.getAllFolderRepresentativeMetadata();
@@ -202,10 +208,109 @@ void main() {
       final rockRep = await db.getFolderRepresentativeMetadata('/music/rock');
       expect(rockRep?.title, equals('Song 1'));
 
-      await db.removeFolderCoversForPaths(['/music/rock']);
+      // 清封面只清封面列，目录行与统计保留。
+      await db.clearFolderEntryCovers(['/music/rock']);
       final remaining = await db.getAllFolderRepresentativeMetadata();
       expect(remaining.containsKey('/music/rock'), isFalse);
       expect(remaining.containsKey('/music/jazz'), isTrue);
+    });
+
+    test('统计与封面各自独立更新，互不覆盖', () async {
+      await db.batchWriteFolderStats([
+        const FolderStatsSnapshot(
+          folderPath: '/stats/album',
+          rootPath: '/stats',
+          songCount: 12,
+          totalDurationMs: 3600000,
+        ),
+      ]);
+
+      const song = SongMetadata(
+        path: '/stats/album/01.mp3',
+        title: 'Track 1',
+        album: 'Album',
+        artist: 'Artist',
+        thumbnailPath: '/thumb/01.png',
+      );
+      await db.insertOrUpdateSong(song);
+      await db.batchWriteFolderCovers({
+        '/stats/album': const FolderCoverSnapshot(
+          songPath: '/stats/album/01.mp3',
+          thumbnailPath: '/thumb/01.png',
+        ),
+      });
+
+      var rows = await db.loadAllFolderEntries();
+      var album = rows.firstWhere((r) => r.folderPath == '/stats/album');
+      expect(album.songCount, equals(12));
+      expect(album.totalDurationMs, equals(3600000));
+      expect(album.statsValid, isTrue);
+      expect(album.coverSongPath, equals('/stats/album/01.mp3'));
+
+      // 再写一次统计，不应把封面列冲掉。
+      await db.batchWriteFolderStats([
+        const FolderStatsSnapshot(
+          folderPath: '/stats/album',
+          rootPath: '/stats',
+          songCount: 13,
+          totalDurationMs: 3900000,
+        ),
+      ]);
+
+      rows = await db.loadAllFolderEntries();
+      album = rows.firstWhere((r) => r.folderPath == '/stats/album');
+      expect(album.songCount, equals(13));
+      expect(album.coverSongPath, equals('/stats/album/01.mp3'));
+
+      // 清封面同样不动统计。
+      await db.clearFolderEntryCovers(['/stats/album']);
+      rows = await db.loadAllFolderEntries();
+      album = rows.firstWhere((r) => r.folderPath == '/stats/album');
+      expect(album.coverSongPath, isNull);
+      expect(album.songCount, equals(13));
+    });
+
+    test('getFolderStatsForPaths 批量取统计，未验证的行不返回', () async {
+      await db.batchWriteFolderStats([
+        const FolderStatsSnapshot(
+          folderPath: '/batch/a',
+          rootPath: '/batch',
+          songCount: 3,
+          totalDurationMs: 9000,
+        ),
+        const FolderStatsSnapshot(
+          folderPath: '/batch/b',
+          rootPath: '/batch',
+          songCount: 7,
+          totalDurationMs: 21000,
+        ),
+      ]);
+      // 模拟上次扫描中断在半路：行在，但不可信。
+      await db.batchWriteFolderStats(
+        [
+          const FolderStatsSnapshot(
+            folderPath: '/batch/pending',
+            rootPath: '/batch',
+            songCount: 99,
+            totalDurationMs: 99000,
+          ),
+        ],
+        statsValid: false,
+      );
+
+      final stats = await db.getFolderStatsForPaths([
+        '/batch/a',
+        '/batch/b',
+        '/batch/pending',
+        '/batch/missing',
+      ]);
+      expect(stats['/batch/a']?.songCount, equals(3));
+      expect(stats['/batch/a']?.totalDurationMs, equals(9000));
+      expect(stats['/batch/b']?.songCount, equals(7));
+      expect(stats['/batch/pending'], isNull);
+      expect(stats['/batch/missing'], isNull);
+
+      expect(await db.getFolderStatsForPaths(const []), isEmpty);
     });
 
     test('removeFolderCoversUnderRoots cleans up root and all nested subfolders', () async {
@@ -219,14 +324,26 @@ void main() {
       await db.insertOrUpdateSong(songSub2);
       await db.insertOrUpdateSong(otherSong);
 
-      await db.batchUpsertFolderCovers({
-        '/root': songRoot.path,
-        '/root/sub1': songSub1.path,
-        '/root/sub1/nested': songSub2.path,
-        '/other': otherSong.path,
+      await db.batchWriteFolderCovers({
+        '/root': FolderCoverSnapshot(
+          songPath: songRoot.path,
+          artworkPath: songRoot.artworkPath,
+        ),
+        '/root/sub1': FolderCoverSnapshot(
+          songPath: songSub1.path,
+          artworkPath: songSub1.artworkPath,
+        ),
+        '/root/sub1/nested': FolderCoverSnapshot(
+          songPath: songSub2.path,
+          artworkPath: songSub2.artworkPath,
+        ),
+        '/other': FolderCoverSnapshot(
+          songPath: otherSong.path,
+          artworkPath: otherSong.artworkPath,
+        ),
       });
 
-      await db.removeFolderCoversUnderRoots(['/root']);
+      await db.removeFolderEntriesUnderRoots(['/root']);
 
       final remaining = await db.getAllFolderRepresentativeMetadata();
       expect(remaining.containsKey('/root'), isFalse);
