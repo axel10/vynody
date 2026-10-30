@@ -8,6 +8,7 @@ import '../player/remote/remote_server_models.dart';
 import '../player/remote/clients/subsonic_client.dart';
 import '../player/remote/clients/jellyfin_client.dart';
 import 'artist_avatar.dart';
+import 'artwork_fade.dart';
 
 class RemoteArtworkWidget extends StatefulWidget {
   /// In-memory cache for resolved cover art URLs
@@ -230,25 +231,32 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
           : (widget.size > 0 ? (widget.size * 2).round() : null);
       return ClipRRect(
         borderRadius: radius,
-        child: Image.file(
-          File(_localDiskPath!),
-          width: w,
-          height: h,
-          cacheWidth: (cacheW != null && cacheW > 0) ? cacheW : null,
-          cacheHeight: (cacheH != null && cacheH > 0) ? cacheH : null,
-          fit: widget.fit,
-          gaplessPlayback: keepLastFrame,
-          errorBuilder: (_, _, _) {
-            // If local file was somehow deleted/corrupted, fall back to network
-            return _buildNetworkImage(
-              context,
-              imageUrl,
-              w,
-              h,
-              radius,
-              keepLastFrame: keepLastFrame,
-            );
-          },
+        child: _withFallbackUnderlay(
+          context: context,
+          w: w,
+          h: h,
+          radius: radius,
+          image: Image.file(
+            File(_localDiskPath!),
+            width: w,
+            height: h,
+            cacheWidth: (cacheW != null && cacheW > 0) ? cacheW : null,
+            cacheHeight: (cacheH != null && cacheH > 0) ? cacheH : null,
+            fit: widget.fit,
+            gaplessPlayback: keepLastFrame,
+            frameBuilder: artworkFadeInFrameBuilder,
+            errorBuilder: (_, _, _) {
+              // If local file was somehow deleted/corrupted, fall back to network
+              return _buildNetworkImage(
+                context,
+                imageUrl,
+                w,
+                h,
+                radius,
+                keepLastFrame: keepLastFrame,
+              );
+            },
+          ),
         ),
       );
     }
@@ -293,29 +301,61 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
 
     return ClipRRect(
       borderRadius: radius,
-      child: Image.network(
-        imageUrl,
-        width: w,
-        height: h,
-        cacheWidth: (cacheW != null && cacheW > 0) ? cacheW : null,
-        cacheHeight: (cacheH != null && cacheH > 0) ? cacheH : null,
-        fit: widget.fit,
-        gaplessPlayback: keepLastFrame,
-        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-          if (wasSynchronouslyLoaded || frame != null) {
-            // Trigger disk caching once image successfully loads
-            _triggerBackgroundDiskCache(imageUrl);
-            return child;
-          }
-          return _buildFallback(context, w, h, radius);
-        },
-        errorBuilder: (_, _, _) {
-          final count = (RemoteArtworkWidget._failedAttempts[imageUrl] ?? 0) + 1;
-          RemoteArtworkWidget._failedAttempts[imageUrl] = count;
-          RemoteArtworkWidget._failedTimestamps[imageUrl] = DateTime.now();
-          return _buildFallback(context, w, h, radius);
-        },
+      child: _withFallbackUnderlay(
+        context: context,
+        w: w,
+        h: h,
+        radius: radius,
+        image: Image.network(
+          imageUrl,
+          width: w,
+          height: h,
+          cacheWidth: (cacheW != null && cacheW > 0) ? cacheW : null,
+          cacheHeight: (cacheH != null && cacheH > 0) ? cacheH : null,
+          fit: widget.fit,
+          gaplessPlayback: keepLastFrame,
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded || frame != null) {
+              // Trigger disk caching once image successfully loads
+              _triggerBackgroundDiskCache(imageUrl);
+            }
+            return artworkFadeInFrameBuilder(
+              context,
+              child,
+              frame,
+              wasSynchronouslyLoaded,
+            );
+          },
+          errorBuilder: (_, _, _) {
+            // 占位已经垫在底下，这里不再重复画一遍；只记账，冷却结束后重试。
+            final count = (RemoteArtworkWidget._failedAttempts[imageUrl] ?? 0) + 1;
+            RemoteArtworkWidget._failedAttempts[imageUrl] = count;
+            RemoteArtworkWidget._failedTimestamps[imageUrl] = DateTime.now();
+            return const SizedBox.shrink();
+          },
+        ),
       ),
+    );
+  }
+
+  /// 把默认占位垫在封面底下，封面解出首帧后淡入盖上去。
+  ///
+  /// 远程封面走网络，等待时间比本地缩略图长得多，所以这里不能用「空白 → 淡入」
+  /// 那条路径，否则每个格子都要先空一截。占位垫底既保证不闪空框，
+  /// 又不影响淡入节奏 —— 与 [SongThumbnail] 用的是同一个 [kArtworkFadeInDuration]。
+  Widget _withFallbackUnderlay({
+    required BuildContext context,
+    required double w,
+    required double h,
+    required BorderRadius radius,
+    required Widget image,
+  }) {
+    return Stack(
+      alignment: Alignment.topLeft,
+      children: [
+        _buildFallback(context, w, h, radius),
+        image,
+      ],
     );
   }
 

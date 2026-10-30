@@ -643,18 +643,10 @@ class _MyAppState extends ConsumerState<MyApp>
       splashFactory: NoSplash.splashFactory,
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          // Android 保留 Zoom 转场的快照。
-          //
-          // 2026-10-16 曾因「返回时入口残留高亮」把它关掉（SnapshotWidget 冻结路由内
-          // 动画，ink 高亮被定格）。现在全局已是 `NoSplash`，水波纹不存在了，重新打开。
-          //
-          // 2026-10-30 的 Performance trace 显示：关掉快照时转场期间新旧两个 route
-          // 每帧都完整重绘 —— `GPURasterizer::Draw` 单帧 74~113ms，其中
-          // `CreateGlyphAtlas`（文字图集重建）10~21ms/帧，因为整页在缩放，字形每帧
-          // 都要按新比例重新栅格化。开快照后两个 route 各冻成一张纹理，只做缩放合成。
-          TargetPlatform.android: ZoomPageTransitionsBuilder(
-            allowSnapshotting: true,
-          ),
+          // Android 使用与 iOS/macOS 统一的平移滑入转场（CupertinoPageTransitionsBuilder）。
+          // 避免 Zoom 转场的快照机制（allowSnapshotting）在首帧图片异步解码尚未就绪时
+          // 截取空白画面、导致转场期间留白且结束后闪现的问题；同时带来自然的边缘右滑返回手势。
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
           TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
           TargetPlatform.windows: ZoomPageTransitionsBuilder(),

@@ -10,6 +10,7 @@ import 'package:vynody/player/metadata/artwork_resolver.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import 'artwork_fade.dart';
 import 'default_cover_art.dart';
 
 /// 缩放条目（网格/列表共用条目）里封面的解码尺寸（dp）。
@@ -36,6 +37,12 @@ double thumbnailBucketSizeFor(double size) {
   return 400.0;
 }
 
+/// 歌曲 / 专辑 / 文件夹的封面缩略图。
+///
+/// 淡入策略由组件自己统一决定，不提供开关：只要缩略图还没就位（没解析出来、
+/// 或解析出来了但还没解码出首帧），该区域保持空白；就位那一刻按
+/// [kArtworkFadeInDuration] 淡入 —— 露出的可能是封面，也可能是默认图标。
+/// 所有调用方（歌曲行、文件夹条目、专辑卡片、播放列表封面……）行为一致。
 class SongThumbnail extends ConsumerStatefulWidget {
   final String path;
   final int? id;
@@ -56,10 +63,6 @@ class SongThumbnail extends ConsumerStatefulWidget {
   /// 否则会短暂显示上一首的封面；只有始终代表「同一张封面」的场景（迷你播放器）才置 true。
   final bool gaplessPlayback;
 
-  /// 是否在异步生成/解析缩略图时保持缩略图区域空白（不展示默认占位图标），
-  /// 并在生成完成后平滑淡入。
-  final bool fadeInOnLoaded;
-
   const SongThumbnail({
     super.key,
     required this.path,
@@ -74,7 +77,6 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.fallbackWidget,
     this.isAlbum = false,
     this.gaplessPlayback = false,
-    this.fadeInOnLoaded = true,
   });
 
   /// Factory constructor for a [MusicFile].
@@ -88,7 +90,6 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.fallbackWidget,
     this.isAlbum = false,
     this.gaplessPlayback = false,
-    this.fadeInOnLoaded = true,
   })  : path = song.path,
         id = song.id,
         thumbnailPath = song.thumbnailPath,
@@ -106,7 +107,6 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.fallbackWidget,
     this.isAlbum = true,
     this.gaplessPlayback = false,
-    this.fadeInOnLoaded = true,
   })  : path = album.representativeSong.path,
         id = album.representativeSong.id,
         thumbnailPath = album.representativeSong.thumbnailPath,
@@ -124,7 +124,6 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.fallbackWidget,
     this.isAlbum = false,
     this.gaplessPlayback = false,
-    this.fadeInOnLoaded = true,
   })  : path = metadata.path,
         id = metadata.id,
         thumbnailPath = metadata.thumbnailPath,
@@ -152,8 +151,17 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   /// 否则列表行回收复用会短暂显示上一首的封面。
   bool _keepLastFrame = true;
 
+  /// 本次挂载或更新是否需要淡入展示。
+  ///
+  /// - 命中已有本地缓存（已有缩略图文件/内存字节）：false，首帧直接展示，不套淡入；
+  /// - 尚未生成缩略图（等待动画结束或后台生成完毕）：true，就位时由外层统一平滑淡入。
+  bool _needsFadeIn = false;
+
+  /// 异步解析（查找 / 生成缩略图）是否仍在进行。
+  ///
+  /// 为 true 且手上还没有任何图片源时，缩略图区保持空白；结果落定后再统一淡入，
+  /// 此时露出的可能是新生成的封面，也可能是默认图标。
   bool _isGenerating = false;
-  bool _shouldFadeIn = false;
 
   static final Set<String> _failedRemoteUrls = <String>{};
   Animation<double>? _routeAnimation;
@@ -184,22 +192,23 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         : null;
     if (existingPath != null && existingPath.isNotEmpty) {
       _artworkFilePath = existingPath;
-      if (_isGenerating && widget.fadeInOnLoaded) {
-        _shouldFadeIn = true;
-      }
       _isGenerating = false;
+      if (fromInitState) {
+        _needsFadeIn = false;
+      }
       return;
     }
 
     if (widget.bytes != null && widget.bytes!.isNotEmpty) {
-      if (_isGenerating && widget.fadeInOnLoaded) {
-        _shouldFadeIn = true;
-      }
       _isGenerating = false;
+      if (fromInitState) {
+        _needsFadeIn = false;
+      }
       return;
     }
 
     _isGenerating = true;
+    _needsFadeIn = true;
     if (!fromInitState) {
       _scheduleQueryArtwork();
     }
@@ -261,27 +270,23 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           setState(() {
             _remoteArtworkUrl = result;
             _isGenerating = false;
-            _shouldFadeIn = widget.fadeInOnLoaded;
           });
         } else {
           setState(() {
             _artworkFilePath = result;
             _isGenerating = false;
-            _shouldFadeIn = widget.fadeInOnLoaded;
           });
           scanner.updateSongThumbnailPath(widget.path, result);
         }
       } else {
         setState(() {
           _isGenerating = false;
-          _shouldFadeIn = widget.fadeInOnLoaded;
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
           _isGenerating = false;
-          _shouldFadeIn = widget.fadeInOnLoaded;
         });
       }
     }
@@ -303,10 +308,17 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       if (!isSameSong) {
         _artworkFilePath = null;
         _remoteArtworkUrl = null;
-        _shouldFadeIn = false;
         _isGenerating = false;
+        _needsFadeIn = false;
+        _checkOrQueryArtwork(fromInitState: true);
+      } else {
+        final hadCover = _artworkFilePath != null || widget.bytes != null;
+        _checkOrQueryArtwork();
+        final nowHasCover = _artworkFilePath != null || widget.bytes != null;
+        if (!hadCover && nowHasCover) {
+          _needsFadeIn = true;
+        }
       }
-      _checkOrQueryArtwork();
     }
   }
 
@@ -361,18 +373,20 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     final bool hasBytes = widget.bytes != null && widget.bytes!.isNotEmpty;
     final bool hasImage = imagePath != null;
 
-    final bool isReady = hasBytes || hasImage || hasValidRemoteUrl;
-    if (isReady && _isGenerating) {
+    final bool hasSource = hasBytes || hasImage || hasValidRemoteUrl;
+    if (hasSource && _isGenerating) {
       _isGenerating = false;
-      if (widget.fadeInOnLoaded) {
-        _shouldFadeIn = true;
-      }
     }
 
-    final bool isEffectivelyGenerating = widget.fadeInOnLoaded && _isGenerating && !isReady;
+    // 解析（查找/生成）还没结束、手上也没有任何图片源：缩略图区保持空白，
+    // 等结果落定后再统一淡入 —— 落定的结果可能是封面，也可能是默认图标。
+    // 首批已有本地缓存的条目挂载即就绪，直接展示无需淡入。
+    final bool isPending = _isGenerating && !hasSource;
+
+    final bool shouldFadeIn = _needsFadeIn && !isPending;
 
     final Widget content;
-    if (isEffectivelyGenerating) {
+    if (isPending) {
       content = SizedBox(
         width: layoutWidth,
         height: layoutHeight,
@@ -388,6 +402,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           cacheWidth: targetCacheWidth,
           cacheHeight: targetCacheHeight,
           gaplessPlayback: gaplessPlayback,
+          frameBuilder: _holdLastFrame,
           errorBuilder: (_, _, _) => _fallbackIcon(layoutWidth, layoutHeight, radius),
         ),
       );
@@ -404,6 +419,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           cacheHeight: targetCacheHeight,
           gaplessPlayback: gaplessPlayback,
           filterQuality: FilterQuality.low,
+          frameBuilder: _holdLastFrame,
           errorBuilder: (_, _, _) {
             if (_artworkFilePath != null) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -411,6 +427,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
                   setState(() {
                     _artworkFilePath = null;
                     _isGenerating = true;
+                    _needsFadeIn = true;
                   });
                   _scheduleQueryArtwork();
                 }
@@ -432,12 +449,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           cacheHeight: targetCacheHeight,
           gaplessPlayback: gaplessPlayback,
           filterQuality: FilterQuality.low,
-          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-            if (wasSynchronouslyLoaded || frame != null) {
-              return child;
-            }
-            return _fallbackIcon(layoutWidth, layoutHeight, radius);
-          },
+          frameBuilder: _holdLastFrame,
           errorBuilder: (_, _, _) {
             if (_remoteArtworkUrl != null) {
               _failedRemoteUrls.add(_remoteArtworkUrl!);
@@ -450,23 +462,30 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       content = _fallbackIcon(layoutWidth, layoutHeight, radius);
     }
 
-    if (!widget.fadeInOnLoaded) {
-      return content;
-    }
-
+    // 由外层这唯一一层 AnimatedOpacity 统一管理淡入：
+    // - 首批已有缓存条目：duration 为 zero，首帧直接展示，不套淡入层；
+    // - 慢路径新生成完毕：以 kArtworkFadeInDuration 平滑淡入；
+    // - 已经展示着封面的重建（列表滚动、播放状态变化）：duration 为 zero，不重复淡入。
     return AnimatedOpacity(
-      opacity: isEffectivelyGenerating ? 0.0 : 1.0,
-      duration: _shouldFadeIn
-          ? const Duration(milliseconds: 280)
-          : Duration.zero,
+      opacity: isPending ? 0.0 : 1.0,
+      duration: shouldFadeIn ? kArtworkFadeInDuration : Duration.zero,
       curve: Curves.easeOutCubic,
       onEnd: () {
-        if (_shouldFadeIn) {
-          _shouldFadeIn = false;
-        }
+        _needsFadeIn = false;
       },
       child: content,
     );
+  }
+
+  /// 已经有画面在显示时的 frameBuilder：原样返回，交给 [Image] 按
+  /// gaplessPlayback 决定保留上一帧还是清空。
+  static Widget _holdLastFrame(
+    BuildContext context,
+    Widget child,
+    int? frame,
+    bool wasSynchronouslyLoaded,
+  ) {
+    return child;
   }
 
   Widget _fallbackIcon(double width, double height, BorderRadius radius) {

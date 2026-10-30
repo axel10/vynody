@@ -59,9 +59,6 @@ class FolderListTile extends StatelessWidget {
         size: 56.0,
         borderRadius: BorderRadius.zero,
         fallbackWidget: defaultCoverWidget,
-        // 同 folder_zoom_item：目录页成批进入视口，小尺寸封面的淡入收益远小于
-        // 每张一个离屏图层（saveLayer）带来的 raster 开销。
-        fadeInOnLoaded: false,
       );
     } else {
       coverWidget = defaultCoverWidget;

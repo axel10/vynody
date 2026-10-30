@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vynody/widgets/artwork_fade.dart';
 import 'package:vynody/widgets/default_cover_art.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 
@@ -35,7 +36,14 @@ void main() {
     );
   }
 
-  testWidgets('未生成缩略图时区域保持空白（不显示默认占位图标，透明度为0）', (tester) async {
+  /// 最外层（解析级）淡入包装：树序上永远排第一。
+  AnimatedOpacity outerFade(WidgetTester tester) {
+    return tester
+        .widgetList<AnimatedOpacity>(find.byType(AnimatedOpacity))
+        .first;
+  }
+
+  testWidgets('未生成缩略图时区域保持空白（不显示默认占位图标，透明度为 0）', (tester) async {
     await tester.pumpWidget(
       wrap(
         const SongThumbnail(
@@ -46,15 +54,13 @@ void main() {
     );
     await tester.pump();
 
-    // 缩略图生成中：无 Image，也无默认占位图标，AnimatedOpacity 透明度为 0
+    // 缩略图生成中：无 Image，也无默认占位图标，整体透明度为 0
     expect(find.byType(Image), findsNothing);
     expect(find.byType(DefaultCoverArt), findsNothing);
-
-    final animatedOpacity = tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity));
-    expect(animatedOpacity.opacity, 0.0);
+    expect(outerFade(tester).opacity, 0.0);
   });
 
-  testWidgets('缩略图生成完成后淡入显示', (tester) async {
+  testWidgets('缩略图生成完成后整体淡入', (tester) async {
     await tester.pumpWidget(
       wrap(
         const SongThumbnail(
@@ -66,7 +72,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(Image), findsNothing);
-    expect(tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity, 0.0);
+    expect(outerFade(tester).opacity, 0.0);
 
     // 模拟生成完毕补上 thumbnailPath
     await tester.pumpWidget(
@@ -78,22 +84,18 @@ void main() {
         ),
       ),
     );
-
-    // 触发第一帧淡入
     await tester.pump();
+
     expect(find.byType(Image), findsOneWidget);
+    final fade = outerFade(tester);
+    expect(fade.opacity, 1.0);
+    expect(fade.duration, kArtworkFadeInDuration);
 
-    // 此时动画进行中，透明度朝 1.0 过渡
-    final animatedOpacity = tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity));
-    expect(animatedOpacity.opacity, 1.0);
-    expect(animatedOpacity.duration, const Duration(milliseconds: 280));
-
-    // 推进动画到结束
     await tester.pumpAndSettle();
-    expect(tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity, 1.0);
+    expect(outerFade(tester).opacity, 1.0);
   });
 
-  testWidgets('已存在缩略图时挂载即直接显示，不延时淡入', (tester) async {
+  testWidgets('已存在缩略图时挂载即进入就位态，首帧直接展示无需淡入', (tester) async {
     await tester.pumpWidget(
       wrap(
         SongThumbnail(
@@ -106,13 +108,15 @@ void main() {
     await tester.pump();
 
     expect(find.byType(Image), findsOneWidget);
-    final animatedOpacity = tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity));
-    expect(animatedOpacity.opacity, 1.0);
-    expect(animatedOpacity.duration, Duration.zero);
+    final fade = outerFade(tester);
+    expect(fade.opacity, 1.0);
+    // 已有缩略图时无需淡入动画，首帧直接展示
+    expect(fade.duration, Duration.zero);
+    // 仅外层一层管理透明度，内层无多余嵌套 AnimatedOpacity
+    expect(find.byType(AnimatedOpacity), findsOneWidget);
   });
 
-  testWidgets('首次播放某首歌（同一首歌补写属性/更新）时缩略图不闪白也不重新淡入', (tester) async {
-    // 初始状态：带有缩略图显示中
+  testWidgets('首次播放某首歌（同一首歌补写属性/换图片源）时不再重新淡入', (tester) async {
     await tester.pumpWidget(
       wrap(
         SongThumbnail(
@@ -124,7 +128,7 @@ void main() {
     );
     await tester.pump();
     expect(find.byType(Image), findsOneWidget);
-    expect(tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity, 1.0);
+    expect(outerFade(tester).opacity, 1.0);
 
     // 播放时更新（同一首歌，模拟 AudioService / 扫描器补齐属性重建）
     await tester.pumpWidget(
@@ -139,10 +143,57 @@ void main() {
     );
     await tester.pump();
 
-    // 必须持续展示 Image，不出现空白，不触发额外淡入动画
+    // 已经露过面：保留上一帧，不再套一层淡入（否则会闪白）
     expect(find.byType(Image), findsOneWidget);
-    final animatedOpacity = tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity));
-    expect(animatedOpacity.opacity, 1.0);
-    expect(animatedOpacity.duration, Duration.zero);
+    expect(find.byType(AnimatedOpacity), findsOneWidget);
+    expect(outerFade(tester).opacity, 1.0);
+  });
+
+  testWidgets('换到另一首无缩略图的歌时进入生成态并在就绪后淡入', (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        SongThumbnail(
+          path: '/music/a.mp3',
+          thumbnailPath: coverPath,
+          size: 56,
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byType(AnimatedOpacity), findsOneWidget);
+    expect(outerFade(tester).opacity, 1.0);
+
+    // 列表行复用成另一首尚未生成缩略图的歌
+    await tester.pumpWidget(
+      wrap(
+        const SongThumbnail(
+          path: '/music/b.mp3',
+          size: 56,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // 进入生成态：区域空白
+    expect(find.byType(Image), findsNothing);
+    expect(outerFade(tester).opacity, 0.0);
+
+    // 异步生成完毕补上缩略图
+    await tester.pumpWidget(
+      wrap(
+        SongThumbnail(
+          path: '/music/b.mp3',
+          thumbnailPath: coverPath,
+          size: 56,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // 统一淡入
+    expect(find.byType(Image), findsOneWidget);
+    final fade = outerFade(tester);
+    expect(fade.opacity, 1.0);
+    expect(fade.duration, kArtworkFadeInDuration);
   });
 }

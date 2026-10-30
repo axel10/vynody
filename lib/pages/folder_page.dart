@@ -417,7 +417,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     required LocalKey key,
     required Widget child,
   }) {
-    if (Platform.isIOS || Platform.isMacOS) {
+    if (Platform.isIOS || Platform.isMacOS || Platform.isAndroid) {
       return CupertinoPage<dynamic>(
         key: key,
         child: child,

@@ -3,6 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'artwork_fade.dart';
+
 /// Apple Music 风格的艺术家麦克风矢量图标
 class ArtistMicIcon extends StatelessWidget {
   const ArtistMicIcon({
@@ -141,6 +143,8 @@ class ArtistAvatar extends StatelessWidget {
           width: diameter,
           height: diameter,
           fit: BoxFit.cover,
+          // 与 SongThumbnail 同一套淡入：解码出首帧前不绘制，首帧到达后淡入。
+          frameBuilder: artworkFadeInFrameBuilder,
           errorBuilder: (context, error, stackTrace) =>
               _buildPlaceholder(context),
         ),
@@ -154,6 +158,7 @@ class ArtistAvatar extends StatelessWidget {
           width: diameter,
           height: diameter,
           fit: BoxFit.cover,
+          frameBuilder: artworkFadeInFrameBuilder,
           errorBuilder: (context, error, stackTrace) =>
               _buildPlaceholder(context),
         ),
