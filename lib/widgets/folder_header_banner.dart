@@ -95,7 +95,7 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
   void _resolveInitialState() {
     final song = widget.representativeSong;
     final path = widget.coverImagePath ?? song?.thumbnailPath ?? song?.artworkPath;
-    if (path != null && path.isNotEmpty && File(path).existsSync()) {
+    if (path != null && path.isNotEmpty) {
       _resolvedPath = path;
     } else {
       _resolvedPath = null;
@@ -124,8 +124,8 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
   }
 
   void _updateAspectRatioFromFile(String filePath) {
+    if (filePath.isEmpty) return;
     final file = File(filePath);
-    if (!file.existsSync()) return;
     final fileImage = FileImage(file);
     final stream = fileImage.resolve(ImageConfiguration.empty);
     stream.addListener(ImageStreamListener((ImageInfo info, bool _) {
@@ -141,12 +141,12 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
           }
         }
       }
-    }));
+    }, onError: (_, _) {}));
   }
 
   void _checkImageAspectRatio() {
     final path = _resolvedPath;
-    if (path != null && path.isNotEmpty && File(path).existsSync()) {
+    if (path != null && path.isNotEmpty) {
       _updateAspectRatioFromFile(path);
     } else if (_rawArtwork?.bytes != null && _rawArtwork!.bytes!.isNotEmpty) {
       _updateAspectRatioFromBytes(_rawArtwork!.bytes!);
@@ -205,15 +205,33 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
 
     if (!mounted || currentGen != _resolveGeneration) return;
 
-    if (raw != null && raw.isNotEmpty) {
-      setState(() {
-        _rawArtwork = raw;
-      });
-      if (raw.bytes != null && raw.bytes!.isNotEmpty) {
-        _updateAspectRatioFromBytes(raw.bytes!);
-      } else if (raw.filePath != null && raw.filePath!.isNotEmpty) {
-        _updateAspectRatioFromFile(raw.filePath!);
+    void applyRawArtwork() {
+      if (!mounted || currentGen != _resolveGeneration) return;
+      if (raw != null && raw.isNotEmpty) {
+        setState(() {
+          _rawArtwork = raw;
+        });
+        if (raw.bytes != null && raw.bytes!.isNotEmpty) {
+          _updateAspectRatioFromBytes(raw.bytes!);
+        } else if (raw.filePath != null && raw.filePath!.isNotEmpty) {
+          _updateAspectRatioFromFile(raw.filePath!);
+        }
       }
+    }
+
+    // 关键优化：若当前页面正在执行转场动画，推迟到动画完成后再应用，
+    // 避免转场动画播放到一半时因 setState 打断导致瞬时卡顿（Jank）。
+    final routeAnimation = ModalRoute.of(context)?.animation;
+    if (routeAnimation != null && !routeAnimation.isCompleted) {
+      void onRouteStatus(AnimationStatus status) {
+        if (status == AnimationStatus.completed) {
+          routeAnimation.removeStatusListener(onRouteStatus);
+          applyRawArtwork();
+        }
+      }
+      routeAnimation.addStatusListener(onRouteStatus);
+    } else {
+      applyRawArtwork();
     }
   }
 
@@ -769,7 +787,9 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                       Opacity(
                         opacity: isDark ? 1.0 : _kLightModeBlurredCoverOpacity,
                         child: ImageFiltered(
-                          imageFilter: AppBlur.heavyFilter,
+                          imageFilter: isLowEndDevice
+                              ? AppBlur.lightFilter
+                              : AppBlur.heavyFilter,
                           child: _buildBannerImage(
                             fit: BoxFit.cover,
                             alignment: Alignment.center,

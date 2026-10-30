@@ -121,7 +121,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   bool _keepLastFrame = true;
 
   static final Set<String> _failedRemoteUrls = <String>{};
-  static final Set<String> _verifiedExistingPaths = <String>{};
+  Animation<double>? _routeAnimation;
 
   @override
   void initState() {
@@ -129,8 +129,17 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     _checkOrQueryArtwork();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 若初次挂载时需要异步慢解析，挂接到当前路由转场动画监听
+    if (_artworkFilePath == null && _remoteArtworkUrl == null && widget.bytes == null) {
+      _scheduleQueryArtwork();
+    }
+  }
+
   void _checkOrQueryArtwork() {
-    // 快速路径：同步检查是否有有效缩略图路径
+    // 快速路径：直接复用已知缩略图路径，不在 UI 线程同步调用 File.existsSync()
     final scanner = ref.read(scannerServiceProvider);
     final rawExisting = widget.thumbnailPath ??
         scanner.metadataMap[widget.path]?.thumbnailPath ??
@@ -139,18 +148,43 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         ? ScannerPathUtils.resolveIosSandboxPath(rawExisting)
         : null;
     if (existingPath != null && existingPath.isNotEmpty) {
-      if (_verifiedExistingPaths.contains(existingPath) ||
-          File(existingPath).existsSync()) {
-        _verifiedExistingPaths.add(existingPath);
-        if (_verifiedExistingPaths.length > 2000) {
-          _verifiedExistingPaths.clear();
-        }
-        _artworkFilePath = existingPath;
-        return;
-      }
+      _artworkFilePath = existingPath;
+      return;
     }
 
+    _scheduleQueryArtwork();
+  }
+
+  void _scheduleQueryArtwork() {
+    if (!mounted) return;
+    final routeAnimation = ModalRoute.of(context)?.animation;
+    if (routeAnimation != null && !routeAnimation.isCompleted) {
+      _cleanupRouteAnimation();
+      _routeAnimation = routeAnimation;
+      routeAnimation.addStatusListener(_handleRouteAnimationStatus);
+      return;
+    }
     _queryArtworkAsync();
+  }
+
+  void _handleRouteAnimationStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      _cleanupRouteAnimation();
+      if (mounted && _artworkFilePath == null && _remoteArtworkUrl == null) {
+        _queryArtworkAsync();
+      }
+    }
+  }
+
+  void _cleanupRouteAnimation() {
+    _routeAnimation?.removeStatusListener(_handleRouteAnimationStatus);
+    _routeAnimation = null;
+  }
+
+  @override
+  void dispose() {
+    _cleanupRouteAnimation();
+    super.dispose();
   }
 
   Future<void> _queryArtworkAsync() async {
@@ -289,7 +323,19 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           cacheHeight: targetCacheHeight,
           gaplessPlayback: gaplessPlayback,
           filterQuality: FilterQuality.low,
-          errorBuilder: (_, _, _) => _fallbackIcon(layoutWidth, layoutHeight, radius),
+          errorBuilder: (_, _, _) {
+            if (_artworkFilePath != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && _artworkFilePath != null) {
+                  setState(() {
+                    _artworkFilePath = null;
+                  });
+                  _scheduleQueryArtwork();
+                }
+              });
+            }
+            return _fallbackIcon(layoutWidth, layoutHeight, radius);
+          },
         ),
       );
     }

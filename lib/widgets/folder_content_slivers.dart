@@ -452,7 +452,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
                     scanner.getRepresentativeSongForFolder(folder);
                 final songsCount = isRoot
                     ? scanner.getSongCountForFolder(folder)
-                    : folder.allSongs.length;
+                    : folder.songCount;
 
                 return AnimatedOpacity(
                   key: ValueKey('folder_${folder.path}'),

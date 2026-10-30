@@ -90,8 +90,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   String? _lastHighlightedPath;
   final ValueNotifier<bool> _isCoverVisible = ValueNotifier<bool>(true);
   final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
-  String? _cachedFolderKey;
-  int? _cachedTotalDurationMs;
   int? _lastSongAnchorIndex;
   int? _lastFolderAnchorIndex;
   late final double _initialZoomScale;
@@ -352,9 +350,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     // 订阅结构版本而不是整个 ScannerService：列表内缩略图逐张生成时
     // 只会刷新各自 SongThumbnail，不再触发整页重建。
-    final structureRevision = ref.watch(
-      scannerServiceProvider.select((s) => s.structureRevision),
-    );
+    ref.watch(scannerServiceProvider.select((s) => s.structureRevision));
     final folder = _effectiveFolder;
     final scanner = ref.read(scannerServiceProvider);
     final settings = ref.watch(settingsServiceProvider);
@@ -399,19 +395,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
       ),
     );
 
-    int totalDurationMs = 0;
-    final folderKey =
-        '${folder.path}_${folder.allSongs.length}_$structureRevision';
-    if (_cachedFolderKey == folderKey && _cachedTotalDurationMs != null) {
-      totalDurationMs = _cachedTotalDurationMs!;
-    } else {
-      totalDurationMs = folder.allSongs.fold<int>(
-        0,
-        (sum, song) => sum + (song.durationMillis ?? 0),
-      );
-      _cachedFolderKey = folderKey;
-      _cachedTotalDurationMs = totalDurationMs;
-    }
+    final songsCount = folder.songCount;
+    final totalDurationMs = folder.totalDurationMs;
 
     final showSearchLoading = _searchQuery.isNotEmpty && _isSearchLoading && matchedFolders.isEmpty && matchedSongs.isEmpty;
     final noResults = _searchQuery.isNotEmpty && matchedFolders.isEmpty && matchedSongs.isEmpty && !_isSearchLoading;
@@ -448,7 +433,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 return FolderHeaderBanner(
                   title: folder.name,
                   subtitle: _getParentFolderName(folder, scanner),
-                  songsCount: folder.allSongs.length,
+                  songsCount: songsCount,
                   totalDuration: Duration(milliseconds: totalDurationMs),
                   representativeSong: representativeSong,
                   coverImagePath: representativeSong?.thumbnailPath ?? representativeCoverPath,
