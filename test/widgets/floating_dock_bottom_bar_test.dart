@@ -788,5 +788,28 @@ void main() {
 
     helper.dispose();
   });
+
+  testWidgets(
+      'FloatingDockBottomBar contains 5 tabs without a redundant Play tab',
+      (tester) async {
+    await tester.pumpWidget(
+      buildTestWidget(
+        screenSize: const Size(393, 852),
+        padding: const EdgeInsets.only(bottom: 34),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify 5 primary navigation tabs exist
+    expect(find.byIcon(Icons.folder_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.playlist_play_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.queue_music_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.share_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+
+    // Verify play_circle_outline (the removed Play tab) is not in the dock tabs
+    expect(find.byIcon(Icons.play_circle_outline), findsNothing);
+    expect(find.byIcon(Icons.play_circle), findsNothing);
+  });
 }
 

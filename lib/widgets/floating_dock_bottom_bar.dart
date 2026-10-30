@@ -8,7 +8,6 @@ import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/utils/app_orientation_manager.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/pages/main_layout_riverpod.dart';
-import 'package:vynody/utils/app_log.dart';
 import 'package:vynody/widgets/animated_play_pause_button.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
@@ -137,12 +136,6 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
         label: l10n.file,
         icon: Icons.folder_outlined,
         selectedIcon: Icons.folder,
-      ),
-      _TabItem(
-        index: 1,
-        label: l10n.play,
-        icon: Icons.play_circle_outline,
-        selectedIcon: Icons.play_circle,
       ),
       _TabItem(
         index: 2,
@@ -717,12 +710,14 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: tabs.map((tab) {
+        children: tabs.asMap().entries.map((entry) {
+          final tabIndexInList = entry.key;
+          final tab = entry.value;
           final isSelected = widget.currentIndex == tab.index;
           return Expanded(
             child: Transform.translate(
               // 手风琴向左收起：越靠右的 Tab 越快向左叠拢收折
-              offset: Offset(-24.0 * tab.index * collapseProgress, 0.0),
+              offset: Offset(-24.0 * tabIndexInList * collapseProgress, 0.0),
               child: _TabButton(
                 item: tab,
                 isSelected: isSelected,

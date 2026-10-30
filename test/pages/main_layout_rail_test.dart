@@ -122,5 +122,20 @@ void main() {
     expect(find.text('专辑'), findsOneWidget);
     expect(find.text('艺术家'), findsOneWidget);
   });
+
+  testWidgets('SlidingNavigationRail does not contain redundant Play destination', (tester) async {
+    await tester.pumpWidget(buildRail(selectedIndex: 0));
+    await tester.pumpAndSettle();
+
+    // Verify play icons are not present in rail destinations
+    expect(find.byIcon(Icons.play_circle_outline), findsNothing);
+    expect(find.byIcon(Icons.play_circle), findsNothing);
+
+    // Verify other primary navigation icons are present
+    expect(find.byIcon(Icons.folder), findsOneWidget); // active
+    expect(find.byIcon(Icons.queue_music_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.share_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+  });
 }
 

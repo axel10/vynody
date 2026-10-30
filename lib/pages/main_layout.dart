@@ -1806,12 +1806,6 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
         selectedIcon: Icons.folder,
       ),
       (
-        index: 1,
-        label: l10n.play,
-        icon: Icons.play_circle_outline,
-        selectedIcon: Icons.play_circle,
-      ),
-      (
         index: 2,
         label: l10n.homeTab,
         icon: Icons.playlist_play_outlined,
@@ -1921,10 +1915,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
         ? Colors.white
         : theme.colorScheme.onSurfaceVariant;
 
-    final int activeMainIndex = widget.selectedIndex.clamp(
-      0,
-      destinations.length - 1,
-    );
+    final int activeMainIndex = widget.selectedIndex;
     final int? activeSubIndex = widget.librarySubIndex;
     final bool isLibrarySubActive = activeSubIndex != null;
 
@@ -1942,7 +1933,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
                   '',
             ));
 
-    // 1. 上方主要导航区：文件(0)、播放(1)、媒体库(2)、队列(3)、分享(4)
+    // 1. 上方主要导航区：文件(0)、媒体库(2)、队列(3)、分享(4)
     for (int i = 0; i < destinations.length - 1; i++) {
       final d = destinations[i];
 
