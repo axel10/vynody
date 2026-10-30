@@ -185,29 +185,77 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> loadRootFolderSongs(String rootPath) async {
+    // [ScannerService][timing]：定位「首次进目录卡、之后再进不卡」用的埋点。
+    // skip 分支 = 命中缓存（不产生任何重活）；reload 分支 = 又重新读库+建树+排序。
+    // 用 !kReleaseMode：debug 的 JIT 会把首次执行放大 5~10 倍，profile 才是可信数字。
+    final totalSw = !kReleaseMode ? (Stopwatch()..start()) : null;
+    final stepSw = !kReleaseMode ? (Stopwatch()..start()) : null;
+
     final normalized = _normalizePath(rootPath);
+    final alreadyLoaded = _loadedRootPaths.contains(normalized);
     final hasScannedFolder = _scannedRootFolders.any(
       (f) => _pathsEqual(f.path, normalized),
     );
-    if (_loadedRootPaths.contains(normalized) && hasScannedFolder) return;
+    if (alreadyLoaded && hasScannedFolder) {
+      if (!kReleaseMode) {
+        debugPrint(
+          '[ScannerService][timing] loadRootFolderSongs skip $normalized '
+          '(loaded=true scannedTree=true)',
+        );
+      }
+      return;
+    }
 
     final songs = await _repository.getSongsUnderPath(normalized);
+    final dbMs = stepSw?.elapsedMilliseconds;
+    stepSw?.reset();
+
     final cachedFolder = _buildCachedFolderTree(
       songs: songs,
       rootPath: normalized,
       rootName: _displayNameForPath(normalized),
     );
-    if (cachedFolder != null) {
-      _folderSorter.sortFolderRecursiveForTree(
-        cachedFolder,
-        resolveSettings: _resolveSortSettingsForFolder,
+    final buildMs = stepSw?.elapsedMilliseconds;
+    stepSw?.reset();
+
+    if (cachedFolder == null) {
+      if (!kReleaseMode) {
+        debugPrint(
+          '[ScannerService][timing] loadRootFolderSongs abort $normalized '
+          'songs=${songs.length} db=$dbMs ms build=$buildMs ms '
+          'total=${totalSw?.elapsedMilliseconds} ms',
+        );
+      }
+      return;
+    }
+
+    _folderSorter.sortFolderRecursiveForTree(
+      cachedFolder,
+      resolveSettings: _resolveSortSettingsForFolder,
+    );
+    final sortMs = stepSw?.elapsedMilliseconds;
+    stepSw?.reset();
+
+    _upsertScannedRootFolder(cachedFolder);
+    _seedMetadataCache(songs);
+    _loadedRootPaths.add(normalized);
+    _rebuildDisplayedRootFolders();
+    _syncNavigationStateToLatestTree();
+    final applyMs = stepSw?.elapsedMilliseconds;
+    stepSw?.reset();
+
+    // notifyListeners() 内部会对全树 folder.invalidateCache()，单列一项看它多贵。
+    notifyListeners();
+    final notifyMs = stepSw?.elapsedMilliseconds;
+
+    if (!kReleaseMode) {
+      debugPrint(
+        '[ScannerService][timing] loadRootFolderSongs RELOAD $normalized '
+        'songs=${songs.length} db=$dbMs ms build=$buildMs ms sort=$sortMs ms '
+        'apply=$applyMs ms notify=$notifyMs ms '
+        'total=${totalSw?.elapsedMilliseconds} ms '
+        '(loadedBefore=$alreadyLoaded scannedTreeBefore=$hasScannedFolder)',
       );
-      _upsertScannedRootFolder(cachedFolder);
-      _seedMetadataCache(songs);
-      _loadedRootPaths.add(normalized);
-      _rebuildDisplayedRootFolders();
-      _syncNavigationStateToLatestTree();
-      notifyListeners();
     }
   }
 

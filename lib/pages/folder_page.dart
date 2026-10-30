@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show FrameTiming, TimingsCallback;
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/folder_helpers.dart';
@@ -45,6 +47,25 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
   late final LibrarySelectionScopeController _librarySelectionScopeController;
   late final HeroController _heroController;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  /// 临时埋点：只在「刚点进目录」的 2 秒窗口内打印超时帧，
+  /// 用来区分掉帧发生在 build（同步计算）还是 raster（图片解码 / 模糊）。
+  TimingsCallback? _frameTimingsCallback;
+  DateTime? _frameWatchUntil;
+
+  void _handleFrameTimings(List<FrameTiming> timings) {
+    final until = _frameWatchUntil;
+    if (until == null || DateTime.now().isAfter(until)) return;
+    for (final timing in timings) {
+      final totalMs = timing.totalSpan.inMilliseconds;
+      if (totalMs < 32) continue;
+      debugPrint(
+        '[Frame][timing] total=${totalMs}ms '
+        'build=${timing.buildDuration.inMilliseconds}ms '
+        'raster=${timing.rasterDuration.inMilliseconds}ms',
+      );
+    }
+  }
 
   bool handleBackPressed() {
     if (_isRootSortMode) {
@@ -93,54 +114,71 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
   }
 
   Future<void> _navigateTo(MusicFolder folder, ScannerService scanner) async {
-    final rootPath = scanner.rootPaths.firstWhereOrNull(
-      (root) => ScannerPathUtils.pathContains(root, folder.path),
-    );
-
-    if (rootPath != null) {
-      await scanner.loadRootFolderSongs(rootPath);
-      final rootFolder = scanner.rootFolders.firstWhereOrNull(
-        (r) => ScannerPathUtils.pathsEqual(r.path, rootPath),
+    // [FoldersPage][timing]：从「点击目录项」到「导航状态提交」的同步耗时。
+    // 转场动画在这之后才由下一帧开始，所以这段越长，用户越觉得点了没反应。
+    final totalSw = !kReleaseMode ? (Stopwatch()..start()) : null;
+    if (!kReleaseMode) {
+      // 转场动画约 300ms，留 2s 窗口足够覆盖「点进目录」这一整段。
+      _frameWatchUntil = DateTime.now().add(const Duration(seconds: 2));
+    }
+    try {
+      final rootPath = scanner.rootPaths.firstWhereOrNull(
+        (root) => ScannerPathUtils.pathContains(root, folder.path),
       );
-      if (rootFolder != null) {
-        final foundHistory = SongLocatorHelper.findFolderHistoryByFolderPath(
-          rootFolder,
-          folder.path,
-        );
-        if (foundHistory != null && foundHistory.isNotEmpty) {
-          final targetFolder = foundHistory.last;
-          final history = foundHistory.sublist(0, foundHistory.length - 1);
-          scanner.setNavigationState(targetFolder, history);
-          _clearAllSelection();
-          _setFolderSelectionMode(false);
-          return;
-        }
-      }
-    } else if (folder.path == 'system' ||
-        ScannerPathUtils.pathContains('system', folder.path)) {
-      if (scanner.systemMediaFolder != null) {
-        final foundHistory = SongLocatorHelper.findFolderHistoryByFolderPath(
-          scanner.systemMediaFolder!,
-          folder.path,
-        );
-        if (foundHistory != null && foundHistory.isNotEmpty) {
-          final targetFolder = foundHistory.last;
-          final history = foundHistory.sublist(0, foundHistory.length - 1);
-          scanner.setNavigationState(targetFolder, history);
-          _clearAllSelection();
-          _setFolderSelectionMode(false);
-          return;
-        }
-      }
-    }
 
-    final history = List<MusicFolder>.from(scanner.navigationHistory);
-    if (scanner.navigationCurrentFolder != null) {
-      history.add(scanner.navigationCurrentFolder!);
+      if (rootPath != null) {
+        await scanner.loadRootFolderSongs(rootPath);
+        final rootFolder = scanner.rootFolders.firstWhereOrNull(
+          (r) => ScannerPathUtils.pathsEqual(r.path, rootPath),
+        );
+        if (rootFolder != null) {
+          final foundHistory = SongLocatorHelper.findFolderHistoryByFolderPath(
+            rootFolder,
+            folder.path,
+          );
+          if (foundHistory != null && foundHistory.isNotEmpty) {
+            final targetFolder = foundHistory.last;
+            final history = foundHistory.sublist(0, foundHistory.length - 1);
+            scanner.setNavigationState(targetFolder, history);
+            _clearAllSelection();
+            _setFolderSelectionMode(false);
+            return;
+          }
+        }
+      } else if (folder.path == 'system' ||
+          ScannerPathUtils.pathContains('system', folder.path)) {
+        if (scanner.systemMediaFolder != null) {
+          final foundHistory = SongLocatorHelper.findFolderHistoryByFolderPath(
+            scanner.systemMediaFolder!,
+            folder.path,
+          );
+          if (foundHistory != null && foundHistory.isNotEmpty) {
+            final targetFolder = foundHistory.last;
+            final history = foundHistory.sublist(0, foundHistory.length - 1);
+            scanner.setNavigationState(targetFolder, history);
+            _clearAllSelection();
+            _setFolderSelectionMode(false);
+            return;
+          }
+        }
+      }
+
+      final history = List<MusicFolder>.from(scanner.navigationHistory);
+      if (scanner.navigationCurrentFolder != null) {
+        history.add(scanner.navigationCurrentFolder!);
+      }
+      scanner.setNavigationState(folder, history);
+      _clearAllSelection();
+      _setFolderSelectionMode(false);
+    } finally {
+      if (!kReleaseMode) {
+        debugPrint(
+          '[FoldersPage][timing] navigateTo ${folder.path} '
+          '${totalSw?.elapsedMilliseconds} ms '
+          '(history=${scanner.navigationHistory.length})',
+        );
+      }
     }
-    scanner.setNavigationState(folder, history);
-    _clearAllSelection();
-    _setFolderSelectionMode(false);
   }
 
   void _goBack(ScannerService scanner) {
@@ -353,10 +391,19 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       librarySelectionScopeProvider.notifier,
     );
     _scanner = ref.read(scannerServiceProvider);
+    if (!kReleaseMode) {
+      _frameTimingsCallback = _handleFrameTimings;
+      WidgetsBinding.instance.addTimingsCallback(_frameTimingsCallback!);
+    }
   }
 
   @override
   void dispose() {
+    final timingsCallback = _frameTimingsCallback;
+    if (timingsCallback != null) {
+      WidgetsBinding.instance.removeTimingsCallback(timingsCallback);
+      _frameTimingsCallback = null;
+    }
     Future.microtask(() {
       if (!mounted) return;
       _setFolderSelectionMode(false);
