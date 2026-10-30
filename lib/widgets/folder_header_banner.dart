@@ -10,9 +10,11 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/metadata/artwork_resolver.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_service_providers.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import 'folder_scan_widgets.dart';
+import 'song_thumbnail.dart';
 
 class FolderHeaderBanner extends ConsumerStatefulWidget {
   const FolderHeaderBanner({
@@ -96,7 +98,9 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
     final song = widget.representativeSong;
     final path = widget.coverImagePath ?? song?.thumbnailPath ?? song?.artworkPath;
     if (path != null && path.isNotEmpty) {
-      _resolvedPath = path;
+      // 库里存的是绝对路径，iOS 沙箱目录会随安装变化，必须先落到当前容器内，
+      // 否则 File() 直接指向一个不存在的位置 —— 表现为封面始终空白。
+      _resolvedPath = ScannerPathUtils.resolveIosSandboxPath(path);
     } else {
       _resolvedPath = null;
     }
@@ -204,34 +208,15 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
     );
 
     if (!mounted || currentGen != _resolveGeneration) return;
+    if (raw == null || !raw.isNotEmpty) return;
 
-    void applyRawArtwork() {
-      if (!mounted || currentGen != _resolveGeneration) return;
-      if (raw != null && raw.isNotEmpty) {
-        setState(() {
-          _rawArtwork = raw;
-        });
-        if (raw.bytes != null && raw.bytes!.isNotEmpty) {
-          _updateAspectRatioFromBytes(raw.bytes!);
-        } else if (raw.filePath != null && raw.filePath!.isNotEmpty) {
-          _updateAspectRatioFromFile(raw.filePath!);
-        }
-      }
-    }
-
-    // 关键优化：若当前页面正在执行转场动画，推迟到动画完成后再应用，
-    // 避免转场动画播放到一半时因 setState 打断导致瞬时卡顿（Jank）。
-    final routeAnimation = ModalRoute.of(context)?.animation;
-    if (routeAnimation != null && !routeAnimation.isCompleted) {
-      void onRouteStatus(AnimationStatus status) {
-        if (status == AnimationStatus.completed) {
-          routeAnimation.removeStatusListener(onRouteStatus);
-          applyRawArtwork();
-        }
-      }
-      routeAnimation.addStatusListener(onRouteStatus);
-    } else {
-      applyRawArtwork();
+    setState(() {
+      _rawArtwork = raw;
+    });
+    if (raw.bytes != null && raw.bytes!.isNotEmpty) {
+      _updateAspectRatioFromBytes(raw.bytes!);
+    } else if (raw.filePath != null && raw.filePath!.isNotEmpty) {
+      _updateAspectRatioFromFile(raw.filePath!);
     }
   }
 
@@ -272,6 +257,30 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
     final isWideOrSquare = hasImage && (_aspectRatio == null || _aspectRatio! >= 0.85);
     final bool isLowEndDevice = widget.isLowEndDevice ?? ref.watch(isLowMidEndDeviceProvider);
 
+    // 首帧占位图的解码尺寸。
+    //
+    // 转场第一帧时高清原图必然还没解析出来（要读标签 / 起 isolate），而裸
+    // `Image.memory/Image.file` 在解码完成前画的是空白，所以整块 banner 会空
+    // 一整个转场。这里按网格条目（[SongThumbnail]，size = [kZoomItemThumbnailSize]）
+    // 完全相同的分桶算尺寸，让首帧能直接命中 ImageCache 里已经解码好的那一张，
+    // 同步出图；高清到手后再由 gaplessPlayback 无缝替换。
+    //
+    // 尺寸信息必须与 [SongThumbnail] 同源（都读 metadataMap）：方形封面两边若
+    // 一个走 cacheHeight、一个走 cacheWidth，算出来就是两个 key，缓存不命中。
+    final (artWidth, artHeight) = ref.watch(
+      scannerServiceProvider.select((s) {
+        final meta =
+            s.metadataMap[widget.representativeSong?.path ?? widget.songPath ?? ''];
+        return (meta?.artworkWidth, meta?.artworkHeight);
+      }),
+    );
+    final int seedPixels =
+        (thumbnailBucketSizeFor(kZoomItemThumbnailSize) *
+                MediaQuery.devicePixelRatioOf(context))
+            .round();
+    final bool seedUsesCacheHeight =
+        artWidth != null && artHeight != null && artWidth >= artHeight;
+
     return _OverscrollStretchBuilder(
       builder: (context, overscroll) {
         if (isLandscape) {
@@ -308,6 +317,8 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
             rawArtwork: _rawArtwork,
             hasImage: hasImage,
             isWideOrSquare: isWideOrSquare,
+            seedCacheWidth: seedUsesCacheHeight ? null : seedPixels,
+            seedCacheHeight: seedUsesCacheHeight ? seedPixels : null,
             topHeader: widget.topHeader,
             actionButtons: widget.actionButtons,
             actionButtonsScrollable: widget.actionButtonsScrollable,
@@ -670,6 +681,8 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
     this.rawArtwork,
     required this.hasImage,
     required this.isWideOrSquare,
+    required this.seedCacheWidth,
+    required this.seedCacheHeight,
     required this.topHeader,
     required this.actionButtons,
     required this.actionButtonsScrollable,
@@ -696,6 +709,10 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
   final RawArtwork? rawArtwork;
   final bool hasImage;
   final bool isWideOrSquare;
+
+  /// 首帧占位图的解码尺寸，与网格条目（[SongThumbnail]）同桶 —— 见调用处注释。
+  final int? seedCacheWidth;
+  final int? seedCacheHeight;
   final Widget? topHeader;
   final List<Widget> actionButtons;
   final bool actionButtonsScrollable;
@@ -712,60 +729,106 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
   final bool isLowEndDevice;
   final double overscroll;
 
+  /// 高清封面源（标签内嵌原图 / 已落盘原图 / 远程 URL）。
+  ImageProvider<Object>? _highResProvider({int? cacheWidth, int? cacheHeight}) {
+    final raw = rawArtwork;
+    if (raw != null && raw.isNotEmpty) {
+      if (raw.bytes != null && raw.bytes!.isNotEmpty) {
+        return ResizeImage.resizeIfNeeded(
+          cacheWidth,
+          cacheHeight,
+          MemoryImage(raw.bytes!),
+        );
+      }
+      if (raw.filePath != null && raw.filePath!.isNotEmpty) {
+        return ResizeImage.resizeIfNeeded(
+          cacheWidth,
+          cacheHeight,
+          FileImage(File(raw.filePath!)),
+        );
+      }
+      if (raw.remoteUrl != null && raw.remoteUrl!.isNotEmpty) {
+        return ResizeImage.resizeIfNeeded(
+          cacheWidth,
+          cacheHeight,
+          NetworkImage(raw.remoteUrl!),
+        );
+      }
+    }
+    final file = coverFile;
+    if (file != null) {
+      return ResizeImage.resizeIfNeeded(
+        cacheWidth,
+        cacheHeight,
+        FileImage(file),
+      );
+    }
+    return null;
+  }
+
+  /// 首帧占位图源。
+  ///
+  /// key 必须与网格条目里那张 [SongThumbnail] 完全一致（同文件、同分桶尺寸），
+  /// 才能命中全局 [ImageCache] 中已经解码好的纹理 —— 命中时图片是**同步**可用的，
+  /// 于是转场第一帧就能出图，而不是空等到解码完成。
+  ImageProvider<Object>? _seedProvider() {
+    final path = resolvedPath;
+    if (path == null || path.isEmpty) return null;
+    // 远程路径没有本地文件可读，走不到缓存命中，交给高清层自己加载。
+    if (RemoteMediaResolver.isRemoteUri(path)) return null;
+    return ResizeImage.resizeIfNeeded(
+      seedCacheWidth,
+      seedCacheHeight,
+      FileImage(File(path)),
+    );
+  }
+
   Widget _buildBannerImage({
     required BoxFit fit,
     Alignment alignment = Alignment.center,
     double? width,
     double? height,
     int? cacheWidth,
+    int? cacheHeight,
   }) {
-    if (rawArtwork != null && rawArtwork!.isNotEmpty) {
-      if (rawArtwork!.bytes != null && rawArtwork!.bytes!.isNotEmpty) {
-        return Image.memory(
-          rawArtwork!.bytes!,
-          fit: fit,
-          alignment: alignment,
-          width: width,
-          height: height,
-          cacheWidth: cacheWidth,
-          gaplessPlayback: true,
-        );
-      }
-      if (rawArtwork!.filePath != null && rawArtwork!.filePath!.isNotEmpty) {
-        return Image.file(
-          File(rawArtwork!.filePath!),
-          fit: fit,
-          alignment: alignment,
-          width: width,
-          height: height,
-          cacheWidth: cacheWidth,
-          gaplessPlayback: true,
-        );
-      }
-      if (rawArtwork!.remoteUrl != null && rawArtwork!.remoteUrl!.isNotEmpty) {
-        return Image.network(
-          rawArtwork!.remoteUrl!,
-          fit: fit,
-          alignment: alignment,
-          width: width,
-          height: height,
-          cacheWidth: cacheWidth,
-          gaplessPlayback: true,
-        );
-      }
-    }
-    if (coverFile != null) {
-      return Image.file(
-        coverFile!,
+    final provider = _highResProvider(
+      cacheWidth: cacheWidth,
+      cacheHeight: cacheHeight,
+    );
+    if (provider == null) return const SizedBox.shrink();
+
+    Widget buildSeed() {
+      final seed = _seedProvider();
+      if (seed == null) return const SizedBox.shrink();
+      return Image(
+        image: seed,
         fit: fit,
         alignment: alignment,
         width: width,
         height: height,
-        cacheWidth: cacheWidth,
         gaplessPlayback: true,
+        filterQuality: FilterQuality.low,
+        errorBuilder: (_, _, _) => const SizedBox.shrink(),
       );
     }
-    return const SizedBox.shrink();
+
+    return Image(
+      image: provider,
+      fit: fit,
+      alignment: alignment,
+      width: width,
+      height: height,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.low,
+      // 高清还没解码完：先铺上网格条目那份（多半已在 ImageCache 里，同步可出）。
+      // 解码完成后 frame != null，直接换成高清，中间不出现空白帧。
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded || frame != null) return child;
+        return buildSeed();
+      },
+      // 高清源失效（文件被移走 / 远程 404）时至少保住低清那张。
+      errorBuilder: (_, _, _) => buildSeed(),
+    );
   }
 
   @override
@@ -1030,6 +1093,8 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                               child: hasImage
                                   ? _buildBannerImage(
                                       fit: BoxFit.contain,
+                                      cacheWidth: seedCacheWidth,
+                                      cacheHeight: seedCacheHeight,
                                     )
                                   : coverWidget,
                             ),

@@ -65,6 +65,29 @@ class ArtworkResolver {
     }
   }
 
+  /// 检查某首曲目当前是否命中负缓存（已确认无封面）。
+  static bool isNegativeCached(
+    String path, {
+    String? thumbnailPath,
+    String? artworkPath,
+  }) {
+    if (RemoteMediaResolver.isRemoteUri(path)) return false;
+    final resolvedSongPath = ScannerPathUtils.resolveIosSandboxPath(path);
+    final signature = '${thumbnailPath ?? ''}|${artworkPath ?? ''}';
+    return _isNegativeCached(resolvedSongPath, signature);
+  }
+
+  /// 标记某个缩略图路径解码/读取失败，清除其缓存并加入负缓存，防止重复拉取损坏的图片。
+  static void markThumbnailFailed(String path, String failedThumbPath) {
+    final resolvedSongPath = ScannerPathUtils.resolveIosSandboxPath(path);
+    final resolvedThumb =
+        ScannerPathUtils.resolveIosSandboxPath(failedThumbPath);
+    _verifiedPaths.remove(resolvedThumb);
+    _thumbnailCache.remove(resolvedSongPath);
+    final signature = '$failedThumbPath|';
+    _recordNegative(resolvedSongPath, signature);
+  }
+
   static Future<RemoteMediaResolver?> _getDefaultRemoteResolver() async {
     try {
       final prefs = await SharedPreferences.getInstance();

@@ -14,11 +14,27 @@ import 'default_cover_art.dart';
 
 /// 缩放条目（网格/列表共用条目）里封面的解码尺寸（dp）。
 ///
-/// 网格卡片实际宽度只有 100~180dp，而这里会被 [_bucketedSize] 分桶到 250dp
-/// —— 手机上等于 750px 的纹理。首次进入页面时每个封面都按约 5 倍像素量解码
+/// 网格卡片实际宽度只有 100~180dp，而这里会被 [thumbnailBucketSizeFor] 分桶到
+/// 120dp —— 手机上等于 360px 的纹理。首次进入页面时每个封面都按数倍像素量解码
 /// 并上传，这笔开销全落在转场首帧。120dp 桶（手机上 360px）已经比卡片本身更
 /// 清晰，再高的分辨率在屏幕上体现不出来。
 const double kZoomItemThumbnailSize = 120.0;
+
+/// 缩略图解码尺寸分桶。
+///
+/// 同一个桶内的请求共用一份 [ResizeImage] key，也就共用 [ImageCache] 里同一条
+/// 已解码纹理。**任何想「复用列表/网格已经解码好那张图」的地方都必须走这个函数**，
+/// 自己写 `cacheWidth` 会算出一个新 key，命中不了缓存，白解一遍。
+double thumbnailBucketSizeFor(double size) {
+  if (size <= 60.0) {
+    return 60.0;
+  } else if (size <= 120.0) {
+    return 120.0;
+  } else if (size <= 250.0) {
+    return 250.0;
+  }
+  return 400.0;
+}
 
 class SongThumbnail extends ConsumerStatefulWidget {
   final String path;
@@ -271,17 +287,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     }
   }
 
-  double get _bucketedSize {
-    if (widget.size <= 60.0) {
-      return 60.0;
-    } else if (widget.size <= 120.0) {
-      return 120.0;
-    } else if (widget.size <= 250.0) {
-      return 250.0;
-    } else {
-      return 400.0;
-    }
-  }
+  double get _bucketedSize => thumbnailBucketSizeFor(widget.size);
 
   @override
   void didUpdateWidget(SongThumbnail oldWidget) {
