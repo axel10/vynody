@@ -618,7 +618,8 @@ class SettingsService extends ChangeNotifier {
 
   static const double defaultPlaybackBackgroundNormalOpacity = 0.20;
   static const double defaultPlaybackBackgroundLyricsOpacity = 0.30;
-  static const double defaultPlaybackMeshBackgroundNormalOpacity = 0.0;
+  static const double defaultPlaybackMeshBackgroundSpeed = 0.4;
+  static const double defaultPlaybackMeshBackgroundNormalOpacity = 0.15;
   static const bool defaultPlaybackMeshBackgroundAutoDarkLayer = false;
   static const double defaultPlaybackBlurredArtworkBlurSigma = 30.0;
   static const double defaultPlaybackCustomImageBlurSigma = 0.0;
@@ -1978,7 +1979,7 @@ class SettingsService extends ChangeNotifier {
 
   late final _playbackMeshBackgroundSpeedProperty = SettingProperty<double>(
     key: _keyPlaybackMeshBackgroundSpeed,
-    defaultValue: 0.05,
+    defaultValue: defaultPlaybackMeshBackgroundSpeed,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
