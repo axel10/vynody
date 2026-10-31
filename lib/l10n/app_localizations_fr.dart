@@ -795,6 +795,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher le format audio, le taux d\'échantillonnage et le débit binaire sous les commandes de lecture';
 
   @override
+  String get topDragHandleSectionTitle => 'Barre d\'indication supérieure';
+
+  @override
   String get showPlaybackTopDragHandle =>
       'Afficher la barre de glissement supérieure';
 

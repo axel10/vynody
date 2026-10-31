@@ -770,6 +770,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showPlaybackAudioInfoDescription => '在播放控制下方显示音频格式、采样率和比特率等详细信息';
 
   @override
+  String get topDragHandleSectionTitle => '顶部指示条';
+
+  @override
   String get showPlaybackTopDragHandle => '显示顶部拖拽横条';
 
   @override
@@ -6190,6 +6193,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get showPlaybackAudioInfoDescription => '在播放控制下方顯示音訊格式、取樣率和位元率等詳細資訊';
+
+  @override
+  String get topDragHandleSectionTitle => '頂部指示條';
 
   @override
   String get showPlaybackTopDragHandle => '顯示頂部拖拽橫條';

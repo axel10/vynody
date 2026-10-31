@@ -1569,6 +1569,12 @@ abstract class AppLocalizations {
   /// **'在播放控制下方显示音频格式、采样率和比特率等详细信息'**
   String get showPlaybackAudioInfoDescription;
 
+  /// No description provided for @topDragHandleSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'顶部指示条'**
+  String get topDragHandleSectionTitle;
+
   /// No description provided for @showPlaybackTopDragHandle.
   ///
   /// In zh, this message translates to:

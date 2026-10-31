@@ -256,6 +256,7 @@
   "progressBarStyleScrollingWaveform": "Scrollende Wellenform",
   "showPlaybackAudioInfo": "Audio-Spezifikationen anzeigen",
   "showPlaybackAudioInfoDescription": "Format, Samplerate und Bitrate unter der Wiedergabesteuerung anzeigen",
+  "topDragHandleSectionTitle": "Oberer Indikatorbalken",
   "showPlaybackTopDragHandle": "Oberen Ziehbalken anzeigen",
   "showPlaybackTopDragHandleDescription": "Den Griff zum Herunterziehen oben auf der Wiedergabeseite anzeigen",
   "waveformLongPressSeekSpeed": "Spulgeschwindigkeit bei langem Drücken",

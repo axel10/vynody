@@ -794,6 +794,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Format, Samplerate und Bitrate unter der Wiedergabesteuerung anzeigen';
 
   @override
+  String get topDragHandleSectionTitle => 'Oberer Indikatorbalken';
+
+  @override
   String get showPlaybackTopDragHandle => 'Oberen Ziehbalken anzeigen';
 
   @override

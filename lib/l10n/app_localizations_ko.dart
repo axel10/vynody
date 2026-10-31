@@ -775,6 +775,9 @@ class AppLocalizationsKo extends AppLocalizations {
       '재생 컨트롤 아래에 오디오 포맷, 샘플링 레이트, 비트레이트 정보 표시';
 
   @override
+  String get topDragHandleSectionTitle => '상단 표시줄';
+
+  @override
   String get showPlaybackTopDragHandle => '상단 드래그 바 표시';
 
   @override

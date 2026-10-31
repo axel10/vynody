@@ -795,6 +795,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'Mostrar formato de audio, frecuencia de muestreo y tasa de bits debajo de los controles de reproducción';
 
   @override
+  String get topDragHandleSectionTitle => 'Barra indicadora superior';
+
+  @override
   String get showPlaybackTopDragHandle => 'Mostrar barra superior de arrastre';
 
   @override

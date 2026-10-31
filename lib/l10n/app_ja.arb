@@ -256,6 +256,7 @@
   "progressBarStyleScrollingWaveform": "スクロール波形",
   "showPlaybackAudioInfo": "オーディオスペック情報を表示",
   "showPlaybackAudioInfoDescription": "再生コントロールの下にオーディオ形式、サンプリングレート、ビットレートなどを表示します",
+  "topDragHandleSectionTitle": "上部インジケーターバー",
   "showPlaybackTopDragHandle": "上部ドラッグバーを表示",
   "showPlaybackTopDragHandleDescription": "再生画面の上部にプルダウン折りたたみバーを表示します",
   "waveformLongPressSeekSpeed": "波形長押し早送り速度",

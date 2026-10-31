@@ -789,6 +789,9 @@ class AppLocalizationsTr extends AppLocalizations {
       'Oynatma kontrollerinin altında ses formatı, örnekleme hızı ve bit hızını göster';
 
   @override
+  String get topDragHandleSectionTitle => 'Üst Gösterge Çubuğu';
+
+  @override
   String get showPlaybackTopDragHandle => 'Üst Sürükleme Çubuğunu Göster';
 
   @override
