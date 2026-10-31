@@ -82,7 +82,7 @@ class FolderZoomItem extends StatelessWidget {
     if (representativeSong != null) {
       coverWidget = SongThumbnail.fromSong(
         representativeSong!,
-        size: kZoomItemThumbnailSize,
+        size: zoomItemThumbnailSizeFor(metrics),
         width: double.infinity,
         height: double.infinity,
         fallbackWidget: defaultCoverWidget,

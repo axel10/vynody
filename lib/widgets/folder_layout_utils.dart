@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:zoomable_sliver_grid/zoomable_sliver_grid.dart'
     hide kGridCrossAxisSpacing, kGridMainAxisSpacing, kGridHorizontalPadding;
@@ -32,6 +34,24 @@ export '../utils/layout_constants.dart';
 
 /// 标题横幅高度的兜底值：测不到实测高度时使用（首帧、或横幅已滚出缓存区）。
 const double kFolderHeaderBannerFallbackHeight = 190.0;
+
+/// 目录页条目封面（`SongThumbnail`）的解码尺寸（dp）。
+///
+/// 网格态的封面边长不是常量，而是**网格卡片宽度**：`ZoomItemScaffold` 里
+/// `gridCoverSize = min(W, H - 文字区高度)`，其中 W 就是列宽；而横屏列数是写死的
+/// 6/7/8 列、与窗口宽度无关，所以 macOS 上 1200~1728dp 的窗口会把卡片撑到
+/// 180~270dp。此前条目统一按 `kZoomItemThumbnailSize`（120）解码，2x 屏上只有
+/// 240px 纹理，却被铺到 460px 见方，放大近两倍 —— 这就是桌面端目录页缩略图发糊
+/// 的根因（专辑页的 `album_zoom_item.dart` 一直用 250，所以没这个毛病）。
+///
+/// 判据取 [FolderZoomLayoutMetrics.isGridTarget]：它在换档动画期间恒等于**目标**
+/// 档位，因此一次换档只会切换一次解码尺寸，不会在捏合过程中反复跨桶重解码。
+/// 列表态封面只有 40dp 上下，按 `getFolderListCoverSize` 走小桶即可。
+double zoomItemThumbnailSizeFor(FolderZoomLayoutMetrics metrics) {
+  final listCoverSize = getFolderListCoverSize(metrics.targetZoomScale);
+  if (!metrics.isGridTarget) return listCoverSize;
+  return math.max(listCoverSize, metrics.targetCardWidth);
+}
 
 /// 内容区上方「无权限访问」提示块的估算高度（`folder.path == 'system'` 且未授权时）。
 const double kFolderPermissionWarningHeight = 200.0;

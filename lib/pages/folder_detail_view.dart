@@ -420,7 +420,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             zoomScale: snapFolderZoomScale(settings.folderZoomScale),
             width: crossAxisExtent,
             controller: _localScrollController,
-            builder: (context, _) {
+            builder: (context, metrics) {
               return RefreshIndicator(
                 edgeOffset: headerHeight,
                 onRefresh: _handleRefresh,
@@ -449,6 +449,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   totalDuration: Duration(milliseconds: totalDurationMs),
                   representativeSong: representativeSong,
                   coverImagePath: representativeSong?.thumbnailPath ?? representativeCoverPath,
+                  thumbnailSize: zoomItemThumbnailSizeFor(metrics),
                   topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
                   coverWidget: () {
                     final defaultCover = SizedBox(

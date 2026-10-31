@@ -41,6 +41,7 @@ class FolderHeaderBanner extends ConsumerStatefulWidget {
     this.heroTag,
     this.isHeroModeEnabled = true,
     this.isLowEndDevice,
+    this.thumbnailSize = kZoomItemThumbnailSize,
   });
 
   final String title;
@@ -65,6 +66,13 @@ class FolderHeaderBanner extends ConsumerStatefulWidget {
   final String? heroTag;
   final bool isHeroModeEnabled;
   final bool? isLowEndDevice;
+
+  /// 网格条目那张 [SongThumbnail] 的解码尺寸（dp）。
+  ///
+  /// 只用于首帧占位图（seed）与列表里已解码纹理**同桶**，从而同步出图；
+  /// 调用方应传 [zoomItemThumbnailSizeFor]，与条目侧保持同一个来源，否则
+  /// 转场第一帧会退回「等一次解码」。默认值只在不走缩放的页面兜底。
+  final double thumbnailSize;
 
   @override
   ConsumerState<FolderHeaderBanner> createState() => _FolderHeaderBannerState();
@@ -261,7 +269,7 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
     //
     // 转场第一帧时高清原图必然还没解析出来（要读标签 / 起 isolate），而裸
     // `Image.memory/Image.file` 在解码完成前画的是空白，所以整块 banner 会空
-    // 一整个转场。这里按网格条目（[SongThumbnail]，size = [kZoomItemThumbnailSize]）
+    // 一整个转场。这里按网格条目（[SongThumbnail]，size = [thumbnailSize]）
     // 完全相同的分桶算尺寸，让首帧能直接命中 ImageCache 里已经解码好的那一张，
     // 同步出图；高清到手后再由 gaplessPlayback 无缝替换。
     //
@@ -275,7 +283,7 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
       }),
     );
     final int seedPixels =
-        (thumbnailBucketSizeFor(kZoomItemThumbnailSize) *
+        (thumbnailBucketSizeFor(widget.thumbnailSize) *
                 MediaQuery.devicePixelRatioOf(context))
             .round();
     final bool seedUsesCacheHeight =

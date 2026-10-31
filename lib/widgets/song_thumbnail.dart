@@ -13,12 +13,15 @@ import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'artwork_fade.dart';
 import 'default_cover_art.dart';
 
-/// 缩放条目（网格/列表共用条目）里封面的解码尺寸（dp）。
+/// 网格条目封面解码尺寸的**兜底值**（dp）。
 ///
-/// 网格卡片实际宽度只有 100~180dp，而这里会被 [thumbnailBucketSizeFor] 分桶到
-/// 120dp —— 手机上等于 360px 的纹理。首次进入页面时每个封面都按数倍像素量解码
-/// 并上传，这笔开销全落在转场首帧。120dp 桶（手机上 360px）已经比卡片本身更
-/// 清晰，再高的分辨率在屏幕上体现不出来。
+/// 条目侧的真实取值为 `zoomItemThumbnailSizeFor(metrics)`（见
+/// `folder_layout_utils.dart`）：网格态的封面边长等于网格卡片宽度，而横屏列数
+/// 固定 6/7/8 列、与窗口宽度无关，桌面端卡片会被撑到 180~270dp，按 120 解码
+/// 只会得到被放大近两倍的糊图。
+///
+/// 这里只剩两个用途：不带缩放度量的横幅页兜底，以及 `thumbnailBucketSizeFor`
+/// 分桶时的最小档参考。
 const double kZoomItemThumbnailSize = 120.0;
 
 /// 缩略图解码尺寸分桶。

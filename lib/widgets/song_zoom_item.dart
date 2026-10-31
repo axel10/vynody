@@ -134,7 +134,7 @@ class SongZoomItem extends ConsumerWidget {
     // 封面
     final thumbnail = SongThumbnail.fromSong(
       song,
-      size: kZoomItemThumbnailSize,
+      size: zoomItemThumbnailSizeFor(metrics),
       width: double.infinity,
       height: double.infinity,
     );
