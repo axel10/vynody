@@ -281,6 +281,9 @@ class RemoteServersSliver extends ConsumerWidget {
   final double bottomPadding;
   final double? crossAxisExtent;
 
+  /// 本段身份，必须与 `SliverAnimatedZoomGridDelegate.section` 一致。
+  final Object? section;
+
   const RemoteServersSliver({
     super.key,
     required this.servers,
@@ -289,6 +292,7 @@ class RemoteServersSliver extends ConsumerWidget {
     required this.onOpenServer,
     this.bottomPadding = 160.0,
     this.crossAxisExtent,
+    this.section,
   });
 
   double get _effectiveZoomScale => snapFolderZoomScale(zoomScale);
@@ -304,7 +308,7 @@ class RemoteServersSliver extends ConsumerWidget {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final effectiveZoom = _effectiveZoomScale;
 
-    return FolderZoomSliverBuilder(
+    return FolderZoomSectionHost(
       zoomScale: effectiveZoom,
       width: width,
       builder: (context, metrics) {
@@ -441,7 +445,10 @@ class RemoteServersSliver extends ConsumerWidget {
             right: hPad,
           ),
           sliver: SliverGrid(
-            gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
+            gridDelegate: SliverAnimatedZoomGridDelegate(
+              metrics: metrics,
+              section: section,
+            ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 final server = servers[index];
@@ -449,6 +456,7 @@ class RemoteServersSliver extends ConsumerWidget {
                   key: ValueKey('server_${server.id}'),
                   server: server,
                   metrics: metrics,
+                  section: section,
                   isProUnlocked: isProUnlocked,
                   isSortMode: false,
                   onTap: () => onOpenServer(server),
@@ -485,6 +493,9 @@ class RemoteServerZoomItem extends StatelessWidget {
   final void Function(Offset position)? onContextMenu;
   final Widget? trailing;
 
+  /// 本条目所属的网格段，必须与 `SliverAnimatedZoomGridDelegate.section` 一致。
+  final Object? section;
+
   const RemoteServerZoomItem({
     super.key,
     required this.server,
@@ -497,6 +508,7 @@ class RemoteServerZoomItem extends StatelessWidget {
     this.onSecondaryTapDown,
     this.onContextMenu,
     this.trailing,
+    this.section,
   });
 
   @override
@@ -675,6 +687,7 @@ class RemoteServerZoomItem extends StatelessWidget {
 
     return ZoomItemScaffold(
       metrics: metrics,
+      section: section,
       cover: coverStack,
       titleText: server.name,
       subtitleText: server.url.isEmpty ? typeLabel : server.url,

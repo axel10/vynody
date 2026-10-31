@@ -28,10 +28,17 @@ class FolderZoomItem extends StatelessWidget {
     this.customTitle,
     this.enableHero = true,
     this.isIndexed = false,
+    this.section,
   });
 
   final MusicFolder folder;
   final FolderZoomLayoutMetrics metrics;
+
+  /// 本条目所属的网格段，必须与 `SliverAnimatedZoomGridDelegate.section` 一致。
+  ///
+  /// 一页里只有一个网格时留空即可；一页挂多个网格（目录 + 歌曲）时，冻结的
+  /// 「单侧可见条目」表按段分开，索引才对得上。
+  final Object? section;
   final int songsCount;
   final MusicFile? representativeSong;
   final bool isSelected;
@@ -146,6 +153,7 @@ class FolderZoomItem extends StatelessWidget {
 
     final scaffold = ZoomItemScaffold(
       metrics: metrics,
+      section: section,
       cover: heroCover,
       titleText: customTitle ?? folder.name,
       subtitleText: subtitle ?? l10n.songsCountFormat(songsCount),

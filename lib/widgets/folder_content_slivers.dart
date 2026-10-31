@@ -131,6 +131,9 @@ class FolderSubfoldersSliver extends StatelessWidget {
   final double? bottomPadding;
   final double? crossAxisExtent;
 
+  /// 本段身份，必须与 `SliverAnimatedZoomGridDelegate.section` 一致。
+  final Object? section;
+
   const FolderSubfoldersSliver({
     super.key,
     required this.folders,
@@ -153,6 +156,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
     this.onShowFolderContextMenu,
     this.bottomPadding,
     this.crossAxisExtent,
+    this.section,
   });
 
   double get _effectiveZoomScale => snapFolderZoomScale(zoomScale);
@@ -170,7 +174,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
         MediaQuery.of(context).orientation == Orientation.portrait;
     final effectiveZoom = _effectiveZoomScale;
 
-    return FolderZoomSliverBuilder(
+    return FolderZoomSectionHost(
       zoomScale: effectiveZoom,
       width: width,
       builder: (context, metrics) {
@@ -405,7 +409,10 @@ class FolderSubfoldersSliver extends StatelessWidget {
             right: hPad,
           ),
           sliver: SliverGrid(
-            gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
+            gridDelegate: SliverAnimatedZoomGridDelegate(
+              metrics: metrics,
+              section: section,
+            ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 if (showSystemMedia && index == 0) {
@@ -426,6 +433,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
                     child: FolderZoomItem(
                       folder: systemFolder,
                       metrics: metrics,
+                      section: section,
                       songsCount: songsCount,
                       representativeSong: representativeSong,
                       subtitle: hasPermission ? null : systemMediaSubtitle,
@@ -461,6 +469,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
                   child: FolderZoomItem(
                     folder: folder,
                     metrics: metrics,
+                    section: section,
                     songsCount: songsCount,
                     representativeSong: representativeSong,
                     isSelected: isSelected,
@@ -522,6 +531,9 @@ class FolderSongsSliver extends StatelessWidget {
   final double bottomPadding;
   final double? crossAxisExtent;
 
+  /// 本段身份，必须与 `SliverAnimatedZoomGridDelegate.section` 一致。
+  final Object? section;
+
   const FolderSongsSliver({
     super.key,
     required this.songs,
@@ -538,6 +550,7 @@ class FolderSongsSliver extends StatelessWidget {
     this.topPadding = 8.0,
     this.bottomPadding = 160.0,
     this.crossAxisExtent,
+    this.section,
   });
 
   double get _effectiveZoomScale => snapFolderZoomScale(zoomScale);
@@ -553,7 +566,7 @@ class FolderSongsSliver extends StatelessWidget {
         MediaQuery.of(context).orientation == Orientation.portrait;
     final effectiveZoom = _effectiveZoomScale;
 
-    return FolderZoomSliverBuilder(
+    return FolderZoomSectionHost(
       zoomScale: effectiveZoom,
       width: width,
       builder: (context, metrics) {
@@ -570,7 +583,10 @@ class FolderSongsSliver extends StatelessWidget {
             right: hPad,
           ),
           sliver: SliverGrid(
-            gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
+            gridDelegate: SliverAnimatedZoomGridDelegate(
+              metrics: metrics,
+              section: section,
+            ),
             delegate: SliverChildBuilderDelegate(
               (context, fileIndex) {
                 final file = songs[fileIndex];
@@ -581,6 +597,7 @@ class FolderSongsSliver extends StatelessWidget {
                   key: ValueKey(file.path),
                   song: file,
                   metrics: metrics,
+                  section: section,
                   isCurrent: isCurrent,
                   isPlaying: isPlaying,
                   isSelected: isSelected,

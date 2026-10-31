@@ -35,6 +35,7 @@ import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/widgets/draggable_album_item.dart';
+import 'package:vynody/widgets/folder_layout_utils.dart';
 import 'package:vynody/widgets/draggable_artist_item.dart';
 import 'package:vynody/widgets/draggable_genre_item.dart';
 import 'package:vynody/widgets/draggable_song_item.dart';
@@ -333,6 +334,9 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.byType(FolderDetailView), findsOneWidget);
+      // 子目录与歌曲两个网格必须共用同一个缩放容器：各自建一个 builder 时，
+      // 上游网格换档后的高度变化不会被算进下游的滚动补偿（瞬间被顶走一截）。
+      expect(find.byType(FolderZoomSliverBuilder), findsOneWidget);
     });
   });
 

@@ -19,6 +19,7 @@ import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 import '../widgets/folder_header_nav_bar.dart';
+import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_content_slivers.dart';
 import '../widgets/folder_zoom_gesture_layer.dart';
 import '../widgets/remote_server_slivers.dart';
@@ -28,6 +29,14 @@ import '../widgets/playback_ui_tuning.dart';
 import '../widgets/auto_hide_header.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
+
+/// 同一页里三段网格各自的身份（与 `SliverAnimatedZoomGridDelegate.section` 对齐）。
+///
+/// 根目录、云服务器、搜索结果歌曲三段都参与缩放。换档时上面两段的高度变化要一起
+/// 算进下游的位移里，所以必须由同一个 `FolderZoomSliverBuilder` 统一结算，靠它区分。
+const Object _kRootFolderSection = 'folder-root.folders';
+const Object _kRemoteServerSection = 'folder-root.servers';
+const Object _kRootSongSection = 'folder-root.songs';
 
 class FolderRootView extends ConsumerStatefulWidget {
   const FolderRootView({
@@ -362,11 +371,16 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     final rootList = LayoutBuilder(
       builder: (context, constraints) {
         final double crossAxisExtent = constraints.maxWidth;
-        return RefreshIndicator(
-          edgeOffset: headerHeight,
-          onRefresh: _handleRefresh,
-          child: FolderZoomGestureLayer(
-            child: CustomScrollView(
+        return FolderZoomGestureLayer(
+          child: FolderZoomSliverBuilder(
+            zoomScale: snapFolderZoomScale(settings.folderZoomScale),
+            width: crossAxisExtent,
+            controller: _localScrollController,
+            builder: (context, _) {
+              return RefreshIndicator(
+                edgeOffset: headerHeight,
+                onRefresh: _handleRefresh,
+                child: CustomScrollView(
         key: const PageStorageKey<String>('root_folders_scroll_view'),
         controller: _localScrollController,
         physics: const AlwaysScrollableScrollPhysics(
@@ -495,6 +509,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
           FolderSubfoldersSliver(
             folders: matchedRootFolders,
             zoomScale: settings.folderZoomScale,
+            section: _kRootFolderSection,
             scanner: scanner,
             isRoot: true,
             isSelectionMode: isRootSelectionMode,
@@ -549,6 +564,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             RemoteServersSliver(
               servers: matchedRemoteServers,
               zoomScale: settings.folderZoomScale,
+              section: _kRemoteServerSection,
               isSortMode: widget.isSortMode,
               crossAxisExtent: crossAxisExtent,
               onOpenServer: (server) => _openRemoteServer(context, server),
@@ -562,6 +578,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
           FolderSongsSliver(
             songs: matchedSongs,
             zoomScale: settings.folderZoomScale,
+            section: _kRootSongSection,
             currentSongPath: currentMusic?.path,
             isPlaying: ref.watch(audioIsPlayingProvider),
             bottomPadding: rootListBottomPadding,
@@ -600,8 +617,10 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         ],
       ],
       ),
+              );
+            },
           ),
-    );
+        );
       },
     );
 

@@ -27,6 +27,13 @@ import '../widgets/folder_zoom_gesture_layer.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/auto_hide_header.dart';
 
+/// 同一页里两段网格各自的身份（与 `SliverAnimatedZoomGridDelegate.section` 对齐）。
+///
+/// 子目录与歌曲两段的条目索引都从 0 开始，靠它区分，滚动补偿才能把「子目录网格
+/// 换档后的高度变化」算进歌曲列表的位移里。
+const Object _kFolderSection = 'folder-detail.folders';
+const Object _kSongSection = 'folder-detail.songs';
+
 class FolderDetailView extends ConsumerStatefulWidget {
   const FolderDetailView({
     super.key,
@@ -408,11 +415,16 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         final double crossAxisExtent = constraints.maxWidth;
         // 缓存给「定位当前播放」用：它是命令式回调，拿不到这里的约束。
         _contentCrossAxisExtent = crossAxisExtent;
-        return RefreshIndicator(
-          edgeOffset: headerHeight,
-          onRefresh: _handleRefresh,
-          child: FolderZoomGestureLayer(
-            child: CustomScrollView(
+        return FolderZoomGestureLayer(
+          child: FolderZoomSliverBuilder(
+            zoomScale: snapFolderZoomScale(settings.folderZoomScale),
+            width: crossAxisExtent,
+            controller: _localScrollController,
+            builder: (context, _) {
+              return RefreshIndicator(
+                edgeOffset: headerHeight,
+                onRefresh: _handleRefresh,
+                child: CustomScrollView(
         key: PageStorageKey<String>('folder-detail-${folder.path}'),
         controller: _localScrollController,
         physics: const AlwaysScrollableScrollPhysics(
@@ -552,6 +564,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           FolderSubfoldersSliver(
             folders: matchedFolders,
             zoomScale: settings.folderZoomScale,
+            section: _kFolderSection,
             scanner: scanner,
             isSelectionMode: widget.isSelectionMode,
             selectedFolderPaths: widget.selectedFolderPaths,
@@ -599,6 +612,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           FolderSongsSliver(
             songs: matchedSongs,
             zoomScale: settings.folderZoomScale,
+            section: _kSongSection,
             currentSongPath: currentMusic?.path,
             isPlaying: isPlaying,
             isSelectionMode: widget.isSelectionMode,
@@ -712,8 +726,10 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         ),
       ],
       ),
+              );
+            },
           ),
-    );
+        );
       },
     );
 

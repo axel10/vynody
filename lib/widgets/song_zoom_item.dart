@@ -39,10 +39,17 @@ class SongZoomItem extends ConsumerWidget {
     this.onLongPress,
     this.onSecondaryTapDown,
     this.onMorePressed,
+    this.section,
   });
 
   final MusicFile song;
   final FolderZoomLayoutMetrics metrics;
+
+  /// 本条目所属的网格段，必须与 `SliverAnimatedZoomGridDelegate.section` 一致。
+  ///
+  /// 一页里只有一个网格时留空即可；一页挂多个网格（目录 + 歌曲）时，冻结的
+  /// 「单侧可见条目」表按段分开，索引才对得上。
+  final Object? section;
   final bool isCurrent;
   final bool isPlaying;
   final bool? isSelected;
@@ -273,6 +280,7 @@ class SongZoomItem extends ConsumerWidget {
 
     final scaffold = ZoomItemScaffold(
       metrics: metrics,
+      section: section,
       cover: cover,
       textColumnBuilder: (context, textWidth, textHeight) => _SongZoomContent(
         metrics: metrics,
