@@ -86,6 +86,26 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   final Map<String, Uint8List> _fileArtworkBytesCache = {};
   final Set<String> _loadingPaths = {};
 
+  /// 文件存在性缓存（path → exists）。
+  ///
+  /// 背景解析链在每次重建里会对自定义背景图、artwork、thumbnail 共计做 4~6 次
+  /// 同步 `existsSync()`（stat 系统调用）。文件在运行期被删掉时这里会残留 true，
+  /// 由 `Image.file` / `Image.memory` 的 `errorBuilder` 兜住，不影响正确性。
+  final Map<String, bool> _pathExistsCache = {};
+
+  bool _pathExists(String? path) {
+    if (path == null || path.isEmpty) return false;
+    final cached = _pathExistsCache[path];
+    if (cached != null) return cached;
+    // 只是省一次同步 stat，容量到上限就整体清空，避免长会话里无限增长。
+    if (_pathExistsCache.length >= 512) {
+      _pathExistsCache.clear();
+    }
+    final exists = File(path).existsSync();
+    _pathExistsCache[path] = exists;
+    return exists;
+  }
+
   /// 背景封面输入快照，用于只在「真正变化」时打一条 `[BgFlash]` 日志，
   /// 避免页面每帧重建把日志刷屏。定位背景闪烁用，可随问题关闭一起删掉。
   String? _lastBackgroundLogSignature;
@@ -376,7 +396,21 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     audio.next();
   }
 
-  void _handleInteraction() {
+  /// 指针事件的最小重置间隔。
+  ///
+  /// [Listener] 的 move / hover 在拖动或鼠标悬停时按 100Hz 级别触发，而
+  /// `resetInactivity()` 每次都会 `cancel()` 再新建一个 3 秒 `Timer`。节流到
+  /// 0.5 秒一次对"无操作计时"的语义没有影响（它只需要在用户真的停下来之后
+  /// 才开始计时），但把 Timer 的创建次数从每帧数次降到每秒两次。
+  static const int _interactionThrottleMicros = 500 * 1000;
+  int _lastInteractionAt = 0;
+
+  void _handleInteraction({bool throttled = false}) {
+    final now = DateTime.now().microsecondsSinceEpoch;
+    if (throttled && now - _lastInteractionAt < _interactionThrottleMicros) {
+      return;
+    }
+    _lastInteractionAt = now;
     _startInactivityTimer();
   }
 
@@ -1054,8 +1088,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       onPointerDown: (event) {
         _handleInteraction();
       },
-      onPointerMove: (event) => _handleInteraction(),
-      onPointerHover: (event) => _handleInteraction(),
+      onPointerMove: (event) => _handleInteraction(throttled: true),
+      onPointerHover: (event) => _handleInteraction(throttled: true),
       child: Builder(
         builder: (context) {
           final size = MediaQuery.of(context).size;
@@ -1068,7 +1102,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
               ? Orientation.landscape
               : Orientation.portrait;
           final l10n = AppLocalizations.of(context)!;
-          final settings = ref.watch(settingsServiceProvider);
+          // 这里原来又 ref.watch 了一次 settingsServiceProvider，与 build 顶部
+          // 那次重复；订阅同一 provider 只会有一份依赖，删掉避免误以为有两处。
           final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
             size,
             isWaveformEnabled: isEffectiveWaveform,
@@ -1674,7 +1709,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
         );
       case 3:
         final path = settings.playbackBackgroundCustomImagePath;
-        if (path.isEmpty || !File(path).existsSync()) {
+        if (!_pathExists(path)) {
           return Container(
             key: ValueKey('custom_image_empty_${keySuffix ?? 'default'}'),
             color: Colors.black,
@@ -1926,11 +1961,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   gaplessPlayback: true,
                   excludeFromSemantics: true,
                 );
-              } else if (artworkPath != null &&
-                  artworkPath.isNotEmpty &&
-                  File(artworkPath).existsSync()) {
+              } else if (_pathExists(artworkPath)) {
                 imageWidget = Image.file(
-                  File(artworkPath),
+                  File(artworkPath!),
                   width: double.infinity,
                   height: double.infinity,
                   cacheWidth: bgCacheWidth,
@@ -1939,11 +1972,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   gaplessPlayback: true,
                   excludeFromSemantics: true,
                 );
-              } else if (thumbnailPath != null &&
-                  thumbnailPath.isNotEmpty &&
-                  File(thumbnailPath).existsSync()) {
+              } else if (_pathExists(thumbnailPath)) {
                 imageWidget = Image.file(
-                  File(thumbnailPath),
+                  File(thumbnailPath!),
                   width: double.infinity,
                   height: double.infinity,
                   cacheWidth: bgCacheWidth,
@@ -1967,15 +1998,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   );
                 }
               } else {
-                final effectiveArtworkPath = (artworkPath != null &&
-                        artworkPath.isNotEmpty &&
-                        File(artworkPath).existsSync())
+                final effectiveArtworkPath = _pathExists(artworkPath)
                     ? artworkPath
-                    : ((thumbnailPath != null &&
-                            thumbnailPath.isNotEmpty &&
-                            File(thumbnailPath).existsSync())
-                        ? thumbnailPath
-                        : null);
+                    : (_pathExists(thumbnailPath) ? thumbnailPath : null);
 
                 if ((cachedBytes != null && cachedBytes.isNotEmpty) ||
                     effectiveArtworkPath != null) {
