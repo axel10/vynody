@@ -92,7 +92,15 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
   late final AnimationController _dismissAnimController;
   Animation<double>? _dismissAnimation;
-  double _dragOffsetY = 0.0;
+
+  /// 下拉收起时的纵向位移。
+  ///
+  /// 刻意不用 setState：拖动期间每个指针事件都会更新一次，收起动画期间每一帧
+  /// 也会更新一次，setState 会让整页（背景 / 封面轮播 / 歌词面板 / 可视化 /
+  /// Dock / 语义树）按指针频率全量重建。这里只让包住 [Transform] 的那一小块
+  /// 跟着动。
+  final ValueNotifier<double> _dragOffsetNotifier = ValueNotifier<double>(0.0);
+
   bool _isDraggingDown = false;
 
   void _startVolumeSliderTimer() {
@@ -144,15 +152,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   void _handleVerticalDragUpdate(DragUpdateDetails details) {
     if (!_isDraggingDown) return;
     final delta = details.primaryDelta ?? 0.0;
-    final newOffset = _dragOffsetY + delta;
+    final newOffset = _dragOffsetNotifier.value + delta;
     if (newOffset >= 0) {
-      setState(() {
-        _dragOffsetY = newOffset;
-      });
-    } else if (_dragOffsetY > 0) {
-      setState(() {
-        _dragOffsetY = 0.0;
-      });
+      _dragOffsetNotifier.value = newOffset;
+    } else if (_dragOffsetNotifier.value > 0) {
+      _dragOffsetNotifier.value = 0.0;
     }
   }
 
@@ -161,10 +165,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     _isDraggingDown = false;
     final velocityY = details.primaryVelocity ?? 0.0;
     // 当向下拖拽超过 80 像素或滑动手势速度达到 280 像素/秒以上时触发收起
-    if (_dragOffsetY > 80.0 || velocityY > 280.0) {
+    if (_dragOffsetNotifier.value > 80.0 || velocityY > 280.0) {
       final screenHeight = MediaQuery.sizeOf(context).height;
       _dismissAnimation = Tween<double>(
-        begin: _dragOffsetY,
+        begin: _dragOffsetNotifier.value,
         end: screenHeight,
       ).animate(
         CurvedAnimation(
@@ -179,7 +183,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       });
     } else {
       _dismissAnimation = Tween<double>(
-        begin: _dragOffsetY,
+        begin: _dragOffsetNotifier.value,
         end: 0.0,
       ).animate(
         CurvedAnimation(
@@ -194,9 +198,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   void _handleVerticalDragCancel() {
     if (!_isDraggingDown) return;
     _isDraggingDown = false;
-    if (_dragOffsetY > 0) {
+    if (_dragOffsetNotifier.value > 0) {
       _dismissAnimation = Tween<double>(
-        begin: _dragOffsetY,
+        begin: _dragOffsetNotifier.value,
         end: 0.0,
       ).animate(
         CurvedAnimation(
@@ -293,9 +297,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       duration: const Duration(milliseconds: 260),
     )..addListener(() {
         if (_dismissAnimation != null) {
-          setState(() {
-            _dragOffsetY = _dismissAnimation!.value;
-          });
+          _dragOffsetNotifier.value = _dismissAnimation!.value;
         }
       });
     _audioService = ref.read(audioServiceProvider);
@@ -361,6 +363,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       });
     }
     _dismissAnimController.dispose();
+    _dragOffsetNotifier.dispose();
     _scrubProgressNotifier.dispose();
     super.dispose();
   }
@@ -1053,9 +1056,17 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       },
       onPointerMove: (event) => _handleInteraction(),
       onPointerHover: (event) => _handleInteraction(),
-      child: OrientationBuilder(
-        builder: (context, orientation) {
+      child: Builder(
+        builder: (context) {
           final size = MediaQuery.of(context).size;
+          // 这里原来是 OrientationBuilder，而它内部就是 LayoutBuilder：
+          // 布局构建器会把整棵页面子树的重建推迟到 layout 阶段，任何页面级
+          // setState 都要在布局期再全量重建一遍，是拖动卡顿的放大器。
+          // 本页恒为 Scaffold body，约束等于窗口尺寸，直接按窗口尺寸判定方向；
+          // 保留 Builder 只是为了不改动下面这一大段闭包的缩进。
+          final orientation = size.width > size.height
+              ? Orientation.landscape
+              : Orientation.portrait;
           final l10n = AppLocalizations.of(context)!;
           final settings = ref.watch(settingsServiceProvider);
           final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
@@ -1620,9 +1631,17 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
           );
 
           if (enableDragDismiss) {
-            return Transform.translate(
-              offset: Offset(0, _dragOffsetY),
+            // pageContent 作为 child 传入：拖动 / 收起动画只重建这一层 Transform，
+            // 不会再把整页（含背景与语义树）重建一遍。
+            return ValueListenableBuilder<double>(
+              valueListenable: _dragOffsetNotifier,
               child: pageContent,
+              builder: (context, dragOffset, child) {
+                return Transform.translate(
+                  offset: Offset(0, dragOffset),
+                  child: child,
+                );
+              },
             );
           }
           return pageContent;
