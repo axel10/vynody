@@ -44,7 +44,11 @@ double thumbnailBucketSizeFor(double size) {
 ///
 /// 淡入策略由组件自己统一决定，不提供开关：只要缩略图还没就位（没解析出来、
 /// 或解析出来了但还没解码出首帧），该区域保持空白；就位那一刻按
-/// [kArtworkFadeInDuration] 淡入 —— 露出的可能是封面，也可能是默认图标。
+/// [kArtworkFadeInDuration] 淡入。
+///
+/// 唯一的例外是**解析结果确认没有封面**：此时落定的就是默认图标，它不再套
+/// [kArtworkFadeInDuration]，直接以 1.0 呈现。默认图标自己再排一段淡入的话，
+/// 它和外层档位过渡的不透明度是两条时钟，会明显晚一拍（详见 [_SongThumbnailState._needsFadeIn]）。
 /// 所有调用方（歌曲行、文件夹条目、专辑卡片、播放列表封面……）行为一致。
 class SongThumbnail extends ConsumerStatefulWidget {
   final String path;
@@ -157,7 +161,9 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   /// 本次挂载或更新是否需要淡入展示。
   ///
   /// - 命中已有本地缓存（已有缩略图文件/内存字节）：false，首帧直接展示，不套淡入；
-  /// - 尚未生成缩略图（等待动画结束或后台生成完毕）：true，就位时由外层统一平滑淡入。
+  /// - 尚未生成缩略图（等待动画结束或后台生成完毕）：true，就位时由外层统一平滑淡入；
+  /// - 解析落定为「没有封面」（结果是默认图标）：false。默认图标不该有自己的淡入时钟，
+  ///   否则换档过渡时它会比有封面的条目晚一整段 [kArtworkFadeInDuration]。
   bool _needsFadeIn = false;
 
   /// 异步解析（查找 / 生成缩略图）是否仍在进行。
@@ -284,12 +290,19 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       } else {
         setState(() {
           _isGenerating = false;
+          // 解析确认「没有封面」时，落定的就是默认图标本身，不需要再为它单独排一段
+          // 淡入：那 280ms 与条目级的不透明度（换档过渡的 `Opacity(transition.opacity)`）
+          // 是两条时钟，会让默认图标条目比有封面的条目明显晚一拍。
+          // 这里直接置 1.0：换档尚未结束时它跟着条目那条曲线一起淡入，已经结束则立即显示。
+          _needsFadeIn = false;
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
           _isGenerating = false;
+          // 解析异常同样落定为默认图标，理由同上。
+          _needsFadeIn = false;
         });
       }
     }
@@ -468,6 +481,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     // 由外层这唯一一层 AnimatedOpacity 统一管理淡入：
     // - 首批已有缓存条目：duration 为 zero，首帧直接展示，不套淡入层；
     // - 慢路径新生成完毕：以 kArtworkFadeInDuration 平滑淡入；
+    // - 解析确认没有封面（落定默认图标）：duration 为 zero，图标直接呈现；
     // - 已经展示着封面的重建（列表滚动、播放状态变化）：duration 为 zero，不重复淡入。
     return AnimatedOpacity(
       opacity: isPending ? 0.0 : 1.0,
