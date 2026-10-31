@@ -224,13 +224,13 @@ void main() {
     expect(metrics!.resolvedGeometryLayers.single.crossAxisCount, 6);
   });
 
-  testWidgets('单侧可见条目不发生位移，仅做原地淡入淡出与方向一致的缩放', (tester) async {
+  testWidgets('单侧可见条目也按几何层加权位移，不再原地淡入淡出', (tester) async {
     await useLandscapeSurface(tester);
 
     FolderZoomLayoutMetrics? latest;
     void capture(FolderZoomLayoutMetrics value) => latest = value;
 
-    // 1. 列表 -> 小网格（档位变大）：index 13 仅在小网格可见（淡入 + 由小变大 0.85 -> 1.0）
+    // 列表 -> 小网格（档位变大）：index 13 仅在小网格可见。
     await tester.pumpWidget(
       _host(zoomScale: kFolderZoomTierLargeList, onMetrics: capture),
     );
@@ -239,59 +239,41 @@ void main() {
     await tester.pumpWidget(
       _host(zoomScale: kFolderZoomTierSmallGrid, onMetrics: capture),
     );
-    final enterStartCenter = _centerOf(latest!, 13);
-    final enterStartTransition = latest!.resolveItemTransition(13);
-    expect(enterStartTransition.isShared, isFalse);
-    expect(enterStartTransition.opacity, closeTo(0.0, 1e-4));
-    expect(
-      enterStartTransition.scale,
-      closeTo(1.0 - kFolderZoomFadeScaleDelta, 1e-4),
-    );
+    final startCenter = _centerOf(latest!, 13);
+    final startTransition = latest!.resolveItemTransition(13);
+    // 过渡期一律按共用条目处理：位置来自几何层加权，不再有单侧淡出分支。
+    expect(startTransition.isShared, isTrue);
+    expect(startTransition.opacity, 1.0);
+    expect(startTransition.scale, 1.0);
 
     await tester.pump(const Duration(milliseconds: 100));
-    final enterMidCenter = _centerOf(latest!, 13);
-    final enterMidTransition = latest!.resolveItemTransition(13);
-    expect((enterMidCenter - enterStartCenter).distance, lessThan(0.01));
-    expect(enterMidTransition.opacity, greaterThan(0.1));
-    expect(enterMidTransition.opacity, lessThan(0.95));
-    expect(enterMidTransition.scale, greaterThan(enterStartTransition.scale));
-    expect(enterMidTransition.scale, lessThan(1.0));
+    final midCenter = _centerOf(latest!, 13);
+    final midTransition = latest!.resolveItemTransition(13);
+    expect(midTransition.isShared, isTrue);
+    expect(midTransition.opacity, 1.0);
+    expect(midTransition.scale, 1.0);
+    // 与普通滚动一致：条目随几何连续移动，而不是锁死在某一档的屏幕位置。
+    expect((midCenter - startCenter).distance, greaterThan(0.5));
 
-    // 双端均可见的 index 3 保持位移动画（opacity=1, scale=1）
+    // 双端均可见的 index 3 同样走位移（opacity=1, scale=1）。
     final sharedMidTransition = latest!.resolveItemTransition(3);
     expect(sharedMidTransition.isShared, isTrue);
     expect(sharedMidTransition.opacity, 1.0);
     expect(sharedMidTransition.scale, 1.0);
 
+    // 反向（小网格 -> 列表）保持同一套语义。
     await tester.pumpAndSettle();
-    final enterEndCenter = _centerOf(latest!, 13);
-    expect((enterEndCenter - enterStartCenter).distance, lessThan(0.01));
-
-    // 2. 小网格 -> 列表（档位缩小）：index 13 仅在小网格可见（淡出 + 由大变小 1.0 -> 0.85）
     await tester.pumpWidget(
       _host(zoomScale: kFolderZoomTierLargeList, onMetrics: capture),
     );
-    final exitStartCenter = _centerOf(latest!, 13);
     final exitStartTransition = latest!.resolveItemTransition(13);
-    expect(exitStartTransition.isShared, isFalse);
-    expect(exitStartTransition.opacity, closeTo(1.0, 1e-4));
-    expect(exitStartTransition.scale, closeTo(1.0, 1e-4));
-
-    await tester.pump(const Duration(milliseconds: 100));
-    final exitMidCenter = _centerOf(latest!, 13);
-    final exitMidTransition = latest!.resolveItemTransition(13);
-    expect((exitMidCenter - exitStartCenter).distance, lessThan(0.01));
-    expect(exitMidTransition.opacity, lessThan(0.9));
-    expect(exitMidTransition.opacity, greaterThan(0.05));
-    expect(exitMidTransition.scale, lessThan(1.0));
-    expect(
-      exitMidTransition.scale,
-      greaterThan(1.0 - kFolderZoomFadeScaleDelta),
-    );
+    expect(exitStartTransition.isShared, isTrue);
+    expect(exitStartTransition.opacity, 1.0);
+    expect(exitStartTransition.scale, 1.0);
   });
 
   testWidgets(
-    'List <-> Grid with SliverPadding and multi-tier steps keeps single-side items stationary on screen',
+    '带 SliverPadding 的多档连点：条目平滑移动且收敛到稳态位置',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -349,15 +331,16 @@ void main() {
       await tester.pumpWidget(buildWithPadding(kFolderZoomTierMediumGrid));
       await tester.pump();
 
-      // index 10 在列表不可见，在网格可见；记录其在屏幕上的真实中心坐标与尺寸
+      // index 10 在列表不可见，在网格可见；记录其在目标档位上的真实中心坐标与尺寸
       final startTransition = latest!.resolveItemTransition(10);
-      expect(startTransition.isShared, isFalse);
+      expect(startTransition.isShared, isTrue);
 
       await tester.pumpAndSettle();
       final targetRect = tester.getRect(find.byKey(const ValueKey('item_10')));
       final targetCenter = targetRect.center;
 
-      // 重新从标准列表连续切到中网格，逐帧验证 index 10 的屏幕中心坐标完全不漂移
+      // 重新从标准列表连续切到中网格，逐帧验证 index 10 平滑移动：不跳变，
+      // 且最终收敛到上面记录的稳态位置（旧实现是"整段锁死在目标屏幕位置"）。
       await tester.pumpWidget(buildWithPadding(kFolderZoomTierStandardList));
       await tester.pumpAndSettle();
 
@@ -367,13 +350,33 @@ void main() {
       await tester.pump(const Duration(milliseconds: 20));
       await tester.pumpWidget(buildWithPadding(kFolderZoomTierMediumGrid));
 
+      Offset? previousCenter;
       for (int i = 0; i < 15; i++) {
         await tester.pump(const Duration(milliseconds: 16));
         final transition = latest!.resolveItemTransition(10);
-        expect(transition.isShared, isFalse);
-        final rect = tester.getRect(find.byKey(const ValueKey('item_10')));
-        expect((rect.center - targetCenter).distance, lessThan(0.05));
+        expect(transition.isShared, isTrue);
+
+        final finder = find.byKey(const ValueKey('item_10'));
+        if (finder.evaluate().isEmpty) continue;
+        final rect = tester.getRect(finder);
+        if (previousCenter != null) {
+          expect(
+            (rect.center - previousCenter).distance,
+            lessThan(300.0),
+            reason: 'item_10 在第 $i 帧发生跳变',
+          );
+        }
+        previousCenter = rect.center;
       }
+
+      await tester.pumpAndSettle();
+      final settledRect =
+          tester.getRect(find.byKey(const ValueKey('item_10')));
+      expect(
+        (settledRect.center - targetCenter).distance,
+        lessThan(1.0),
+        reason: '过渡结束后应精确收敛到目标档位的稳态位置',
+      );
     },
   );
 

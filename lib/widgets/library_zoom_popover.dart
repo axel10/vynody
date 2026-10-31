@@ -5,12 +5,10 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'folder_layout_utils.dart';
-import 'folder_zoom_tier_icon.dart';
 
 /// 使用方通常同时需要弹窗与记忆域枚举、档位微型指示器，这里一并导出。
 export 'package:vynody/player/settings/settings_service.dart'
     show LibraryZoomScope;
-export 'folder_zoom_tier_icon.dart';
 
 /// 视图片档位弹窗 / 按钮的共享实现。
 ///
@@ -20,7 +18,7 @@ export 'folder_zoom_tier_icon.dart';
 /// 早于本文件时该弹窗是 `folder_header_nav_bar.dart` 里的私有实现，
 /// 那里现在只是转调。
 
-/// 档位对应的备用图标（若无法使用 [FolderZoomTierIcon] 控件时降级使用）。
+/// 档位对应的备用图标（若无法使用 [ZoomTierIcon] 控件时降级使用）。
 IconData getFolderZoomTierIcon(double zoomScale) {
   return switch (getFolderZoomTier(zoomScale)) {
     FolderZoomTier.minimalList => Icons.view_headline_rounded,
@@ -159,7 +157,7 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    FolderZoomTierIcon(
+                    ZoomTierIcon(
                       zoomScale: zoomScale,
                       size: 16,
                       color: theme.colorScheme.primary,
@@ -371,7 +369,7 @@ class _ZoomTierPresetButton extends StatelessWidget {
                 : Colors.transparent,
           ),
         ),
-        child: FolderZoomTierIcon(
+        child: ZoomTierIcon(
           tier: tier,
           size: 16,
           color: isSelected
@@ -423,7 +421,7 @@ class LibraryZoomButton extends ConsumerWidget {
           tooltip: tooltipText,
           visualDensity: visualDensity,
           onPressed: () => showLibraryZoomPopover(btnContext, scope: scope),
-          icon: FolderZoomTierIcon(
+          icon: ZoomTierIcon(
             zoomScale: zoomScale,
             size: iconSize,
             color: color,

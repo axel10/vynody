@@ -41,7 +41,7 @@ class FolderZoomNavButton extends ConsumerWidget {
         return FolderNavIconButton(
           style: style,
           tooltip: isGrid ? l10n.gridView : l10n.listView,
-          icon: FolderZoomTierIcon(
+          icon: ZoomTierIcon(
             zoomScale: zoomScale,
             size: 20,
             color: style.iconColor,
@@ -246,7 +246,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
                 value: 'view_mode',
                 child: Row(
                   children: [
-                    FolderZoomTierIcon(zoomScale: zoomScale, size: 20),
+                    ZoomTierIcon(zoomScale: zoomScale, size: 20),
                     const SizedBox(width: 12),
                     Text(
                       isFolderZoomGrid(zoomScale)
