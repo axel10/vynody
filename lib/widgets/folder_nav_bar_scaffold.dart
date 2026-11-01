@@ -27,6 +27,40 @@ class FolderNavBarStyle {
     required this.isDark,
     required this.isPortrait,
   });
+
+  /// 浮层形态（未滚动、压在封面之上）的配色。
+  ///
+  /// 供页面把面包屑嵌进 Banner 等滚动内容里时复用，与固定顶栏的初始态一致。
+  factory FolderNavBarStyle.overlay(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+    return FolderNavBarStyle(
+      navBackgroundColor: theme.colorScheme.surface.withValues(alpha: 0.0),
+      iconColor: isDark
+          ? Colors.white
+          : theme.colorScheme.onSurface.withValues(alpha: 0.85),
+      chevronColor: isDark
+          ? Colors.white.withValues(alpha: 0.6)
+          : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+      folderTextColor: isDark
+          ? Colors.white.withValues(alpha: 0.9)
+          : theme.colorScheme.onSurface.withValues(alpha: 0.85),
+      shadows: isDark
+          ? [
+              Shadow(
+                offset: const Offset(0, 1),
+                blurRadius: 4,
+                color: Colors.black.withValues(alpha: 0.87),
+              ),
+            ]
+          : null,
+      progress: 0.0,
+      isDark: isDark,
+      isPortrait: isPortrait,
+    );
+  }
 }
 
 /// A reusable navigation bar shell that handles scroll transitions, background interpolation,
@@ -40,6 +74,7 @@ class FolderNavBarScaffold extends StatefulWidget {
     this.onGoBack,
     this.scrollController,
     this.pinnedLeadingBuilder,
+    this.hideBreadcrumbs = false,
     required this.breadcrumbItemsBuilder,
     required this.actionsBuilder,
   });
@@ -51,6 +86,11 @@ class FolderNavBarScaffold extends StatefulWidget {
   final String? parentTitle;
   final VoidCallback? onGoBack;
   final ScrollController? scrollController;
+
+  /// 顶栏不渲染面包屑（页面自己把面包屑嵌进随内容滚动的 Banner 里时使用）。
+  ///
+  /// 打开后固定层只剩右侧操作；竖屏滚动时胶囊岛左侧也不再出现那颗粒「上一层/回顶」按钮。
+  final bool hideBreadcrumbs;
   final Widget? Function(BuildContext context, FolderNavBarStyle style)?
       pinnedLeadingBuilder;
   final List<Widget> Function(BuildContext context, FolderNavBarStyle style)
@@ -72,6 +112,21 @@ class FolderNavBarScaffold extends StatefulWidget {
     const contentHeight = 32.0;
     final portraitOffset = isPortrait ? 8.0 : 0.0;
     return topPadding + portraitOffset + contentHeight + bottomPadding;
+  }
+
+  /// 顶栏内容（面包屑/图标那一行）距屏幕顶部的偏移。
+  ///
+  /// 页面把面包屑嵌进随内容滚动的 Banner 时，用它把行内面包屑对齐到与固定顶栏
+  /// 完全相同的位置，避免两份 padding 计算漂移。
+  static double getContentTopInset(BuildContext context) {
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+    final topPadding = getTitleBarTopPadding(
+      context,
+      defaultWindowPadding: kDefaultWindowCaptionHeight,
+      statusBarOffset: 2.0,
+    );
+    return isPortrait ? topPadding + 8.0 : topPadding;
   }
 
   @override
@@ -185,7 +240,11 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
         final solidChevronColor =
             theme.colorScheme.onSurface.withValues(alpha: 0.4);
         final chevronColor = widget.isOverlay
-            ? (Color.lerp(overlayChevronColor, solidChevronColor, progress) ??
+            ? (Color.lerp(
+                    overlayChevronColor,
+                    solidChevronColor,
+                    progress,
+                  ) ??
                 solidChevronColor)
             : solidChevronColor;
 
@@ -273,26 +332,29 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
                       backChevron,
                     ],
                     ?pinnedLeading,
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SingleChildScrollView(
-                            controller: _activeScrollController,
-                            scrollDirection: Axis.horizontal,
-                            reverse: true,
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minWidth: constraints.maxWidth,
+                    if (widget.hideBreadcrumbs)
+                      const Spacer()
+                    else
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return SingleChildScrollView(
+                              controller: _activeScrollController,
+                              scrollDirection: Axis.horizontal,
+                              reverse: true,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minWidth: constraints.maxWidth,
+                                ),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Row(children: breadcrumbItems),
+                                ),
                               ),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Row(children: breadcrumbItems),
-                              ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
-                    ),
                     const SizedBox(width: 8),
                     actions,
                   ],
@@ -342,15 +404,19 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              NavCapsuleIsland(
-                parentTitle: widget.parentTitle ?? '',
-                icon: widget.onGoBack != null
-                    ? Icons.arrow_back_rounded
-                    : Icons.folder_rounded,
-                onBack: widget.onGoBack ??
-                    () => AutoHideHeaderScope.scrollToTop(context),
-                showBack: true,
-              ),
+              if (widget.hideBreadcrumbs)
+                // 面包屑已交给页面内的 Banner 承载，胶囊只留右侧操作
+                const Spacer()
+              else
+                NavCapsuleIsland(
+                  parentTitle: widget.parentTitle ?? '',
+                  icon: widget.onGoBack != null
+                      ? Icons.arrow_back_rounded
+                      : Icons.folder_rounded,
+                  onBack: widget.onGoBack ??
+                      () => AutoHideHeaderScope.scrollToTop(context),
+                  showBack: true,
+                ),
               NavActionsCapsule(
                 actions: [actions],
               ),

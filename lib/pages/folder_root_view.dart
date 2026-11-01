@@ -401,7 +401,9 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             representativeSong: representativeSong,
             coverImagePath: representativeSong?.thumbnailPath ?? (representativeSong != null ? scanner.metadataMap[representativeSong.path]?.thumbnailPath : null),
             thumbnailSize: zoomItemThumbnailSizeFor(metrics),
-            topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
+            topHeader: isPortrait
+                ? _buildBannerBreadcrumbs(context, headerHeight)
+                : null,
             coverWidget: representativeSong != null
                 ? SongThumbnail(
                     path: representativeSong.path,
@@ -747,7 +749,47 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     );
   }
 
+  /// 竖屏下面包屑嵌进 Banner 顶部，随内容一起滚动；固定层只留右侧操作。
+  Widget _buildBannerBreadcrumbs(BuildContext context, double headerHeight) {
+    final style = FolderNavBarStyle.overlay(context);
+    final l10n = AppLocalizations.of(context)!;
+    // Banner 内容左内边距 16，固定顶栏是 8；向左补偿这 8px 才能和顶栏对齐
+    const bannerHorizontalInsetCompensation = -8.0;
+    return SizedBox(
+      height: headerHeight,
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: FolderNavBarScaffold.getContentTopInset(context),
+          ),
+          child: Transform.translate(
+            offset: const Offset(bannerHorizontalInsetCompensation, 0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FolderBreadcrumbItem(
+                  style: style,
+                  icon: Icons.home_rounded,
+                  tooltip: l10n.scanDirectory,
+                  onTap: () => AutoHideHeaderScope.scrollToTop(context),
+                ),
+                FolderBreadcrumbSeparator(style: style),
+                FolderBreadcrumbItem(
+                  style: style,
+                  label: l10n.scanDirectory,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildRootTopHeader(BuildContext context, {bool isOverlay = true}) {
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
     return Material(
       type: MaterialType.transparency,
       child: FolderHeaderNavBar(
@@ -757,6 +799,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         onSortPressed: widget.onToggleSortMode,
         isSortActive: widget.isSortMode,
         onRefresh: _handleRefresh,
+        // 竖屏面包屑在 Banner 里；横屏仍由顶栏承载
+        hideBreadcrumbs: isPortrait,
       ),
     );
   }

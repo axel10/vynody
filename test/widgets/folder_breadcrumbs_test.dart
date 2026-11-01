@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/widgets/folder_header_nav_bar.dart';
+import 'package:vynody/widgets/nav_capsule_island.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
 
@@ -119,5 +120,71 @@ void main() {
     await tester.tap(refreshBtn);
     await tester.pump();
     expect(refreshed, isTrue);
+  });
+
+  Widget buildRootNavBar({
+    required double scrollProgress,
+    bool hideBreadcrumbs = false,
+  }) {
+    return ProviderScope(
+      overrides: [
+        settingsServiceProvider.overrideWith((ref) => settingsService),
+        audioCurrentMusicProvider.overrideWith((ref) => null),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('zh'),
+        home: Scaffold(
+          body: FolderHeaderNavBar(
+            isOverlay: false,
+            scrollProgress: ValueNotifier(scrollProgress),
+            onSortPressed: () {},
+            hideBreadcrumbs: hideBreadcrumbs,
+          ),
+        ),
+      ),
+    );
+  }
+
+  testWidgets('根目录视图（面包屑在 Banner 里）滚动后只剩右侧浮动操作胶囊', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    // 默认（详情页等）：滚动后整条栏切成胶囊岛，左侧带回顶/返回按钮
+    await tester.pumpWidget(buildRootNavBar(scrollProgress: 1.0));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavCapsuleIsland), findsOneWidget);
+
+    // 根目录视图：面包屑交给 Banner，顶栏只留右侧操作胶囊
+    await tester.pumpWidget(
+      buildRootNavBar(scrollProgress: 1.0, hideBreadcrumbs: true),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(NavCapsuleIsland), findsNothing);
+    expect(find.byType(NavActionsCapsule), findsOneWidget);
+    expect(find.text('扫描目录'), findsNothing);
+  });
+
+  testWidgets('FolderHeaderNavBar in portrait mode does not show standalone zoom button', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final folder = MusicFolder(name: 'music', path: '/home/music', files: [], subFolders: []);
+
+    await tester.pumpWidget(
+      buildTestNavBar(
+        currentFolder: folder,
+        navigationHistory: [],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Standalone zoom button should not be present in portrait mode
+    expect(find.byType(FolderZoomNavButton), findsNothing);
+    // Instead, more menu (FolderNavActionMenu) is present
+    expect(find.byType(FolderNavActionMenu<String>), findsOneWidget);
   });
 }

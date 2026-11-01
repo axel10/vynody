@@ -69,6 +69,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
     this.onClearAllSelection,
     this.scrollController,
     this.onRefresh,
+    this.hideBreadcrumbs = false,
   });
 
   final bool isOverlay;
@@ -87,6 +88,9 @@ class FolderHeaderNavBar extends ConsumerWidget {
   final VoidCallback? onClearAllSelection;
   final ScrollController? scrollController;
   final VoidCallback? onRefresh;
+
+  /// 顶栏不渲染面包屑（面包屑由页面嵌进 Banner，随内容一起滚动）
+  final bool hideBreadcrumbs;
 
   bool get _sortHighlighted => isSortActive || isSortHighlighted;
 
@@ -181,7 +185,6 @@ class FolderHeaderNavBar extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           FolderScanSpinner(style: style),
-          FolderZoomNavButton(style: style),
           FolderNavActionMenu<String>(
             style: style,
             onSelected: (value) {
@@ -324,6 +327,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
       parentTitle: _getParentTitle(l10n),
       onGoBack: onGoBack,
       scrollController: scrollController,
+      hideBreadcrumbs: hideBreadcrumbs,
       breadcrumbItemsBuilder: (context, style) =>
           _buildBreadcrumbItems(context, ref, style, l10n),
       actionsBuilder: (context, style) =>

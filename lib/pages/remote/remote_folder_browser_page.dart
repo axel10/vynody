@@ -2110,7 +2110,6 @@ class _RemoteFolderBrowserPageState
         mainAxisSize: MainAxisSize.min,
         children: [
           FolderScanSpinner(style: style),
-          FolderZoomNavButton(style: style),
           FolderNavActionMenu<String>(
             style: style,
             onSelected: (value) {
