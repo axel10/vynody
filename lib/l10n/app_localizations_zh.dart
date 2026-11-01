@@ -2757,6 +2757,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gridView => '网格视图';
 
   @override
+  String get zoomTierMinimal => '极简';
+
+  @override
+  String get zoomTierCompact => '紧凑';
+
+  @override
+  String get zoomTierStandard => '标准';
+
+  @override
+  String get zoomTierLargeList => '大图';
+
+  @override
+  String get zoomTierSmallGrid => '小';
+
+  @override
+  String get zoomTierMediumGrid => '中';
+
+  @override
+  String get zoomTierLargeGrid => '大';
+
+  @override
+  String zoomTierShortcutHint(String modifier) {
+    return '$modifier + 滚轮，或双指捏合，可逐档调节';
+  }
+
+  @override
   String get hybridView => '混合视图';
 
   @override
@@ -8262,6 +8288,32 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get gridView => '格線檢視';
+
+  @override
+  String get zoomTierMinimal => '極簡';
+
+  @override
+  String get zoomTierCompact => '緊湊';
+
+  @override
+  String get zoomTierStandard => '標準';
+
+  @override
+  String get zoomTierLargeList => '大圖';
+
+  @override
+  String get zoomTierSmallGrid => '小';
+
+  @override
+  String get zoomTierMediumGrid => '中';
+
+  @override
+  String get zoomTierLargeGrid => '大';
+
+  @override
+  String zoomTierShortcutHint(String modifier) {
+    return '$modifier + 滾輪，或雙指捏合，可逐檔調節';
+  }
 
   @override
   String get hybridView => '混合檢視';

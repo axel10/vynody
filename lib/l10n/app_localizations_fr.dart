@@ -2935,6 +2935,32 @@ class AppLocalizationsFr extends AppLocalizations {
   String get gridView => 'Vue en grille';
 
   @override
+  String get zoomTierMinimal => 'Minimal';
+
+  @override
+  String get zoomTierCompact => 'Compact';
+
+  @override
+  String get zoomTierStandard => 'Standard';
+
+  @override
+  String get zoomTierLargeList => 'Grand';
+
+  @override
+  String get zoomTierSmallGrid => 'Petit';
+
+  @override
+  String get zoomTierMediumGrid => 'Moyen';
+
+  @override
+  String get zoomTierLargeGrid => 'Grand';
+
+  @override
+  String zoomTierShortcutHint(String modifier) {
+    return '$modifier + molette ou pincement pour ajuster les niveaux';
+  }
+
+  @override
   String get hybridView => 'Vue hybride';
 
   @override

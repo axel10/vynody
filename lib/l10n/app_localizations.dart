@@ -5313,6 +5313,54 @@ abstract class AppLocalizations {
   /// **'网格视图'**
   String get gridView;
 
+  /// No description provided for @zoomTierMinimal.
+  ///
+  /// In zh, this message translates to:
+  /// **'极简'**
+  String get zoomTierMinimal;
+
+  /// No description provided for @zoomTierCompact.
+  ///
+  /// In zh, this message translates to:
+  /// **'紧凑'**
+  String get zoomTierCompact;
+
+  /// No description provided for @zoomTierStandard.
+  ///
+  /// In zh, this message translates to:
+  /// **'标准'**
+  String get zoomTierStandard;
+
+  /// No description provided for @zoomTierLargeList.
+  ///
+  /// In zh, this message translates to:
+  /// **'大图'**
+  String get zoomTierLargeList;
+
+  /// No description provided for @zoomTierSmallGrid.
+  ///
+  /// In zh, this message translates to:
+  /// **'小'**
+  String get zoomTierSmallGrid;
+
+  /// No description provided for @zoomTierMediumGrid.
+  ///
+  /// In zh, this message translates to:
+  /// **'中'**
+  String get zoomTierMediumGrid;
+
+  /// No description provided for @zoomTierLargeGrid.
+  ///
+  /// In zh, this message translates to:
+  /// **'大'**
+  String get zoomTierLargeGrid;
+
+  /// Hint shown at the bottom of the zoom tier popover. {modifier} is the platform shortcut key: ⌘ on macOS, Ctrl elsewhere.
+  ///
+  /// In zh, this message translates to:
+  /// **'{modifier} + 滚轮，或双指捏合，可逐档调节'**
+  String zoomTierShortcutHint(String modifier);
+
   /// No description provided for @hybridView.
   ///
   /// In zh, this message translates to:

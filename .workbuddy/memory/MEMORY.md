@@ -31,6 +31,7 @@
 | 缩放几何/视口 | 格子位置只在确定档位布局间加权，禁插值列数（`_effectiveGeometryLayers()`/`_collapseGeometry()`）。上界唯一 `FolderZoomViewportTracker.maxViewportTopFor()`，禁拿 `maxScrollOffsetFor()` 直接夹；判「贴底」不得要求内容比视口高 |
 | 缩放实现来源 | 引擎/脚手架/捏合/档位图标唯一实现在 path 包 `zoomable_sliver_grid/`；`lib/widgets/folder_layout_utils.dart` 只是薄壳，**禁**写第二份引擎。`hoverable_card.dart`、`cover_play_button.dart` 均为 `export`；档位图标名 `ZoomTierIcon` |
 | 缩放档位范围 | 锁档位只在 `Extension LibraryZoomScopeRange.zoomTierRange`（`settings_service.dart`）**加一行 record**：`album` 锁网格三档（4/6~1.0）、`queue` 锁列表四档（0~3/6），其余走默认全七档。设置读写/弹窗滑杆与预设按钮/滚轮步进与捏合全部派生自它（`clampZoomScale()`、`allowedZoomTiers`、`min/maxZoomTier`），**禁**在别处写 `scope == queue` 式判断 |
+| 缩放修饰键 | 提示标签 `zoomModifierKeyLabel` 与判定 `isZoomModifierPressed` 同处 `folder_layout_utils.dart`（macOS `⌘`/也认 Ctrl，其余 `Ctrl`）；弹窗文案 `zoomTierShortcutHint({modifier})` 只吃这个标签，**禁**在手势层或页面另写平台判断 |
 | **缩放网格宽度** | `width` / `crossAxisExtent:` 只认外层 `LayoutBuilder` 的 `maxWidth`，禁退回 `MediaQuery`（会算出负原点，条目压到 rail 底下） |
 | 一页多段缩放 | 一个滚动视图**只能有一个** `FolderZoomSliverBuilder`（`FolderZoomGestureLayer` 与 `ScrollView` 之间）；各段用 `section` 区分 + `ZoomSectionHost`（`width` 仍要传）。**禁**加 `metrics` 字段、**禁**段内自建 builder。**按状态切换 ScrollView 祖先结构（loading/error 裸 view、有内容套 `RefreshIndicator`）的页面禁传 `controller`**：切分支那帧断言炸在 sliver 布局里 = 整页空白 |
 | 缩放段间距 | 网格外层 `SliverPadding` 必须与档位无关，禁 `lerp(0→8, gridMorph)`；回归 `zoom_section_gap_test.dart` |

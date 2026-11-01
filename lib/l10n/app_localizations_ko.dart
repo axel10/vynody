@@ -2804,6 +2804,32 @@ class AppLocalizationsKo extends AppLocalizations {
   String get gridView => '격자 보기';
 
   @override
+  String get zoomTierMinimal => '최소';
+
+  @override
+  String get zoomTierCompact => '컴팩트';
+
+  @override
+  String get zoomTierStandard => '표준';
+
+  @override
+  String get zoomTierLargeList => '크게';
+
+  @override
+  String get zoomTierSmallGrid => '작게';
+
+  @override
+  String get zoomTierMediumGrid => '중간';
+
+  @override
+  String get zoomTierLargeGrid => '크게';
+
+  @override
+  String zoomTierShortcutHint(String modifier) {
+    return '$modifier + 스크롤 또는 두 손가락으로 단계 조절';
+  }
+
+  @override
   String get hybridView => '하이브리드 보기';
 
   @override

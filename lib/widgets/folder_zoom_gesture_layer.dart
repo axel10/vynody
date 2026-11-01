@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -82,14 +81,6 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
   int _wheelBurstDirection = 0;
   bool _wheelBurstStepped = false;
 
-  bool get _isZoomModifierPressed {
-    final keyboard = HardwareKeyboard.instance;
-    if (keyboard.isControlPressed) return true;
-    // macOS 上 ⌘ + 滚轮是更顺手的习惯，一并认。
-    return defaultTargetPlatform == TargetPlatform.macOS &&
-        keyboard.isMetaPressed;
-  }
-
   void _stepTier(int steps, {bool haptic = false}) {
     if (steps == 0) return;
     final settings = ref.read(settingsServiceProvider);
@@ -128,7 +119,7 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
 
   void _handlePointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent) return;
-    if (!_isZoomModifierPressed) return;
+    if (!isZoomModifierPressed) return;
 
     final delta = event.scrollDelta;
     final double amount = delta.dy != 0 ? delta.dy : delta.dx;

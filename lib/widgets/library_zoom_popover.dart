@@ -34,13 +34,13 @@ IconData getFolderZoomTierIcon(double zoomScale) {
 /// 档位的本地化短名（列表四档 + 网格三档）。
 String _tierLabel(AppLocalizations l10n, FolderZoomTier tier) {
   return switch (tier) {
-    FolderZoomTier.minimalList => '极简',
-    FolderZoomTier.compactList => '紧凑',
-    FolderZoomTier.standardList => '标准',
-    FolderZoomTier.largeList => '大图',
-    FolderZoomTier.smallGrid => '小',
-    FolderZoomTier.mediumGrid => '中',
-    FolderZoomTier.largeGrid => '大',
+    FolderZoomTier.minimalList => l10n.zoomTierMinimal,
+    FolderZoomTier.compactList => l10n.zoomTierCompact,
+    FolderZoomTier.standardList => l10n.zoomTierStandard,
+    FolderZoomTier.largeList => l10n.zoomTierLargeList,
+    FolderZoomTier.smallGrid => l10n.zoomTierSmallGrid,
+    FolderZoomTier.mediumGrid => l10n.zoomTierMediumGrid,
+    FolderZoomTier.largeGrid => l10n.zoomTierLargeGrid,
   };
 }
 
@@ -295,7 +295,7 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Ctrl + 滚轮，或双指捏合，可逐档调节',
+                        l10n.zoomTierShortcutHint(zoomModifierKeyLabel),
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant
                               .withValues(alpha: 0.75),

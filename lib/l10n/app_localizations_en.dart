@@ -2898,6 +2898,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gridView => 'Grid View';
 
   @override
+  String get zoomTierMinimal => 'Minimal';
+
+  @override
+  String get zoomTierCompact => 'Compact';
+
+  @override
+  String get zoomTierStandard => 'Standard';
+
+  @override
+  String get zoomTierLargeList => 'Large';
+
+  @override
+  String get zoomTierSmallGrid => 'Small';
+
+  @override
+  String get zoomTierMediumGrid => 'Medium';
+
+  @override
+  String get zoomTierLargeGrid => 'Large';
+
+  @override
+  String zoomTierShortcutHint(String modifier) {
+    return '$modifier + scroll or pinch to adjust tiers';
+  }
+
+  @override
   String get hybridView => 'Hybrid View';
 
   @override

@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HardwareKeyboard;
 import 'package:zoomable_sliver_grid/zoomable_sliver_grid.dart'
     hide kGridCrossAxisSpacing, kGridMainAxisSpacing, kGridHorizontalPadding;
 
@@ -55,6 +58,24 @@ double zoomItemThumbnailSizeFor(FolderZoomLayoutMetrics metrics) {
 
 /// 内容区上方「无权限访问」提示块的估算高度（`folder.path == 'system'` 且未授权时）。
 const double kFolderPermissionWarningHeight = 200.0;
+
+/// 档位缩放的修饰键在提示文案里的写法：macOS 用 `⌘`，其余平台用 `Ctrl`。
+///
+/// 只此一处，弹窗提示与手势判定都从它派生——文案说按哪个键、实际就认哪个键，
+/// 不会出现「提示写 Ctrl、macOS 用户按 ⌘ 却没反应」这类错位。
+String get zoomModifierKeyLabel =>
+    defaultTargetPlatform == TargetPlatform.macOS ? '⌘' : 'Ctrl';
+
+/// 当前是否按住了档位缩放的修饰键。
+///
+/// macOS 上 `⌘` 与 `Ctrl` 都认（外接 Windows 键盘的习惯），其余平台只认 `Ctrl`。
+/// 判定集合是 [zoomModifierKeyLabel] 的超集：提示只写更顺手的那个键。
+bool get isZoomModifierPressed {
+  final keyboard = HardwareKeyboard.instance;
+  if (keyboard.isControlPressed) return true;
+  return defaultTargetPlatform == TargetPlatform.macOS &&
+      keyboard.isMetaPressed;
+}
 
 /// 「定位当前播放」要加在行偏移上的内容区上方高度：顶栏 + 标题横幅（+ 权限提示）。
 ///

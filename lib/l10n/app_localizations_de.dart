@@ -2933,6 +2933,32 @@ class AppLocalizationsDe extends AppLocalizations {
   String get gridView => 'Rasteransicht';
 
   @override
+  String get zoomTierMinimal => 'Minimal';
+
+  @override
+  String get zoomTierCompact => 'Kompakt';
+
+  @override
+  String get zoomTierStandard => 'Standard';
+
+  @override
+  String get zoomTierLargeList => 'Groß';
+
+  @override
+  String get zoomTierSmallGrid => 'Klein';
+
+  @override
+  String get zoomTierMediumGrid => 'Mittel';
+
+  @override
+  String get zoomTierLargeGrid => 'Groß';
+
+  @override
+  String zoomTierShortcutHint(String modifier) {
+    return '$modifier + Scrollen oder Pinch zum Stufenwechsel';
+  }
+
+  @override
   String get hybridView => 'Hybridansicht';
 
   @override

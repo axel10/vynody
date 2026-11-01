@@ -2904,6 +2904,32 @@ class AppLocalizationsTr extends AppLocalizations {
   String get gridView => 'Izgara Görünümü';
 
   @override
+  String get zoomTierMinimal => 'Minimal';
+
+  @override
+  String get zoomTierCompact => 'Kompakt';
+
+  @override
+  String get zoomTierStandard => 'Standart';
+
+  @override
+  String get zoomTierLargeList => 'Büyük';
+
+  @override
+  String get zoomTierSmallGrid => 'Küçük';
+
+  @override
+  String get zoomTierMediumGrid => 'Orta';
+
+  @override
+  String get zoomTierLargeGrid => 'Büyük';
+
+  @override
+  String zoomTierShortcutHint(String modifier) {
+    return '$modifier + kaydırma veya sıkıştırma ile kademe ayarı';
+  }
+
+  @override
   String get hybridView => 'Karma Görünüm';
 
   @override

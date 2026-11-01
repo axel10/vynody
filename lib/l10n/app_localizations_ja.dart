@@ -2802,6 +2802,32 @@ class AppLocalizationsJa extends AppLocalizations {
   String get gridView => 'グリッド表示';
 
   @override
+  String get zoomTierMinimal => '最小';
+
+  @override
+  String get zoomTierCompact => 'コンパクト';
+
+  @override
+  String get zoomTierStandard => '標準';
+
+  @override
+  String get zoomTierLargeList => '大';
+
+  @override
+  String get zoomTierSmallGrid => '小';
+
+  @override
+  String get zoomTierMediumGrid => '中';
+
+  @override
+  String get zoomTierLargeGrid => '大';
+
+  @override
+  String zoomTierShortcutHint(String modifier) {
+    return '$modifier + スクロール、またはピンチで段階調整';
+  }
+
+  @override
   String get hybridView => 'ハイブリッド表示';
 
   @override
