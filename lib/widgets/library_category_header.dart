@@ -31,6 +31,7 @@ class LibraryCategoryHeader extends ConsumerStatefulWidget {
     this.backgroundColor,
     this.hasBorder = true,
     this.showSearch = true,
+    this.showSortActionInWide = true,
   });
 
   final String? title;
@@ -55,6 +56,13 @@ class LibraryCategoryHeader extends ConsumerStatefulWidget {
   /// masterPaneHeaderBuilder）：页头横跨两栏、搜索框右对齐，视觉上认不出
   /// 它过滤的是左边那条列表，而且会和右侧详情自己的搜索挤在一起。
   final bool showSearch;
+
+  /// 横屏时是否在本组件内渲染排序按钮。
+  ///
+  /// 竖屏没有分栏，排序与播放操作同属页头一行动作；横屏主从分栏时排序只作用于
+  /// 左栏列表，会随搜索框一起收进左栏顶部（见 `LibraryMasterPaneHeader`），
+  /// 这里置 false 把这格腾出来。
+  final bool showSortActionInWide;
 
   @override
   ConsumerState<LibraryCategoryHeader> createState() => _LibraryCategoryHeaderState();
@@ -226,7 +234,7 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
                   children: [
                     ?playAllButton,
                     ?shufflePlayButton,
-                    ?sortButton,
+                    if (widget.showSortActionInWide) ?sortButton,
                     ...?widget.extraActions,
                     ?filterButton,
                   ],

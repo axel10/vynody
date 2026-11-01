@@ -20,7 +20,7 @@
 | l10n / 设置项 | l10n：9 个 `app_*.arb` 同步，模板 `app_zh.arb`，改完 `flutter gen-l10n`。设置项：`settings_service.dart` 三段 → 6 处同步（key、`SettingProperty`、getter+setter、`resetXxx()`、`settings_search_registry.dart`、`sections/<组>_section.dart`） |
 | 流派聚合键 | `normalizeGenreKey()`；派生 `queryKey` 与 `matchGenreAssetKey()` 同源；`_acronymDisplays` 吃 `raw.toLowerCase()` 不能跟着改；`_substringAssetRules` 连写 needle 必须留 |
 | 详情三页 | `album_sections.dart`、`collection_detail_content.dart`、`collection_detail_header.dart`、`detail_page_shell.dart`；分组宽 ≥600 走「左封面右列表」 |
-| 主从视图搜索 | 输入框唯一实现 `LibrarySearchField`；详情内统一 `filterAlbumSections()`，**过滤后必须重算 `startIndex`**；复位按 `source.id`/`artist.queryKey`；开关固定操作区行尾最右 |
+| 主从视图搜索 | 输入框唯一实现 `LibrarySearchField`；横屏左栏顶部唯一实现 `LibraryMasterPaneHeader`（搜索 + 排序同排），排序**禁**留在横跨两栏的页头（`showSortActionInWide: false`）；详情内统一 `filterAlbumSections()`，**过滤后必须重算 `startIndex`**；复位按 `source.id`/`artist.queryKey`；开关固定操作区行尾最右 |
 | 洞察页 | 视图状态 `LibraryInsightFilterNotifier`（复位点唯一 `_LibrarySubHostPageState.dispose`）；列表唯一 `library_insight_list.dart`，行内边距唯一 `_insightRowPadding` + `kInsightListHorizontalInset` |
 | 子分类导航域 | `library_tab_navigator.dart`（每分类一条 `Navigator` + `HeroController`）挂宿主 `IndexedStack`；切分类只改 provider/索引，**禁 popUntil** |
 | 远程封面组件 | `remote_artwork_widget.dart`：落盘后**禁** `setState` 切 `Image.file`；`gaplessPlayback = _renderedImageUrl == imageUrl`；`coverArtId` 变必须 `_localDiskPath = null` |

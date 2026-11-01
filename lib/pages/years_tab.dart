@@ -8,7 +8,7 @@ import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/library/year_library.dart';
 import '../dialogs/sort_options_dialog.dart';
 import '../widgets/library_category_header.dart';
-import '../widgets/library_search_field.dart';
+import '../widgets/library_master_pane_header.dart';
 import 'year_detail_page.dart';
 import '../widgets/master_detail_scaffold.dart';
 import '../widgets/library_selection_scope.dart';
@@ -289,27 +289,29 @@ class _YearsTabState extends ConsumerState<YearsTab>
           hasPlayingMusic: currentMusic != null,
           isSelectionMode: isSelectionMode || (isLandscape && isSongSelectionMode),
           selectionPanel: selectionPanel,
-          masterPaneHeaderBuilder: (context) => LibrarySearchField(
-            controller: _searchController,
-            hintText: l10n.search,
-            query: _searchQuery,
-            onChanged: (value) => setState(() {
+          masterPaneHeaderBuilder: (headerContext) => LibraryMasterPaneHeader(
+            searchController: _searchController,
+            searchQuery: _searchQuery,
+            searchHintText: l10n.search,
+            onSearchChanged: (value) => setState(() {
               _searchQuery = value.trim();
             }),
-            onClear: () {
+            onSearchCleared: () {
               _searchController.clear();
               setState(() {
                 _searchQuery = '';
               });
             },
+            onSortPressed: () => _openSortDialog(headerContext, l10n),
           ),
           masterToolbarBuilder: (context, isWide) => LibraryCategoryHeader(
             title: yearsLabel,
             countLabel: '${visibleYears.length} $yearsLabel',
             isWide: isWide,
-            // 横屏时搜索收进左栏（见 masterPaneHeaderBuilder），
-            // 免得它右对齐压在详情栏上方、和详情自己的搜索挨在一起。
+            // 横屏时搜索与排序都收进左栏（见 masterPaneHeaderBuilder）：
+            // 它们在页头右对齐会压在详情栏上方，且和详情自己的搜索挨在一起。
             showSearch: !isWide,
+            showSortActionInWide: false,
             searchController: _searchController,
             searchQuery: _searchQuery,
             searchHintText: l10n.search,
