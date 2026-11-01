@@ -562,92 +562,125 @@ class RemoteServerZoomItem extends StatelessWidget {
 
     final coverStack = ClipRRect(
       borderRadius: coverRadius,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: gradientColors,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: (isSubsonic
-                          ? Colors.orange
-                          : (isJellyfin ? const Color(0xFF00A4DC) : Colors.blue))
-                      .withValues(alpha: lerpDouble(0.2, 0.08, gridMorph)!),
-                  blurRadius: lerpDouble(8.0, 12.0, gridMorph)!,
-                  offset: Offset(0, lerpDouble(2.0, 4.0, gridMorph)!),
-                ),
-              ],
-            ),
-            child: defaultIconSize > 1.0
-                ? Center(
-                    child: Icon(
-                      serverIcon,
-                      size: defaultIconSize,
-                      color: Colors.white.withValues(alpha: 0.95),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-          if (gridMorph > 0.05) ...[
-            if (!isProUnlocked)
-              Positioned(
-                top: lerpDouble(4.0, 8.0, gridMorph)!,
-                left: lerpDouble(4.0, 8.0, gridMorph)!,
-                child: Opacity(
-                  opacity: gridMorph.clamp(0.0, 1.0),
-                  child: const ProBadge(),
-                ),
-              ),
-            Positioned(
-              top: lerpDouble(4.0, 8.0, gridMorph)!,
-              right: lerpDouble(4.0, 8.0, gridMorph)!,
-              child: Opacity(
-                opacity: gridMorph.clamp(0.0, 1.0),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: lerpDouble(5.0, 7.0, gridMorph)!,
-                    vertical: lerpDouble(2.0, 3.0, gridMorph)!,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final coverWidth = constraints.maxWidth;
+          // 判定是否有足够空间容纳角标文字：
+          // 胶囊文字（如 Navidrome）连同图标与边距约需 65-75px；
+          // 若左上角有 ProBadge（宽度约 28px + 边距），安全宽度需约 120px；
+          // 若已解锁 Pro，单侧显示文字也至少需要约 95px 宽度才不显得紧贴左边。
+          final minWidthForText = isProUnlocked ? 95.0 : 120.0;
+          final showBadgeText = coverWidth >= minWidthForText;
+
+          final edgePadding = lerpDouble(4.0, 8.0, gridMorph)!;
+          final maxBadgeWidth = (coverWidth -
+                  edgePadding * 2 -
+                  (isProUnlocked ? 0.0 : 34.0))
+              .clamp(0.0, coverWidth);
+
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: gradientColors,
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      width: 0.8,
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isSubsonic
+                              ? Colors.orange
+                              : (isJellyfin
+                                  ? const Color(0xFF00A4DC)
+                                  : Colors.blue))
+                          .withValues(
+                              alpha: lerpDouble(0.2, 0.08, gridMorph)!),
+                      blurRadius: lerpDouble(8.0, 12.0, gridMorph)!,
+                      offset: Offset(0, lerpDouble(2.0, 4.0, gridMorph)!),
+                    ),
+                  ],
+                ),
+                child: defaultIconSize > 1.0
+                    ? Center(
+                        child: Icon(
+                          serverIcon,
+                          size: defaultIconSize,
+                          color: Colors.white.withValues(alpha: 0.95),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+              if (gridMorph > 0.05) ...[
+                if (!isProUnlocked)
+                  Positioned(
+                    top: edgePadding,
+                    left: edgePadding,
+                    child: Opacity(
+                      opacity: gridMorph.clamp(0.0, 1.0),
+                      child: const ProBadge(),
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isSubsonic
-                            ? Icons.cloud_done_rounded
-                            : Icons.folder_shared_rounded,
-                        size: lerpDouble(9.0, 11.0, gridMorph)!,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        typeLabel,
-                        style: TextStyle(
-                          fontSize: lerpDouble(8.5, 10.0, gridMorph)!,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 0.3,
+                Positioned(
+                  top: edgePadding,
+                  right: edgePadding,
+                  child: Opacity(
+                    opacity: gridMorph.clamp(0.0, 1.0),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxBadgeWidth),
+                      child: Container(
+                        padding: showBadgeText
+                            ? EdgeInsets.symmetric(
+                                horizontal: lerpDouble(5.0, 7.0, gridMorph)!,
+                                vertical: lerpDouble(2.0, 3.0, gridMorph)!,
+                              )
+                            : EdgeInsets.all(lerpDouble(3.0, 4.5, gridMorph)!),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isSubsonic
+                                  ? Icons.cloud_done_rounded
+                                  : Icons.folder_shared_rounded,
+                              size: lerpDouble(9.0, 11.0, gridMorph)!,
+                              color: Colors.white,
+                            ),
+                            if (showBadgeText) ...[
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: Text(
+                                  typeLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize:
+                                        lerpDouble(8.5, 10.0, gridMorph)!,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ],
-        ],
+              ],
+            ],
+          );
+        },
       ),
     );
 
