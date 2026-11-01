@@ -695,30 +695,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     ref.read(audioServiceProvider).appendToQueue(songsToAdd),
               );
             },
-            onSongMorePressed: (file, buttonContext) {
-              final songsToAdd = (widget.selectedSongPaths.isNotEmpty ||
-                      widget.selectedFolderPaths.isNotEmpty)
-                  ? _getSelectedSongs()
-                  : <MusicFile>[file];
-              showSongBottomSheet(
-                buttonContext,
-                song: file,
-                songs: songsToAdd,
-                mode: SongContextMenuMode.full,
-                onMultiSelect: widget.isSelectionMode
-                    ? null
-                    : () => _enterSongSelection(file, matchedSongs),
-                onAddToPlaylist: () => showAddSongsToPlaylistDialog(
-                  buttonContext,
-                  ref.read(playlistServiceProvider),
-                  songsToAdd,
-                ),
-                onPlayNext: () =>
-                    ref.read(audioServiceProvider).enqueueNext(songsToAdd),
-                onAddToQueue: () =>
-                    ref.read(audioServiceProvider).appendToQueue(songsToAdd),
-              );
-            },
             bottomPadding: 0,
           ),
         ],

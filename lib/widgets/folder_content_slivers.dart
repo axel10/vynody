@@ -529,7 +529,6 @@ class FolderSongsSliver extends StatelessWidget {
   final void Function(MusicFile song)? onSongLongPress;
   final void Function(MusicFile song, TapDownDetails details)
       onSongSecondaryTapDown;
-  final void Function(MusicFile song, BuildContext context)? onSongMorePressed;
   final double topPadding;
   final double bottomPadding;
   final double? crossAxisExtent;
@@ -549,7 +548,6 @@ class FolderSongsSliver extends StatelessWidget {
     required this.onSongTap,
     this.onSongLongPress,
     required this.onSongSecondaryTapDown,
-    this.onSongMorePressed,
     this.topPadding = 8.0,
     this.bottomPadding = 160.0,
     this.crossAxisExtent,
@@ -612,10 +610,6 @@ class FolderSongsSliver extends StatelessWidget {
                   onSecondaryTapDown: (details) {
                     onSongSecondaryTapDown(file, details);
                   },
-                  onMorePressed: onSongMorePressed != null
-                      ? (buttonContext) =>
-                          onSongMorePressed!(file, buttonContext)
-                      : null,
                 );
               },
               childCount: songs.length,

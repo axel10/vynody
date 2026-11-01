@@ -194,30 +194,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     );
   }
 
-  void _handleShowSongBottomSheet(
-    BuildContext menuContext,
-    MusicFile file,
-  ) {
-    final songsToAdd = <MusicFile>[file];
-    showSongBottomSheet(
-      menuContext,
-      song: file,
-      songs: songsToAdd,
-      mode: SongContextMenuMode.full,
-      onAddToPlaylist: () => showAddSongsToPlaylistDialog(
-        menuContext,
-        ref.read(playlistServiceProvider),
-        songsToAdd,
-      ),
-      onPlayNext: () => ref
-          .read(audioServiceProvider)
-          .enqueueNext(songsToAdd),
-      onAddToQueue: () => ref
-          .read(audioServiceProvider)
-          .appendToQueue(songsToAdd),
-    );
-  }
-
   Future<void> _openRemoteServer(
     BuildContext context,
     RemoteServer server,
@@ -612,9 +588,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             },
             onSongSecondaryTapDown: (file, details) {
               _handleShowMenu(context, details.globalPosition, file);
-            },
-            onSongMorePressed: (file, buttonContext) {
-              _handleShowSongBottomSheet(buttonContext, file);
             },
           ),
         ],

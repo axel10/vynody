@@ -214,7 +214,6 @@ class WebDavSongsSliver extends ConsumerWidget {
   final void Function(WebDavFile, int) onSongTap;
   final void Function(WebDavFile)? onSongLongPress;
   final void Function(WebDavFile, TapDownDetails)? onSongSecondaryTapDown;
-  final void Function(WebDavFile, BuildContext)? onSongMorePressed;
   final double bottomPadding;
   final double? crossAxisExtent;
 
@@ -237,7 +236,6 @@ class WebDavSongsSliver extends ConsumerWidget {
     required this.onSongTap,
     this.onSongLongPress,
     this.onSongSecondaryTapDown,
-    this.onSongMorePressed,
     required this.bottomPadding,
     this.crossAxisExtent,
     this.section,
@@ -310,7 +308,6 @@ class WebDavSongsSliver extends ConsumerWidget {
                     onLongPress: () => onSongLongPress?.call(file),
                     onSecondaryTapDown: (details) =>
                         onSongSecondaryTapDown?.call(file, details),
-                    onMorePressed: (ctx) => onSongMorePressed?.call(file, ctx),
                   );
                 }
 
@@ -343,8 +340,6 @@ class WebDavSongsSliver extends ConsumerWidget {
                           onLongPress: () => onSongLongPress?.call(file),
                           onSecondaryTapDown: (details) =>
                               onSongSecondaryTapDown?.call(file, details),
-                          onMorePressed: (ctx) =>
-                              onSongMorePressed?.call(file, ctx),
                         ),
                 );
               },
@@ -501,7 +496,6 @@ class WebDavGenericFileListTile extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final void Function(TapDownDetails)? onSecondaryTapDown;
-  final void Function(BuildContext)? onMorePressed;
 
   const WebDavGenericFileListTile({
     super.key,
@@ -511,7 +505,6 @@ class WebDavGenericFileListTile extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.onSecondaryTapDown,
-    this.onMorePressed,
   });
 
   @override
@@ -559,21 +552,6 @@ class WebDavGenericFileListTile extends StatelessWidget {
             ),
         ],
       ),
-    );
-
-    final trailingWidget = Builder(
-      builder: (btnContext) {
-        return IconButton(
-          icon: const Icon(
-            Icons.more_vert_rounded,
-            size: 20,
-          ),
-          tooltip: 'More',
-          onPressed: () {
-            onMorePressed?.call(btnContext);
-          },
-        );
-      },
     );
 
     return GestureDetector(
@@ -633,8 +611,6 @@ class WebDavGenericFileListTile extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  trailingWidget,
                 ],
               ),
             ),

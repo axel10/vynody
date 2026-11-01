@@ -1901,7 +1901,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
       MediaQuery.paddingOf(context).top,
     );
 
-    // Rail 文字色与曲目行（SongTile / AlbumSongTile）保持同一套：
+    // Rail 文字色与曲目行（SongZoomItem / AlbumSongTile）保持同一套：
     // 选中 = colorScheme.primary，未选中 = colorScheme.onSurface（正文色，不用变体灰）。
     // 分区小标题对齐曲目行的副标题（艺术家行）用 onSurfaceVariant，保留层级。
     // 播放页/小窗叠在封面模糊背景上，统一取白色保证可读。

@@ -844,23 +844,6 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                           );
                         }
                       },
-                      onMorePressed: (btnContext) {
-                        final renderBox =
-                            btnContext.findRenderObject() as RenderBox?;
-                        final position = renderBox != null
-                            ? renderBox.localToGlobal(Offset.zero) +
-                                Offset(renderBox.size.width / 2,
-                                    renderBox.size.height / 2)
-                            : Offset.zero;
-                        showSongContextMenu(
-                          context,
-                          position,
-                          song: song,
-                          songs: [song],
-                          mode: SongContextMenuMode.full,
-                          onMultiSelect: () => enterSelectionMode(song.path),
-                        );
-                      },
                     ),
                   );
                 },

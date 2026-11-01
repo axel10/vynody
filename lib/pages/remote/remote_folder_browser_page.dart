@@ -1637,19 +1637,6 @@ class _RemoteFolderBrowserPageState
                       displayedAudio,
                       displayedItems,
                     ),
-                    onSongMorePressed: (file, btnContext) {
-                      final box = btnContext.findRenderObject() as RenderBox?;
-                      final pos = box != null
-                          ? box.localToGlobal(
-                              Offset(box.size.width / 2, box.size.height / 2))
-                          : Offset.zero;
-                      _handleSongContextMenu(
-                        file,
-                        pos,
-                        displayedAudio,
-                        displayedItems,
-                      );
-                    },
                     bottomPadding: 0,
                   ),
 
