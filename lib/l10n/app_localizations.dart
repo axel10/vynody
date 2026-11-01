@@ -10137,6 +10137,132 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'查看歌单详情'**
   String get viewPlaylistDetails;
+
+  /// No description provided for @lastFmSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'Last.fm'**
+  String get lastFmSectionTitle;
+
+  /// No description provided for @lastFmSectionDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'把正在播放的曲目记录到你的 Last.fm 账号。'**
+  String get lastFmSectionDescription;
+
+  /// No description provided for @lastFmScrobblingEnabledTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用上报'**
+  String get lastFmScrobblingEnabledTitle;
+
+  /// No description provided for @lastFmScrobblingEnabledDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放时长达到规则门槛后自动记录到 Last.fm。'**
+  String get lastFmScrobblingEnabledDescription;
+
+  /// No description provided for @lastFmScrobbleRemoteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'包含远程媒体库'**
+  String get lastFmScrobbleRemoteTitle;
+
+  /// No description provided for @lastFmScrobbleRemoteDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'上报 Subsonic、Jellyfin、WebDAV、SMB 中的曲目。若服务器端已接入 Last.fm，同时开启会产生重复记录。'**
+  String get lastFmScrobbleRemoteDescription;
+
+  /// No description provided for @lastFmAccountTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'账号'**
+  String get lastFmAccountTitle;
+
+  /// No description provided for @lastFmNotConnected.
+  ///
+  /// In zh, this message translates to:
+  /// **'未连接'**
+  String get lastFmNotConnected;
+
+  /// No description provided for @lastFmConnectedAs.
+  ///
+  /// In zh, this message translates to:
+  /// **'已连接：{username}'**
+  String lastFmConnectedAs(Object username);
+
+  /// No description provided for @lastFmConnect.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接 Last.fm'**
+  String get lastFmConnect;
+
+  /// No description provided for @lastFmCompleteAuthorization.
+  ///
+  /// In zh, this message translates to:
+  /// **'我已完成授权'**
+  String get lastFmCompleteAuthorization;
+
+  /// No description provided for @lastFmDisconnect.
+  ///
+  /// In zh, this message translates to:
+  /// **'断开连接'**
+  String get lastFmDisconnect;
+
+  /// No description provided for @lastFmAuthorizationPending.
+  ///
+  /// In zh, this message translates to:
+  /// **'已在浏览器中打开授权页。'**
+  String get lastFmAuthorizationPending;
+
+  /// No description provided for @lastFmAuthorizationHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请在浏览器中登录 Last.fm 并允许 Vynody 访问你的账号，完成后回到这里点击「我已完成授权」。'**
+  String get lastFmAuthorizationHint;
+
+  /// No description provided for @lastFmAuthorizationSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'已连接 Last.fm。'**
+  String get lastFmAuthorizationSuccess;
+
+  /// No description provided for @lastFmAuthorizationFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接失败：{message}'**
+  String lastFmAuthorizationFailed(Object message);
+
+  /// No description provided for @lastFmOpenAuthorizationPage.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新打开授权页'**
+  String get lastFmOpenAuthorizationPage;
+
+  /// No description provided for @lastFmLastScrobble.
+  ///
+  /// In zh, this message translates to:
+  /// **'上次成功上报：{time}'**
+  String lastFmLastScrobble(Object time);
+
+  /// No description provided for @lastFmNeverScrobbled.
+  ///
+  /// In zh, this message translates to:
+  /// **'还没有成功上报的记录'**
+  String get lastFmNeverScrobbled;
+
+  /// No description provided for @lastFmPendingCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 条待上报'**
+  String lastFmPendingCount(Object count);
+
+  /// No description provided for @lastFmCredentialsMissing.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前构建未包含 Last.fm 凭据，上报功能不可用。'**
+  String get lastFmCredentialsMissing;
 }
 
 class _AppLocalizationsDelegate

@@ -5534,4 +5534,79 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get viewPlaylistDetails => '재생목록 세부정보 보기';
+
+  @override
+  String get lastFmSectionTitle => 'Last.fm';
+
+  @override
+  String get lastFmSectionDescription => '재생 중인 곡을 Last.fm 계정에 기록합니다.';
+
+  @override
+  String get lastFmScrobblingEnabledTitle => '스크로블 사용';
+
+  @override
+  String get lastFmScrobblingEnabledDescription =>
+      '재생 시간이 기준을 넘으면 자동으로 Last.fm에 기록합니다.';
+
+  @override
+  String get lastFmScrobbleRemoteTitle => '원격 라이브러리 포함';
+
+  @override
+  String get lastFmScrobbleRemoteDescription =>
+      'Subsonic, Jellyfin, WebDAV, SMB의 곡도 기록합니다. 서버에서 이미 Last.fm과 연동되어 있다면 중복 기록이 생깁니다.';
+
+  @override
+  String get lastFmAccountTitle => '계정';
+
+  @override
+  String get lastFmNotConnected => '연결되지 않음';
+
+  @override
+  String lastFmConnectedAs(Object username) {
+    return '연결됨: $username';
+  }
+
+  @override
+  String get lastFmConnect => 'Last.fm 연결';
+
+  @override
+  String get lastFmCompleteAuthorization => '인증을 완료했습니다';
+
+  @override
+  String get lastFmDisconnect => '연결 해제';
+
+  @override
+  String get lastFmAuthorizationPending => '브라우저에서 인증 페이지를 열었습니다.';
+
+  @override
+  String get lastFmAuthorizationHint =>
+      '브라우저에서 Last.fm에 로그인하고 Vynody를 허용한 뒤 돌아와서 \"인증을 완료했습니다\"를 누르세요.';
+
+  @override
+  String get lastFmAuthorizationSuccess => 'Last.fm에 연결되었습니다.';
+
+  @override
+  String lastFmAuthorizationFailed(Object message) {
+    return '연결 실패: $message';
+  }
+
+  @override
+  String get lastFmOpenAuthorizationPage => '인증 페이지 다시 열기';
+
+  @override
+  String lastFmLastScrobble(Object time) {
+    return '마지막 전송 성공: $time';
+  }
+
+  @override
+  String get lastFmNeverScrobbled => '아직 전송된 기록이 없습니다';
+
+  @override
+  String lastFmPendingCount(Object count) {
+    return '$count개 전송 대기 중';
+  }
+
+  @override
+  String get lastFmCredentialsMissing =>
+      '이 빌드에는 Last.fm 자격 증명이 없어 스크로블을 사용할 수 없습니다.';
 }

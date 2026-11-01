@@ -101,7 +101,7 @@ jobs:
       - name: Build APK
         env:
           RUST_BACKTRACE: "full"
-        run: flutter build apk --release --target-platform android-arm,android-arm64 --split-per-abi --split-debug-info=build/app/outputs/symbols -v
+        run: flutter build apk --release --target-platform android-arm,android-arm64 --split-per-abi --split-debug-info=build/app/outputs/symbols --dart-define=LASTFM_SECRET=${{ secrets.LASTFM_SECRET }} -v
 
       - name: Rename APKs with version
         run: |
@@ -178,7 +178,7 @@ jobs:
       - name: Build Windows
         env:
           FFMPEG_DIR: ${{ github.workspace }}\audio_core\windows\third_party\ffmpeg
-        run: flutter build windows --release -v
+        run: flutter build windows --release --dart-define=LASTFM_SECRET=${{ secrets.LASTFM_SECRET }} -v
 
       - name: Bundle VC Runtime DLLs
         shell: pwsh
@@ -354,7 +354,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Linux
-        run: flutter build linux --release
+        run: flutter build linux --release --dart-define=LASTFM_SECRET=${{ secrets.LASTFM_SECRET }}
 
       - name: Install fpm
         run: sudo gem install --no-document fpm
@@ -672,6 +672,7 @@ jobs:
       - name: Build and Package DMG (Signed and Notarized)
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
           APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
           TEAM_ID: ${{ secrets.TEAM_ID }}
         run: |
@@ -805,7 +806,7 @@ jobs:
         run: xcodebuild -resolvePackageDependencies -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -derivedDataPath build/ios/resolve -clonedSourcePackagesDirPath build/ios/SourcePackages
 
       - name: Build iOS (no codesign)
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --dart-define=LASTFM_SECRET=${{ secrets.LASTFM_SECRET }}
 
       - name: Package iOS app
         run: |

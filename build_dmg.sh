@@ -48,7 +48,7 @@ CODE_SIGN_IDENTITY="-" \
 DEVELOPMENT_TEAM="" \
 PROVISIONING_PROFILE_SPECIFIER="" \
 CXXFLAGS="-std=gnu++20" \
-flutter build macos --release
+flutter build macos --release --dart-define=LASTFM_SECRET="${LASTFM_SECRET:-}"
 
 # Extract version from pubspec.yaml
 VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr '+' '-')

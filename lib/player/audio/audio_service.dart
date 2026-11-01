@@ -49,6 +49,7 @@ import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
+import 'package:vynody/player/lastfm/lastfm_riverpod.dart';
 
 class AudioService extends Notifier<AudioSnapshot> {
   static const String _volumeStorageKey = 'player_volume';
@@ -1280,6 +1281,8 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     _lastPlaybackObservedPosition = _position;
 
+    _updateLastFmTracking(song);
+
     if (!_isPlaying || _hasLoggedCurrentPlayback) {
       return;
     }
@@ -1313,6 +1316,26 @@ class AudioService extends Notifier<AudioSnapshot> {
             );
           }),
     );
+  }
+
+  /// 把播放进度转发给 Last.fm 上报状态机。
+  ///
+  /// 上报侧的计入规则（时长过半或满 4 分钟、且曲目不短于 30 秒）与本地
+  /// 「5 秒或过半」的播放统计不是一回事，因此判定全部交给上报侧完成，
+  /// 这里只转发原始数据。
+  void _updateLastFmTracking(MusicFile song) {
+    try {
+      ref
+          .read(lastFmScrobbleServiceProvider)
+          .onPositionUpdate(
+            song: song,
+            position: _position,
+            isPlaying: _isPlaying,
+            duration: _duration,
+          );
+    } catch (error) {
+      debugPrint('AudioService: last.fm tracking failed: $error');
+    }
   }
 
   Future<void> _prepareCurrentPlaybackArtwork(MusicFile song) async {

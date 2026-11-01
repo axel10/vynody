@@ -13,7 +13,7 @@ if ($args -contains "--Local" -or $args -contains "--Sign" -or $args -contains "
 Remove-Item -Force -ErrorAction SilentlyContinue "build/flutter_assets/kernel_blob.bin", "build/windows/x64/runner/Release/data/flutter_assets/kernel_blob.bin"
 
 Write-Host "Building Windows application in release mode..." -ForegroundColor Cyan
-flutter build windows --release --no-tree-shake-icons --dart-define=CHANNEL=store
+flutter build windows --release --no-tree-shake-icons --dart-define=CHANNEL=store --dart-define=LASTFM_SECRET="$env:LASTFM_SECRET"
 if ($LASTEXITCODE -ne 0) {
     Write-Error "flutter build windows failed with exit code $LASTEXITCODE. Aborting MSIX packaging."
     exit $LASTEXITCODE

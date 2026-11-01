@@ -5740,4 +5740,82 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get viewPlaylistDetails => 'Çalma Listesi Ayrıntılarını Görüntüle';
+
+  @override
+  String get lastFmSectionTitle => 'Last.fm';
+
+  @override
+  String get lastFmSectionDescription =>
+      'Dinlediklerini Last.fm hesabına kaydet.';
+
+  @override
+  String get lastFmScrobblingEnabledTitle => 'Scrobble\'ı etkinleştir';
+
+  @override
+  String get lastFmScrobblingEnabledDescription =>
+      'Parçalar dinleme eşiğini geçtiğinde Last.fm\'e kaydedilir.';
+
+  @override
+  String get lastFmScrobbleRemoteTitle => 'Uzak kütüphaneleri dahil et';
+
+  @override
+  String get lastFmScrobbleRemoteDescription =>
+      'Subsonic, Jellyfin, WebDAV ve SMB parçalarını da kaydeder. Sunucunuz zaten Last.fm\'e scrobble ediyorsa bu seçenek yinelenen kayıtlar oluşturur.';
+
+  @override
+  String get lastFmAccountTitle => 'Hesap';
+
+  @override
+  String get lastFmNotConnected => 'Bağlı değil';
+
+  @override
+  String lastFmConnectedAs(Object username) {
+    return '$username olarak bağlı';
+  }
+
+  @override
+  String get lastFmConnect => 'Last.fm\'e bağlan';
+
+  @override
+  String get lastFmCompleteAuthorization => 'Yetkilendirmeyi tamamladım';
+
+  @override
+  String get lastFmDisconnect => 'Bağlantıyı kes';
+
+  @override
+  String get lastFmAuthorizationPending =>
+      'Yetkilendirme sayfası tarayıcınızda açıldı.';
+
+  @override
+  String get lastFmAuthorizationHint =>
+      'Tarayıcıda Last.fm\'e giriş yapıp Vynody\'ye izin verin, ardından buraya dönüp \"Yetkilendirmeyi tamamladım\" düğmesine dokunun.';
+
+  @override
+  String get lastFmAuthorizationSuccess => 'Last.fm\'e bağlandı.';
+
+  @override
+  String lastFmAuthorizationFailed(Object message) {
+    return 'Bağlantı başarısız: $message';
+  }
+
+  @override
+  String get lastFmOpenAuthorizationPage =>
+      'Yetkilendirme sayfasını yeniden aç';
+
+  @override
+  String lastFmLastScrobble(Object time) {
+    return 'Son başarılı gönderim: $time';
+  }
+
+  @override
+  String get lastFmNeverScrobbled => 'Henüz gönderilmiş kayıt yok';
+
+  @override
+  String lastFmPendingCount(Object count) {
+    return '$count kayıt gönderilmeyi bekliyor';
+  }
+
+  @override
+  String get lastFmCredentialsMissing =>
+      'Bu derleme Last.fm kimlik bilgilerini içermiyor, scrobble kullanılamıyor.';
 }

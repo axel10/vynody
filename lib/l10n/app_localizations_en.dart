@@ -5715,4 +5715,81 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewPlaylistDetails => 'View Playlist Details';
+
+  @override
+  String get lastFmSectionTitle => 'Last.fm';
+
+  @override
+  String get lastFmSectionDescription =>
+      'Record what you are playing to your Last.fm account.';
+
+  @override
+  String get lastFmScrobblingEnabledTitle => 'Enable scrobbling';
+
+  @override
+  String get lastFmScrobblingEnabledDescription =>
+      'Tracks are logged to Last.fm once they pass the listening threshold.';
+
+  @override
+  String get lastFmScrobbleRemoteTitle => 'Include remote libraries';
+
+  @override
+  String get lastFmScrobbleRemoteDescription =>
+      'Scrobble tracks from Subsonic, Jellyfin, WebDAV and SMB. If your server already scrobbles to Last.fm, enabling this will create duplicate entries.';
+
+  @override
+  String get lastFmAccountTitle => 'Account';
+
+  @override
+  String get lastFmNotConnected => 'Not connected';
+
+  @override
+  String lastFmConnectedAs(Object username) {
+    return 'Connected as $username';
+  }
+
+  @override
+  String get lastFmConnect => 'Connect Last.fm';
+
+  @override
+  String get lastFmCompleteAuthorization => 'I have authorized';
+
+  @override
+  String get lastFmDisconnect => 'Disconnect';
+
+  @override
+  String get lastFmAuthorizationPending =>
+      'The authorization page has been opened in your browser.';
+
+  @override
+  String get lastFmAuthorizationHint =>
+      'Sign in to Last.fm in your browser and allow Vynody, then come back and tap \"I have authorized\".';
+
+  @override
+  String get lastFmAuthorizationSuccess => 'Connected to Last.fm.';
+
+  @override
+  String lastFmAuthorizationFailed(Object message) {
+    return 'Connection failed: $message';
+  }
+
+  @override
+  String get lastFmOpenAuthorizationPage => 'Reopen authorization page';
+
+  @override
+  String lastFmLastScrobble(Object time) {
+    return 'Last successful scrobble: $time';
+  }
+
+  @override
+  String get lastFmNeverScrobbled => 'No scrobbles sent yet';
+
+  @override
+  String lastFmPendingCount(Object count) {
+    return '$count waiting to be sent';
+  }
+
+  @override
+  String get lastFmCredentialsMissing =>
+      'This build does not include Last.fm credentials, so scrobbling is unavailable.';
 }

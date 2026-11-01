@@ -359,6 +359,29 @@ final List<SettingSearchItem> settingsSearchRegistry = [
     description: (l10n) => l10n.acoustidApiKeyHelp,
   ),
 
+  // --- Last.fm ---
+  SettingSearchItem(
+    id: 'lastfm.scrobbling',
+    section: SettingsSection.lastFm,
+    icon: Icons.music_note_rounded,
+    title: (l10n) => l10n.lastFmScrobblingEnabledTitle,
+    description: (l10n) => l10n.lastFmScrobblingEnabledDescription,
+  ),
+  SettingSearchItem(
+    id: 'lastfm.remote',
+    section: SettingsSection.lastFm,
+    icon: Icons.cloud_outlined,
+    title: (l10n) => l10n.lastFmScrobbleRemoteTitle,
+    description: (l10n) => l10n.lastFmScrobbleRemoteDescription,
+  ),
+  SettingSearchItem(
+    id: 'lastfm.account',
+    section: SettingsSection.lastFm,
+    icon: Icons.person_outline_rounded,
+    title: (l10n) => l10n.lastFmAccountTitle,
+    description: (l10n) => l10n.lastFmConnect,
+  ),
+
   // --- 存储与缓存 (Storage) ---
   SettingSearchItem(
     id: 'storage.remote_cache',

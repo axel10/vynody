@@ -5529,4 +5529,79 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get viewPlaylistDetails => 'プレイリストの詳細を表示';
+
+  @override
+  String get lastFmSectionTitle => 'Last.fm';
+
+  @override
+  String get lastFmSectionDescription => '再生中の曲を Last.fm アカウントに記録します。';
+
+  @override
+  String get lastFmScrobblingEnabledTitle => 'スクロブルを有効化';
+
+  @override
+  String get lastFmScrobblingEnabledDescription =>
+      '再生時間が基準を超えた曲を自動的に Last.fm に記録します。';
+
+  @override
+  String get lastFmScrobbleRemoteTitle => 'リモートライブラリを含める';
+
+  @override
+  String get lastFmScrobbleRemoteDescription =>
+      'Subsonic、Jellyfin、WebDAV、SMB の曲もスクロブルします。サーバー側で既に Last.fm と連携している場合は重複記録になります。';
+
+  @override
+  String get lastFmAccountTitle => 'アカウント';
+
+  @override
+  String get lastFmNotConnected => '未接続';
+
+  @override
+  String lastFmConnectedAs(Object username) {
+    return '接続中：$username';
+  }
+
+  @override
+  String get lastFmConnect => 'Last.fm に接続';
+
+  @override
+  String get lastFmCompleteAuthorization => '認証を完了しました';
+
+  @override
+  String get lastFmDisconnect => '接続を解除';
+
+  @override
+  String get lastFmAuthorizationPending => 'ブラウザで認証ページを開きました。';
+
+  @override
+  String get lastFmAuthorizationHint =>
+      'ブラウザで Last.fm にログインし Vynody を許可してから、ここに戻って「認証を完了しました」を押してください。';
+
+  @override
+  String get lastFmAuthorizationSuccess => 'Last.fm に接続しました。';
+
+  @override
+  String lastFmAuthorizationFailed(Object message) {
+    return '接続に失敗しました：$message';
+  }
+
+  @override
+  String get lastFmOpenAuthorizationPage => '認証ページを開き直す';
+
+  @override
+  String lastFmLastScrobble(Object time) {
+    return '最後に送信できた日時：$time';
+  }
+
+  @override
+  String get lastFmNeverScrobbled => 'まだ送信された記録はありません';
+
+  @override
+  String lastFmPendingCount(Object count) {
+    return '$count 件送信待ち';
+  }
+
+  @override
+  String get lastFmCredentialsMissing =>
+      'このビルドには Last.fm の認証情報が含まれていないため、スクロブルは利用できません。';
 }

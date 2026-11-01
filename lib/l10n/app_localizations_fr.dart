@@ -5797,4 +5797,81 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get viewPlaylistDetails => 'Afficher les détails de la playlist';
+
+  @override
+  String get lastFmSectionTitle => 'Last.fm';
+
+  @override
+  String get lastFmSectionDescription =>
+      'Enregistrez vos écoutes sur votre compte Last.fm.';
+
+  @override
+  String get lastFmScrobblingEnabledTitle => 'Activer le scrobbling';
+
+  @override
+  String get lastFmScrobblingEnabledDescription =>
+      'Les titres sont envoyés à Last.fm dès que le seuil d\'écoute est atteint.';
+
+  @override
+  String get lastFmScrobbleRemoteTitle => 'Inclure les bibliothèques distantes';
+
+  @override
+  String get lastFmScrobbleRemoteDescription =>
+      'Envoie les titres de Subsonic, Jellyfin, WebDAV et SMB. Si votre serveur scrobble déjà vers Last.fm, les activer créera des doublons.';
+
+  @override
+  String get lastFmAccountTitle => 'Compte';
+
+  @override
+  String get lastFmNotConnected => 'Non connecté';
+
+  @override
+  String lastFmConnectedAs(Object username) {
+    return 'Connecté en tant que $username';
+  }
+
+  @override
+  String get lastFmConnect => 'Connecter Last.fm';
+
+  @override
+  String get lastFmCompleteAuthorization => 'J\'ai autorisé';
+
+  @override
+  String get lastFmDisconnect => 'Déconnecter';
+
+  @override
+  String get lastFmAuthorizationPending =>
+      'La page d\'autorisation a été ouverte dans votre navigateur.';
+
+  @override
+  String get lastFmAuthorizationHint =>
+      'Connectez-vous à Last.fm dans le navigateur et autorisez Vynody, puis revenez ici et appuyez sur « J\'ai autorisé ».';
+
+  @override
+  String get lastFmAuthorizationSuccess => 'Connecté à Last.fm.';
+
+  @override
+  String lastFmAuthorizationFailed(Object message) {
+    return 'Échec de la connexion : $message';
+  }
+
+  @override
+  String get lastFmOpenAuthorizationPage => 'Rouvrir la page d\'autorisation';
+
+  @override
+  String lastFmLastScrobble(Object time) {
+    return 'Dernier envoi réussi : $time';
+  }
+
+  @override
+  String get lastFmNeverScrobbled => 'Aucune écoute envoyée pour l\'instant';
+
+  @override
+  String lastFmPendingCount(Object count) {
+    return '$count en attente d\'envoi';
+  }
+
+  @override
+  String get lastFmCredentialsMissing =>
+      'Cette version n\'inclut pas les identifiants Last.fm ; le scrobbling est donc indisponible.';
 }

@@ -15,6 +15,7 @@ import 'package:vynody/player/ai/ai_api_key_service.dart';
 import 'package:vynody/player/ai/lyrics_model_catalog_service.dart';
 import 'package:vynody/player/ai/openrouter_api_key_service.dart';
 import 'package:vynody/player/library/playlist_service.dart';
+import 'package:vynody/player/lastfm/lastfm_riverpod.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
@@ -96,6 +97,8 @@ final audioServiceWiringProvider = Provider<void>((ref) {
     unawaited(audio.purgeSongsFromQueue(paths: paths, rootPaths: rootPaths));
   });
   ref.read(standaloneQueueWindowManagerProvider);
+  // 启动上报服务：把上次退出时残留的待上报记录补交，并挂上周期冲刷定时器。
+  ref.read(lastFmScrobbleServiceProvider);
 });
 
 final audioSnapshotProvider = Provider<AudioSnapshot>((ref) {

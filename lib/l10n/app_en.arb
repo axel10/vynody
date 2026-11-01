@@ -2508,6 +2508,26 @@
   "allStars": "All Stars",
   "homeTab": "Library",
   "allPlaylists": "All Playlists",
-  "viewPlaylistDetails": "View Playlist Details"
+  "viewPlaylistDetails": "View Playlist Details",
+  "lastFmSectionTitle": "Last.fm",
+  "lastFmSectionDescription": "Record what you are playing to your Last.fm account.",
+  "lastFmScrobblingEnabledTitle": "Enable scrobbling",
+  "lastFmScrobblingEnabledDescription": "Tracks are logged to Last.fm once they pass the listening threshold.",
+  "lastFmScrobbleRemoteTitle": "Include remote libraries",
+  "lastFmScrobbleRemoteDescription": "Scrobble tracks from Subsonic, Jellyfin, WebDAV and SMB. If your server already scrobbles to Last.fm, enabling this will create duplicate entries.",
+  "lastFmAccountTitle": "Account",
+  "lastFmNotConnected": "Not connected",
+  "lastFmConnectedAs": "Connected as {username}",
+  "lastFmConnect": "Connect Last.fm",
+  "lastFmCompleteAuthorization": "I have authorized",
+  "lastFmDisconnect": "Disconnect",
+  "lastFmAuthorizationPending": "The authorization page has been opened in your browser.",
+  "lastFmAuthorizationHint": "Sign in to Last.fm in your browser and allow Vynody, then come back and tap \"I have authorized\".",
+  "lastFmAuthorizationSuccess": "Connected to Last.fm.",
+  "lastFmAuthorizationFailed": "Connection failed: {message}",
+  "lastFmOpenAuthorizationPage": "Reopen authorization page",
+  "lastFmLastScrobble": "Last successful scrobble: {time}",
+  "lastFmNeverScrobbled": "No scrobbles sent yet",
+  "lastFmPendingCount": "{count} waiting to be sent",
+  "lastFmCredentialsMissing": "This build does not include Last.fm credentials, so scrobbling is unavailable."
 }
-

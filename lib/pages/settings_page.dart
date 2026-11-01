@@ -15,6 +15,7 @@ import 'settings/sections/about_section.dart';
 import 'settings/sections/acoustid_section.dart';
 import 'settings/sections/audio_section.dart';
 import 'settings/sections/general_section.dart';
+import 'settings/sections/lastfm_section.dart';
 import 'settings/sections/lyrics_section.dart';
 import 'settings/sections/scanning_section.dart';
 import 'settings/sections/shortcuts_section.dart';
@@ -511,6 +512,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
       SettingsSection.transcode => TranscodeSection(settings: settings),
       SettingsSection.lyrics => LyricsSection(settings: settings),
       SettingsSection.acoustid => AcoustidSection(settings: settings),
+      SettingsSection.lastFm => LastFmSection(settings: settings),
       SettingsSection.storage => StorageSection(settings: settings),
       SettingsSection.shortcuts => const ShortcutsSection(),
       SettingsSection.windows => const WindowsSection(),

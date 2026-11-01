@@ -560,6 +560,9 @@ class SettingsService extends ChangeNotifier {
   static const String customProviderBaseUrlStorageKey =
       'custom_provider_base_url';
   static const String customProviderNameStorageKey = 'custom_provider_name';
+  static const String _keyLastFmScrobblingEnabled =
+      'lastfm_scrobbling_enabled';
+  static const String _keyLastFmScrobbleRemote = 'lastfm_scrobble_remote';
   static String _lastKnownCustomProviderName = '';
   static const String _keyLyricsTranslationTargetLanguage =
       'lyrics_translation_target_language';
@@ -1736,6 +1739,20 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _lastFmScrobblingEnabledProperty = SettingProperty<bool>(
+    key: _keyLastFmScrobblingEnabled,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _lastFmScrobbleRemoteProperty = SettingProperty<bool>(
+    key: _keyLastFmScrobbleRemote,
+    defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
   late final _geminiApiKeyProperty = SettingProperty<String>(
     key: geminiApiKeyStorageKey,
     defaultValue: '',
@@ -2774,6 +2791,18 @@ class SettingsService extends ChangeNotifier {
     _ignoreNonRecommendedLyricsModelWarningProperty.value = value;
   }
 
+  bool get lastFmScrobblingEnabled => _lastFmScrobblingEnabledProperty.value;
+  set lastFmScrobblingEnabled(bool value) {
+    _lastFmScrobblingEnabledProperty.value = value;
+  }
+
+  /// 远程媒体库（Subsonic / Jellyfin / WebDAV / SMB）的曲目是否也上报。
+  /// 若服务器端自己已经接了 Last.fm，同时开启会产生重复记录。
+  bool get lastFmScrobbleRemote => _lastFmScrobbleRemoteProperty.value;
+  set lastFmScrobbleRemote(bool value) {
+    _lastFmScrobbleRemoteProperty.value = value;
+  }
+
   String get geminiApiKey => _geminiApiKeyProperty.value;
   set geminiApiKey(String value) {
     _geminiApiKeyProperty.value = value;
@@ -3676,6 +3705,11 @@ class SettingsService extends ChangeNotifier {
     _lyricsFontFamilyProperty.reset();
     _lyricsLatinFontFamilyProperty.reset();
     _lyricsCjkFontFamilyProperty.reset();
+  }
+
+  void resetLastFmSettings() {
+    _lastFmScrobblingEnabledProperty.reset();
+    _lastFmScrobbleRemoteProperty.reset();
   }
 
   void resetLyricsAiModels() {

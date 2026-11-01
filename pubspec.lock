@@ -1920,7 +1920,7 @@ packages:
       path: zoomable_sliver_grid
       relative: true
     source: path
-    version: "0.0.3"
+    version: "0.0.4"
 sdks:
   dart: ">=3.12.2 <4.0.0"
   flutter: ">=3.44.0"

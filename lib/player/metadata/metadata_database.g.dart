@@ -9473,6 +9473,762 @@ class SongRatingsCompanion extends UpdateCompanion<SongRating> {
   }
 }
 
+class $ScrobbleQueuesTable extends ScrobbleQueues
+    with TableInfo<$ScrobbleQueuesTable, ScrobbleQueue> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ScrobbleQueuesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _songPathMeta = const VerificationMeta(
+    'songPath',
+  );
+  @override
+  late final GeneratedColumn<String> songPath = GeneratedColumn<String>(
+    'songPath',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _artistMeta = const VerificationMeta('artist');
+  @override
+  late final GeneratedColumn<String> artist = GeneratedColumn<String>(
+    'artist',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _trackMeta = const VerificationMeta('track');
+  @override
+  late final GeneratedColumn<String> track = GeneratedColumn<String>(
+    'track',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _albumMeta = const VerificationMeta('album');
+  @override
+  late final GeneratedColumn<String> album = GeneratedColumn<String>(
+    'album',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _albumArtistMeta = const VerificationMeta(
+    'albumArtist',
+  );
+  @override
+  late final GeneratedColumn<String> albumArtist = GeneratedColumn<String>(
+    'albumArtist',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _mbidMeta = const VerificationMeta('mbid');
+  @override
+  late final GeneratedColumn<String> mbid = GeneratedColumn<String>(
+    'mbid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _durationSecondsMeta = const VerificationMeta(
+    'durationSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> durationSeconds = GeneratedColumn<int>(
+    'durationSeconds',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _trackNumberMeta = const VerificationMeta(
+    'trackNumber',
+  );
+  @override
+  late final GeneratedColumn<int> trackNumber = GeneratedColumn<int>(
+    'trackNumber',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _playedAtMeta = const VerificationMeta(
+    'playedAt',
+  );
+  @override
+  late final GeneratedColumn<int> playedAt = GeneratedColumn<int>(
+    'playedAt',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _attemptsMeta = const VerificationMeta(
+    'attempts',
+  );
+  @override
+  late final GeneratedColumn<int> attempts = GeneratedColumn<int>(
+    'attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'lastError',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'createdAt',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    songPath,
+    artist,
+    track,
+    album,
+    albumArtist,
+    mbid,
+    durationSeconds,
+    trackNumber,
+    playedAt,
+    attempts,
+    lastError,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'scrobble_queue';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ScrobbleQueue> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('songPath')) {
+      context.handle(
+        _songPathMeta,
+        songPath.isAcceptableOrUnknown(data['songPath']!, _songPathMeta),
+      );
+    }
+    if (data.containsKey('artist')) {
+      context.handle(
+        _artistMeta,
+        artist.isAcceptableOrUnknown(data['artist']!, _artistMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_artistMeta);
+    }
+    if (data.containsKey('track')) {
+      context.handle(
+        _trackMeta,
+        track.isAcceptableOrUnknown(data['track']!, _trackMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_trackMeta);
+    }
+    if (data.containsKey('album')) {
+      context.handle(
+        _albumMeta,
+        album.isAcceptableOrUnknown(data['album']!, _albumMeta),
+      );
+    }
+    if (data.containsKey('albumArtist')) {
+      context.handle(
+        _albumArtistMeta,
+        albumArtist.isAcceptableOrUnknown(
+          data['albumArtist']!,
+          _albumArtistMeta,
+        ),
+      );
+    }
+    if (data.containsKey('mbid')) {
+      context.handle(
+        _mbidMeta,
+        mbid.isAcceptableOrUnknown(data['mbid']!, _mbidMeta),
+      );
+    }
+    if (data.containsKey('durationSeconds')) {
+      context.handle(
+        _durationSecondsMeta,
+        durationSeconds.isAcceptableOrUnknown(
+          data['durationSeconds']!,
+          _durationSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('trackNumber')) {
+      context.handle(
+        _trackNumberMeta,
+        trackNumber.isAcceptableOrUnknown(
+          data['trackNumber']!,
+          _trackNumberMeta,
+        ),
+      );
+    }
+    if (data.containsKey('playedAt')) {
+      context.handle(
+        _playedAtMeta,
+        playedAt.isAcceptableOrUnknown(data['playedAt']!, _playedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_playedAtMeta);
+    }
+    if (data.containsKey('attempts')) {
+      context.handle(
+        _attemptsMeta,
+        attempts.isAcceptableOrUnknown(data['attempts']!, _attemptsMeta),
+      );
+    }
+    if (data.containsKey('lastError')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['lastError']!, _lastErrorMeta),
+      );
+    }
+    if (data.containsKey('createdAt')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['createdAt']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ScrobbleQueue map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ScrobbleQueue(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      songPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}songPath'],
+      ),
+      artist: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}artist'],
+      )!,
+      track: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}track'],
+      )!,
+      album: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}album'],
+      ),
+      albumArtist: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}albumArtist'],
+      ),
+      mbid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mbid'],
+      ),
+      durationSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}durationSeconds'],
+      ),
+      trackNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}trackNumber'],
+      ),
+      playedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}playedAt'],
+      )!,
+      attempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}attempts'],
+      )!,
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lastError'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}createdAt'],
+      )!,
+    );
+  }
+
+  @override
+  $ScrobbleQueuesTable createAlias(String alias) {
+    return $ScrobbleQueuesTable(attachedDatabase, alias);
+  }
+}
+
+class ScrobbleQueue extends DataClass implements Insertable<ScrobbleQueue> {
+  final int id;
+  final String? songPath;
+  final String artist;
+  final String track;
+  final String? album;
+  final String? albumArtist;
+  final String? mbid;
+  final int? durationSeconds;
+  final int? trackNumber;
+
+  /// Unix 秒，即 Last.fm 的 `timestamp[i]`。
+  final int playedAt;
+  final int attempts;
+  final String? lastError;
+  final int createdAt;
+  const ScrobbleQueue({
+    required this.id,
+    this.songPath,
+    required this.artist,
+    required this.track,
+    this.album,
+    this.albumArtist,
+    this.mbid,
+    this.durationSeconds,
+    this.trackNumber,
+    required this.playedAt,
+    required this.attempts,
+    this.lastError,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || songPath != null) {
+      map['songPath'] = Variable<String>(songPath);
+    }
+    map['artist'] = Variable<String>(artist);
+    map['track'] = Variable<String>(track);
+    if (!nullToAbsent || album != null) {
+      map['album'] = Variable<String>(album);
+    }
+    if (!nullToAbsent || albumArtist != null) {
+      map['albumArtist'] = Variable<String>(albumArtist);
+    }
+    if (!nullToAbsent || mbid != null) {
+      map['mbid'] = Variable<String>(mbid);
+    }
+    if (!nullToAbsent || durationSeconds != null) {
+      map['durationSeconds'] = Variable<int>(durationSeconds);
+    }
+    if (!nullToAbsent || trackNumber != null) {
+      map['trackNumber'] = Variable<int>(trackNumber);
+    }
+    map['playedAt'] = Variable<int>(playedAt);
+    map['attempts'] = Variable<int>(attempts);
+    if (!nullToAbsent || lastError != null) {
+      map['lastError'] = Variable<String>(lastError);
+    }
+    map['createdAt'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  ScrobbleQueuesCompanion toCompanion(bool nullToAbsent) {
+    return ScrobbleQueuesCompanion(
+      id: Value(id),
+      songPath: songPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(songPath),
+      artist: Value(artist),
+      track: Value(track),
+      album: album == null && nullToAbsent
+          ? const Value.absent()
+          : Value(album),
+      albumArtist: albumArtist == null && nullToAbsent
+          ? const Value.absent()
+          : Value(albumArtist),
+      mbid: mbid == null && nullToAbsent ? const Value.absent() : Value(mbid),
+      durationSeconds: durationSeconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationSeconds),
+      trackNumber: trackNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trackNumber),
+      playedAt: Value(playedAt),
+      attempts: Value(attempts),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ScrobbleQueue.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ScrobbleQueue(
+      id: serializer.fromJson<int>(json['id']),
+      songPath: serializer.fromJson<String?>(json['songPath']),
+      artist: serializer.fromJson<String>(json['artist']),
+      track: serializer.fromJson<String>(json['track']),
+      album: serializer.fromJson<String?>(json['album']),
+      albumArtist: serializer.fromJson<String?>(json['albumArtist']),
+      mbid: serializer.fromJson<String?>(json['mbid']),
+      durationSeconds: serializer.fromJson<int?>(json['durationSeconds']),
+      trackNumber: serializer.fromJson<int?>(json['trackNumber']),
+      playedAt: serializer.fromJson<int>(json['playedAt']),
+      attempts: serializer.fromJson<int>(json['attempts']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'songPath': serializer.toJson<String?>(songPath),
+      'artist': serializer.toJson<String>(artist),
+      'track': serializer.toJson<String>(track),
+      'album': serializer.toJson<String?>(album),
+      'albumArtist': serializer.toJson<String?>(albumArtist),
+      'mbid': serializer.toJson<String?>(mbid),
+      'durationSeconds': serializer.toJson<int?>(durationSeconds),
+      'trackNumber': serializer.toJson<int?>(trackNumber),
+      'playedAt': serializer.toJson<int>(playedAt),
+      'attempts': serializer.toJson<int>(attempts),
+      'lastError': serializer.toJson<String?>(lastError),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  ScrobbleQueue copyWith({
+    int? id,
+    Value<String?> songPath = const Value.absent(),
+    String? artist,
+    String? track,
+    Value<String?> album = const Value.absent(),
+    Value<String?> albumArtist = const Value.absent(),
+    Value<String?> mbid = const Value.absent(),
+    Value<int?> durationSeconds = const Value.absent(),
+    Value<int?> trackNumber = const Value.absent(),
+    int? playedAt,
+    int? attempts,
+    Value<String?> lastError = const Value.absent(),
+    int? createdAt,
+  }) => ScrobbleQueue(
+    id: id ?? this.id,
+    songPath: songPath.present ? songPath.value : this.songPath,
+    artist: artist ?? this.artist,
+    track: track ?? this.track,
+    album: album.present ? album.value : this.album,
+    albumArtist: albumArtist.present ? albumArtist.value : this.albumArtist,
+    mbid: mbid.present ? mbid.value : this.mbid,
+    durationSeconds: durationSeconds.present
+        ? durationSeconds.value
+        : this.durationSeconds,
+    trackNumber: trackNumber.present ? trackNumber.value : this.trackNumber,
+    playedAt: playedAt ?? this.playedAt,
+    attempts: attempts ?? this.attempts,
+    lastError: lastError.present ? lastError.value : this.lastError,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ScrobbleQueue copyWithCompanion(ScrobbleQueuesCompanion data) {
+    return ScrobbleQueue(
+      id: data.id.present ? data.id.value : this.id,
+      songPath: data.songPath.present ? data.songPath.value : this.songPath,
+      artist: data.artist.present ? data.artist.value : this.artist,
+      track: data.track.present ? data.track.value : this.track,
+      album: data.album.present ? data.album.value : this.album,
+      albumArtist: data.albumArtist.present
+          ? data.albumArtist.value
+          : this.albumArtist,
+      mbid: data.mbid.present ? data.mbid.value : this.mbid,
+      durationSeconds: data.durationSeconds.present
+          ? data.durationSeconds.value
+          : this.durationSeconds,
+      trackNumber: data.trackNumber.present
+          ? data.trackNumber.value
+          : this.trackNumber,
+      playedAt: data.playedAt.present ? data.playedAt.value : this.playedAt,
+      attempts: data.attempts.present ? data.attempts.value : this.attempts,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ScrobbleQueue(')
+          ..write('id: $id, ')
+          ..write('songPath: $songPath, ')
+          ..write('artist: $artist, ')
+          ..write('track: $track, ')
+          ..write('album: $album, ')
+          ..write('albumArtist: $albumArtist, ')
+          ..write('mbid: $mbid, ')
+          ..write('durationSeconds: $durationSeconds, ')
+          ..write('trackNumber: $trackNumber, ')
+          ..write('playedAt: $playedAt, ')
+          ..write('attempts: $attempts, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    songPath,
+    artist,
+    track,
+    album,
+    albumArtist,
+    mbid,
+    durationSeconds,
+    trackNumber,
+    playedAt,
+    attempts,
+    lastError,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ScrobbleQueue &&
+          other.id == this.id &&
+          other.songPath == this.songPath &&
+          other.artist == this.artist &&
+          other.track == this.track &&
+          other.album == this.album &&
+          other.albumArtist == this.albumArtist &&
+          other.mbid == this.mbid &&
+          other.durationSeconds == this.durationSeconds &&
+          other.trackNumber == this.trackNumber &&
+          other.playedAt == this.playedAt &&
+          other.attempts == this.attempts &&
+          other.lastError == this.lastError &&
+          other.createdAt == this.createdAt);
+}
+
+class ScrobbleQueuesCompanion extends UpdateCompanion<ScrobbleQueue> {
+  final Value<int> id;
+  final Value<String?> songPath;
+  final Value<String> artist;
+  final Value<String> track;
+  final Value<String?> album;
+  final Value<String?> albumArtist;
+  final Value<String?> mbid;
+  final Value<int?> durationSeconds;
+  final Value<int?> trackNumber;
+  final Value<int> playedAt;
+  final Value<int> attempts;
+  final Value<String?> lastError;
+  final Value<int> createdAt;
+  const ScrobbleQueuesCompanion({
+    this.id = const Value.absent(),
+    this.songPath = const Value.absent(),
+    this.artist = const Value.absent(),
+    this.track = const Value.absent(),
+    this.album = const Value.absent(),
+    this.albumArtist = const Value.absent(),
+    this.mbid = const Value.absent(),
+    this.durationSeconds = const Value.absent(),
+    this.trackNumber = const Value.absent(),
+    this.playedAt = const Value.absent(),
+    this.attempts = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  ScrobbleQueuesCompanion.insert({
+    this.id = const Value.absent(),
+    this.songPath = const Value.absent(),
+    required String artist,
+    required String track,
+    this.album = const Value.absent(),
+    this.albumArtist = const Value.absent(),
+    this.mbid = const Value.absent(),
+    this.durationSeconds = const Value.absent(),
+    this.trackNumber = const Value.absent(),
+    required int playedAt,
+    this.attempts = const Value.absent(),
+    this.lastError = const Value.absent(),
+    required int createdAt,
+  }) : artist = Value(artist),
+       track = Value(track),
+       playedAt = Value(playedAt),
+       createdAt = Value(createdAt);
+  static Insertable<ScrobbleQueue> custom({
+    Expression<int>? id,
+    Expression<String>? songPath,
+    Expression<String>? artist,
+    Expression<String>? track,
+    Expression<String>? album,
+    Expression<String>? albumArtist,
+    Expression<String>? mbid,
+    Expression<int>? durationSeconds,
+    Expression<int>? trackNumber,
+    Expression<int>? playedAt,
+    Expression<int>? attempts,
+    Expression<String>? lastError,
+    Expression<int>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (songPath != null) 'songPath': songPath,
+      if (artist != null) 'artist': artist,
+      if (track != null) 'track': track,
+      if (album != null) 'album': album,
+      if (albumArtist != null) 'albumArtist': albumArtist,
+      if (mbid != null) 'mbid': mbid,
+      if (durationSeconds != null) 'durationSeconds': durationSeconds,
+      if (trackNumber != null) 'trackNumber': trackNumber,
+      if (playedAt != null) 'playedAt': playedAt,
+      if (attempts != null) 'attempts': attempts,
+      if (lastError != null) 'lastError': lastError,
+      if (createdAt != null) 'createdAt': createdAt,
+    });
+  }
+
+  ScrobbleQueuesCompanion copyWith({
+    Value<int>? id,
+    Value<String?>? songPath,
+    Value<String>? artist,
+    Value<String>? track,
+    Value<String?>? album,
+    Value<String?>? albumArtist,
+    Value<String?>? mbid,
+    Value<int?>? durationSeconds,
+    Value<int?>? trackNumber,
+    Value<int>? playedAt,
+    Value<int>? attempts,
+    Value<String?>? lastError,
+    Value<int>? createdAt,
+  }) {
+    return ScrobbleQueuesCompanion(
+      id: id ?? this.id,
+      songPath: songPath ?? this.songPath,
+      artist: artist ?? this.artist,
+      track: track ?? this.track,
+      album: album ?? this.album,
+      albumArtist: albumArtist ?? this.albumArtist,
+      mbid: mbid ?? this.mbid,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
+      trackNumber: trackNumber ?? this.trackNumber,
+      playedAt: playedAt ?? this.playedAt,
+      attempts: attempts ?? this.attempts,
+      lastError: lastError ?? this.lastError,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (songPath.present) {
+      map['songPath'] = Variable<String>(songPath.value);
+    }
+    if (artist.present) {
+      map['artist'] = Variable<String>(artist.value);
+    }
+    if (track.present) {
+      map['track'] = Variable<String>(track.value);
+    }
+    if (album.present) {
+      map['album'] = Variable<String>(album.value);
+    }
+    if (albumArtist.present) {
+      map['albumArtist'] = Variable<String>(albumArtist.value);
+    }
+    if (mbid.present) {
+      map['mbid'] = Variable<String>(mbid.value);
+    }
+    if (durationSeconds.present) {
+      map['durationSeconds'] = Variable<int>(durationSeconds.value);
+    }
+    if (trackNumber.present) {
+      map['trackNumber'] = Variable<int>(trackNumber.value);
+    }
+    if (playedAt.present) {
+      map['playedAt'] = Variable<int>(playedAt.value);
+    }
+    if (attempts.present) {
+      map['attempts'] = Variable<int>(attempts.value);
+    }
+    if (lastError.present) {
+      map['lastError'] = Variable<String>(lastError.value);
+    }
+    if (createdAt.present) {
+      map['createdAt'] = Variable<int>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ScrobbleQueuesCompanion(')
+          ..write('id: $id, ')
+          ..write('songPath: $songPath, ')
+          ..write('artist: $artist, ')
+          ..write('track: $track, ')
+          ..write('album: $album, ')
+          ..write('albumArtist: $albumArtist, ')
+          ..write('mbid: $mbid, ')
+          ..write('durationSeconds: $durationSeconds, ')
+          ..write('trackNumber: $trackNumber, ')
+          ..write('playedAt: $playedAt, ')
+          ..write('attempts: $attempts, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
   _$MetadataDriftDatabase(QueryExecutor e) : super(e);
   $MetadataDriftDatabaseManager get managers =>
@@ -9499,6 +10255,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
     this,
   );
   late final $SongRatingsTable songRatings = $SongRatingsTable(this);
+  late final $ScrobbleQueuesTable scrobbleQueues = $ScrobbleQueuesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -9519,6 +10276,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
     remoteLibraryCaches,
     lyricsHistories,
     songRatings,
+    scrobbleQueues,
   ];
 }
 
@@ -14171,6 +14929,368 @@ typedef $$SongRatingsTableProcessedTableManager =
       SongRating,
       PrefetchHooks Function()
     >;
+typedef $$ScrobbleQueuesTableCreateCompanionBuilder =
+    ScrobbleQueuesCompanion Function({
+      Value<int> id,
+      Value<String?> songPath,
+      required String artist,
+      required String track,
+      Value<String?> album,
+      Value<String?> albumArtist,
+      Value<String?> mbid,
+      Value<int?> durationSeconds,
+      Value<int?> trackNumber,
+      required int playedAt,
+      Value<int> attempts,
+      Value<String?> lastError,
+      required int createdAt,
+    });
+typedef $$ScrobbleQueuesTableUpdateCompanionBuilder =
+    ScrobbleQueuesCompanion Function({
+      Value<int> id,
+      Value<String?> songPath,
+      Value<String> artist,
+      Value<String> track,
+      Value<String?> album,
+      Value<String?> albumArtist,
+      Value<String?> mbid,
+      Value<int?> durationSeconds,
+      Value<int?> trackNumber,
+      Value<int> playedAt,
+      Value<int> attempts,
+      Value<String?> lastError,
+      Value<int> createdAt,
+    });
+
+class $$ScrobbleQueuesTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $ScrobbleQueuesTable> {
+  $$ScrobbleQueuesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get songPath => $composableBuilder(
+    column: $table.songPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get artist => $composableBuilder(
+    column: $table.artist,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get track => $composableBuilder(
+    column: $table.track,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get album => $composableBuilder(
+    column: $table.album,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get albumArtist => $composableBuilder(
+    column: $table.albumArtist,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mbid => $composableBuilder(
+    column: $table.mbid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get trackNumber => $composableBuilder(
+    column: $table.trackNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get playedAt => $composableBuilder(
+    column: $table.playedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get attempts => $composableBuilder(
+    column: $table.attempts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ScrobbleQueuesTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $ScrobbleQueuesTable> {
+  $$ScrobbleQueuesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get songPath => $composableBuilder(
+    column: $table.songPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get artist => $composableBuilder(
+    column: $table.artist,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get track => $composableBuilder(
+    column: $table.track,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get album => $composableBuilder(
+    column: $table.album,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get albumArtist => $composableBuilder(
+    column: $table.albumArtist,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mbid => $composableBuilder(
+    column: $table.mbid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get trackNumber => $composableBuilder(
+    column: $table.trackNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get playedAt => $composableBuilder(
+    column: $table.playedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get attempts => $composableBuilder(
+    column: $table.attempts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ScrobbleQueuesTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $ScrobbleQueuesTable> {
+  $$ScrobbleQueuesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get songPath =>
+      $composableBuilder(column: $table.songPath, builder: (column) => column);
+
+  GeneratedColumn<String> get artist =>
+      $composableBuilder(column: $table.artist, builder: (column) => column);
+
+  GeneratedColumn<String> get track =>
+      $composableBuilder(column: $table.track, builder: (column) => column);
+
+  GeneratedColumn<String> get album =>
+      $composableBuilder(column: $table.album, builder: (column) => column);
+
+  GeneratedColumn<String> get albumArtist => $composableBuilder(
+    column: $table.albumArtist,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get mbid =>
+      $composableBuilder(column: $table.mbid, builder: (column) => column);
+
+  GeneratedColumn<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get trackNumber => $composableBuilder(
+    column: $table.trackNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get playedAt =>
+      $composableBuilder(column: $table.playedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get attempts =>
+      $composableBuilder(column: $table.attempts, builder: (column) => column);
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ScrobbleQueuesTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $ScrobbleQueuesTable,
+          ScrobbleQueue,
+          $$ScrobbleQueuesTableFilterComposer,
+          $$ScrobbleQueuesTableOrderingComposer,
+          $$ScrobbleQueuesTableAnnotationComposer,
+          $$ScrobbleQueuesTableCreateCompanionBuilder,
+          $$ScrobbleQueuesTableUpdateCompanionBuilder,
+          (
+            ScrobbleQueue,
+            BaseReferences<
+              _$MetadataDriftDatabase,
+              $ScrobbleQueuesTable,
+              ScrobbleQueue
+            >,
+          ),
+          ScrobbleQueue,
+          PrefetchHooks Function()
+        > {
+  $$ScrobbleQueuesTableTableManager(
+    _$MetadataDriftDatabase db,
+    $ScrobbleQueuesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ScrobbleQueuesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ScrobbleQueuesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ScrobbleQueuesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> songPath = const Value.absent(),
+                Value<String> artist = const Value.absent(),
+                Value<String> track = const Value.absent(),
+                Value<String?> album = const Value.absent(),
+                Value<String?> albumArtist = const Value.absent(),
+                Value<String?> mbid = const Value.absent(),
+                Value<int?> durationSeconds = const Value.absent(),
+                Value<int?> trackNumber = const Value.absent(),
+                Value<int> playedAt = const Value.absent(),
+                Value<int> attempts = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+              }) => ScrobbleQueuesCompanion(
+                id: id,
+                songPath: songPath,
+                artist: artist,
+                track: track,
+                album: album,
+                albumArtist: albumArtist,
+                mbid: mbid,
+                durationSeconds: durationSeconds,
+                trackNumber: trackNumber,
+                playedAt: playedAt,
+                attempts: attempts,
+                lastError: lastError,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> songPath = const Value.absent(),
+                required String artist,
+                required String track,
+                Value<String?> album = const Value.absent(),
+                Value<String?> albumArtist = const Value.absent(),
+                Value<String?> mbid = const Value.absent(),
+                Value<int?> durationSeconds = const Value.absent(),
+                Value<int?> trackNumber = const Value.absent(),
+                required int playedAt,
+                Value<int> attempts = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                required int createdAt,
+              }) => ScrobbleQueuesCompanion.insert(
+                id: id,
+                songPath: songPath,
+                artist: artist,
+                track: track,
+                album: album,
+                albumArtist: albumArtist,
+                mbid: mbid,
+                durationSeconds: durationSeconds,
+                trackNumber: trackNumber,
+                playedAt: playedAt,
+                attempts: attempts,
+                lastError: lastError,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ScrobbleQueuesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $ScrobbleQueuesTable,
+      ScrobbleQueue,
+      $$ScrobbleQueuesTableFilterComposer,
+      $$ScrobbleQueuesTableOrderingComposer,
+      $$ScrobbleQueuesTableAnnotationComposer,
+      $$ScrobbleQueuesTableCreateCompanionBuilder,
+      $$ScrobbleQueuesTableUpdateCompanionBuilder,
+      (
+        ScrobbleQueue,
+        BaseReferences<
+          _$MetadataDriftDatabase,
+          $ScrobbleQueuesTable,
+          ScrobbleQueue
+        >,
+      ),
+      ScrobbleQueue,
+      PrefetchHooks Function()
+    >;
 
 class $MetadataDriftDatabaseManager {
   final _$MetadataDriftDatabase _db;
@@ -14208,4 +15328,6 @@ class $MetadataDriftDatabaseManager {
       $$LyricsHistoriesTableTableManager(_db, _db.lyricsHistories);
   $$SongRatingsTableTableManager get songRatings =>
       $$SongRatingsTableTableManager(_db, _db.songRatings);
+  $$ScrobbleQueuesTableTableManager get scrobbleQueues =>
+      $$ScrobbleQueuesTableTableManager(_db, _db.scrobbleQueues);
 }

@@ -17,6 +17,7 @@ part of 'metadata_database.dart';
     RemoteLibraryCaches,
     LyricsHistories,
     SongRatings,
+    ScrobbleQueues,
   ],
 )
 class MetadataDriftDatabase extends _$MetadataDriftDatabase {
@@ -25,7 +26,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 45;
+  int get schemaVersion => 46;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -4061,6 +4062,31 @@ class SongRatings extends Table {
   Set<Column> get primaryKey => {songPath};
 }
 
+/// Last.fm 上报队列。
+///
+/// 入队即快照上报所需字段：曲目随后可能被删除、改名或重新打标签，
+/// 但「当时听的是什么」不该跟着变；同时冲刷时也不必回查 songs 表。
+class ScrobbleQueues extends Table {
+  @override
+  String get tableName => 'scrobble_queue';
+
+  IntColumn get id => integer().autoIncrement().named('id')();
+  TextColumn get songPath => text().nullable().named('songPath')();
+  TextColumn get artist => text().named('artist')();
+  TextColumn get track => text().named('track')();
+  TextColumn get album => text().nullable().named('album')();
+  TextColumn get albumArtist => text().nullable().named('albumArtist')();
+  TextColumn get mbid => text().nullable().named('mbid')();
+  IntColumn get durationSeconds => integer().nullable().named('durationSeconds')();
+  IntColumn get trackNumber => integer().nullable().named('trackNumber')();
+
+  /// Unix 秒，即 Last.fm 的 `timestamp[i]`。
+  IntColumn get playedAt => integer().named('playedAt')();
+  IntColumn get attempts => integer().withDefault(const Constant(0)).named('attempts')();
+  TextColumn get lastError => text().nullable().named('lastError')();
+  IntColumn get createdAt => integer().named('createdAt')();
+}
+
 extension MetadataSongRatingsOps on MetadataDriftDatabase {
   Future<Map<String, int>> getAllSongRatings() async {
     final rows = await select(songRatings).get();
@@ -4123,6 +4149,67 @@ extension MetadataSongRatingsOps on MetadataDriftDatabase {
 
   Future<void> clearAllSongRatings() async {
     await delete(songRatings).go();
+  }
+}
+
+/// Last.fm 上报队列的读写。
+///
+/// 队列只增不删会无限膨胀，因此用 attempts 计数：临时失败累加，超过上限
+/// 由 [purgeDeadScrobbles] 清掉，避免一次持续性的参数错误把库撑大。
+extension MetadataScrobbleQueueOps on MetadataDriftDatabase {
+  Future<int> enqueueScrobble(ScrobbleQueuesCompanion entry) {
+    return into(scrobbleQueues).insert(entry);
+  }
+
+  /// 按播放时间升序取一批待上报记录（Last.fm 单次最多 50 条）。
+  Future<List<ScrobbleQueue>> takePendingScrobbles({
+    int limit = 50,
+    int maxAttempts = 5,
+  }) {
+    return (select(scrobbleQueues)
+          ..where((t) => t.attempts.isSmallerThanValue(maxAttempts))
+          ..orderBy([
+            (t) => OrderingTerm.asc(t.playedAt),
+            (t) => OrderingTerm.asc(t.id),
+          ])
+          ..limit(limit))
+        .get();
+  }
+
+  Future<void> deleteScrobbles(Iterable<int> ids) async {
+    final list = ids.toList(growable: false);
+    if (list.isEmpty) return;
+    await (delete(scrobbleQueues)..where((t) => t.id.isIn(list))).go();
+  }
+
+  Future<void> markScrobblesFailed(Iterable<int> ids, String error) async {
+    final list = ids.toList(growable: false);
+    if (list.isEmpty) return;
+    final placeholders = List.filled(list.length, '?').join(', ');
+    await customUpdate(
+      'UPDATE scrobble_queue SET attempts = attempts + 1, lastError = ? '
+      'WHERE id IN ($placeholders)',
+      variables: [
+        Variable<String>(error),
+        ...list.map((id) => Variable<int>(id)),
+      ],
+      updates: {scrobbleQueues},
+    );
+  }
+
+  Future<int> countPendingScrobbles({int maxAttempts = 5}) async {
+    final count = scrobbleQueues.id.count();
+    final query = selectOnly(scrobbleQueues)
+      ..addColumns([count])
+      ..where(scrobbleQueues.attempts.isSmallerThanValue(maxAttempts));
+    final row = await query.getSingle();
+    return row.read(count) ?? 0;
+  }
+
+  Future<void> purgeDeadScrobbles({int maxAttempts = 5}) async {
+    await (delete(scrobbleQueues)
+          ..where((t) => t.attempts.isBiggerOrEqualValue(maxAttempts)))
+        .go();
   }
 }
 

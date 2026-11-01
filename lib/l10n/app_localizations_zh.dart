@@ -5436,6 +5436,79 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get viewPlaylistDetails => '查看歌单详情';
+
+  @override
+  String get lastFmSectionTitle => 'Last.fm';
+
+  @override
+  String get lastFmSectionDescription => '把正在播放的曲目记录到你的 Last.fm 账号。';
+
+  @override
+  String get lastFmScrobblingEnabledTitle => '启用上报';
+
+  @override
+  String get lastFmScrobblingEnabledDescription => '播放时长达到规则门槛后自动记录到 Last.fm。';
+
+  @override
+  String get lastFmScrobbleRemoteTitle => '包含远程媒体库';
+
+  @override
+  String get lastFmScrobbleRemoteDescription =>
+      '上报 Subsonic、Jellyfin、WebDAV、SMB 中的曲目。若服务器端已接入 Last.fm，同时开启会产生重复记录。';
+
+  @override
+  String get lastFmAccountTitle => '账号';
+
+  @override
+  String get lastFmNotConnected => '未连接';
+
+  @override
+  String lastFmConnectedAs(Object username) {
+    return '已连接：$username';
+  }
+
+  @override
+  String get lastFmConnect => '连接 Last.fm';
+
+  @override
+  String get lastFmCompleteAuthorization => '我已完成授权';
+
+  @override
+  String get lastFmDisconnect => '断开连接';
+
+  @override
+  String get lastFmAuthorizationPending => '已在浏览器中打开授权页。';
+
+  @override
+  String get lastFmAuthorizationHint =>
+      '请在浏览器中登录 Last.fm 并允许 Vynody 访问你的账号，完成后回到这里点击「我已完成授权」。';
+
+  @override
+  String get lastFmAuthorizationSuccess => '已连接 Last.fm。';
+
+  @override
+  String lastFmAuthorizationFailed(Object message) {
+    return '连接失败：$message';
+  }
+
+  @override
+  String get lastFmOpenAuthorizationPage => '重新打开授权页';
+
+  @override
+  String lastFmLastScrobble(Object time) {
+    return '上次成功上报：$time';
+  }
+
+  @override
+  String get lastFmNeverScrobbled => '还没有成功上报的记录';
+
+  @override
+  String lastFmPendingCount(Object count) {
+    return '$count 条待上报';
+  }
+
+  @override
+  String get lastFmCredentialsMissing => '当前构建未包含 Last.fm 凭据，上报功能不可用。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -10870,4 +10943,77 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get viewPlaylistDetails => '查看歌單詳情';
+
+  @override
+  String get lastFmSectionTitle => 'Last.fm';
+
+  @override
+  String get lastFmSectionDescription => '將正在播放的曲目記錄到你的 Last.fm 帳號。';
+
+  @override
+  String get lastFmScrobblingEnabledTitle => '啟用上報';
+
+  @override
+  String get lastFmScrobblingEnabledDescription => '播放時長達到規則門檻後自動記錄到 Last.fm。';
+
+  @override
+  String get lastFmScrobbleRemoteTitle => '包含遠端媒體庫';
+
+  @override
+  String get lastFmScrobbleRemoteDescription =>
+      '上報 Subsonic、Jellyfin、WebDAV、SMB 中的曲目。若伺服器端已接入 Last.fm，同時開啟會產生重複記錄。';
+
+  @override
+  String get lastFmAccountTitle => '帳號';
+
+  @override
+  String get lastFmNotConnected => '未連線';
+
+  @override
+  String lastFmConnectedAs(Object username) {
+    return '已連線：$username';
+  }
+
+  @override
+  String get lastFmConnect => '連線 Last.fm';
+
+  @override
+  String get lastFmCompleteAuthorization => '我已完成授權';
+
+  @override
+  String get lastFmDisconnect => '中斷連線';
+
+  @override
+  String get lastFmAuthorizationPending => '已在瀏覽器中開啟授權頁面。';
+
+  @override
+  String get lastFmAuthorizationHint =>
+      '請在瀏覽器中登入 Last.fm 並允許 Vynody 存取你的帳號，完成後回到這裡點擊「我已完成授權」。';
+
+  @override
+  String get lastFmAuthorizationSuccess => '已連線 Last.fm。';
+
+  @override
+  String lastFmAuthorizationFailed(Object message) {
+    return '連線失敗：$message';
+  }
+
+  @override
+  String get lastFmOpenAuthorizationPage => '重新開啟授權頁面';
+
+  @override
+  String lastFmLastScrobble(Object time) {
+    return '上次成功上報：$time';
+  }
+
+  @override
+  String get lastFmNeverScrobbled => '還沒有成功上報的記錄';
+
+  @override
+  String lastFmPendingCount(Object count) {
+    return '$count 筆待上報';
+  }
+
+  @override
+  String get lastFmCredentialsMissing => '目前建置未包含 Last.fm 憑證，上報功能無法使用。';
 }

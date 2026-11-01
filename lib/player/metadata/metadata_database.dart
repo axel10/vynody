@@ -867,6 +867,21 @@ class MetadataDatabase {
 
   Future<void> clearAllSongRatings() => _db.clearAllSongRatings();
 
+  Future<int> enqueueScrobble(ScrobbleQueuesCompanion entry) =>
+      _db.enqueueScrobble(entry);
+
+  Future<List<ScrobbleQueue>> takePendingScrobbles({int limit = 50}) =>
+      _db.takePendingScrobbles(limit: limit);
+
+  Future<void> deleteScrobbles(Iterable<int> ids) => _db.deleteScrobbles(ids);
+
+  Future<void> markScrobblesFailed(Iterable<int> ids, String error) =>
+      _db.markScrobblesFailed(ids, error);
+
+  Future<int> countPendingScrobbles() => _db.countPendingScrobbles();
+
+  Future<void> purgeDeadScrobbles() => _db.purgeDeadScrobbles();
+
   Future<void> healIosSandboxPaths() => _db.healIosSandboxPaths();
 
   Future<void> migrateLinuxRootPath(String oldRoot, String newRoot) async {
