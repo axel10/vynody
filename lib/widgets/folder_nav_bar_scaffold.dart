@@ -61,6 +61,8 @@ class FolderNavBarScaffold extends StatefulWidget {
   /// Returns the exact total height occupied by the navigation bar in the current orientation & platform,
   /// including the status bar / desktop top padding and internal paddings.
   static double getBarHeight(BuildContext context) {
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
     final topPadding = getTitleBarTopPadding(
       context,
       defaultWindowPadding: kDefaultWindowCaptionHeight,
@@ -68,7 +70,8 @@ class FolderNavBarScaffold extends StatefulWidget {
     );
     const bottomPadding = 4.0;
     const contentHeight = 32.0;
-    return topPadding + contentHeight + bottomPadding;
+    final portraitOffset = isPortrait ? 8.0 : 0.0;
+    return topPadding + portraitOffset + contentHeight + bottomPadding;
   }
 
   @override
@@ -258,7 +261,7 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
               constraints: const BoxConstraints(maxWidth: folderPageMaxWidth),
               child: Padding(
                 padding: EdgeInsets.only(
-                  top: topPadding,
+                  top: isPortrait ? topPadding + 8.0 : topPadding,
                   bottom: bottomPadding,
                   left: isPortrait ? 8 : 16,
                   right: isPortrait ? 12 : 16,
