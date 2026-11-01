@@ -160,6 +160,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                 ignoring: hideButtons,
                 child: _MacosCapsuleBar(
                   brightness: widget.brightness,
+                  isSmallWindowMode: isSmallWindowMode,
                   items: [
                     if (showMiniButton)
                       _MacosCapsuleItemData(
@@ -446,6 +447,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                   brightness: widget.brightness,
                   height: widget.height,
                   showBackground: widget.showButtonGroupBackground && isSmallWindowMode,
+                  isSmallWindowMode: isSmallWindowMode,
                 ),
               ),
             ),
@@ -487,12 +489,14 @@ class _WindowsCapsuleButtons extends StatelessWidget {
   final Brightness brightness;
   final double height;
   final bool showBackground;
+  final bool isSmallWindowMode;
 
   const _WindowsCapsuleButtons({
     required this.buttons,
     required this.brightness,
     required this.height,
     required this.showBackground,
+    this.isSmallWindowMode = false,
   });
 
   @override
@@ -501,11 +505,15 @@ class _WindowsCapsuleButtons extends StatelessWidget {
 
     final isDark = brightness == Brightness.dark;
 
-    final Color capsuleBg = Colors.black.withValues(alpha: 0.12);
+    final Color capsuleBg = isSmallWindowMode
+        ? Colors.black.withValues(alpha: 0.45)
+        : Colors.black.withValues(alpha: 0.12);
 
-    final Color capsuleBorderColor = isDark
-        ? Colors.white.withValues(alpha: 0.15)
-        : Colors.black.withValues(alpha: 0.16);
+    final Color capsuleBorderColor = isSmallWindowMode
+        ? Colors.white.withValues(alpha: 0.18)
+        : (isDark
+            ? Colors.white.withValues(alpha: 0.15)
+            : Colors.black.withValues(alpha: 0.16));
 
     if (!showBackground) {
       return Align(
@@ -520,6 +528,7 @@ class _WindowsCapsuleButtons extends StatelessWidget {
                 data: buttons[index],
                 brightness: brightness,
                 height: height,
+                isSmallWindowMode: isSmallWindowMode,
               );
             }),
           ),
@@ -537,7 +546,7 @@ class _WindowsCapsuleButtons extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: isSmallWindowMode ? 0.20 : 0.04),
               blurRadius: 4,
               offset: const Offset(0, 1),
             ),
@@ -567,6 +576,7 @@ class _WindowsCapsuleButtons extends StatelessWidget {
                     data: buttons[index],
                     brightness: brightness,
                     height: height,
+                    isSmallWindowMode: isSmallWindowMode,
                   );
                 }),
               ),
@@ -582,11 +592,13 @@ class _WindowsCapsuleButton extends StatefulWidget {
   final _CapsuleButtonData data;
   final Brightness brightness;
   final double height;
+  final bool isSmallWindowMode;
 
   const _WindowsCapsuleButton({
     required this.data,
     required this.brightness,
     required this.height,
+    this.isSmallWindowMode = false,
   });
 
   @override
@@ -602,14 +614,16 @@ class _WindowsCapsuleButtonState extends State<_WindowsCapsuleButton> {
     final isLinux = Platform.isLinux;
     final buttonRadius = isLinux ? null : BorderRadius.all(const Radius.circular(6));
 
-    Color iconColor =
-        widget.data.color ?? (isDark ? Colors.white70 : Colors.black87);
+    Color iconColor = widget.data.color ??
+        (widget.isSmallWindowMode
+            ? Colors.white.withValues(alpha: 0.90)
+            : (isDark ? Colors.white70 : Colors.black87));
 
     if (_isHovered) {
       if (widget.data.isClose) {
         iconColor = Colors.white;
       } else if (widget.data.color == null) {
-        iconColor = isDark ? Colors.white : Colors.black;
+        iconColor = (isDark || widget.isSmallWindowMode) ? Colors.white : Colors.black;
       }
     }
 
@@ -617,8 +631,8 @@ class _WindowsCapsuleButtonState extends State<_WindowsCapsuleButton> {
     if (widget.data.isClose) {
       hoverBg = Colors.redAccent.withValues(alpha: 0.85);
     } else {
-      hoverBg = isDark
-          ? Colors.white.withValues(alpha: 0.12)
+      hoverBg = (isDark || widget.isSmallWindowMode)
+          ? Colors.white.withValues(alpha: 0.15)
           : Colors.black.withValues(alpha: 0.10);
     }
 
@@ -803,10 +817,12 @@ class _MacosCapsuleItemData {
 class _MacosCapsuleBar extends StatelessWidget {
   final List<_MacosCapsuleItemData> items;
   final Brightness brightness;
+  final bool isSmallWindowMode;
 
   const _MacosCapsuleBar({
     required this.items,
     required this.brightness,
+    this.isSmallWindowMode = false,
   });
 
   @override
@@ -815,29 +831,46 @@ class _MacosCapsuleBar extends StatelessWidget {
 
     final isDark = brightness == Brightness.dark;
 
-    final Color capsuleBg = isDark
-        ? Colors.white.withValues(alpha: 0.14)
-        : Colors.white.withValues(alpha: 0.28);
+    final Color capsuleBg;
+    final Color capsuleBorderColor;
+    final Color dividerColor;
+    final List<BoxShadow> boxShadows;
 
-    final Color capsuleBorderColor = isDark
-        ? Colors.white.withValues(alpha: 0.18)
-        : Colors.white.withValues(alpha: 0.35);
-
-    final Color dividerColor = isDark
-        ? Colors.white.withValues(alpha: 0.15)
-        : Colors.black.withValues(alpha: 0.12);
+    if (isSmallWindowMode) {
+      capsuleBg = Colors.black.withValues(alpha: 0.45);
+      capsuleBorderColor = Colors.white.withValues(alpha: 0.18);
+      dividerColor = Colors.white.withValues(alpha: 0.18);
+      boxShadows = [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.25),
+          blurRadius: 6,
+          offset: const Offset(0, 1.5),
+        ),
+      ];
+    } else {
+      capsuleBg = isDark
+          ? Colors.white.withValues(alpha: 0.14)
+          : Colors.white.withValues(alpha: 0.28);
+      capsuleBorderColor = isDark
+          ? Colors.white.withValues(alpha: 0.18)
+          : Colors.white.withValues(alpha: 0.35);
+      dividerColor = isDark
+          ? Colors.white.withValues(alpha: 0.15)
+          : Colors.black.withValues(alpha: 0.12);
+      boxShadows = [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: 4,
+          offset: const Offset(0, 1.5),
+        ),
+      ];
+    }
 
     return Container(
       height: 26,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(13),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 1.5),
-          ),
-        ],
+        boxShadow: boxShadows,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(13),
@@ -865,6 +898,7 @@ class _MacosCapsuleBar extends StatelessWidget {
                   _MacosCapsuleSegmentButton(
                     data: items[i],
                     brightness: brightness,
+                    isSmallWindowMode: isSmallWindowMode,
                   ),
                 ],
               ],
@@ -879,10 +913,12 @@ class _MacosCapsuleBar extends StatelessWidget {
 class _MacosCapsuleSegmentButton extends StatefulWidget {
   final _MacosCapsuleItemData data;
   final Brightness brightness;
+  final bool isSmallWindowMode;
 
   const _MacosCapsuleSegmentButton({
     required this.data,
     required this.brightness,
+    this.isSmallWindowMode = false,
   });
 
   @override
@@ -898,17 +934,26 @@ class _MacosCapsuleSegmentButtonState
   Widget build(BuildContext context) {
     final isDark = widget.brightness == Brightness.dark;
 
-    final Color defaultIconColor = isDark
-        ? Colors.white.withValues(alpha: 0.85)
-        : Colors.black.withValues(alpha: 0.80);
-    final Color hoveredIconColor = isDark ? Colors.white : Colors.black;
+    final Color defaultIconColor;
+    final Color hoveredIconColor;
+    final Color hoverBg;
+
+    if (widget.isSmallWindowMode) {
+      defaultIconColor = Colors.white.withValues(alpha: 0.90);
+      hoveredIconColor = Colors.white;
+      hoverBg = Colors.white.withValues(alpha: 0.16);
+    } else {
+      defaultIconColor = isDark
+          ? Colors.white.withValues(alpha: 0.85)
+          : Colors.black.withValues(alpha: 0.80);
+      hoveredIconColor = isDark ? Colors.white : Colors.black;
+      hoverBg = isDark
+          ? Colors.white.withValues(alpha: 0.12)
+          : Colors.black.withValues(alpha: 0.06);
+    }
 
     final Color iconColor =
         widget.data.color ?? (_isHovered ? hoveredIconColor : defaultIconColor);
-
-    final Color hoverBg = isDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : Colors.black.withValues(alpha: 0.06);
 
     Widget btn = MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -921,10 +966,12 @@ class _MacosCapsuleSegmentButtonState
           color: Colors.transparent,
           child: InkWell(
             onTap: widget.data.onPressed,
-            splashColor: (isDark ? Colors.white : Colors.black)
-                .withValues(alpha: 0.05),
-            highlightColor: (isDark ? Colors.white : Colors.black)
-                .withValues(alpha: 0.05),
+            splashColor:
+                (isDark || widget.isSmallWindowMode ? Colors.white : Colors.black)
+                    .withValues(alpha: 0.05),
+            highlightColor:
+                (isDark || widget.isSmallWindowMode ? Colors.white : Colors.black)
+                    .withValues(alpha: 0.05),
             child: Center(
               child: Icon(
                 widget.data.icon,
