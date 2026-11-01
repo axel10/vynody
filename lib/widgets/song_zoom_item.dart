@@ -38,7 +38,6 @@ class SongZoomItem extends ConsumerWidget {
     this.onTap,
     this.onLongPress,
     this.onSecondaryTapDown,
-    this.onMorePressed,
     this.section,
   });
 
@@ -74,7 +73,6 @@ class SongZoomItem extends ConsumerWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final void Function(TapDownDetails)? onSecondaryTapDown;
-  final void Function(BuildContext context)? onMorePressed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -123,12 +121,16 @@ class SongZoomItem extends ConsumerWidget {
         : null;
     final durationStr =
         (metadata?.duration ?? song.durationMillis).toFormattedDuration();
-    final ext = p.extension(song.path).replaceAll('.', '').toUpperCase();
-    final formatStr = ext.isNotEmpty ? ext : 'UNKNOWN';
+    // 远程曲目的 path 是虚拟 URI（subsonic://<server>/<id>、jellyfin://…），
+    // 不带扩展名；真实后缀在 name 里（`<title>.<suffix>`）。两者都取不到就当作
+    // 未知，直接把格式这一段以及横屏表格的格式列整列去掉，不要显示 UNKNOWN。
+    final pathExt = _fileExtensionOf(song.path);
+    final ext = pathExt.isNotEmpty ? pathExt : _fileExtensionOf(song.name);
+    final formatStr = ext.isEmpty ? null : ext.toUpperCase();
     final durationFormatText = [
       ?trackStr,
       durationStr,
-      formatStr,
+      ?formatStr,
     ].join(' | ');
 
     // 封面
@@ -163,7 +165,7 @@ class SongZoomItem extends ConsumerWidget {
       child: coverWidget,
     );
 
-    // 拖拽把手与末尾操作按钮
+    // 拖拽把手与行尾内容
     final isDesktop =
         !kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux);
 
@@ -192,20 +194,6 @@ class SongZoomItem extends ConsumerWidget {
           child: dragHandle!,
         );
       }
-    } else if (onMorePressed != null) {
-      trailingWidget = Builder(
-        builder: (buttonContext) {
-          return IconButton(
-            icon: Icon(
-              Icons.more_vert_rounded,
-              size: 20,
-              color:
-                  isCurrent && !isMissing ? theme.colorScheme.primary : null,
-            ),
-            onPressed: () => onMorePressed!(buttonContext),
-          );
-        },
-      );
     }
 
     // 字体样式与平滑字号
@@ -365,7 +353,7 @@ class _SongZoomContent extends StatelessWidget {
   final String artistAlbumText;
   final String? trackStr;
   final String durationStr;
-  final String formatStr;
+  final String? formatStr;
   final String durationFormatText;
   final TextStyle titleStyle;
   final TextStyle subtitleStyle;
@@ -656,16 +644,20 @@ class _SongZoomContent extends StatelessWidget {
     double effInfoSize,
   ) {
     const durationColWidth = 56.0;
-    const formatColWidth = 60.0;
     const trackColWidth = 36.0;
     const colGap = 16.0;
 
     final showEqualizer = isCurrent && !isMissing;
 
+    // 格式未知时整列不占位，否则会留下一个写着 UNKNOWN 的空胶囊。
+    final hasFormat = formatStr != null;
+    final formatColWidth = hasFormat ? 60.0 : 0.0;
+
     // 计算各列的横向位置
     final rightEnd = W;
     final durationLeft = rightEnd - durationColWidth;
-    final formatLeft = durationLeft - colGap - formatColWidth;
+    final formatLeft =
+        durationLeft - (hasFormat ? colGap + formatColWidth : 0.0);
     final trackLeft = formatLeft - colGap - trackColWidth;
     final albumRight = trackLeft - colGap;
 
@@ -779,31 +771,32 @@ class _SongZoomContent extends StatelessWidget {
         ),
 
         // 4. 格式列（徽章胶囊，垂直居中对齐）
-        Positioned(
-          left: formatLeft,
-          top: 0,
-          bottom: 0,
-          width: formatColWidth,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                formatStr,
-                style: effInfoStyle.copyWith(
-                  fontSize: (effInfoSize - 1.0).clamp(10.0, 12.0),
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.4,
+        if (hasFormat)
+          Positioned(
+            left: formatLeft,
+            top: 0,
+            bottom: 0,
+            width: formatColWidth,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                child: Text(
+                  formatStr!,
+                  style: effInfoStyle.copyWith(
+                    fontSize: (effInfoSize - 1.0).clamp(10.0, 12.0),
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.4,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ),
-        ),
 
         // 5. 时长列（右对齐，垂直居中对齐）
         Positioned(
@@ -826,4 +819,14 @@ class _SongZoomContent extends StatelessWidget {
       ],
     );
   }
+}
+
+/// 取扩展名（去掉前导点，保持原大小写）。取不到返回空串。
+///
+/// 本地文件的 path 带真实后缀；远程曲目的 path 是虚拟 URI
+/// （`subsonic://<server>/<id>`），没有后缀，只能退回 name（`<title>.<suffix>`）。
+String _fileExtensionOf(String value) {
+  if (value.isEmpty) return '';
+  final ext = p.extension(value);
+  return ext.startsWith('.') ? ext.substring(1) : ext;
 }
