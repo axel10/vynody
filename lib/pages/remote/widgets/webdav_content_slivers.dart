@@ -32,6 +32,9 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
   final void Function(WebDavFile folder)? onShowFolderBottomSheet;
   final double? crossAxisExtent;
 
+  /// 本段身份，必须与 `SliverAnimatedZoomGridDelegate.section` 一致。
+  final Object? section;
+
   const WebDavSubfoldersSliver({
     super.key,
     required this.folders,
@@ -47,6 +50,7 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
     this.onToggleSelectionMode,
     this.onShowFolderBottomSheet,
     this.crossAxisExtent,
+    this.section,
   });
 
   double get _effectiveZoomScale => snapFolderZoomScale(zoomScale);
@@ -77,7 +81,7 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
         MediaQuery.of(context).orientation == Orientation.portrait;
     final effectiveZoom = _effectiveZoomScale;
 
-    return FolderZoomSliverBuilder(
+    return FolderZoomSectionHost(
       zoomScale: effectiveZoom,
       width: width,
       builder: (context, metrics) {
@@ -94,7 +98,10 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
             right: hPad,
           ),
           sliver: SliverGrid(
-            gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
+            gridDelegate: SliverAnimatedZoomGridDelegate(
+              metrics: metrics,
+              section: section,
+            ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 final folder = folders[index];
@@ -108,6 +115,7 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
                   key: ValueKey('webdav_folder_${folder.path}'),
                   folder: MusicFolder(path: virtualUri, name: folder.name),
                   metrics: metrics,
+                  section: section,
                   subtitle: 'Folder',
                   enableHero: false,
                   isSelected: isSelected,
@@ -183,6 +191,9 @@ class WebDavSongsSliver extends ConsumerWidget {
   final double bottomPadding;
   final double? crossAxisExtent;
 
+  /// 本段身份，必须与 `SliverAnimatedZoomGridDelegate.section` 一致。
+  final Object? section;
+
   const WebDavSongsSliver({
     super.key,
     required this.files,
@@ -202,6 +213,7 @@ class WebDavSongsSliver extends ConsumerWidget {
     this.onSongMorePressed,
     required this.bottomPadding,
     this.crossAxisExtent,
+    this.section,
   });
 
   double get _effectiveZoomScale => snapFolderZoomScale(zoomScale);
@@ -213,7 +225,7 @@ class WebDavSongsSliver extends ConsumerWidget {
         MediaQuery.of(context).orientation == Orientation.portrait;
     final effectiveZoom = _effectiveZoomScale;
 
-    return FolderZoomSliverBuilder(
+    return FolderZoomSectionHost(
       zoomScale: effectiveZoom,
       width: width,
       builder: (context, metrics) {
@@ -230,7 +242,10 @@ class WebDavSongsSliver extends ConsumerWidget {
             right: hPad,
           ),
           sliver: SliverGrid(
-            gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
+            gridDelegate: SliverAnimatedZoomGridDelegate(
+              metrics: metrics,
+              section: section,
+            ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 final file = files[index];
@@ -257,6 +272,7 @@ class WebDavSongsSliver extends ConsumerWidget {
                     key: ValueKey('webdav_song_$uri'),
                     song: musicFile,
                     metrics: metrics,
+                    section: section,
                     isCurrent: isCurrent,
                     isPlaying: isAudioPlaying,
                     isSelected: isSelected,
