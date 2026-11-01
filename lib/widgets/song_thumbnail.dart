@@ -216,6 +216,26 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       return;
     }
 
+    // 已经解析过的封面（进程内缓存）：同步取一次，命中就当成首帧图片源。
+    //
+    // 不做这一步时，条目被整体重建（右键唤出菜单触发的重建、换档收尾的重挂载、
+    // 列表行回收复用）会让远程封面先落进「待解析 → 空白帧」，等异步结果回来再淡入
+    // 280ms —— 观感就是「封面闪一下」。本地封面因为 thumbnailPath 现成，走上面的
+    // 快速路径，所以只有远程曲目那批看得出来。
+    final cachedThumb = ArtworkResolver.peekCachedThumbnail(
+      path: widget.path,
+      thumbnailPath: widget.thumbnailPath ??
+          scanner.metadataMap[widget.path]?.thumbnailPath,
+    );
+    if (cachedThumb != null && cachedThumb.isNotEmpty) {
+      _artworkFilePath = ScannerPathUtils.resolveIosSandboxPath(cachedThumb);
+      _isGenerating = false;
+      if (fromInitState) {
+        _needsFadeIn = false;
+      }
+      return;
+    }
+
     _isGenerating = true;
     _needsFadeIn = true;
     if (!fromInitState) {

@@ -297,6 +297,26 @@ class ArtworkResolver {
     );
   }
 
+  /// 同步取「本次会话里已经解析好」的缩略图路径。
+  ///
+  /// [resolveForThumbnail] 即使命中内存缓存，结果也要隔一个微任务才回到调用方；
+  /// 而列表条目被整体重建时（换档收尾、右键唤出菜单触发的重建、行回收复用），
+  /// 新挂载的 State 在首帧拿不到任何图片源，只能先画一帧空白再淡入 —— 观感就是
+  /// 「封面闪一下」。本地封面因为 `thumbnailPath` 现成看不出来，只有远程曲目
+  /// （封面要解析、现生成缩略图）和「无封面落定默认图标」这两类会露出来。
+  ///
+  /// 有状态组件在初始化时用这个入口同步探一次：命中就当作首帧图片源，
+  /// 不再进入待解析分支；没命中照常走异步链路。
+  static String? peekCachedThumbnail({
+    required String path,
+    String? thumbnailPath,
+  }) {
+    return _tryCachedThumbnail(
+      ScannerPathUtils.resolveIosSandboxPath(path),
+      thumbnailPath,
+    );
+  }
+
   /// 同步快速路径：缩略图内存缓存命中，或传入的 thumbnailPath 文件确实存在。
   static String? _tryCachedThumbnail(
     String resolvedSongPath,

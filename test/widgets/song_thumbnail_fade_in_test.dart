@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vynody/player/metadata/artwork_resolver.dart';
 import 'package:vynody/widgets/artwork_fade.dart';
 import 'package:vynody/widgets/default_cover_art.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
@@ -195,5 +196,27 @@ void main() {
     final fade = outerFade(tester);
     expect(fade.opacity, 1.0);
     expect(fade.duration, kArtworkFadeInDuration);
+  });
+
+  testWidgets('已解析过封面的曲目被重建时首帧直接出图（不空白、不淡入）', (tester) async {
+    const remotePath = '/music/remote_cached.mp3';
+
+    // 预置解析结果：模拟「本轮已经解析过这批封面」（右键唤菜单之前刚挂载过）
+    final seeded = await ArtworkResolver.resolveForThumbnail(
+      path: remotePath,
+      thumbnailPath: coverPath,
+    );
+    expect(seeded, coverPath);
+
+    // 重建时上层只给 path，没有 thumbnailPath —— 远程曲目正是这种情况
+    await tester.pumpWidget(
+      wrap(const SongThumbnail(path: remotePath, size: 56)),
+    );
+    await tester.pump();
+
+    expect(find.byType(Image), findsOneWidget);
+    final fade = outerFade(tester);
+    expect(fade.opacity, 1.0);
+    expect(fade.duration, Duration.zero);
   });
 }
