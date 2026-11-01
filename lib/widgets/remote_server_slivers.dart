@@ -435,7 +435,12 @@ class RemoteServersSliver extends ConsumerWidget {
           isPortrait: isPortrait,
           gridMorph: metrics.gridMorph,
         );
-        final topPad = lerpDouble(0.0, 8.0, metrics.gridMorph)!;
+        // 段首内边距**必须与档位无关**：它落在缩放网格的 `SliverPadding` 上，会被
+        // 包里的滚动补偿当作「与档位无关的固定内容」（`gapBefore` 只在稳态量一次，
+        // 过渡期用它外推下游段位置）。随 `gridMorph` 变化 → 换档收尾那一帧要一次性
+        // 补差额，表现为列表「往下沉一点」。回归见
+        // `zoomable_sliver_grid/test/zoom_section_gap_test.dart`。
+        const double topPad = 8.0;
 
         return SliverPadding(
           padding: EdgeInsets.only(

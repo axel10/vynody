@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
 import 'package:vynody/models/music_file.dart';
@@ -395,11 +394,15 @@ class FolderSubfoldersSliver extends StatelessWidget {
           isPortrait: isPortrait,
           gridMorph: metrics.gridMorph,
         );
-        final topPad = lerpDouble(
-          isRoot ? 0.0 : 8.0,
-          8.0,
-          metrics.gridMorph,
-        )!;
+        // 段首内边距**必须与档位无关**：它落在缩放网格的 `SliverPadding` 上，
+        // 属于「两段之间不参与缩放的内容」。包里的滚动补偿
+        // （`FolderZoomViewportTracker.gapBefore`）把它当成常量，只在单层稳态量一次，
+        // 过渡期按「常量 + 上游各段高度」外推下游段的位置。一旦这里随 `gridMorph`
+        // 变化（曾经是根目录 `lerp(0, 8)`、云端 `lerp(0, 8)`），列表→网格收尾那一帧
+        // 切回真实布局就要一次性补上差额：实测段头 +8、云端列表 +16（两段各加 8），
+        // 看起来就是「动画完了整体往下一沉」。回归见
+        // `zoomable_sliver_grid/test/zoom_section_gap_test.dart`。
+        const double topPad = 8.0;
 
         return SliverPadding(
           padding: EdgeInsets.only(
