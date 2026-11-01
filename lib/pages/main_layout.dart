@@ -1702,7 +1702,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                           (isPlayback && !ref.watch(rightQueueDrawerProvider))
                           ? Brightness.dark
                           : theme.brightness,
-                      showSmallWindowButton: isPlayback,
+                      showSmallWindowButton: true,
                       showButtonGroupBackground:
                           isPlayback && !ref.watch(rightQueueDrawerProvider),
                       hideButtonsWhenInactive:
