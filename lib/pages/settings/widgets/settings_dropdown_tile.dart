@@ -24,6 +24,8 @@ class SettingsDropdownTile<T> extends StatelessWidget {
   final List<SettingsDropdownOption<T>> options;
   final ValueChanged<T?>? onChanged;
   final bool enabled;
+  final EdgeInsetsGeometry? contentPadding;
+  final TextStyle? titleStyle;
 
   const SettingsDropdownTile({
     super.key,
@@ -34,6 +36,8 @@ class SettingsDropdownTile<T> extends StatelessWidget {
     required this.options,
     required this.onChanged,
     this.enabled = true,
+    this.contentPadding,
+    this.titleStyle,
   });
 
   @override
@@ -54,13 +58,14 @@ class SettingsDropdownTile<T> extends StatelessWidget {
     final sub = subtitle;
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: contentPadding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: icon != null ? Icon(icon) : null,
       title: Text(
         title,
-        style: theme.textTheme.bodyLarge?.copyWith(
-          fontWeight: FontWeight.w500,
-        ),
+        style: titleStyle ??
+            theme.textTheme.bodyLarge?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
       ),
       subtitle: (sub != null && sub.isNotEmpty)
           ? Text(

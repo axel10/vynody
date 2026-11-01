@@ -19,6 +19,7 @@ import '../widgets/app_bottom_sheet.dart';
 
 import 'playback_button_layout_dialog.dart';
 import 'progress_bar_style_dialog.dart';
+import '../pages/settings/widgets/settings_dropdown_tile.dart';
 
 class VisualizerOptionsDialog extends ConsumerWidget {
   const VisualizerOptionsDialog({
@@ -469,54 +470,35 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
       child: SizedBox(
         width: 270,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 16, bottom: 8),
-              child: Text(
-                AppLocalizations.of(context)!.aggregationMode,
-                style: TextStyle(
-                  color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-            DropdownButtonFormField<FftAggregationMode>(
-              initialValue: options.aggregationMode,
-              dropdownColor: theme.colorScheme.surfaceContainer,
-              decoration: InputDecoration(
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                    color: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
-                  ),
-                ),
-              ),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isDark ? Colors.white : theme.colorScheme.onSurface,
-              ),
-              items: FftAggregationMode.values.map((mode) {
-                return DropdownMenuItem(
-                  value: mode,
-                  child: Text(_aggregationModeLabel(context, mode)),
-                );
-              }).toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  audio.updateVisualOptions(
-                    options.copyWith(aggregationMode: val),
-                  );
-                  audio.saveVisualizerOptions();
-                  setDialogState(() {});
-                }
-              },
-            ),
-          ],
+        child: SettingsDropdownTile<FftAggregationMode>(
+          contentPadding: EdgeInsets.zero,
+          title: l10n.aggregationMode,
+          titleStyle: TextStyle(
+            color: isDark ? Colors.white : theme.colorScheme.onSurface,
+            fontSize: 13,
+          ),
+          value: options.aggregationMode,
+          options: FftAggregationMode.values.map((mode) {
+            return SettingsDropdownOption<FftAggregationMode>(
+              value: mode,
+              label: _aggregationModeLabel(context, mode),
+            );
+          }).toList(),
+          onChanged: (val) {
+            if (val != null) {
+              audio.updateVisualOptions(
+                options.copyWith(aggregationMode: val),
+              );
+              audio.saveVisualizerOptions();
+              setDialogState(() {});
+            }
+          },
         ),
       ),
     );
@@ -1320,102 +1302,65 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final isProUnlocked = ref.watch(isProUnlockedProvider);
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 8),
-            child: Text(
-              l10n.playbackBackground,
-              style: TextStyle(
-                color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          DropdownButtonFormField<int>(
-            key: ValueKey('bg_type_${settings.playbackBackgroundType}_$isProUnlocked'),
-            initialValue: settings.playbackBackgroundType,
-            dropdownColor: theme.colorScheme.surfaceContainer,
-            decoration: InputDecoration(
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(
-                  color: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
-                ),
-              ),
-            ),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDark ? Colors.white : theme.colorScheme.onSurface,
-              fontSize: 14,
-            ),
-            items: [
-              DropdownMenuItem(
-                value: 0,
-                child: Text(l10n.blurredArtwork),
-              ),
-              DropdownMenuItem(
-                value: 1,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(l10n.dynamicMesh),
-                    if (!isProUnlocked) ...[
-                      const SizedBox(width: 8),
-                      const ProBadge(size: 9.5),
-                    ],
-                  ],
-                ),
-              ),
-              DropdownMenuItem(
-                value: 2,
-                child: Text(l10n.solidColor),
-              ),
-              DropdownMenuItem(
-                value: 3,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(l10n.customImage),
-                    if (!isProUnlocked) ...[
-                      const SizedBox(width: 8),
-                      const ProBadge(size: 9.5),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-            onChanged: (val) async {
-              if (val != null) {
-                if (val == 1) {
-                  final allowed = await checkProGate(
-                    context,
-                    ref,
-                    feature: ProFeature.dynamicMeshBackground,
-                  );
-                  if (!allowed) {
-                    setDialogState(() {});
-                    return;
-                  }
-                } else if (val == 3) {
-                  final allowed = await checkProGate(
-                    context,
-                    ref,
-                    feature: ProFeature.customImageBackground,
-                  );
-                  if (!allowed) {
-                    setDialogState(() {});
-                    return;
-                  }
-                }
-                settings.playbackBackgroundType = val;
-                setDialogState(() {});
-              }
-            },
-          ),
-        ],
+    return SettingsDropdownTile<int>(
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: isPortrait ? 0 : 12,
+        vertical: 4,
       ),
+      title: l10n.playbackBackground,
+      titleStyle: TextStyle(
+        color: isDark ? Colors.white : theme.colorScheme.onSurface,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+      value: settings.playbackBackgroundType,
+      options: [
+        SettingsDropdownOption(
+          value: 0,
+          label: l10n.blurredArtwork,
+        ),
+        SettingsDropdownOption(
+          value: 1,
+          label: l10n.dynamicMesh,
+          trailing: !isProUnlocked ? const ProBadge(size: 9.5) : null,
+        ),
+        SettingsDropdownOption(
+          value: 2,
+          label: l10n.solidColor,
+        ),
+        SettingsDropdownOption(
+          value: 3,
+          label: l10n.customImage,
+          trailing: !isProUnlocked ? const ProBadge(size: 9.5) : null,
+        ),
+      ],
+      onChanged: (val) async {
+        if (val != null) {
+          if (val == 1) {
+            final allowed = await checkProGate(
+              context,
+              ref,
+              feature: ProFeature.dynamicMeshBackground,
+            );
+            if (!allowed) {
+              setDialogState(() {});
+              return;
+            }
+          } else if (val == 3) {
+            final allowed = await checkProGate(
+              context,
+              ref,
+              feature: ProFeature.customImageBackground,
+            );
+            if (!allowed) {
+              setDialogState(() {});
+              return;
+            }
+          }
+          settings.playbackBackgroundType = val;
+          setDialogState(() {});
+        }
+      },
     );
   }
 
@@ -1429,59 +1374,37 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final l10n = AppLocalizations.of(context)!;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 8),
-            child: Text(
-              l10n.meshFlowEdgeStyle,
-              style: TextStyle(
-                color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          DropdownButtonFormField<int>(
-            key: ValueKey('mesh_edge_style_${settings.playbackMeshBackgroundEdgeStyle}'),
-            initialValue: settings.playbackMeshBackgroundEdgeStyle,
-            dropdownColor: theme.colorScheme.surfaceContainer,
-            decoration: InputDecoration(
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(
-                  color: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
-                ),
-              ),
-            ),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDark ? Colors.white : theme.colorScheme.onSurface,
-              fontSize: 14,
-            ),
-            items: [
-              DropdownMenuItem(
-                value: 0,
-                child: Text(l10n.meshFlowEdgeStyleRandom),
-              ),
-              DropdownMenuItem(
-                value: 1,
-                child: Text(l10n.meshFlowEdgeStyleSoft),
-              ),
-              DropdownMenuItem(
-                value: 2,
-                child: Text(l10n.meshFlowEdgeStyleSharp),
-              ),
-            ],
-            onChanged: (val) {
-              if (val != null) {
-                settings.playbackMeshBackgroundEdgeStyle = val;
-                setDialogState(() {});
-              }
-            },
-          ),
-        ],
+    return SettingsDropdownTile<int>(
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: isPortrait ? 0 : 12,
+        vertical: 4,
       ),
+      title: l10n.meshFlowEdgeStyle,
+      titleStyle: TextStyle(
+        color: isDark ? Colors.white : theme.colorScheme.onSurface,
+        fontSize: 13,
+      ),
+      value: settings.playbackMeshBackgroundEdgeStyle,
+      options: [
+        SettingsDropdownOption(
+          value: 0,
+          label: l10n.meshFlowEdgeStyleRandom,
+        ),
+        SettingsDropdownOption(
+          value: 1,
+          label: l10n.meshFlowEdgeStyleSoft,
+        ),
+        SettingsDropdownOption(
+          value: 2,
+          label: l10n.meshFlowEdgeStyleSharp,
+        ),
+      ],
+      onChanged: (val) {
+        if (val != null) {
+          settings.playbackMeshBackgroundEdgeStyle = val;
+          setDialogState(() {});
+        }
+      },
     );
   }
 
@@ -1812,61 +1735,41 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final l10n = AppLocalizations.of(context)!;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 8),
-            child: Text(
-              l10n.visualizerStyle,
-              style: TextStyle(
-                color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          DropdownButtonFormField<VisualizerStyle>(
-            initialValue: settings.visualizerStyle,
-            dropdownColor: theme.colorScheme.surfaceContainer,
-            decoration: InputDecoration(
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(
-                  color: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
-                ),
-              ),
-            ),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDark ? Colors.white : theme.colorScheme.onSurface,
-              fontSize: 14,
-            ),
-            items: VisualizerStyle.values.map((style) {
-              return DropdownMenuItem<VisualizerStyle>(
-                value: style,
-                child: Text(_visualizerStyleLabel(context, style)),
-              );
-            }).toList(),
-            onChanged: (val) {
-              if (val != null) {
-                settings.visualizerStyle = val;
-                final orientation = MediaQuery.of(context).orientation;
-                if (settings.isAutoMode) {
-                  audio.applyVisualizerSettings(
-                    orientation: orientation,
-                  );
-                } else {
-                  audio.visualizerOptions.loadOptions(
-                    style: val,
-                    orientation: orientation,
-                  );
-                }
-                setDialogState(() {});
-              }
-            },
-          ),
-        ],
+    return SettingsDropdownTile<VisualizerStyle>(
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: isPortrait ? 0 : 12,
+        vertical: 4,
       ),
+      title: l10n.visualizerStyle,
+      titleStyle: TextStyle(
+        color: isDark ? Colors.white : theme.colorScheme.onSurface,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+      value: settings.visualizerStyle,
+      options: VisualizerStyle.values.map((style) {
+        return SettingsDropdownOption<VisualizerStyle>(
+          value: style,
+          label: _visualizerStyleLabel(context, style),
+        );
+      }).toList(),
+      onChanged: (val) {
+        if (val != null) {
+          settings.visualizerStyle = val;
+          final orientation = MediaQuery.of(context).orientation;
+          if (settings.isAutoMode) {
+            audio.applyVisualizerSettings(
+              orientation: orientation,
+            );
+          } else {
+            audio.visualizerOptions.loadOptions(
+              style: val,
+              orientation: orientation,
+            );
+          }
+          setDialogState(() {});
+        }
+      },
     );
   }
 
