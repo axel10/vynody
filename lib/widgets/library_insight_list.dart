@@ -11,6 +11,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
+import 'package:vynody/utils/app_orientation_manager.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'album_context_menu.dart';
 import 'album_zoom_item.dart';
@@ -53,8 +54,10 @@ class LibraryInsightList extends ConsumerStatefulWidget {
     this.selectedRange = LibraryTimeRange.allTime,
     this.onRangeChanged,
     this.showRankIndex = false,
+    this.hideTrailingOnPhone = false,
     this.songTrailing,
     this.albumTrailing,
+    this.songTrailingWidth = 140.0,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
   });
@@ -86,8 +89,21 @@ class LibraryInsightList extends ConsumerStatefulWidget {
   /// 是否显示「01、02…」排名序号；最近播放 / 最近添加这类非排行视图可关闭。
   final bool showRankIndex;
 
+  /// 手机屏幕宽度下是否整行隐藏行尾指标（播放次数 / 入库日期等）。
+  ///
+  /// 手机竖屏一行只有两三百个逻辑像素，行尾指标要吃满 140.0 的预留宽度，
+  /// 歌名与艺术家会被挤成省略号。打开后手机上不再预留 trailingWidth（140.0），
+  /// 文本列直接铺到行尾；平板 / 桌面宽度仍按原样展示。
+  final bool hideTrailingOnPhone;
+
   final Widget Function(BuildContext, LibraryInsightSongEntry)? songTrailing;
   final Widget Function(BuildContext, TimeMachineAlbumEntry)? albumTrailing;
+
+  /// 单曲行尾为 [songTrailing] 预留的宽度，默认 140.0（播放次数 / 日期两行文案）。
+  ///
+  /// 行尾内容窄（例如只是「★ 4」这种评级）时必须同步调小，否则预留宽度与实际
+  /// 内容之间的差额会变成文本列与行尾之间的一块空白。
+  final double songTrailingWidth;
 
   final double contentTopPadding;
   final double contentLeftPadding;
@@ -748,6 +764,11 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
       isSelectionMode: selectionMode,
     );
 
+    // 手机宽度下不预留行尾宽度：文本列铺满整行。
+    final hideTrailing = widget.hideTrailingOnPhone &&
+        MediaQuery.sizeOf(context).shortestSide <
+            AppOrientationManager.tabletShortestSideBreakpoint;
+
     return [
       FolderZoomSliverBuilder(
         zoomScale: snapFolderZoomScale(zoomScale),
@@ -770,7 +791,7 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                   final isAudioPlaying = ref.watch(audioIsPlayingProvider);
                   final isSelected = this.isSelected(song.path);
 
-                  final trailing = widget.songTrailing != null
+                  final trailing = (!hideTrailing && widget.songTrailing != null)
                       ? widget.songTrailing!(context, entry)
                       : null;
 
@@ -787,7 +808,9 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                       isSelectionMode: selectionMode,
                       selectedPaths: selectedKeys,
                       trailing: trailing,
-                      trailingWidth: trailing != null ? 140.0 : null,
+                      trailingWidth: trailing != null
+                          ? widget.songTrailingWidth
+                          : null,
                       onTap: () {
                         handleItemTap(
                           index: index,
@@ -869,6 +892,11 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
       isSelectionMode: selectionMode,
     );
 
+    // 手机宽度下不预留行尾宽度：文本列铺满整行。
+    final hideTrailing = widget.hideTrailingOnPhone &&
+        MediaQuery.sizeOf(context).shortestSide <
+            AppOrientationManager.tabletShortestSideBreakpoint;
+
     return [
       FolderZoomSliverBuilder(
         zoomScale: snapFolderZoomScale(zoomScale),
@@ -889,15 +917,18 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                   final album = _summaryFor(entry);
                   final isSelected = this.isSelected(entry.stableId);
 
-                  Widget? trailing = widget.albumTrailing != null
-                      ? widget.albumTrailing!(context, entry)
-                      : Text(
-                          l10n.playCountLabel(entry.totalPlayCount),
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        );
+                  Widget? trailing;
+                  if (!hideTrailing) {
+                    trailing = widget.albumTrailing != null
+                        ? widget.albumTrailing!(context, entry)
+                        : Text(
+                            l10n.playCountLabel(entry.totalPlayCount),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          );
+                  }
 
                   final subtitleText = entry.artist.isNotEmpty
                       ? '${entry.artist} • ${l10n.songCount(entry.songs.length)}'
@@ -934,7 +965,7 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                       subtitleText: subtitleText,
                       titlePrefix: titlePrefix,
                       trailing: trailing,
-                      trailingWidth: 140.0,
+                      trailingWidth: trailing != null ? 140.0 : null,
                       onTap: () {
                         handleItemTap(
                           index: index,

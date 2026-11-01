@@ -178,6 +178,9 @@ class _RatedSongsTabState extends ConsumerState<RatedSongsTab> {
             onPressed: () => _showSortDialog(context, l10n),
           ),
           emptyText: l10n.emptyRatedSongs,
+          // 行尾只有「★ 4」这种窄内容，按实际宽度预留：留 140.0 会在文本列与
+          // 星级之间空出一大块。
+          songTrailingWidth: 44.0,
           songTrailing: (context, entry) => Row(
             mainAxisSize: MainAxisSize.min,
             children: [

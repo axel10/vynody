@@ -30,6 +30,7 @@ class RecentlyAddedTab extends StatelessWidget {
       emptyText: (loc, range) => range == LibraryTimeRange.allTime
           ? loc.noRecentlyAddedSongs
           : loc.noRecentlyAddedInRange,
+      hideTrailingOnPhone: true,
       songTrailing: (context, entry) => InsightMetricText(
         primary: formatInsightDate(context, entry.createdAt),
         secondary: l10n.addedOn,

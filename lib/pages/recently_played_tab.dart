@@ -30,6 +30,7 @@ class RecentlyPlayedTab extends StatelessWidget {
       emptyText: (loc, range) => range == LibraryTimeRange.allTime
           ? loc.noRecentlyPlayedSongs
           : loc.noRecentlyPlayedInRange,
+      hideTrailingOnPhone: true,
       songTrailing: (context, entry) => InsightMetricText(
         primary: formatRelativeInsightDate(context, entry.lastPlayedAt),
         secondary: l10n.playCountLabel(entry.playCount),

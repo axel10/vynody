@@ -27,6 +27,7 @@ class LibraryInsightTab extends ConsumerWidget {
     required this.songTrailing,
     this.albumTrailing,
     this.showRankIndex = false,
+    this.hideTrailingOnPhone = false,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
   });
@@ -51,6 +52,9 @@ class LibraryInsightTab extends ConsumerWidget {
   /// 为空时专辑行使用默认的播放次数文案。
   final Widget Function(BuildContext, TimeMachineAlbumEntry)? albumTrailing;
   final bool showRankIndex;
+
+  /// 手机屏幕宽度下隐藏行尾统计信息，让条目文本铺满整行。
+  final bool hideTrailingOnPhone;
   final double contentTopPadding;
   final double contentLeftPadding;
 
@@ -87,6 +91,7 @@ class LibraryInsightTab extends ConsumerWidget {
       isLoading: isLoading,
       loadError: loadError,
       showRankIndex: showRankIndex,
+      hideTrailingOnPhone: hideTrailingOnPhone,
       songTrailing: songTrailing,
       albumTrailing: albumTrailing,
       centerAction: SectionTypeToggle(
