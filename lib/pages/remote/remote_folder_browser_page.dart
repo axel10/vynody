@@ -15,6 +15,7 @@ import '../../player/remote/clients/smb_client.dart';
 import '../../player/remote/proxy/remote_media_resolver.dart';
 import '../../l10n/app_localizations.dart';
 import '../../player/remote/services/remote_download_service.dart';
+import '../../player/remote/services/remote_folder_cover_service.dart';
 import '../../player/remote/services/webdav_metadata_helper.dart';
 import '../../player/remote/services/remote_scan_root.dart';
 import '../../player/remote/services/remote_directory_scanner.dart';
@@ -88,6 +89,13 @@ class _RemoteFolderBrowserPageState
   List<WebDavFile> _items = [];
   final Map<String, SongMetadata> _metadataMap = {};
   int _loadEpoch = 0;
+
+  /// 当前层每个子目录的代表封面（键 = 目录 virtualUri）。
+  ///
+  /// 封面是逐步补齐的，走 [ValueNotifier] 只通知目录网格那一层重建，
+  /// 不用整页 `setState`（整页 build 里要跑元数据聚合和全部音频行的构造）。
+  final ValueNotifier<Map<String, MusicFile>> _folderCoverSongs =
+      ValueNotifier<Map<String, MusicFile>>(const {});
 
   // Selection states
   bool _isSelectionMode = false;
@@ -167,6 +175,7 @@ class _RemoteFolderBrowserPageState
       _sortItems(_items);
       _isLoading = false;
       _startMetadataExtraction(_items, _loadEpoch);
+      _kickFolderCovers(_items, _loadEpoch);
       if (_highlightedSongPath != null) {
         final target = _highlightedSongPath!;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -212,6 +221,7 @@ class _RemoteFolderBrowserPageState
     _scrollController.dispose();
     _breadcrumbsScrollController.dispose();
     _scrollProgress.dispose();
+    _folderCoverSongs.dispose();
     Future.microtask(() {
       _selectionScopeNotifier.clear();
     });
@@ -255,6 +265,7 @@ class _RemoteFolderBrowserPageState
       });
       _scrollToTop();
       _startMetadataExtraction(_items, currentEpoch);
+      _kickFolderCovers(_items, currentEpoch);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ref.read(activeRemoteSessionProvider.notifier).updateWebDavState(
@@ -309,6 +320,7 @@ class _RemoteFolderBrowserPageState
           _isLoading = false;
         });
         _startMetadataExtraction(list, currentEpoch);
+        _kickFolderCovers(list, currentEpoch, forceRefresh: forceRefresh);
         if (_highlightedSongPath != null) {
           final target = _highlightedSongPath!;
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -429,6 +441,115 @@ class _RemoteFolderBrowserPageState
             metadataMap: newMetas,
           );
     }
+  }
+
+  /// 触发封面补全但不等待：目录本身先渲染，封面补到一张就画一张。
+  /// 失败只记日志，不影响目录浏览。
+  void _kickFolderCovers(
+    List<WebDavFile> items,
+    int epoch, {
+    bool forceRefresh = false,
+  }) {
+    unawaited(
+      _startFolderCoverExtraction(
+        items,
+        epoch,
+        forceRefresh: forceRefresh,
+      ).catchError((Object error) {
+        debugPrint('[RemoteFolderBrowser] 子目录封面补全失败: $error');
+      }),
+    );
+  }
+
+  /// 给当前层可见的子目录补「代表封面」。
+  ///
+  /// 顺序是「缓存 → 已索引目录 → 网络」，结果由
+  /// [RemoteFolderCoverService] 写回 `folder_entries`，所以同一层目录只会
+  /// 为网络付一次代价。这里只负责把结果塞进 [_folderCoverSongs]。
+  Future<void> _startFolderCoverExtraction(
+    List<WebDavFile> folders,
+    int epoch, {
+    bool forceRefresh = false,
+  }) async {
+    final dirs = folders.where((f) => f.isDirectory).toList(growable: false);
+    final dirByUri = <String, WebDavFile>{
+      for (final dir in dirs)
+        RemoteMediaResolver.buildRemoteUri(widget.server, dir.path): dir,
+    };
+    final uriByDir = <String, String>{
+      for (final entry in dirByUri.entries) entry.key: entry.value.name,
+    };
+
+    // 换层时丢掉不属于这一层的旧封面，Map 不会随浏览历史一直膨胀。
+    final previous = _folderCoverSongs.value;
+    final pruned = <String, MusicFile>{
+      for (final entry in previous.entries)
+        if (uriByDir.containsKey(entry.key)) entry.key: entry.value,
+    };
+    if (pruned.length != previous.length) {
+      _folderCoverSongs.value = pruned;
+    }
+    if (dirs.isEmpty) return;
+
+    final service = RemoteFolderCoverService();
+
+    // 已查过的目录（含确认没封面的负缓存），避免每次进同一层都重新走网络。
+    final settled = <String>{};
+    if (!forceRefresh) {
+      final cached = await service.loadCachedCovers(uriByDir.keys);
+      if (!mounted || _loadEpoch != epoch) return;
+      settled.addAll(cached.settled);
+      if (cached.covers.isNotEmpty) {
+        final next = <String, MusicFile>{..._folderCoverSongs.value};
+        cached.covers.forEach((uri, thumbnailPath) {
+          next[uri] = MusicFile(
+            path: uri,
+            name: uriByDir[uri] ?? '',
+            thumbnailPath: thumbnailPath,
+          );
+        });
+        _folderCoverSongs.value = next;
+      }
+    }
+
+    final missing = [
+      for (final entry in uriByDir.entries)
+        if (!settled.contains(entry.key)) entry.key,
+    ];
+    if (missing.isEmpty) return;
+
+    // 远端并发压到 2：再高容易把家用 NAS 或公网 WebDAV 打到限流。
+    const concurrency = 2;
+    var cursor = 0;
+    Future<void> worker() async {
+      while (true) {
+        if (!mounted || _loadEpoch != epoch) return;
+        final index = cursor++;
+        if (index >= missing.length) return;
+        final uri = missing[index];
+        final dir = dirByUri[uri];
+        if (dir == null) continue;
+        final thumbnailPath = await service.resolveCover(
+          server: widget.server,
+          password: widget.password,
+          client: _client,
+          folderPath: dir.path,
+          forceRefresh: forceRefresh,
+        );
+        if (!mounted || _loadEpoch != epoch) return;
+        if (thumbnailPath == null || thumbnailPath.isEmpty) continue;
+        _folderCoverSongs.value = {
+          ..._folderCoverSongs.value,
+          uri: MusicFile(
+            path: uri,
+            name: uriByDir[uri] ?? '',
+            thumbnailPath: thumbnailPath,
+          ),
+        };
+      }
+    }
+
+    await Future.wait([for (var i = 0; i < concurrency; i++) worker()]);
   }
 
   List<MusicFile> _getAudioFiles({List<WebDavFile>? sourceList}) {
@@ -1474,6 +1595,7 @@ class _RemoteFolderBrowserPageState
                     onToggleFolderSelection: _toggleFolderSelection,
                     onToggleSelectionMode: _toggleSelectionMode,
                     onShowFolderBottomSheet: _handleShowFolderBottomSheet,
+                    folderCoverSongs: _folderCoverSongs,
                   ),
 
                 // 2. Section divider if both folders and files exist

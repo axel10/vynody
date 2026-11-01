@@ -669,6 +669,9 @@ class MetadataDatabase {
   Future<int> getSongDurationUnderPath(String rootPath) =>
       _db.getSongDurationUnderPath(rootPath);
 
+  Future<SongMetadata?> getFirstSongWithArtworkUnderPath(String rootPath) =>
+      _db.getFirstSongWithArtworkUnderPath(rootPath);
+
   Future<SongMetadata?> getRepresentativeSongUnderPath(
     String rootPath, {
     SortCriteria criteria = SortCriteria.filename,
@@ -698,6 +701,10 @@ class MetadataDatabase {
   Future<Map<String, FolderStatsSnapshot>> getFolderStatsForPaths(
     Iterable<String> folderPaths,
   ) => _db.getFolderStatsForPaths(folderPaths);
+
+  Future<Map<String, FolderCoverSnapshot>> getFolderCoversForPaths(
+    Iterable<String> folderPaths,
+  ) => _db.getFolderCoversForPaths(folderPaths);
 
   Future<Map<String, SongMetadata>> getAllFolderRepresentativeMetadata() =>
       _db.getAllFolderRepresentativeMetadata();

@@ -40,6 +40,7 @@
 | 缩放段间距恒定 | 缩放网格外层的 `SliverPadding`（段首、段间介绍、页头）**必须与档位无关**，禁 `lerp(0→8, gridMorph)`：包里 `gapBefore` 只在单层稳态量一次，间距随档位变 → 收尾那帧一次性补差额。已改 `folder_content_slivers.dart`、`remote_server_slivers.dart` 为常量 8；回归 `zoom_section_gap_test.dart` |
 | 条目包装层常驻 | `ZoomItemScaffold` 里 `Opacity`/`Transform.scale`/`ZoomItemEffectiveMetrics` 三层**必须常驻**，只用数值表达「无过渡」（1.0 / 1.0 / `metrics: effectiveMetrics`），禁按 `isFadeScale` 增删：根 Widget 类型一变整条子树 deactivate 重建 → `SongThumbnail` 丢 State（`_isGenerating` 回 true）。回归 `zoom_item_remount_test.dart` |
 | 缩略图淡入时钟 | `SongThumbnail` 只有「就位的是封面」才套 `kArtworkFadeInDuration`；落定为**默认图标**（null/异常）必须 `_needsFadeIn = false`，直接 1.0，否则与条目级 `Opacity` 成两条时钟。`artworkPath`/`thumbnailPath` **不是扫描期写的**（UI 懒生成），为空 ≠ 没封面，禁据此提前出图标 |
+| 远程目录封面 | 唯一实现 `remote_folder_cover_service.dart`，顺序：`folder_entries` 缓存 → `songs` 表（`getFirstSongWithArtworkUnderPath`，**禁** `getRepresentativeSongUnderPath`，远程扫描只写 `songs`，`folder_entries.coverSongPath` 对远程恒空）→ 目录内 `cover.jpg` 等（`pickCoverImage`，名字完全匹配优先）→ 第一首音频内嵌标签。**只有查到封面才写 `folder_entries`**；负结果留 `RemoteFolderCoverService._negativeCache`（静态、上限 2000、进程级），因为封面列是「代表歌曲」语义，写空壳会被扫描器回填进 `_folderRepresentativeSongs` 污染目录统计。`FolderCoverSnapshot.songPath` 可空：`cover.jpg` 不是歌，给 `null` 才被 `getAllFolderRepresentativeMetadata` 的左连接滤掉。页面侧 `_folderCoverSongs` 是 `ValueNotifier`（只重建网格，禁整页 `setState`），并发固定 2。回归 `remote_folder_cover_service_test.dart`、`folder_covers_test.dart` |
 
 ## 硬性禁止（条目全文见 `MEMORY-rules.md`）
 

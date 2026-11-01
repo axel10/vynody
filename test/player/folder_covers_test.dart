@@ -313,6 +313,59 @@ void main() {
       expect(await db.getFolderStatsForPaths(const []), isEmpty);
     });
 
+    test('只有缩略图、没有代表歌曲的封面行不参与代表歌曲回填', () async {
+      // 远程目录（WebDAV / SMB）的代表封面可能取自目录里的 `cover.jpg`，
+      // 那不是一首歌。这种行只带缩略图，`songPath` 为 null。
+      //
+      // 一旦让它参与回填，扫描器冷启动会把这张图当成「代表歌曲」写进
+      // `_folderRepresentativeSongs`，反推出的目录统计就全是脏数据。
+      await db.batchWriteFolderCovers({
+        'webdav://nas/Music/Cover%20Only': const FolderCoverSnapshot(
+          songPath: null,
+          thumbnailPath: '/thumb/cover_only.png',
+        ),
+      });
+
+      final all = await db.getAllFolderRepresentativeMetadata();
+      expect(all.containsKey('webdav://nas/Music/Cover%20Only'), isFalse);
+
+      // 但封面列本身必须读得出来，UI 侧要用。
+      final covers =
+          await db.getFolderCoversForPaths(['webdav://nas/Music/Cover%20Only']);
+      expect(
+        covers['webdav://nas/Music/Cover%20Only']?.thumbnailPath,
+        equals('/thumb/cover_only.png'),
+      );
+      expect(covers['webdav://nas/Music/Cover%20Only']?.songPath, isNull);
+
+      final rows = await db.loadAllFolderEntries();
+      final row = rows.firstWhere(
+        (r) => r.folderPath == 'webdav://nas/Music/Cover%20Only',
+      );
+      expect(row.coverSongPath, isNull);
+      expect(row.coverThumbnailPath, equals('/thumb/cover_only.png'));
+    });
+
+    test('getFolderCoversForPaths 返回调用方传的原路径键，且不要求 statsValid', () async {
+      // 远程目录只写封面列、不写统计，`statsValid` 恒为 false。
+      // 用 `getFolderStatsForPaths` 的过滤条件会把封面一起滤掉。
+      await db.batchWriteFolderCovers({
+        'webdav://nas2/Music/Rock': const FolderCoverSnapshot(
+          songPath: null,
+          thumbnailPath: '/thumb/rock.png',
+        ),
+      });
+
+      final covers = await db.getFolderCoversForPaths([
+        'webdav://nas2/Music/Rock',
+        'webdav://nas2/Music/Missing',
+      ]);
+      expect(covers.length, equals(1));
+      expect(covers['webdav://nas2/Music/Rock']?.thumbnailPath,
+          equals('/thumb/rock.png'));
+      expect(covers.containsKey('webdav://nas2/Music/Missing'), isFalse);
+    });
+
     test('removeFolderCoversUnderRoots cleans up root and all nested subfolders', () async {
       const songRoot = SongMetadata(path: '/root/01.mp3', title: 'Root Song', album: 'Album', artist: 'Artist', artworkPath: '/art/root.jpg');
       const songSub1 = SongMetadata(path: '/root/sub1/02.mp3', title: 'Sub1 Song', album: 'Album', artist: 'Artist', artworkPath: '/art/sub1.jpg');

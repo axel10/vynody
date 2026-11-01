@@ -1089,6 +1089,40 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return row.read<int?>('s') ?? 0;
   }
 
+  /// 取 `rootPath` 下第一首**已带缩略图**的歌。
+  ///
+  /// 与 [getRepresentativeSongUnderPath] 的区别：后者读的是 `folder_entries`
+  /// 的 `coverSongPath`，而远程扫描只写 `songs`、不写目录表，那条路对远程目录
+  /// 恒为空。这里直接按路径前缀在 `songs` 里找，只用于给远程目录凑一张代表封面。
+  Future<SongMetadata?> getFirstSongWithArtworkUnderPath(
+    String rootPath,
+  ) async {
+    final normalized = _normalizePath(rootPath);
+    if (normalized.isEmpty) return null;
+    final separator = RemoteMediaResolver.isRemoteUri(normalized)
+        ? '/'
+        : (Platform.isWindows ? '\\' : '/');
+    final prefixPattern =
+        normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
+
+    final rows = await customSelect(
+      '''
+      SELECT *
+      FROM songs
+      WHERE (path = ? OR path LIKE ?)
+        AND thumbnailPath IS NOT NULL
+        AND thumbnailPath <> ''
+        AND deletedAt IS NULL
+      ORDER BY LOWER(path) ASC
+      LIMIT 1
+      ''',
+      variables: [Variable(normalized), Variable(prefixPattern)],
+      readsFrom: {songs},
+    ).get();
+    if (rows.isEmpty) return null;
+    return _songFromQueryRow(rows.first);
+  }
+
   Future<SongMetadata?> getRepresentativeSongUnderPath(
     String rootPath, {
     SortCriteria criteria = SortCriteria.filename,
@@ -4216,7 +4250,11 @@ class FolderCoverSnapshot {
   });
 
   /// 代表歌曲路径，封面语义的权威来源。
-  final String songPath;
+  ///
+  /// 可为 null：远程目录的封面有时来自目录里的 `cover.jpg`，那不是一个
+  /// 歌曲路径。这种行只提供 [thumbnailPath]，不参与「代表歌曲」的回填
+  /// （`getAllFolderRepresentativeMetadata` 会把它滤掉）。
+  final String? songPath;
 
   /// 冗余快路径，失效时由 [songPath] 回退补齐。
   final String? thumbnailPath;
@@ -4306,7 +4344,10 @@ extension MetadataFolderEntriesOps on MetadataDriftDatabase {
         final path = _normalizePath(entry.key);
         if (path.isEmpty) continue;
         final cover = entry.value;
-        final songPath = _normalizePath(cover.songPath);
+        final rawSongPath = cover.songPath?.trim();
+        final songPath = (rawSongPath == null || rawSongPath.isEmpty)
+            ? null
+            : _normalizePath(rawSongPath);
         final thumbnailPath = cover.thumbnailPath == null
             ? null
             : _normalizePath(cover.thumbnailPath!);
@@ -4399,6 +4440,51 @@ extension MetadataFolderEntriesOps on MetadataDriftDatabase {
           rootPath: row.rootPath,
           songCount: row.songCount,
           totalDurationMs: row.totalDurationMs,
+        );
+      }
+    }
+    return result;
+  }
+
+  /// 按目录路径批量取「封面快照」，一次 IN 查询（分块 500）。
+  ///
+  /// 与 [getFolderStatsForPaths] 的两点差别：
+  /// * 不看 `statsValid`。封面与统计是两条独立生命周期：远程目录只写封面列时
+  ///   统计列本来就是无效的，拿 `statsValid` 过滤会把封面一起滤掉；
+  /// * 返回值的键是**调用方传进来的原始路径**，调用方不必自己推归一化规则。
+  Future<Map<String, FolderCoverSnapshot>> getFolderCoversForPaths(
+    Iterable<String> folderPaths,
+  ) async {
+    final wanted = <String, String>{}; // 查询用的归一化键 -> 调用方原始路径
+    for (final raw in folderPaths) {
+      if (raw.trim().isEmpty) continue;
+      final normalized = _normalizePath(raw);
+      if (normalized.isNotEmpty) wanted[normalized] = raw;
+      final resolved =
+          _normalizePath(ScannerPathUtils.resolveIosSandboxPath(raw));
+      if (resolved.isNotEmpty && !wanted.containsKey(resolved)) {
+        wanted[resolved] = raw;
+      }
+    }
+    if (wanted.isEmpty) return const {};
+
+    final result = <String, FolderCoverSnapshot>{};
+    final keys = wanted.keys.toList(growable: false);
+    const chunkSize = 500;
+    for (var start = 0; start < keys.length; start += chunkSize) {
+      final end =
+          (start + chunkSize < keys.length) ? start + chunkSize : keys.length;
+      final chunk = keys.sublist(start, end);
+      final rows = await (select(folderEntries)
+            ..where((tbl) => tbl.folderPath.isIn(chunk)))
+          .get();
+      for (final row in rows) {
+        final raw = wanted[row.folderPath];
+        if (raw == null) continue;
+        result[raw] = FolderCoverSnapshot(
+          songPath: row.coverSongPath,
+          thumbnailPath: row.coverThumbnailPath,
+          artworkPath: row.coverArtworkPath,
         );
       }
     }
