@@ -44,6 +44,7 @@ class LibrarySelectionPanel extends ConsumerStatefulWidget {
     this.addToMediaLibraryLabel,
     this.isSelectionEmpty,
     this.isAllSelected,
+    this.hasSelectableItems,
   });
 
   final List<MusicFile> selectedSongs;
@@ -74,6 +75,12 @@ class LibrarySelectionPanel extends ConsumerStatefulWidget {
   final String? addToMediaLibraryLabel;
   final bool? isSelectionEmpty;
   final bool? isAllSelected;
+
+  /// 多选对象不是歌曲时（歌单、专辑、艺术家等），面板无法用 [allSongs] 的
+  /// 歌曲平铺数反推「到底有没有可选的东西」，由调用方显式给出。
+  ///
+  /// 不传时沿用旧推导：有歌曲可选，或调用方自己接管了全选态。
+  final bool? hasSelectableItems;
 
   @override
   ConsumerState<LibrarySelectionPanel> createState() =>
@@ -106,6 +113,11 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
     final isAllSelected = widget.isAllSelected ??
         (widget.selectedSongs.length == widget.allSongs.length &&
             widget.allSongs.isNotEmpty);
+    // 「全选」能不能点，只看有没有可选对象。原先这里必须同时满足
+    // allSongs 非空，在歌单页那种「实体多选、歌曲平铺数可能为 0」的场景下会把
+    // 按钮误灰（比如库里只剩空歌单）。
+    final canSelectAll = widget.hasSelectableItems ??
+        (widget.allSongs.isNotEmpty || widget.isAllSelected != null);
     final isSongSelectionEmpty = widget.selectedSongs.isEmpty;
     final isEmpty = widget.isSelectionEmpty ?? isSongSelectionEmpty;
     final isSingleSelected = !isEmpty && widget.selectedSongs.length == 1;
@@ -131,9 +143,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
             context: context,
             icon: isAllSelected ? Icons.deselect : Icons.select_all,
             label: selectAllText,
-            onPressed: (widget.allSongs.isEmpty && widget.isAllSelected == null)
-                ? null
-                : widget.onToggleSelectAll,
+            onPressed: canSelectAll ? widget.onToggleSelectAll : null,
           ),
         ),
         const SizedBox(width: 8),

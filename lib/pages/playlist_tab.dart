@@ -538,6 +538,16 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
               selectedSongs: selectedSongs,
               allSongs: allSongs,
               title: l10n.selectedPlaylistsCount(selectedKeys.length),
+              // 本页多选的对象是歌单，不是歌单里的歌。面板默认用
+              // selectedSongs.isEmpty 反推「有没有选中东西」，遇到空歌单就会
+              // 误判成「什么都没选」，把删除按钮灰掉。这里改用真实的选择集合。
+              isSelectionEmpty: selectedKeys.isEmpty,
+              // 全选态和「有没有可选歌单」同理：歌单之间会大量共用同一批歌曲，
+              // 拿歌曲平铺数反推既会把空歌单判成没得选，也会在只选了
+              // 「包含全部歌曲的那个歌单」时误显示成已全选。
+              isAllSelected: playlists.isNotEmpty &&
+                  selectedKeys.length == playlists.length,
+              hasSelectableItems: playlists.isNotEmpty,
               onToggleSelectAll: () =>
                   toggleSelectAll(playlists.map((p) => p.id)),
               onCancel: cancelSelection,
