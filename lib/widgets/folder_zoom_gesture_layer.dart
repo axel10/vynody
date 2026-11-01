@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/settings/settings_service.dart'
-    show LibraryZoomScope;
+    show LibraryZoomScope, LibraryZoomScopeRange;
 import 'folder_layout_utils.dart';
 
 /// 两次滚轮事件之间静默多久，就算「新的一次滚动」。
@@ -95,12 +95,7 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
     final settings = ref.read(settingsServiceProvider);
     final current = settings.zoomScaleFor(widget.scope);
     final stepped = stepFolderZoomScale(current, steps);
-    final next = widget.scope == LibraryZoomScope.queue
-        ? stepped.clamp(
-            kFolderZoomTierMinimalList,
-            kFolderZoomTierLargeList,
-          )
-        : stepped;
+    final next = widget.scope.clampZoomScale(stepped);
     if ((next - current).abs() < 1e-6) return;
     settings.setZoomScale(widget.scope, next);
     if (haptic) {
@@ -111,12 +106,7 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
   void _commitPinchTier(double newScale) {
     final settings = ref.read(settingsServiceProvider);
     final current = settings.zoomScaleFor(widget.scope);
-    final next = widget.scope == LibraryZoomScope.queue
-        ? newScale.clamp(
-            kFolderZoomTierMinimalList,
-            kFolderZoomTierLargeList,
-          )
-        : newScale;
+    final next = widget.scope.clampZoomScale(newScale);
     if ((next - current).abs() < 1e-6) return;
     settings.setZoomScale(widget.scope, next);
     HapticFeedback.selectionClick();
@@ -127,9 +117,10 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
     final current = settings.zoomScaleFor(widget.scope);
     _pinchController.startPinch(
       current,
-      max: widget.scope == LibraryZoomScope.queue
-          ? kFolderZoomTierLargeList
-          : kFolderZoomTierLargeGrid,
+      // 跟手区间同样跟着记忆域的范围走：队列只能列表、专辑只能网格，
+      // 否则捏合过程会先画出范围外的过渡态再被夹回来。
+      max: widget.scope.maxZoomTier,
+      min: widget.scope.minZoomTier,
     );
   }
 

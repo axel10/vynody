@@ -296,6 +296,42 @@ void main() {
     expect(settings.queueZoomScale, kFolderZoomTierLargeList);
   });
 
+  testWidgets('album 记忆域限制在网格3档，到达 smallGrid 不会继续退回列表', (tester) async {
+    settings.albumZoomScale = kFolderZoomTierSmallGrid;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: FolderZoomGestureLayer(
+              scope: LibraryZoomScope.album,
+              child: ListView.builder(
+                controller: controller,
+                itemCount: 10,
+                itemBuilder: (context, index) => Text('item $index'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final center = tester.getCenter(find.byType(ListView));
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    pointer.hover(center);
+
+    // 向下滚 = 缩小，试图退到 largeList。
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendEventToBinding(pointer.scroll(const Offset(0, 100)));
+    await tester.pumpAndSettle();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    expect(settings.albumZoomScale, kFolderZoomTierSmallGrid);
+  });
+
   testWidgets('双指捏合只张开一点点（未达阈值）时条目跟手变化，松手后退回原档位', (tester) async {
     FolderZoomLayoutMetrics? capturedMetrics;
 

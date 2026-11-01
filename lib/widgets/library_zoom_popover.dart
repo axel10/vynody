@@ -44,6 +44,21 @@ String _tierLabel(AppLocalizations l10n, FolderZoomTier tier) {
   };
 }
 
+/// 预设按钮的悬浮文案：「列表视图 · 标准」这种。
+String _tierTooltip(AppLocalizations l10n, double tierValue) {
+  final tier = getFolderZoomTier(tierValue);
+  final mode = tier.isGrid ? l10n.gridView : l10n.listView;
+  return '$mode · ${_tierLabel(l10n, tier)}';
+}
+
+/// 预设按钮之间那条竖线只画在「列表段 / 网格段」交界处。
+///
+/// 只允许一种形态的记忆域（队列只有列表、专辑只有网格）里两段不可能同时存在，
+/// 因此不画线，按钮自然均分整行。
+bool _needsTierDividerBefore(double tierValue, List<double> allowedTiers) =>
+    tierValue == kFolderZoomTierSmallGrid &&
+    allowedTiers.any((tier) => tier < kFolderZoomTierSmallGrid);
+
 /// 在 [anchorContext] 所在控件下方弹出档位调节卡片。
 ///
 /// [scope] 决定读写哪一份档位记忆；卡片本身只认档位值，不认页面。
@@ -116,14 +131,18 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
     );
     final settings = ref.read(settingsServiceProvider);
     final tier = getFolderZoomTier(zoomScale);
-    final isListOnly = scope == LibraryZoomScope.queue;
-    final isGrid = !isListOnly && isFolderZoomGrid(zoomScale);
+    final isGrid = isFolderZoomGrid(zoomScale);
 
     final modeLabel = isGrid ? l10n.gridView : l10n.listView;
     final tierName = _tierLabel(l10n, tier);
 
-    final maxScale = isListOnly ? kFolderZoomTierLargeList : 1.0;
-    final divisions = isListOnly ? 3 : (kFolderZoomTierValues.length - 1);
+    // 可用档位由记忆域决定（队列只有列表四档、专辑只有网格三档），
+    // 滑杆区间、刻度数与预设按钮全部从这一份派生，不再各自判断 scope。
+    final allowedTiers = scope.allowedZoomTiers;
+    final minScale = scope.minZoomTier;
+    final maxScale = scope.maxZoomTier;
+    final divisions = allowedTiers.length > 1 ? allowedTiers.length - 1 : 1;
+    final compactPresets = allowedTiers.length > 4;
 
     void setScale(double value) => settings.setZoomScale(scope, value);
 
@@ -202,7 +221,7 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
                       ),
                       padding: EdgeInsets.zero,
                       icon: const Icon(Icons.remove_rounded, size: 18),
-                      onPressed: zoomScale > 0.001
+                      onPressed: zoomScale > minScale + 0.001
                           ? () => setScale(stepFolderZoomScale(zoomScale, -1))
                           : null,
                     ),
@@ -218,9 +237,8 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
                           ),
                         ),
                         child: Slider(
-                          value: snapFolderZoomScale(zoomScale)
-                              .clamp(0.0, maxScale),
-                          min: 0.0,
+                          value: zoomScale.clamp(minScale, maxScale),
+                          min: minScale,
                           max: maxScale,
                           divisions: divisions,
                           onChanged: (val) =>
@@ -246,59 +264,21 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _ZoomTierPresetButton(
-                      tier: FolderZoomTier.minimalList,
-                      tooltip: '${l10n.listView} · 极简',
-                      isSelected: tier == FolderZoomTier.minimalList,
-                      horizontalPadding: isListOnly ? 16 : 9,
-                      onTap: () => setScale(kFolderZoomTierMinimalList),
-                    ),
-                    _ZoomTierPresetButton(
-                      tier: FolderZoomTier.compactList,
-                      tooltip: '${l10n.listView} · 紧凑',
-                      isSelected: tier == FolderZoomTier.compactList,
-                      horizontalPadding: isListOnly ? 16 : 9,
-                      onTap: () => setScale(kFolderZoomTierCompactList),
-                    ),
-                    _ZoomTierPresetButton(
-                      tier: FolderZoomTier.standardList,
-                      tooltip: '${l10n.listView} · 标准',
-                      isSelected: tier == FolderZoomTier.standardList,
-                      horizontalPadding: isListOnly ? 16 : 9,
-                      onTap: () => setScale(kFolderZoomTierStandardList),
-                    ),
-                    _ZoomTierPresetButton(
-                      tier: FolderZoomTier.largeList,
-                      tooltip: '${l10n.listView} · 大图',
-                      isSelected: tier == FolderZoomTier.largeList,
-                      horizontalPadding: isListOnly ? 16 : 9,
-                      onTap: () => setScale(kFolderZoomTierLargeList),
-                    ),
-                    if (!isListOnly) ...[
-                      Container(
-                        width: 1,
-                        height: 18,
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        color: theme.colorScheme.outlineVariant
-                            .withValues(alpha: 0.5),
-                      ),
+                    for (final tierValue in allowedTiers) ...[
+                      if (_needsTierDividerBefore(tierValue, allowedTiers))
+                        Container(
+                          width: 1,
+                          height: 18,
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          color: theme.colorScheme.outlineVariant
+                              .withValues(alpha: 0.5),
+                        ),
                       _ZoomTierPresetButton(
-                        tier: FolderZoomTier.smallGrid,
-                        tooltip: '${l10n.gridView} · 小',
-                        isSelected: tier == FolderZoomTier.smallGrid,
-                        onTap: () => setScale(kFolderZoomTierSmallGrid),
-                      ),
-                      _ZoomTierPresetButton(
-                        tier: FolderZoomTier.mediumGrid,
-                        tooltip: '${l10n.gridView} · 中',
-                        isSelected: tier == FolderZoomTier.mediumGrid,
-                        onTap: () => setScale(kFolderZoomTierMediumGrid),
-                      ),
-                      _ZoomTierPresetButton(
-                        tier: FolderZoomTier.largeGrid,
-                        tooltip: '${l10n.gridView} · 大',
-                        isSelected: tier == FolderZoomTier.largeGrid,
-                        onTap: () => setScale(kFolderZoomTierLargeGrid),
+                        tier: getFolderZoomTier(tierValue),
+                        tooltip: _tierTooltip(l10n, tierValue),
+                        isSelected: tier == getFolderZoomTier(tierValue),
+                        horizontalPadding: compactPresets ? 9 : 16,
+                        onTap: () => setScale(tierValue),
                       ),
                     ],
                   ],
@@ -410,10 +390,9 @@ class LibraryZoomButton extends ConsumerWidget {
       settingsServiceProvider.select((s) => s.zoomScaleFor(scope)),
     );
 
-    final isListOnly = scope == LibraryZoomScope.queue;
-    final tooltipText = isListOnly
-        ? l10n.listView
-        : (isFolderZoomGrid(zoomScale) ? l10n.gridView : l10n.listView);
+    final isGrid = isFolderZoomGrid(zoomScale);
+    // 记忆域已经保证了档位落在允许区间内，直接按当前档位给名字即可。
+    final tooltipText = isGrid ? l10n.gridView : l10n.listView;
 
     return Builder(
       builder: (btnContext) {

@@ -23,8 +23,10 @@ import 'package:vynody/widgets/folder_layout_utils.dart'
         kFolderZoomTierMinimalList,
         kFolderZoomTierStandardList,
         kFolderZoomTierLargeList,
+        kFolderZoomTierSmallGrid,
         kFolderZoomTierMediumGrid,
         kFolderZoomTierLargeGrid,
+        kFolderZoomTierValues,
         snapFolderZoomScale;
 import 'package:vynody/utils/layout_constants.dart';
 
@@ -63,6 +65,57 @@ enum LibraryZoomScope {
   /// 歌曲列表视图。
   song,
 }
+
+/// 各记忆域**允许**的档位区间。
+///
+/// 有些视图只有一种合理形态：播放队列是纯列表（意义是一眼扫过很多行），
+/// 专辑卡片是纯网格（单位是封面，列表档会把封面压成一行文字，只剩专辑名）。
+/// 这类约束必须单一来源地表达——档位值会在三处被改写：设置项读写、档位弹窗的
+/// 滑杆与预设按钮、Ctrl+滚轮 / 捏合手势。任何一处漏掉夹取，就会出现
+/// 「滑杆拉不过去，但捏合能捏过去」的裂缝。
+///
+/// 所以**锁定某个视图只用改 [zoomTierRange] 一行**，下游一律从它派生：
+/// - 设置项读写 → [clampZoomScale]
+/// - 弹窗滑杆区间、刻度数、预设按钮 → 由 [allowedZoomTiers] 生成
+/// - 滚轮步进 / 捏合跟手 → [minZoomTier] / [maxZoomTier]
+extension LibraryZoomScopeRange on LibraryZoomScope {
+  /// 本域允许的档位区间。整七档就用默认分支，锁定某个形态就加一行。
+  ({double min, double max}) get zoomTierRange => switch (this) {
+        // 队列只有列表：放大成网格没有意义。
+        LibraryZoomScope.queue => (
+            min: kFolderZoomTierMinimalList,
+            max: kFolderZoomTierLargeList,
+          ),
+        // 专辑只有网格：不存在把专辑卡片压成一行文字的形态。
+        LibraryZoomScope.album => (
+            min: kFolderZoomTierSmallGrid,
+            max: kFolderZoomTierLargeGrid,
+          ),
+        _ => (min: kFolderZoomTierMinimalList, max: kFolderZoomTierLargeGrid),
+      };
+
+  /// 本域可用的最低 / 最高档位。
+  double get minZoomTier => zoomTierRange.min;
+  double get maxZoomTier => zoomTierRange.max;
+
+  /// 本域可用的档位，从低到高。弹窗只为这些档位画滑杆刻度与预设按钮。
+  List<double> get allowedZoomTiers => [
+        for (final tier in kFolderZoomTierValues)
+          if (tier >= minZoomTier - _kZoomTierEpsilon &&
+              tier <= maxZoomTier + _kZoomTierEpsilon)
+            tier,
+      ];
+
+  /// 把任意档位夹到本域范围内：先吸附到离散档，再夹。
+  double clampZoomScale(double value) {
+    final snapped = snapFolderZoomScale(value).clamp(minZoomTier, maxZoomTier);
+    // 夹取后可能落在两个离散档之间（例如范围下界是 4/6 而输入是 0.5），
+    // 再吸附一次保证结果是合法档位。
+    return snapFolderZoomScale(snapped);
+  }
+}
+
+const double _kZoomTierEpsilon = 1e-9;
 
 enum VisualizerStyle {
   bars,
@@ -999,10 +1052,12 @@ class SettingsService extends ChangeNotifier {
     defaultValue: defaultAlbumZoomScale,
     prefs: _prefs,
     onChanged: notifyListeners,
+    // 专辑卡片只有网格形态：读取时把历史遗留的列表档（升级前捏到过 0~3/6）
+    // 夹到网格段，写入时同样夹，免得后续任何入口再写回列表档。
     customRead: (prefs, key, def) =>
-        snapFolderZoomScale(prefs.getDouble(key) ?? def),
+        LibraryZoomScope.album.clampZoomScale(prefs.getDouble(key) ?? def),
     customWrite: (prefs, key, val) =>
-        prefs.setDouble(key, snapFolderZoomScale(val)),
+        prefs.setDouble(key, LibraryZoomScope.album.clampZoomScale(val)),
   );
 
   late final _artistZoomScaleProperty = SettingProperty<double>(
@@ -1022,17 +1077,9 @@ class SettingsService extends ChangeNotifier {
     prefs: _prefs,
     onChanged: notifyListeners,
     customRead: (prefs, key, def) =>
-        snapFolderZoomScale(prefs.getDouble(key) ?? def).clamp(
-          kFolderZoomTierMinimalList,
-          kFolderZoomTierLargeList,
-        ),
-    customWrite: (prefs, key, val) => prefs.setDouble(
-      key,
-      snapFolderZoomScale(val).clamp(
-        kFolderZoomTierMinimalList,
-        kFolderZoomTierLargeList,
-      ),
-    ),
+        LibraryZoomScope.queue.clampZoomScale(prefs.getDouble(key) ?? def),
+    customWrite: (prefs, key, val) =>
+        prefs.setDouble(key, LibraryZoomScope.queue.clampZoomScale(val)),
   );
 
   late final _songZoomScaleProperty = SettingProperty<double>(
@@ -3428,7 +3475,8 @@ class SettingsService extends ChangeNotifier {
 
   double get albumZoomScale => _albumZoomScaleProperty.value;
   set albumZoomScale(double value) =>
-      _albumZoomScaleProperty.value = snapFolderZoomScale(value);
+      _albumZoomScaleProperty.value =
+          LibraryZoomScope.album.clampZoomScale(value);
 
   double get artistZoomScale => _artistZoomScaleProperty.value;
   set artistZoomScale(double value) =>
@@ -3436,10 +3484,8 @@ class SettingsService extends ChangeNotifier {
 
   double get queueZoomScale => _queueZoomScaleProperty.value;
   set queueZoomScale(double value) =>
-      _queueZoomScaleProperty.value = snapFolderZoomScale(value).clamp(
-        kFolderZoomTierMinimalList,
-        kFolderZoomTierLargeList,
-      );
+      _queueZoomScaleProperty.value =
+          LibraryZoomScope.queue.clampZoomScale(value);
 
   double get songZoomScale => _songZoomScaleProperty.value;
   set songZoomScale(double value) =>
