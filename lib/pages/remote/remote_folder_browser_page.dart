@@ -1693,6 +1693,7 @@ class _RemoteFolderBrowserPageState
     }
 
     final page = AutoHideHeaderScope(
+      enabled: false,
       forceVisible: _isSelectionMode || _searchQuery.isNotEmpty,
       builder: (context, isHeaderVisible) {
         final scaffold = Scaffold(

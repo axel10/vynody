@@ -101,6 +101,7 @@ class _RemoteArtistDetailPageState
     final double barHeight = getBarHeight(context);
 
     return AutoHideHeaderScope(
+      enabled: false,
       builder: (context, isHeaderVisible) {
         final Widget content = Scaffold(
           body: Stack(

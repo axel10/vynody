@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/folder_helpers.dart';
+import 'auto_hide_header.dart';
+import 'nav_capsule_island.dart';
 
 /// Contextual style properties computed by [FolderNavBarScaffold] during scroll animation.
 class FolderNavBarStyle {
@@ -34,6 +36,7 @@ class FolderNavBarScaffold extends StatefulWidget {
     super.key,
     required this.isOverlay,
     required this.scrollProgress,
+    this.parentTitle,
     this.onGoBack,
     this.scrollController,
     this.pinnedLeadingBuilder,
@@ -43,6 +46,9 @@ class FolderNavBarScaffold extends StatefulWidget {
 
   final bool isOverlay;
   final ValueListenable<double> scrollProgress;
+
+  /// 上一层的位置名称，用于向上滚动唤出时胶囊岛形态展示
+  final String? parentTitle;
   final VoidCallback? onGoBack;
   final ScrollController? scrollController;
   final Widget? Function(BuildContext context, FolderNavBarStyle style)?
@@ -306,23 +312,61 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
               )
             : barContent;
 
-        if (widget.isOverlay && progress > 0.05) {
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: (isDark ? Colors.black : theme.colorScheme.shadow)
-                      .withValues(alpha: 0.1 * progress),
-                  blurRadius: 8 * progress,
-                  offset: Offset(0, 2 * progress),
+        final Widget normalBar = (widget.isOverlay && progress > 0.05)
+            ? DecoratedBox(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isDark ? Colors.black : theme.colorScheme.shadow)
+                          .withValues(alpha: 0.1 * progress),
+                      blurRadius: 8 * progress,
+                      offset: Offset(0, 2 * progress),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: filteredBar,
-          );
-        }
+                child: filteredBar,
+              )
+            : filteredBar;
 
-        return filteredBar;
+        final bool showCapsule = isPortrait && progress > 0.05;
+
+        final Widget capsuleIsland = Padding(
+          padding: EdgeInsets.only(
+            top: topPadding + 4.0,
+            left: 16.0,
+            right: 16.0,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              NavCapsuleIsland(
+                parentTitle: widget.parentTitle ?? '',
+                icon: widget.onGoBack != null
+                    ? Icons.arrow_back_rounded
+                    : Icons.folder_rounded,
+                onBack: widget.onGoBack ??
+                    () => AutoHideHeaderScope.scrollToTop(context),
+                showBack: true,
+              ),
+              NavActionsCapsule(
+                actions: [actions],
+              ),
+            ],
+          ),
+        );
+
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: showCapsule
+              ? KeyedSubtree(
+                  key: const ValueKey('folder_nav_capsule'),
+                  child: capsuleIsland,
+                )
+              : KeyedSubtree(
+                  key: const ValueKey('folder_nav_bar'),
+                  child: normalBar,
+                ),
+        );
       },
     );
   }

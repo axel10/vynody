@@ -1,11 +1,17 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-/// Helper to check if the current target platform is mobile (Android or iOS).
-bool get isMobileAutoHidePlatform =>
-    defaultTargetPlatform == TargetPlatform.android ||
-    defaultTargetPlatform == TargetPlatform.iOS;
+/// Helper to check if the current layout orientation enables auto-hiding headers.
+///
+/// 全平台统一：无论在 Android/iOS 还是桌面端（macOS/Windows/Linux），
+/// 只要处于竖屏模式（Portrait，如手机屏幕或桌面端竖向窗口），
+/// 均统一启用向下滚动收起顶部控件、向上滚动再展开的机制；横屏模式下保持常驻展开。
+bool isAutoHideOrientation(BuildContext context) =>
+    MediaQuery.orientationOf(context) == Orientation.portrait;
+
+/// 兼容老接口
+@Deprecated('Use isAutoHideOrientation(context) instead')
+bool get isMobileAutoHidePlatform => true;
 
 /// A scope that listens to vertical scroll notifications and determines whether
 /// the top header should be visible.
@@ -47,7 +53,8 @@ class _AutoHideHeaderScopeState extends State<AutoHideHeaderScope> {
   double _accumulatedUpScroll = 0.0;
   ScrollPosition? _lastActiveScrollPosition;
 
-  bool get _effectiveEnabled => widget.enabled && isMobileAutoHidePlatform;
+  bool get _effectiveEnabled =>
+      widget.enabled && isAutoHideOrientation(context);
 
   void _resetAccumulated() {
     _accumulatedDownScroll = 0.0;
@@ -196,7 +203,8 @@ class AutoHideHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool show = !isMobileAutoHidePlatform || isVisible;
+    final bool isPortrait = isAutoHideOrientation(context);
+    final bool show = !isPortrait || isVisible;
 
     return AnimatedSlide(
       offset: show ? Offset.zero : const Offset(0, -1.0),

@@ -42,6 +42,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.library;
 
   late final ScrollController _scrollController;
+  bool _isPastTop = false;
 
   @override
   void initState() {
@@ -297,30 +298,42 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
     final double leftPadding =
         isLandscape ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width)) : 0.0;
 
-    return AutoHideHeaderScope(
-      forceVisible: isSelectionMode,
-      builder: (context, isHeaderVisible) {
-        final Widget content = Scaffold(
-          body: Padding(
-            padding: EdgeInsets.only(left: leftPadding),
-            child: Stack(
-              children: [
-                scrollBody,
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: AutoHideHeader(
-                    isVisible: isHeaderVisible,
-                    child: AppTopNavBar(
-                      title: widget.album.title,
-                      titleKey: const ValueKey('album_title'),
-                      onBack: () => Navigator.of(context).maybePop(),
+    final page = NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.metrics.axis != Axis.vertical) return false;
+        final past = notification.metrics.pixels > 36.0;
+        if (_isPastTop != past) {
+          setState(() => _isPastTop = past);
+        }
+        return false;
+      },
+      child: AutoHideHeaderScope(
+        enabled: false,
+        forceVisible: isSelectionMode,
+        builder: (context, isHeaderVisible) {
+          final Widget content = Scaffold(
+            body: Padding(
+              padding: EdgeInsets.only(left: leftPadding),
+              child: Stack(
+                children: [
+                  scrollBody,
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: AutoHideHeader(
+                      isVisible: isHeaderVisible,
+                      child: AppTopNavBar(
+                        title: widget.album.title,
+                        parentTitle: l10n.albums,
+                        titleKey: const ValueKey('album_title'),
+                        isFloatingCapsule: _isPastTop,
+                        onBack: () => Navigator.of(context).maybePop(),
+                      ),
                     ),
                   ),
-                ),
-                AnimatedSelectionPanel(
-                  isVisible: isSelectionMode,
+                  AnimatedSelectionPanel(
+                    isVisible: isSelectionMode,
                   child: LibrarySelectionPanel(
                     key: const ValueKey('library-selection-panel'),
                     selectedSongs: selectedSongs,
@@ -351,8 +364,10 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
           child: wrapped,
         );
       },
-    );
-  }
+    ),
+  );
+  return page;
+}
 }
 
 /// Helper to render the album artwork across memory, file, and remote sources.

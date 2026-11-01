@@ -826,6 +826,7 @@ class _RemoteAlbumDetailPageState
                     );
 
     final Widget content = AutoHideHeaderScope(
+      enabled: false,
       forceVisible: isSelectionMode,
       builder: (context, isHeaderVisible) => Scaffold(
         body: Stack(

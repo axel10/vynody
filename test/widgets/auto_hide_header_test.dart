@@ -6,6 +6,8 @@ import 'package:vynody/widgets/auto_hide_header.dart';
 void main() {
   group('AutoHideHeaderScope and AutoHideHeader tests', () {
     testWidgets('Header hides on scroll down and shows on scroll up on mobile', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      addTearDown(tester.view.resetPhysicalSize);
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         final scrollController = ScrollController();
@@ -122,6 +124,8 @@ void main() {
     });
 
     testWidgets('Header stays visible when forceVisible is true on mobile', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      addTearDown(tester.view.resetPhysicalSize);
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       try {
         await tester.pumpWidget(
@@ -173,6 +177,8 @@ void main() {
     // 所以「详情页的 AutoHideHeaderScope」是「宿主 AutoHideHeaderScope」的后代。
     // 若外层不区分通知归属，详情页下滑会让宿主顶栏跟着收起，返回后根页面就是塌的。
     testWidgets('Nested scope consumes its own scroll, outer header unaffected', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      addTearDown(tester.view.resetPhysicalSize);
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       final outerController = ScrollController();
       addTearDown(outerController.dispose);
@@ -278,7 +284,10 @@ void main() {
       }
     });
 
-    testWidgets('Horizontal scrolling does not hide header on mobile', (tester) async {      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    testWidgets('Horizontal scrolling does not hide header on mobile', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      addTearDown(tester.view.resetPhysicalSize);
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         await tester.pumpWidget(
           MaterialApp(
@@ -326,6 +335,8 @@ void main() {
     });
 
     testWidgets('Header does not toggle on minor scroll jitter below threshold', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      addTearDown(tester.view.resetPhysicalSize);
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       try {
         final scrollController = ScrollController();

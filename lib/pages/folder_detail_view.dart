@@ -737,6 +737,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final selectedSongs = showSelectionPanel ? _getSelectedSongs() : <MusicFile>[];
 
     final page = AutoHideHeaderScope(
+      enabled: false,
       forceVisible: widget.isSelectionMode || _searchQuery.isNotEmpty,
       builder: (context, isHeaderVisible) {
         final scaffold = Scaffold(

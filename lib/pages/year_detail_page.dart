@@ -25,6 +25,7 @@ class YearDetailPage extends StatelessWidget {
     return LibrarySelectionBackGuard(
       child: DetailPageShell(
         title: title,
+        parentTitle: l10n.years,
         titleKey: const ValueKey('year_title'),
         onGoBack: onGoBack,
         contentBuilder: (context, scrollController, topPadding) =>

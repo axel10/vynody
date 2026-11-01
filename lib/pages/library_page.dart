@@ -460,6 +460,7 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
         return false;
       },
       child: AutoHideHeaderScope(
+        enabled: false,
         forceVisible: isSelectionActive || (!isLandscape && is3DViewActive),
         builder: (context, isHeaderVisible) => Scaffold(
           key: const ValueKey('library_subhost_scaffold'),
@@ -502,7 +503,12 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
                           child: AppTopNavBar(
                             key: const ValueKey('library_subhost_top_bar'),
                             title: title,
+                            parentTitle: l10n.list,
                             titleOpacity: isPastTop ? 1.0 : 0.0,
+                            isFloatingCapsule: isPastTop,
+                            onBack: () {
+                              Navigator.of(context).maybePop();
+                            },
                           ),
                         ),
                       ),

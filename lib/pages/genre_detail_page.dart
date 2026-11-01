@@ -19,9 +19,11 @@ class GenreDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return LibrarySelectionBackGuard(
       child: DetailPageShell(
         title: genre.name,
+        parentTitle: l10n?.genres,
         titleKey: const ValueKey('genre_title'),
         onGoBack: onGoBack,
         contentBuilder: (context, scrollController, topPadding) =>

@@ -304,6 +304,16 @@ class FolderHeaderNavBar extends ConsumerWidget {
     }
   }
 
+  String _getParentTitle(AppLocalizations l10n) {
+    if (currentFolder != null) {
+      if (navigationHistory.isNotEmpty) {
+        return navigationHistory.last.name;
+      }
+      return l10n.scanDirectory;
+    }
+    return l10n.scanDirectory;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -311,6 +321,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
     return FolderNavBarScaffold(
       isOverlay: isOverlay,
       scrollProgress: scrollProgress,
+      parentTitle: _getParentTitle(l10n),
       onGoBack: onGoBack,
       scrollController: scrollController,
       breadcrumbItemsBuilder: (context, style) =>

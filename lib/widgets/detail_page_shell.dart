@@ -14,12 +14,16 @@ class DetailPageShell extends ConsumerStatefulWidget {
   const DetailPageShell({
     super.key,
     required this.title,
+    this.parentTitle,
     required this.titleKey,
     required this.contentBuilder,
     this.onGoBack,
   });
 
   final String title;
+
+  /// 上一层的位置名称（如“艺术家”、“流派”、“年代”等），用于浮动胶囊形态
+  final String? parentTitle;
   final Key titleKey;
 
   /// 未提供时走默认返回逻辑。
@@ -41,6 +45,7 @@ class DetailPageShell extends ConsumerStatefulWidget {
 
 class _DetailPageShellState extends ConsumerState<DetailPageShell> {
   late final ScrollController _scrollController;
+  bool _isPastTop = false;
 
   @override
   void initState() {
@@ -62,39 +67,52 @@ class _DetailPageShellState extends ConsumerState<DetailPageShell> {
     final double leftPadding =
         isLandscape ? ref.watch(sidebarRailWidthProvider(MediaQuery.sizeOf(context).width)) : 0.0;
 
-    return AutoHideHeaderScope(
-      builder: (context, isHeaderVisible) {
-        final Widget content = Scaffold(
-          body: Padding(
-            padding: EdgeInsets.only(left: leftPadding),
-            child: Stack(
-              children: [
-                widget.contentBuilder(
-                  context,
-                  _scrollController,
-                  barHeight + 8,
-                ),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: AutoHideHeader(
-                    isVisible: isHeaderVisible,
-                    child: AppTopNavBar(
-                      title: widget.title,
-                      titleKey: widget.titleKey,
-                      onBack:
-                          widget.onGoBack ?? () => Navigator.of(context).maybePop(),
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.metrics.axis != Axis.vertical) return false;
+        final past = notification.metrics.pixels > 36.0;
+        if (_isPastTop != past) {
+          setState(() => _isPastTop = past);
+        }
+        return false;
+      },
+      child: AutoHideHeaderScope(
+        enabled: false,
+        builder: (context, isHeaderVisible) {
+          final Widget content = Scaffold(
+            body: Padding(
+              padding: EdgeInsets.only(left: leftPadding),
+              child: Stack(
+                children: [
+                  widget.contentBuilder(
+                    context,
+                    _scrollController,
+                    barHeight + 8,
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: AutoHideHeader(
+                      isVisible: isHeaderVisible,
+                      child: AppTopNavBar(
+                        title: widget.title,
+                        parentTitle: widget.parentTitle,
+                        titleKey: widget.titleKey,
+                        isFloatingCapsule: _isPastTop,
+                        onBack:
+                            widget.onGoBack ?? () => Navigator.of(context).maybePop(),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
+          );
 
-        return MiniPlayerWrapper(child: content);
-      },
+          return MiniPlayerWrapper(child: content);
+        },
+      ),
     );
   }
 }

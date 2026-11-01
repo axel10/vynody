@@ -46,6 +46,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.playlist;
 
   late final ScrollController _scrollController;
+  bool _isPastTop = false;
 
   @override
   void initState() {
@@ -571,30 +572,42 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
           cancelSongSelection();
         }
       },
-      child: AutoHideHeaderScope(
-        builder: (context, isHeaderVisible) {
-          final Widget content = Scaffold(
-            body: Padding(
-              padding: EdgeInsets.only(left: leftPadding),
-              child: Stack(
-                children: [
-                  scrollBody,
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: AutoHideHeader(
-                      isVisible: isHeaderVisible,
-                      child: AppTopNavBar(
-                        title: plName,
-                        titleKey: ValueKey(
-                          'playlist_title_${activePlaylist.id}',
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification.metrics.axis != Axis.vertical) return false;
+          final past = notification.metrics.pixels > 36.0;
+          if (_isPastTop != past) {
+            setState(() => _isPastTop = past);
+          }
+          return false;
+        },
+        child: AutoHideHeaderScope(
+          enabled: false,
+          builder: (context, isHeaderVisible) {
+            final Widget content = Scaffold(
+              body: Padding(
+                padding: EdgeInsets.only(left: leftPadding),
+                child: Stack(
+                  children: [
+                    scrollBody,
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: AutoHideHeader(
+                        isVisible: isHeaderVisible,
+                        child: AppTopNavBar(
+                          title: plName,
+                          parentTitle: l10n.playlist,
+                          titleKey: ValueKey(
+                            'playlist_title_${activePlaylist.id}',
+                          ),
+                          isFloatingCapsule: _isPastTop,
+                          onBack: _handleBack,
                         ),
-                        onBack: _handleBack,
                       ),
                     ),
-                  ),
-                  AnimatedSelectionPanel(
+                    AnimatedSelectionPanel(
                     isVisible: isSelectionMode,
                     child: LibrarySelectionPanel(
                       key: const ValueKey('playlist-song-selection-panel'),
@@ -629,8 +642,9 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
           return MiniPlayerWrapper(child: content);
         },
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _PlaylistCoverBackground extends StatelessWidget {

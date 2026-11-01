@@ -45,9 +45,11 @@ class ArtistDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return LibrarySelectionBackGuard(
       child: DetailPageShell(
         title: artist.name,
+        parentTitle: l10n?.artists,
         titleKey: const ValueKey('album_title'),
         onGoBack: onGoBack,
         contentBuilder: (context, scrollController, topPadding) =>

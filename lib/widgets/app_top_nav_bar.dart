@@ -8,12 +8,14 @@ import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import 'app_tooltip.dart';
 import 'auto_hide_header.dart';
+import 'nav_capsule_island.dart';
 
 /// 统一的顶部返回导航栏组件，供媒体库二级分类宿主页及实体详情页复用。
 class AppTopNavBar extends StatelessWidget {
   const AppTopNavBar({
     super.key,
     this.title,
+    this.parentTitle,
     this.titleWidget,
     this.titleKey,
     this.onBack,
@@ -22,9 +24,14 @@ class AppTopNavBar extends StatelessWidget {
     this.titleSpacing = 4.0,
     this.onTitleTap,
     this.titleOpacity = 1.0,
+    this.isFloatingCapsule = false,
   });
 
   final String? title;
+
+  /// 上一层的位置名称（如“媒体库”、“专辑”、“歌单”等），用于浮动胶囊形态展示
+  final String? parentTitle;
+
   final Widget? titleWidget;
   final Key? titleKey;
   final VoidCallback? onBack;
@@ -36,6 +43,9 @@ class AppTopNavBar extends StatelessWidget {
   /// 控制标题文字（或自定义标题）的透明度，默认为 1.0。
   /// 支持折叠大标题模式：在页面处于顶部展开态时可置为 0.0，向下滚动折叠时置为 1.0。
   final double titleOpacity;
+
+  /// 是否以浮动胶囊形态渲染（用于向下滚动后再向上滚动时展示）
+  final bool isFloatingCapsule;
 
   /// 标准内容高度（44px）
   static const double contentHeight = 44.0;
@@ -86,6 +96,52 @@ class AppTopNavBar extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final safeTopPadding = getSafeTopPadding(context);
+
+    final bool isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    final bool effectiveFloatingCapsule = isFloatingCapsule || isLandscape;
+
+    if (effectiveFloatingCapsule) {
+      if (!showBackButton && (actions == null || actions!.isEmpty)) {
+        return const SizedBox.shrink();
+      }
+      final effectiveParentTitle =
+          parentTitle ?? l10n?.list ?? l10n?.goBack ?? 'Back';
+      return Padding(
+        padding: EdgeInsets.only(
+          top: safeTopPadding + 4.0,
+          left: 16.0,
+          right: 16.0,
+        ),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: NavCapsuleIsland(
+            parentTitle: effectiveParentTitle,
+            onBack: () {
+              final nav = Navigator.of(context);
+              final rootNav = Navigator.of(context, rootNavigator: true);
+              final currentRoute = ModalRoute.of(context);
+              AppLog.log(
+                '[NavTrace] AppTopNavBar capsule back button pressed! '
+                'parentTitle="$effectiveParentTitle", '
+                'route="${currentRoute?.settings.name}", '
+                'localCanPop=${nav.canPop()}, '
+                'rootCanPop=${rootNav.canPop()}',
+                mirrorToConsole: true,
+              );
+              if (onBack != null) {
+                onBack!();
+              } else {
+                nav.maybePop();
+              }
+            },
+            actions: actions,
+            showBack: showBackButton,
+            tooltip: l10n?.goBack ?? 'Back',
+          ),
+        ),
+      );
+    }
 
     final Widget effectiveTitle = AnimatedOpacity(
       opacity: titleOpacity.clamp(0.0, 1.0),

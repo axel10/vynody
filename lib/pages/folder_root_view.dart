@@ -626,6 +626,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     );
 
     return AutoHideHeaderScope(
+      enabled: false,
       forceVisible:
           isRootSelectionMode || widget.isSortMode || _searchQuery.isNotEmpty,
       builder: (context, isHeaderVisible) => Scaffold(
