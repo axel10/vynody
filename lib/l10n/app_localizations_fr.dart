@@ -772,6 +772,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Utiliser la forme d\'onde complète au lieu du curseur standard';
 
   @override
+  String get playbackElementsGroup => 'Éléments d\'interface';
+
+  @override
   String get progressBarStyle => 'Style de barre de progression';
 
   @override
@@ -793,6 +796,13 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get showPlaybackAudioInfoDescription =>
       'Afficher le format audio, le taux d\'échantillonnage et le débit binaire sous les commandes de lecture';
+
+  @override
+  String get showSongRating => 'Afficher la note du morceau';
+
+  @override
+  String get showSongRatingDescription =>
+      'Afficher la note à cinq étoiles en bas à gauche de la pochette';
 
   @override
   String get topDragHandleSectionTitle => 'Barre d\'indication supérieure';

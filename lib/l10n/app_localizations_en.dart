@@ -765,6 +765,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use full-song waveform instead of standard slider';
 
   @override
+  String get playbackElementsGroup => 'Interface Elements';
+
+  @override
   String get progressBarStyle => 'Progress Bar Style';
 
   @override
@@ -786,6 +789,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get showPlaybackAudioInfoDescription =>
       'Display audio format, sample rate, and bitrate specifications below playback controls';
+
+  @override
+  String get showSongRating => 'Show Song Rating';
+
+  @override
+  String get showSongRatingDescription =>
+      'Display the five-star rating control at the bottom-left of the cover';
 
   @override
   String get topDragHandleSectionTitle => 'Top Indicator Bar';

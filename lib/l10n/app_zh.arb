@@ -814,6 +814,7 @@
     "description": "Enable Waveform Progress Bar label"
   },
   "enableWaveformProgressBarDescription": "使用整首歌的波形图代替标准滑块",
+  "playbackElementsGroup": "界面元素",
   "progressBarStyle": "进度条样式",
   "progressBarStyleDescription": "选择播放进度条的显示样式",
   "progressBarStyleStandard": "标准滑块",
@@ -821,6 +822,8 @@
   "progressBarStyleScrollingWaveform": "居中滚动波形",
   "showPlaybackAudioInfo": "显示音频规格信息",
   "showPlaybackAudioInfoDescription": "在播放控制下方显示音频格式、采样率和比特率等详细信息",
+  "showSongRating": "显示歌曲评分",
+  "showSongRatingDescription": "在播放页封面左下角显示五星评分组件",
   "topDragHandleSectionTitle": "顶部指示条",
   "showPlaybackTopDragHandle": "显示顶部拖拽横条",
   "showPlaybackTopDragHandleDescription": "在播放页顶部显示下拉收起指示条",

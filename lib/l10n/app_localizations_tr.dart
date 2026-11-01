@@ -766,6 +766,9 @@ class AppLocalizationsTr extends AppLocalizations {
       'Klasik ilerleme çubuğu yerine parçanın gerçek dalga formunu göster';
 
   @override
+  String get playbackElementsGroup => 'Arayüz Öğeleri';
+
+  @override
   String get progressBarStyle => 'İlerleme Çubuğu Stili';
 
   @override
@@ -787,6 +790,13 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get showPlaybackAudioInfoDescription =>
       'Oynatma kontrollerinin altında ses formatı, örnekleme hızı ve bit hızını göster';
+
+  @override
+  String get showSongRating => 'Şarkı Puanını Göster';
+
+  @override
+  String get showSongRatingDescription =>
+      'Oynatma sayfasındaki kapak görselinin sol alt köşesinde beş yıldızlı puanlamayı göster';
 
   @override
   String get topDragHandleSectionTitle => 'Üst Gösterge Çubuğu';

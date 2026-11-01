@@ -703,7 +703,8 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
     final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
     final coverImage = _buildCoverImage();
     final bool showRating =
-        (widget.displaySize == null || widget.displaySize! >= 180);
+        (widget.displaySize == null || widget.displaySize! >= 180) &&
+        ref.watch(settingsServiceProvider.select((s) => s.showSongRating));
 
     final cardContent = Stack(
       fit: StackFit.expand,

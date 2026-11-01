@@ -752,6 +752,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get enableWaveformProgressBarDescription => '標準スライダーの代わりに全曲波形を使用';
 
   @override
+  String get playbackElementsGroup => 'インターフェース要素';
+
+  @override
   String get progressBarStyle => 'プログレスバーのスタイル';
 
   @override
@@ -772,6 +775,12 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get showPlaybackAudioInfoDescription =>
       '再生コントロールの下にオーディオ形式、サンプリングレート、ビットレートなどを表示します';
+
+  @override
+  String get showSongRating => '曲の評価を表示';
+
+  @override
+  String get showSongRatingDescription => '再生ページのジャケット左下に 5 段階の評価スターを表示します';
 
   @override
   String get topDragHandleSectionTitle => '上部インジケーターバー';

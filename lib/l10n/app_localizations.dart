@@ -1527,6 +1527,12 @@ abstract class AppLocalizations {
   /// **'使用整首歌的波形图代替标准滑块'**
   String get enableWaveformProgressBarDescription;
 
+  /// No description provided for @playbackElementsGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'界面元素'**
+  String get playbackElementsGroup;
+
   /// No description provided for @progressBarStyle.
   ///
   /// In zh, this message translates to:
@@ -1568,6 +1574,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'在播放控制下方显示音频格式、采样率和比特率等详细信息'**
   String get showPlaybackAudioInfoDescription;
+
+  /// No description provided for @showSongRating.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示歌曲评分'**
+  String get showSongRating;
+
+  /// No description provided for @showSongRatingDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'在播放页封面左下角显示五星评分组件'**
+  String get showSongRatingDescription;
 
   /// No description provided for @topDragHandleSectionTitle.
   ///

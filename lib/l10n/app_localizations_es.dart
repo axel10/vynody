@@ -772,6 +772,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'Usar la forma de onda completa de la canción en lugar del control deslizante estándar';
 
   @override
+  String get playbackElementsGroup => 'Elementos de interfaz';
+
+  @override
   String get progressBarStyle => 'Estilo de barra de progreso';
 
   @override
@@ -793,6 +796,13 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get showPlaybackAudioInfoDescription =>
       'Mostrar formato de audio, frecuencia de muestreo y tasa de bits debajo de los controles de reproducción';
+
+  @override
+  String get showSongRating => 'Mostrar valoración de la canción';
+
+  @override
+  String get showSongRatingDescription =>
+      'Mostrar la valoración de cinco estrellas en la esquina inferior izquierda de la portada';
 
   @override
   String get topDragHandleSectionTitle => 'Barra indicadora superior';

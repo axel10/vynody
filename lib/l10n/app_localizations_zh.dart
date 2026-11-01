@@ -749,6 +749,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enableWaveformProgressBarDescription => '使用整首歌的波形图代替标准滑块';
 
   @override
+  String get playbackElementsGroup => '界面元素';
+
+  @override
   String get progressBarStyle => '进度条样式';
 
   @override
@@ -768,6 +771,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get showPlaybackAudioInfoDescription => '在播放控制下方显示音频格式、采样率和比特率等详细信息';
+
+  @override
+  String get showSongRating => '显示歌曲评分';
+
+  @override
+  String get showSongRatingDescription => '在播放页封面左下角显示五星评分组件';
 
   @override
   String get topDragHandleSectionTitle => '顶部指示条';
@@ -6174,6 +6183,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get enableWaveformProgressBarDescription => '使用整首歌曲的波形圖代替標準滑桿';
 
   @override
+  String get playbackElementsGroup => '介面元素';
+
+  @override
   String get progressBarStyle => '進度列樣式';
 
   @override
@@ -6193,6 +6205,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get showPlaybackAudioInfoDescription => '在播放控制下方顯示音訊格式、取樣率和位元率等詳細資訊';
+
+  @override
+  String get showSongRating => '顯示歌曲評分';
+
+  @override
+  String get showSongRatingDescription => '在播放頁封面左下角顯示五星評分元件';
 
   @override
   String get topDragHandleSectionTitle => '頂部指示條';

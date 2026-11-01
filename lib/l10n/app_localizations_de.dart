@@ -771,6 +771,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Gesamte Song-Wellenform anstelle des Standardschiebereglers verwenden';
 
   @override
+  String get playbackElementsGroup => 'Oberflächenelemente';
+
+  @override
   String get progressBarStyle => 'Fortschrittsbalken-Stil';
 
   @override
@@ -792,6 +795,13 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get showPlaybackAudioInfoDescription =>
       'Format, Samplerate und Bitrate unter der Wiedergabesteuerung anzeigen';
+
+  @override
+  String get showSongRating => 'Songbewertung anzeigen';
+
+  @override
+  String get showSongRatingDescription =>
+      'Sternebewertung unten links auf dem Cover der Wiedergabeseite anzeigen';
 
   @override
   String get topDragHandleSectionTitle => 'Oberer Indikatorbalken';

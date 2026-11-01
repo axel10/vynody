@@ -671,6 +671,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyLandscapeGap = 'visualizer_landscape_gap';
   static const String _keyProgressBarStyle = 'progress_bar_style';
   static const String _keyShowPlaybackAudioInfo = 'show_playback_audio_info';
+  static const String _keyShowSongRating = 'show_song_rating';
   static const String _keyShowPlaybackTopDragHandle =
       'show_playback_top_drag_handle';
   static const String _keyProxyMode = 'proxy_mode';
@@ -2072,6 +2073,13 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _showSongRatingProperty = SettingProperty<bool>(
+    key: _keyShowSongRating,
+    defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
   late final _isWaveformProgressBarEnabledProperty = SettingProperty<bool>(
     key: _keyIsWaveformProgressBarEnabled,
     defaultValue: true,
@@ -3245,6 +3253,9 @@ class SettingsService extends ChangeNotifier {
   set showPlaybackTopDragHandle(bool value) =>
       _showPlaybackTopDragHandleProperty.value = value;
 
+  bool get showSongRating => _showSongRatingProperty.value;
+  set showSongRating(bool value) => _showSongRatingProperty.value = value;
+
   bool get isWaveformProgressBarEnabled =>
       progressBarStyle != ProgressBarStyle.standard;
   set isWaveformProgressBarEnabled(bool value) {
@@ -3633,6 +3644,7 @@ class SettingsService extends ChangeNotifier {
     _progressBarStyleProperty.reset();
     _showPlaybackAudioInfoProperty.reset();
     _showPlaybackTopDragHandleProperty.reset();
+    _showSongRatingProperty.reset();
     _isWaveformProgressBarEnabledProperty.reset();
     _showDeveloperOptionsProperty.reset();
     _randomRangeProperty.reset();

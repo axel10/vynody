@@ -753,6 +753,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get enableWaveformProgressBarDescription => '표준 슬라이더 대신 전체 곡 파형 사용';
 
   @override
+  String get playbackElementsGroup => '인터페이스 요소';
+
+  @override
   String get progressBarStyle => '진행 표시줄 스타일';
 
   @override
@@ -773,6 +776,12 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get showPlaybackAudioInfoDescription =>
       '재생 컨트롤 아래에 오디오 포맷, 샘플링 레이트, 비트레이트 정보 표시';
+
+  @override
+  String get showSongRating => '곡 평점 표시';
+
+  @override
+  String get showSongRatingDescription => '재생 페이지 커버 왼쪽 아래에 별 5개 평점을 표시합니다';
 
   @override
   String get topDragHandleSectionTitle => '상단 표시줄';
