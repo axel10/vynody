@@ -59,7 +59,10 @@ dependencies:
   basic_utils: ^5.8.2
   crypto: ^3.0.6
   xml: ^6.5.0
-  dart_smb2: ^0.1.2
+  dart_smb2: 
+    git: 
+      url: https://github.com/axel10/dart_smb2
+      ref: main
   dart_webdav:
     git: 
       url: https://github.com/axel10/dart_webdav
@@ -311,7 +314,7 @@ dependency_overrides:
   flutter_taglib:
     git:
       url: https://github.com/axel10/flutter_taglib
-      ref: fffba6a36d9f9df0ef1efaef5d7b37a10bf874a5
+      ref: master
   audio_core:
     path: ./audio_core
   desktop_multi_window:

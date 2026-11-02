@@ -25,6 +25,7 @@ import 'package:vynody/player/remote/clients/webdav_client.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_storage.dart';
+import 'package:vynody/player/remote/services/remote_metadata_scan_state.dart';
 import 'package:vynody/player/remote/services/webdav_metadata_helper.dart';
 import 'package:vynody/utils/app_log.dart';
 
@@ -159,11 +160,13 @@ class RemoteQueueMetadataEnricher {
 
   /// 判断库里这条记录是否已经解析过，避免每次队列变动都重新联网读同一首。
   ///
-  /// `metadataTextScanned` 是新数据（本次改动后由 [RemoteMetadataHelper] 写入），
-  /// `metadataImgScanned` 覆盖历史数据（老版本只在成功解析后写它）。
+  /// `metadataTextScanned` 是新数据（由 [RemoteMetadataHelper] 写入），负数表示
+  /// 「试过但没读全」，要当作没解析过重试；`metadataImgScanned` 覆盖历史数据。
   static bool _alreadyParsed(SongMetadata? meta) {
     if (meta == null) return false;
-    if (meta.metadataTextScanned != null) return true;
+    if (meta.metadataTextScanned != null) {
+      return !remoteMetadataNeedsParse(meta.metadataTextScanned);
+    }
     if (meta.metadataImgScanned != null) return true;
     return meta.duration != null && meta.thumbnailPath != null;
   }

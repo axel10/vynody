@@ -19,6 +19,7 @@ import '../../player/remote/services/remote_folder_cover_service.dart';
 import '../../player/remote/services/webdav_metadata_helper.dart';
 import '../../player/remote/services/remote_scan_root.dart';
 import '../../player/remote/services/remote_directory_scanner.dart';
+import '../../player/remote/services/remote_metadata_scan_state.dart';
 import '../../player/library/playlist_service.dart';
 import '../../player/metadata/metadata_database.dart';
 import '../../player/scanner/scanner_sorting.dart';
@@ -381,14 +382,19 @@ class _RemoteFolderBrowserPageState
     // 1. Check local SQLite metadata database first for instant cache hits
     final db = MetadataDatabase();
     final Map<String, SongMetadata> dbHits = {};
+    // 命中了库但没读全（负数标记）的曲目：先按旧值显示，同时重新入队解析。
+    final Set<String> staleUris = {};
     for (final file in audioFiles) {
       final virtualUri = RemoteMediaResolver.buildRemoteUri(widget.server, file.path);
-      if (!_metadataMap.containsKey(virtualUri)) {
-        final cached = await db.getSongMetadata(virtualUri);
-        if (cached != null) {
-          dbHits[virtualUri] = cached;
-          _metadataMap[virtualUri] = cached;
-        }
+      final inMemory = _metadataMap[virtualUri];
+      final cached = inMemory ?? await db.getSongMetadata(virtualUri);
+      if (cached == null) continue;
+      _metadataMap[virtualUri] = cached;
+      if (remoteMetadataNeedsParse(cached.metadataTextScanned)) {
+        staleUris.add(virtualUri);
+      } else if (inMemory == null) {
+        // 只有这次才从库里捞出来的才回推给扫描器；内存里已有的上一轮推过。
+        dbHits[virtualUri] = cached;
       }
     }
 
@@ -411,7 +417,7 @@ class _RemoteFolderBrowserPageState
     // 2. Identify unparsed files that need HTTP Range tag extraction
     final unparsedFiles = audioFiles.where((f) {
       final virtualUri = RemoteMediaResolver.buildRemoteUri(widget.server, f.path);
-      return !_metadataMap.containsKey(virtualUri);
+      return staleUris.contains(virtualUri) || !_metadataMap.containsKey(virtualUri);
     }).toList();
 
     if (unparsedFiles.isEmpty) return;

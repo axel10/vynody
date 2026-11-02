@@ -107,7 +107,7 @@ class SmbClient implements RemoteDirectoryClient {
       password: password.isNotEmpty ? password : null,
       domain: server.domain,
       workers: 4,
-      timeoutSeconds: 15,
+      timeout: const Duration(seconds: 15),
     );
     _poolCache[key] = pool;
     return pool;
@@ -159,7 +159,7 @@ class SmbClient implements RemoteDirectoryClient {
       user: server.username.isNotEmpty ? server.username : null,
       password: password.isNotEmpty ? password : null,
       domain: server.domain,
-      timeoutSeconds: 10,
+      timeout: const Duration(seconds: 10),
     );
   }
 
@@ -304,7 +304,7 @@ class SmbClient implements RemoteDirectoryClient {
 
     return await pool.downloadToFile(
       cleanPath,
-      destFile,
+      destFile.path,
       onProgress: onProgress,
       isCanceled: isCanceled,
     );

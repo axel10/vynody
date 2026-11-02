@@ -9,6 +9,7 @@ import '../remote_server_models.dart';
 import '../../metadata/metadata_database.dart';
 import '../../metadata/metadata_helper.dart';
 import '../../metadata/artwork_constants.dart';
+import 'remote_metadata_scan_state.dart';
 
 /// Helper for asynchronously extracting and caching audio metadata from WebDAV and SMB servers
 /// using lightweight HTTP Range requests via flutter_taglib.
@@ -78,12 +79,23 @@ class RemoteMetadataHelper {
           trackNumber: null,
           thumbnailPath: null,
           lastModifiedTime: file.lastModified?.millisecondsSinceEpoch ?? 0,
-          metadataTextScanned: scannedAt,
+          metadataTextScanned: remoteMetadataFailureMarker(),
           sourceFlags: sourceFlags ?? SongSourceFlags.remote,
         );
         final db = MetadataDatabase();
         await db.insertOrUpdateSong(fallbackMetadata);
         return fallbackMetadata;
+      }
+
+      // TagLib 在 HTTP range 读取失败/短读时不会报错，而是把读不全的标签整块丢掉：
+      // success 仍是 true、时长可能还有，但标题/艺术家/专辑/封面集体变空。
+      // 这种情况绝不能再写正数的扫描标记，否则这条记录会永久停在 Unknown。
+      final bool readError = tagData.readError;
+      if (readError) {
+        debugPrint(
+          '[Remote Metadata] Partial read for "${file.name}" '
+          '(bytes were not fully read); marking for retry.',
+        );
       }
 
       final title = tagData.title.trim();
@@ -132,8 +144,11 @@ class RemoteMetadataHelper {
         artworkHeight: artworkHeight,
         themeColorsBlob: themeColorsBlob,
         lastModifiedTime: file.lastModified?.millisecondsSinceEpoch ?? 0,
-        metadataTextScanned: scannedAt,
-        metadataImgScanned: file.lastModified?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch,
+        metadataTextScanned: readError ? kRemoteMetadataNotFullyRead : scannedAt,
+        metadataImgScanned: readError
+            ? null
+            : (file.lastModified?.millisecondsSinceEpoch ??
+                DateTime.now().millisecondsSinceEpoch),
         sourceFlags: sourceFlags ?? SongSourceFlags.remote,
         genres: genre.isNotEmpty ? [genre] : null,
       );
@@ -154,7 +169,7 @@ class RemoteMetadataHelper {
         trackNumber: null,
         thumbnailPath: null,
         lastModifiedTime: file.lastModified?.millisecondsSinceEpoch ?? 0,
-        metadataTextScanned: scannedAt,
+        metadataTextScanned: remoteMetadataFailureMarker(),
         sourceFlags: sourceFlags ?? SongSourceFlags.remote,
       );
       try {

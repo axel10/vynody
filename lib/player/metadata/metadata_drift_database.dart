@@ -26,7 +26,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 46;
+  int get schemaVersion => 47;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -507,6 +507,27 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           ''');
           await m.database.customStatement('DROP TABLE IF EXISTS folder_covers');
         }
+      }
+      if (from < 47) {
+        // 远程元数据「读了但没读全」的修复。
+        //
+        // 老版本把 TagLib 的截断结果当成解析成功：标题回落成文件名、艺术家/专辑
+        // 是 Unknown、没有封面，但扫描标记写的是正数时间戳，于是浏览页与队列补全器
+        // 都认为「已解析」，用户把文件下载到本地、刷新目录也不会再触发解析
+        // （典型场景：OneDrive 占位文件第一次被浏览时还没脱水完）。
+        //
+        // 这里把这类行改成负数标记（= 没读全，见 remote_metadata_scan_state.dart），
+        // 下次打开目录会自动重试；真读全了就写回正数，不再反复联网。
+        await m.database.customStatement('''
+          UPDATE songs
+          SET metadataTextScanned = -1, metadataImgScanned = NULL
+          WHERE (path LIKE 'smb://%' OR path LIKE 'webdav://%'
+                 OR path LIKE 'jellyfin://%' OR path LIKE 'subsonic://%')
+            AND (artist IS NULL OR artist = '' OR artist = 'Unknown')
+            AND (album IS NULL OR album = '' OR album = 'Unknown')
+            AND (thumbnailPath IS NULL OR thumbnailPath = '')
+            AND (isAppModified = 0 OR isAppModified IS NULL)
+        ''');
       }
     },
   );
