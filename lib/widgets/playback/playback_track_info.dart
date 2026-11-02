@@ -338,26 +338,28 @@ class PlaybackTrackInfo extends ConsumerWidget {
       children: [
         SizedBox(
           width: double.infinity,
-          child: Align(
-            alignment: titleAlignment,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onSecondaryTapDown: (details) {
-                _showTrackInfoContextMenu(
-                  context,
-                  details.globalPosition,
-                  target: TrackInfoMenuTarget.title,
-                  currentMusic: currentMusic,
-                );
-              },
-              onLongPressStart: (details) {
-                _showTrackInfoContextMenu(
-                  context,
-                  details.globalPosition,
-                  target: TrackInfoMenuTarget.title,
-                  currentMusic: currentMusic,
-                );
-              },
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onSecondaryTapDown: (details) {
+              _showTrackInfoContextMenu(
+                context,
+                details.globalPosition,
+                target: TrackInfoMenuTarget.title,
+                currentMusic: currentMusic,
+              );
+            },
+            onLongPressStart: (details) {
+              _showTrackInfoContextMenu(
+                context,
+                details.globalPosition,
+                target: TrackInfoMenuTarget.title,
+                currentMusic: currentMusic,
+              );
+            },
+            // 手势留在最外层：MarqueeText 只占文本宽度，右键/长按热区
+            // 仍然要覆盖整行（原来靠 MarqueeText 内部的满宽 ScrollView）。
+            child: Align(
+              alignment: titleAlignment,
               child: DefaultTextStyle(
                 textAlign: TextAlign.start,
                 style: Theme.of(context).textTheme.titleLarge!.copyWith(
@@ -373,11 +375,7 @@ class PlaybackTrackInfo extends ConsumerWidget {
                 child: Builder(
                   builder: (context) {
                     final style = DefaultTextStyle.of(context).style;
-                    return MarqueeText(
-                      text: title,
-                      style: style,
-                      alignment: titleAlignment,
-                    );
+                    return MarqueeText(text: title, style: style);
                   },
                 ),
               ),
@@ -395,26 +393,26 @@ class PlaybackTrackInfo extends ConsumerWidget {
             ),
             child: SizedBox(
               width: double.infinity,
-              child: Align(
-                alignment: titleAlignment,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onSecondaryTapDown: (details) {
-                    _showTrackInfoContextMenu(
-                      context,
-                      details.globalPosition,
-                      target: TrackInfoMenuTarget.artistAlbum,
-                      currentMusic: currentMusic,
-                    );
-                  },
-                  onLongPressStart: (details) {
-                    _showTrackInfoContextMenu(
-                      context,
-                      details.globalPosition,
-                      target: TrackInfoMenuTarget.artistAlbum,
-                      currentMusic: currentMusic,
-                    );
-                  },
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onSecondaryTapDown: (details) {
+                  _showTrackInfoContextMenu(
+                    context,
+                    details.globalPosition,
+                    target: TrackInfoMenuTarget.artistAlbum,
+                    currentMusic: currentMusic,
+                  );
+                },
+                onLongPressStart: (details) {
+                  _showTrackInfoContextMenu(
+                    context,
+                    details.globalPosition,
+                    target: TrackInfoMenuTarget.artistAlbum,
+                    currentMusic: currentMusic,
+                  );
+                },
+                child: Align(
+                  alignment: titleAlignment,
                   child: DefaultTextStyle(
                     textAlign: TextAlign.start,
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
@@ -436,7 +434,6 @@ class PlaybackTrackInfo extends ConsumerWidget {
                                     ? rawArtist
                                     : (hasAlbum ? rawAlbum : l10n.unknown)),
                           style: style,
-                          alignment: titleAlignment,
                         );
                       },
                     ),

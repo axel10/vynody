@@ -159,6 +159,17 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
   bool _isPortraitLyricsControlsExpanded = false;
   double _lyricsScrollDeltaAccumulator = 0.0;
 
+  /// 歌词面板「正处在转场中」的标记，交给 `_LyricsPanelTransitionWrapper`
+  /// 决定要不要跟随 `audioPositionProvider`。
+  ///
+  /// 必须是 State 字段：以前在 `_buildFullCard` 里每次 build 新建一个，
+  /// 转场里每帧都换实例 → wrapper 的 `didUpdateWidget` 每帧重挂 listener
+  /// 并把 `_isTransitioning` 重置回 false，再被 microtask 改回 true 触发
+  /// setState，等于每帧白重建两次。
+  final ValueNotifier<bool> _lyricsPanelTransitioning = ValueNotifier<bool>(
+    false,
+  );
+
   /// 竖屏歌词页「滚动展开控制面板」的进度。以前这段动画由一个包住整张卡片
   /// 的 TweenAnimationBuilder 驱动，每帧都会重建子树；改成 controller 后
   /// 只有订阅它的 AnimatedBuilder 会重建。
@@ -183,6 +194,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
 
   @override
   void dispose() {
+    _lyricsPanelTransitioning.dispose();
     _portraitControlsExpandAnimation.dispose();
     _portraitControlsExpandController.dispose();
     super.dispose();
@@ -364,7 +376,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
     final bool effectiveIsLandscape = widget.isLandscape && !isSmallWindow;
     final bool effectiveIsLyricsMode = widget.isLyricsMode && !isSmallWindow;
 
-    final isTransitioningNotifier = ValueNotifier<bool>(false);
+    final isTransitioningNotifier = _lyricsPanelTransitioning;
 
     final bool expandPortraitLyricsControlsOnScroll = ref.watch(
       settingsServiceProvider.select(
@@ -693,10 +705,15 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
                                       builder: (context, ref, childWidget) {
                                         if (isTransitioningNotifier.value !=
                                             optimize) {
-                                          Future.microtask(() {
-                                            isTransitioningNotifier.value =
-                                                optimize;
-                                          });
+                                          // 只在真正翻转的那一帧排一次，
+                                          // 且必须等这一帧画完再改（wrapper 的
+                                          // listener 里会 setState）。
+                                          WidgetsBinding.instance
+                                              .addPostFrameCallback((_) {
+                                                if (!mounted) return;
+                                                isTransitioningNotifier.value =
+                                                    optimize;
+                                              });
                                         }
                                         final bool isOffstage =
                                             tLyrics == 0.0 &&
