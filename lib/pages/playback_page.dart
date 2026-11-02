@@ -1781,6 +1781,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   ) {
     double opacity = 0.0;
     if (backgroundType == 1 || backgroundType == 4) {
+      // v1（mesh_gradient）与 v2（mesh_flow）各自持有暗色层不透明度：
+      // 网格地形自带明暗层次，v1 的纯色流体渐变需要更强的托底。
+      final double normalOpacity = backgroundType == 1
+          ? settings.playbackMeshGradientNormalOpacity
+          : settings.playbackMeshBackgroundNormalOpacity;
       if (settings.playbackMeshBackgroundAutoDarkLayer) {
         final themeColors = ref.watch(audioCurrentThemeColorsMapProvider);
         final dynamicStartColor = ref.watch(audioDynamicStartColorProvider);
@@ -1790,16 +1795,15 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
           dynamicStartColor: dynamicStartColor,
           dynamicEndColor: dynamicEndColor,
         );
-        final double baseTargetOpacity =
-            settings.playbackMeshBackgroundNormalOpacity > 0.0
-                ? settings.playbackMeshBackgroundNormalOpacity
-                : 0.30;
+        final double baseTargetOpacity = normalOpacity > 0.0
+            ? normalOpacity
+            : 0.30;
         opacity = ThemeColorHelper.calculateAutoMeshDarkOpacity(
           colors,
           targetOpacity: baseTargetOpacity,
         );
       } else {
-        opacity = settings.playbackMeshBackgroundNormalOpacity;
+        opacity = normalOpacity;
       }
     } else if (backgroundType == 0 || backgroundType == 2 || backgroundType == 3) {
       opacity = settings.playbackBackgroundNormalOpacity;

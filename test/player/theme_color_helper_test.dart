@@ -62,22 +62,27 @@ void main() {
       final settings = SettingsService(prefs);
 
       // Default values
-      expect(settings.playbackMeshBackgroundNormalOpacity, 0.15);
+      expect(settings.playbackMeshBackgroundNormalOpacity, 0.0);
+      expect(settings.playbackMeshGradientNormalOpacity, 0.15);
       expect(settings.playbackMeshBackgroundSpeed, 0.4);
+      expect(settings.playbackMeshGradientSpeed, 0.4);
       expect(settings.playbackMeshBackgroundAutoDarkLayer, false);
 
       // Updates
       settings.playbackMeshBackgroundNormalOpacity = 0.45;
+      settings.playbackMeshGradientNormalOpacity = 0.30;
       settings.playbackMeshBackgroundSpeed = 0.8;
       settings.playbackMeshBackgroundAutoDarkLayer = true;
 
       expect(settings.playbackMeshBackgroundNormalOpacity, 0.45);
+      expect(settings.playbackMeshGradientNormalOpacity, 0.30);
       expect(settings.playbackMeshBackgroundSpeed, 0.8);
       expect(settings.playbackMeshBackgroundAutoDarkLayer, true);
 
       // Reset visualizer appearance
       settings.resetVisualizerAppearance();
-      expect(settings.playbackMeshBackgroundNormalOpacity, 0.15);
+      expect(settings.playbackMeshBackgroundNormalOpacity, 0.0);
+      expect(settings.playbackMeshGradientNormalOpacity, 0.15);
       expect(settings.playbackMeshBackgroundSpeed, 0.4);
       expect(settings.playbackMeshBackgroundAutoDarkLayer, false);
     });

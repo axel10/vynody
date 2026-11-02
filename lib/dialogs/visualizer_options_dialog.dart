@@ -868,11 +868,18 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                       child: _buildOptionSlider(
                         context,
                         label: l10n.normalOpacity,
-                        value: settings.playbackMeshBackgroundNormalOpacity,
+                        value: isMeshGradientBackground
+                            ? settings.playbackMeshGradientNormalOpacity
+                            : settings.playbackMeshBackgroundNormalOpacity,
                         min: 0.0,
                         max: 1.0,
                         onChanged: (val) {
-                          settings.playbackMeshBackgroundNormalOpacity = val;
+                          if (isMeshGradientBackground) {
+                            settings.playbackMeshGradientNormalOpacity = val;
+                          } else {
+                            settings.playbackMeshBackgroundNormalOpacity =
+                                val;
+                          }
                           setDialogState(() {});
                         },
                       ),

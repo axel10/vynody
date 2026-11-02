@@ -677,11 +677,18 @@ class SettingsService extends ChangeNotifier {
   static const double defaultPlaybackMeshBackgroundSpeed = 0.4;
   /// 「动态流变」（mesh_gradient 实现）的流速默认值。
   ///
-  /// 与 [defaultPlaybackMeshBackgroundSpeed] 不共用一个默认值：
-  /// 两套实现的 `speed` 语义不同（mesh_gradient 走 shader 的 totalSpeed，
-  /// 同数值下观感快约 8 倍），沿用旧实现的 0.05 才能保持原有观感。
-  static const double defaultPlaybackMeshGradientSpeed = 0.05;
-  static const double defaultPlaybackMeshBackgroundNormalOpacity = 0.15;
+  /// 与 [defaultPlaybackMeshBackgroundSpeed] 保持一致（都是 0.4）：两套实现的
+  /// `speed` 语义不同（mesh_gradient 走 shader 的 totalSpeed，同数值下观感更
+  /// 快），但对外只暴露一个「流速」概念，默认观感差异由实现内部消化。
+  static const double defaultPlaybackMeshGradientSpeed = 0.4;
+  /// 「动态流变 v2」（mesh_flow 实现）的暗色层不透明度默认值。默认不加暗色层，
+  /// 网格本身已经有足够的明暗层次。
+  static const double defaultPlaybackMeshBackgroundNormalOpacity = 0.0;
+  /// 「动态流变」（mesh_gradient 实现）的暗色层不透明度默认值。
+  ///
+  /// v1 是纯色块流体渐变，本身偏亮且缺少明暗层次，默认压一层 0.15 的暗色层
+  /// 托住前景文字；v2 用网格地形自带明暗，默认不压（0.0）。
+  static const double defaultPlaybackMeshGradientNormalOpacity = 0.15;
   static const bool defaultPlaybackMeshBackgroundAutoDarkLayer = false;
   static const double defaultPlaybackBlurredArtworkBlurSigma = 30.0;
   static const double defaultPlaybackCustomImageBlurSigma = 0.0;
@@ -725,6 +732,8 @@ class SettingsService extends ChangeNotifier {
       'playback_mesh_background_edge_style';
   static const String _keyPlaybackMeshBackgroundNormalOpacity =
       'playback_mesh_background_normal_opacity';
+  static const String _keyPlaybackMeshGradientNormalOpacity =
+      'playback_mesh_gradient_normal_opacity';
   static const String _keyPlaybackMeshBackgroundAutoDarkLayer =
       'playback_mesh_background_auto_dark_layer';
   static const String _keyPortraitFrequencyGroups =
@@ -2079,6 +2088,14 @@ class SettingsService extends ChangeNotifier {
         onChanged: notifyListeners,
       );
 
+  late final _playbackMeshGradientNormalOpacityProperty =
+      SettingProperty<double>(
+        key: _keyPlaybackMeshGradientNormalOpacity,
+        defaultValue: defaultPlaybackMeshGradientNormalOpacity,
+        prefs: _prefs,
+        onChanged: notifyListeners,
+      );
+
   late final _playbackMeshBackgroundAutoDarkLayerProperty =
       SettingProperty<bool>(
         key: _keyPlaybackMeshBackgroundAutoDarkLayer,
@@ -3265,6 +3282,12 @@ class SettingsService extends ChangeNotifier {
   set playbackMeshBackgroundNormalOpacity(double value) =>
       _playbackMeshBackgroundNormalOpacityProperty.value = value;
 
+  /// 「动态流变」（mesh_gradient 实现）的暗色层不透明度。
+  double get playbackMeshGradientNormalOpacity =>
+      _playbackMeshGradientNormalOpacityProperty.value;
+  set playbackMeshGradientNormalOpacity(double value) =>
+      _playbackMeshGradientNormalOpacityProperty.value = value;
+
   bool get playbackMeshBackgroundAutoDarkLayer =>
       _playbackMeshBackgroundAutoDarkLayerProperty.value;
   set playbackMeshBackgroundAutoDarkLayer(bool value) =>
@@ -3726,6 +3749,7 @@ class SettingsService extends ChangeNotifier {
     _playbackMeshGradientSpeedProperty.reset();
     _playbackMeshBackgroundEdgeStyleProperty.reset();
     _playbackMeshBackgroundNormalOpacityProperty.reset();
+    _playbackMeshGradientNormalOpacityProperty.reset();
     _playbackMeshBackgroundAutoDarkLayerProperty.reset();
     _playbackBackgroundColorProperty.reset();
     _playbackRadialGradientEnabledProperty.reset();
