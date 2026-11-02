@@ -511,7 +511,11 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     StateSetter setDialogState,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final isDynamicMeshBackground = settings.playbackBackgroundType == 1;
+    // 1 = 动态流变（mesh_gradient）；4 = 动态流变 v2（mesh_flow）。
+    final isMeshGradientBackground = settings.playbackBackgroundType == 1;
+    final isMeshFlowBackground = settings.playbackBackgroundType == 4;
+    final isDynamicMeshBackground =
+        isMeshGradientBackground || isMeshFlowBackground;
     final isSolidColorBackground = settings.playbackBackgroundType == 2;
     final isCustomImageBackground = settings.playbackBackgroundType == 3;
     final theme = Theme.of(context);
@@ -792,16 +796,29 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                 ],
                 if (isDynamicMeshBackground) ...[
                   const SizedBox(height: 16),
-                  _buildMeshEdgeStyleDropdown(context, settings, setDialogState),
-                  const SizedBox(height: 16),
+                  // 边缘风格只属于 v2（网格地形），v1 没有对应概念。
+                  if (isMeshFlowBackground) ...[
+                    _buildMeshEdgeStyleDropdown(
+                      context,
+                      settings,
+                      setDialogState,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   _buildOptionSlider(
                     context,
                     label: l10n.speed,
-                    value: settings.playbackMeshBackgroundSpeed,
+                    value: isMeshGradientBackground
+                        ? settings.playbackMeshGradientSpeed
+                        : settings.playbackMeshBackgroundSpeed,
                     min: 0.02,
                     max: 2.0,
                     onChanged: (val) {
-                      settings.playbackMeshBackgroundSpeed = val;
+                      if (isMeshGradientBackground) {
+                        settings.playbackMeshGradientSpeed = val;
+                      } else {
+                        settings.playbackMeshBackgroundSpeed = val;
+                      }
                       setDialogState(() {});
                     },
                   ),
@@ -1376,6 +1393,11 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           trailing: !isProUnlocked ? const ProBadge(size: 9.5) : null,
         ),
         SettingsDropdownOption(
+          value: 4,
+          label: l10n.dynamicMeshV2,
+          trailing: !isProUnlocked ? const ProBadge(size: 9.5) : null,
+        ),
+        SettingsDropdownOption(
           value: 2,
           label: l10n.solidColor,
         ),
@@ -1387,7 +1409,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
       ],
       onChanged: (val) async {
         if (val != null) {
-          if (val == 1) {
+          if (val == 1 || val == 4) {
             final allowed = await checkProGate(
               context,
               ref,

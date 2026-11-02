@@ -208,6 +208,7 @@
   "blurIntensity": "블러 강도",
   "blurredArtwork": "블러 처리된 아트워크 (기본값)",
   "dynamicMesh": "다이나믹 메시",
+  "dynamicMeshV2": "다이나믹 메시 v2",
   "meshFlowEdgeStyle": "메시 가장자리 스타일",
   "meshFlowEdgeStyleRandom": "무작위 교차",
   "meshFlowEdgeStyleSoft": "부드러움 및 확산",

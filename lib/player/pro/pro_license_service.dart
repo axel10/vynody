@@ -452,7 +452,10 @@ final effectivePlaybackBackgroundTypeProvider = Provider<int>((ref) {
   final rawBackgroundType = ref.watch(
     settingsServiceProvider.select((s) => s.playbackBackgroundType),
   );
-  if (!isProUnlocked && (rawBackgroundType == 1 || rawBackgroundType == 3)) {
+  if (!isProUnlocked &&
+      (rawBackgroundType == 1 ||
+          rawBackgroundType == 3 ||
+          rawBackgroundType == 4)) {
     return 0;
   }
   return rawBackgroundType;

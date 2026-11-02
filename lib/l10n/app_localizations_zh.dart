@@ -626,6 +626,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dynamicMesh => '动态流变';
 
   @override
+  String get dynamicMeshV2 => '动态流变 v2';
+
+  @override
   String get meshFlowEdgeStyle => '流变边缘风格';
 
   @override
@@ -6157,6 +6160,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get dynamicMesh => '動態流變';
+
+  @override
+  String get dynamicMeshV2 => '動態流變 v2';
 
   @override
   String get meshFlowEdgeStyle => '流變邊緣風格';

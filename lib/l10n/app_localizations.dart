@@ -1281,6 +1281,12 @@ abstract class AppLocalizations {
   /// **'动态流变'**
   String get dynamicMesh;
 
+  /// No description provided for @dynamicMeshV2.
+  ///
+  /// In zh, this message translates to:
+  /// **'动态流变 v2'**
+  String get dynamicMeshV2;
+
   /// No description provided for @meshFlowEdgeStyle.
   ///
   /// In zh, this message translates to:

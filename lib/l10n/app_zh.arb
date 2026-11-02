@@ -770,6 +770,7 @@
   "blurIntensity": "模糊强度",
   "blurredArtwork": "模糊封面 (默认)",
   "dynamicMesh": "动态流变",
+  "dynamicMeshV2": "动态流变 v2",
   "meshFlowEdgeStyle": "流变边缘风格",
   "meshFlowEdgeStyleRandom": "随机交替",
   "meshFlowEdgeStyleSoft": "柔和弥散",

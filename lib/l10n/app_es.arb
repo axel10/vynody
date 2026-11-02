@@ -208,6 +208,7 @@
   "blurIntensity": "Intensidad de desenfoque",
   "blurredArtwork": "Carátula borrosa (predeterminado)",
   "dynamicMesh": "Malla dinámica",
+  "dynamicMeshV2": "Malla dinámica v2",
   "meshFlowEdgeStyle": "Estilo de borde de malla",
   "meshFlowEdgeStyleRandom": "Alternar al azar",
   "meshFlowEdgeStyleSoft": "Suave y difuso",

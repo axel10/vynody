@@ -646,6 +646,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get dynamicMesh => 'Malla dinámica';
 
   @override
+  String get dynamicMeshV2 => 'Malla dinámica v2';
+
+  @override
   String get meshFlowEdgeStyle => 'Estilo de borde de malla';
 
   @override

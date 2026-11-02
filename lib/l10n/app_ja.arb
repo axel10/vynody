@@ -208,6 +208,7 @@
   "blurIntensity": "ブラー強度",
   "blurredArtwork": "ブラーアートワーク（デフォルト）",
   "dynamicMesh": "ダイナミックメッシュ",
+  "dynamicMeshV2": "ダイナミックメッシュ v2",
   "meshFlowEdgeStyle": "エッジスタイル",
   "meshFlowEdgeStyleRandom": "ランダム交互",
   "meshFlowEdgeStyleSoft": "ソフト＆拡散",

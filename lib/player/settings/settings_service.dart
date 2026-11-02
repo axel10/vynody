@@ -675,6 +675,12 @@ class SettingsService extends ChangeNotifier {
   static const double defaultPlaybackBackgroundNormalOpacity = 0.20;
   static const double defaultPlaybackBackgroundLyricsOpacity = 0.30;
   static const double defaultPlaybackMeshBackgroundSpeed = 0.4;
+  /// 「动态流变」（mesh_gradient 实现）的流速默认值。
+  ///
+  /// 与 [defaultPlaybackMeshBackgroundSpeed] 不共用一个默认值：
+  /// 两套实现的 `speed` 语义不同（mesh_gradient 走 shader 的 totalSpeed，
+  /// 同数值下观感快约 8 倍），沿用旧实现的 0.05 才能保持原有观感。
+  static const double defaultPlaybackMeshGradientSpeed = 0.05;
   static const double defaultPlaybackMeshBackgroundNormalOpacity = 0.15;
   static const bool defaultPlaybackMeshBackgroundAutoDarkLayer = false;
   static const double defaultPlaybackBlurredArtworkBlurSigma = 30.0;
@@ -713,6 +719,8 @@ class SettingsService extends ChangeNotifier {
       'playback_custom_image_blur_sigma';
   static const String _keyPlaybackMeshBackgroundSpeed =
       'playback_mesh_background_speed';
+  static const String _keyPlaybackMeshGradientSpeed =
+      'playback_mesh_gradient_speed';
   static const String _keyPlaybackMeshBackgroundEdgeStyle =
       'playback_mesh_background_edge_style';
   static const String _keyPlaybackMeshBackgroundNormalOpacity =
@@ -2049,6 +2057,13 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _playbackMeshGradientSpeedProperty = SettingProperty<double>(
+    key: _keyPlaybackMeshGradientSpeed,
+    defaultValue: defaultPlaybackMeshGradientSpeed,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
   late final _playbackMeshBackgroundEdgeStyleProperty = SettingProperty<int>(
     key: _keyPlaybackMeshBackgroundEdgeStyle,
     defaultValue: 0,
@@ -3239,6 +3254,12 @@ class SettingsService extends ChangeNotifier {
   set playbackMeshBackgroundEdgeStyle(int value) =>
       _playbackMeshBackgroundEdgeStyleProperty.value = value;
 
+  /// 「动态流变」（mesh_gradient 实现）的流速。
+  double get playbackMeshGradientSpeed =>
+      _playbackMeshGradientSpeedProperty.value;
+  set playbackMeshGradientSpeed(double value) =>
+      _playbackMeshGradientSpeedProperty.value = value;
+
   double get playbackMeshBackgroundNormalOpacity =>
       _playbackMeshBackgroundNormalOpacityProperty.value;
   set playbackMeshBackgroundNormalOpacity(double value) =>
@@ -3702,6 +3723,7 @@ class SettingsService extends ChangeNotifier {
     _isVisualizerDynamicStartColorProperty.reset();
     _isVisualizerDynamicEndColorProperty.reset();
     _playbackMeshBackgroundSpeedProperty.reset();
+    _playbackMeshGradientSpeedProperty.reset();
     _playbackMeshBackgroundEdgeStyleProperty.reset();
     _playbackMeshBackgroundNormalOpacityProperty.reset();
     _playbackMeshBackgroundAutoDarkLayerProperty.reset();

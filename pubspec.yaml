@@ -86,6 +86,12 @@ dependencies:
   flutter_colorpicker: ^1.1.0
 
   intl: ^0.20.2
+  # 「动态流变」（v1）：4 色点流体渐变。
+  mesh_gradient:
+    git:
+      url: https://github.com/axel10/mesh-gradient
+      ref: f905517482c75750403d08a6b5658c85b4b15832
+  # 「动态流变 v2」：28×28 钉边驻波网格 + 封面贴图。
   mesh_flow:
     path: ./mesh_flow
   # 档位缩放（列表 ↔ 网格）的布局引擎、条目脚手架与手势层。

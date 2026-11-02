@@ -208,6 +208,7 @@
   "blurIntensity": "Unschärfe-Intensität",
   "blurredArtwork": "Unscharfes Cover (Standard)",
   "dynamicMesh": "Dynamisches Mesh",
+  "dynamicMeshV2": "Dynamisches Mesh v2",
   "meshFlowEdgeStyle": "Mesh-Kantenstil",
   "meshFlowEdgeStyleRandom": "Zufällig abwechselnd",
   "meshFlowEdgeStyleSoft": "Sanft & diffundiert",

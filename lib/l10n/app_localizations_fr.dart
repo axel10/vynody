@@ -646,6 +646,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get dynamicMesh => 'Maillage dynamique';
 
   @override
+  String get dynamicMeshV2 => 'Maillage dynamique v2';
+
+  @override
   String get meshFlowEdgeStyle => 'Style de bordure de maillage';
 
   @override

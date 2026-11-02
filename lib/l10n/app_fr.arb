@@ -208,6 +208,7 @@
   "blurIntensity": "Intensité du flou",
   "blurredArtwork": "Pochette floutée (défaut)",
   "dynamicMesh": "Maillage dynamique",
+  "dynamicMeshV2": "Maillage dynamique v2",
   "meshFlowEdgeStyle": "Style de bordure de maillage",
   "meshFlowEdgeStyleRandom": "Alterne aléatoire",
   "meshFlowEdgeStyleSoft": "Doux & diffus",

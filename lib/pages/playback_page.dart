@@ -1695,8 +1695,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     switch (backgroundType) {
       case 1:
         return RepaintBoundary(
-          key: ValueKey('fluid_bg_${keySuffix ?? 'default'}'),
+          key: ValueKey('mesh_gradient_bg_${keySuffix ?? 'default'}'),
           child: const DynamicMeshBackground(),
+        );
+      case 4:
+        return RepaintBoundary(
+          key: ValueKey('mesh_flow_bg_${keySuffix ?? 'default'}'),
+          child: const MeshFlowBackground(),
         );
       case 2:
         return Container(
@@ -1775,7 +1780,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     bool isSmallWin,
   ) {
     double opacity = 0.0;
-    if (backgroundType == 1) {
+    if (backgroundType == 1 || backgroundType == 4) {
       if (settings.playbackMeshBackgroundAutoDarkLayer) {
         final themeColors = ref.watch(audioCurrentThemeColorsMapProvider);
         final dynamicStartColor = ref.watch(audioDynamicStartColorProvider);

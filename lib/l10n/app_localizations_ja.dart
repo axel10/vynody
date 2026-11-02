@@ -629,6 +629,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get dynamicMesh => 'ダイナミックメッシュ';
 
   @override
+  String get dynamicMeshV2 => 'ダイナミックメッシュ v2';
+
+  @override
   String get meshFlowEdgeStyle => 'エッジスタイル';
 
   @override

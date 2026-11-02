@@ -216,6 +216,7 @@
   "blurIntensity": "Blur Intensity",
   "blurredArtwork": "Blurred Artwork (Default)",
   "dynamicMesh": "Dynamic Mesh",
+  "dynamicMeshV2": "Dynamic Mesh v2",
   "meshFlowEdgeStyle": "Mesh Edge Style",
   "meshFlowEdgeStyleRandom": "Random Alternate",
   "meshFlowEdgeStyleSoft": "Soft & Diffuse",
