@@ -2669,24 +2669,32 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<void> insertOrUpdateLyricsTranslationCache(
     LyricsTranslationCacheRecord record,
   ) async {
-    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(record.cacheKey);
-    if (normalizedCacheKey.isNotEmpty) {
-      await (delete(lyricsTranslationCaches)..where(
-            (t) =>
-                t.cacheKey.equals(normalizedCacheKey) &
-                t.languageCode.equals(record.languageCode),
-          ))
-          .go();
-    }
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(
+      record.cacheKey,
+    );
+    final companion = LyricsTranslationCachesCompanion(
+      cacheKey: Value(normalizedCacheKey),
+      languageCode: Value(record.languageCode),
+      translatedText: Value(record.translatedText),
+      translatedLinesJson: Value(jsonEncode(record.translatedLines)),
+      provider: Value(record.provider),
+      updatedAtMillis: Value(record.updatedAtMillis),
+    );
 
-    await into(lyricsTranslationCaches).insertOnConflictUpdate(
-      LyricsTranslationCachesCompanion(
-        cacheKey: Value(normalizedCacheKey),
-        languageCode: Value(record.languageCode),
-        translatedText: Value(record.translatedText),
-        translatedLinesJson: Value(jsonEncode(record.translatedLines)),
-        provider: Value(record.provider),
-        updatedAtMillis: Value(record.updatedAtMillis),
+    // 必须是一条原子 upsert。旧的「先按 (cacheKey, languageCode) 删除、再 insert」
+    // 会在两条语句之间给 watchLyricsTranslationCaches() 的订阅方送出一份空结果，
+    // 订阅方（歌词面板）据此把内存里正在流式产出的译文整份覆盖成空 —— 表现为
+    // 「每生成一行，所有已生成译文行都重新播放一次淡入动画」。
+    // 另外 insertOnConflictUpdate() 生成的冲突目标是主键 id，命中不了
+    // UNIQUE(cacheKey, languageCode)，并发写入会直接抛 UNIQUE constraint failed。
+    await into(lyricsTranslationCaches).insert(
+      companion,
+      onConflict: DoUpdate(
+        (old) => companion,
+        target: [
+          lyricsTranslationCaches.cacheKey,
+          lyricsTranslationCaches.languageCode,
+        ],
       ),
     );
   }

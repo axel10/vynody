@@ -222,7 +222,14 @@ class LyricsControllerSupport {
     Map<String, MusicLyricTranslation> translations =
         const <String, MusicLyricTranslation>{},
   }) {
-    final nextLyrics = lyricsFromCacheRecord(record, translations: translations);
+    final effectiveTranslations = _mergeTranslationsWithoutRegression(
+      songPath: songPath,
+      incoming: translations,
+    );
+    final nextLyrics = lyricsFromCacheRecord(
+      record,
+      translations: effectiveTranslations,
+    );
     final hasAnyLyrics = nextLyrics.plainText.trim().isNotEmpty ||
         nextLyrics.syncedLines.isNotEmpty ||
         nextLyrics.translations.isNotEmpty;
@@ -243,6 +250,43 @@ class LyricsControllerSupport {
       _context.setLyricsTranslationStatus('');
     }
     return true;
+  }
+
+  /// 数据库快照不允许把内存里更完整的译文「冲掉」。
+  ///
+  /// 流式翻译时每一行都会写一次翻译缓存，写库又会触发歌词缓存 watch 回灌整份
+  /// 歌词记录；只要回灌的译文比内存里旧/少（写入未落盘、读了旧行），整份覆盖就会
+  /// 让所有已出现的译文行消失一帧，每行的淡入 State 随之重建 —— 表现就是
+  /// 「每生成一行，所有已生成译文行重新播放一次进入动画」。
+  /// 这里按语言取「非空行数更多」的一方，空快照在翻译进行中直接沿用内存版本。
+  Map<String, MusicLyricTranslation> _mergeTranslationsWithoutRegression({
+    required String songPath,
+    required Map<String, MusicLyricTranslation> incoming,
+  }) {
+    final existing = songForPath(songPath)?.lyrics?.translations;
+    if (existing == null || existing.isEmpty) return incoming;
+
+    final isTranslating = _context.isLyricsTranslationBusyForSong(songPath);
+    final merged = <String, MusicLyricTranslation>{...incoming};
+    for (final entry in existing.entries) {
+      final candidate = merged[entry.key];
+      if (candidate == null) {
+        if (isTranslating) merged[entry.key] = entry.value;
+        continue;
+      }
+      if (_filledLineCount(entry.value) > _filledLineCount(candidate)) {
+        merged[entry.key] = entry.value;
+      }
+    }
+    return merged;
+  }
+
+  int _filledLineCount(MusicLyricTranslation translation) {
+    var count = 0;
+    for (final line in translation.translatedLines) {
+      if (line.trim().isNotEmpty) count++;
+    }
+    return count;
   }
 
   String _lyricsTextFromRecord(LyricsCacheRecord record) {

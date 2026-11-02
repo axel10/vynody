@@ -515,10 +515,22 @@ class LyricsTranslationCoordinator {
     _support.replaceSongIfPath(songPath, (currentSong) {
       final existingLyrics = currentSong.lyrics ?? const MusicLyric();
       final existingTranslation = existingLyrics.translationFor(languageCode);
+      // 流式快照偶尔会比上一帧少一行（末尾半行被裁掉、空行重排），
+      // 直接落地会让那一行的译文消失一帧 → 该行淡入 State 重建 → 动画重播。
+      // 流式阶段按「不倒退」合并，收尾那次（bumpLayoutRevision）仍按原样整份覆盖。
+      final effectiveLines = bumpLayoutRevision
+          ? translatedLines
+          : _mergeStreamingTranslatedLines(
+              incoming: translatedLines,
+              previous: existingTranslation?.translatedLines,
+            );
+      final linesChanged = !identical(effectiveLines, translatedLines);
       final updatedTranslation = _buildLyricsTranslation(
         languageCode: languageCode,
-        translatedLines: translatedLines,
-        translatedText: translatedText,
+        translatedLines: effectiveLines,
+        translatedText: linesChanged
+            ? effectiveLines.where((line) => line.trim().isNotEmpty).join('\n')
+            : translatedText,
       );
       if (existingTranslation == updatedTranslation) {
         updatedSong = currentSong;
@@ -606,6 +618,27 @@ class LyricsTranslationCoordinator {
     } catch (e) {
       debugPrint('[LyricsTranslation] Failed to cache translated lyrics: $e');
     }
+  }
+
+  /// 流式阶段的行合并：只在「行网格一致」时把新快照里变空、但上一帧已有内容的行
+  /// 补回旧内容，避免已经显示出来的译文行凭空消失。返回原列表（identical）表示无变化。
+  List<String> _mergeStreamingTranslatedLines({
+    required List<String> incoming,
+    required List<String>? previous,
+  }) {
+    if (previous == null || previous.length != incoming.length) {
+      return incoming;
+    }
+    List<String>? merged;
+    for (var i = 0; i < incoming.length; i++) {
+      final next = incoming[i];
+      final prev = previous[i];
+      if (next.trim().isEmpty && prev.trim().isNotEmpty) {
+        merged ??= List<String>.from(incoming);
+        merged[i] = prev;
+      }
+    }
+    return merged ?? incoming;
   }
 
   MusicLyricTranslation _buildLyricsTranslation({
