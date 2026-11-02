@@ -10,6 +10,7 @@
 | Rail 宽度 | `sidebarRailWidthFor()`（`layout_constants.dart`），禁 `80.0` |
 | 队列抽屉窗口宽 | `minWindowWidthForDrawer()`：窗口 ≥ 抽屉宽 + `kMinMainContentWidth`(400)。WindowOptions、退出小窗、拖拽/双击复位、最小窗口尺寸同源派生 |
 | FFmpeg 版本 | `audio_core/ffmpeg_version.env`，禁脚本硬编码；flatpak 清单与 `build-ffmpeg.yml` tag 靠手同步 |
+| Android 插件构建目录 | `android/build.gradle.kts:48` 钉死 `$TMPDIR/vynody_build/${project.name}`（**无 pub 版本**）→ 升级任何插件后该模块 Kotlin 增量缓存会串味，表现为「类能解析、顶层 const val 全 Unresolved」。判据：该模块 `--rerun-tasks` 即过。修：`rm -rf $TMPDIR/vynody_build/<name>`，`flutter clean` 清不到（自定义 clean 只删根 buildDir） |
 | 远程下载落盘 | `buildLocalTrackPath()` + `RemoteDownloadRequest.batches`。层级由**页面/栏目**定（`.album` 一层 / `.artist` 目录+专辑 / `.playlist` 无专辑层 / WebDAV·SMB 照抄远端），禁按单曲或是否多选区分。唯一入队口 `enqueue(RemoteDownloadRequest)`；多选 `fetchSelectedBatches`；单曲走 `downloadLayout`/`downloadCollectionFolder` |
 | 载荷校验 | `RemotePayloadGuard.inspect()` 必须在「有字节就算成功」之前；只读头 2048B，禁按大小阈值。`_downloadTask` 与 `downloadRemoteTrackToTempFile` 共用 |
 | 拒绝下载 / 临时下载 | Subsonic 禁用 `download.view` 回 200+失败 JSON(50) → `isDownloadsDisabled`；Jellyfin 走 `buildStreamUrl`，401/403/404 经 `_describeHttpFailure()`。临时下载先查 `AudioStreamCacheManager`，再按 server 分派（subsonic / jellyfin / smb / 其余 WebDav），**禁只判 subsonic、其余全落 WebDavClient** |

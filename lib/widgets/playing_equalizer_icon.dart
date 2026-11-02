@@ -118,6 +118,9 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
 
   void _onFftFrame(FftFrame frame) {
     if (_disposed) return;
+    // 暂停时画的是静态 idle 高度（见 [_resolveRatios]），再接收数据只会
+    // 白标脏一次、白出一帧。恢复播放后下一帧自然就接上了。
+    if (!_isPlaying) return;
     final values = frame.values;
     if (values.isEmpty) return;
 

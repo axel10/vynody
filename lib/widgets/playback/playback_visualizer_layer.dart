@@ -5,6 +5,19 @@ import 'package:audio_core/audio_core.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/widgets/visualizer_painter.dart';
 
+/// 逐值比较两份频谱。
+///
+/// 暂停衰减到底、或者音频静音时上层会重复推送同一份数据，直接赋值会让
+/// `CustomPaint` 每帧标脏、白出一帧，所以值没变就不往下传。
+bool _sameFft(List<double> a, List<double> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
 /// 高性能频谱视觉层。
 ///
 /// 特性说明：
@@ -43,6 +56,7 @@ class _PlaybackVisualizerLayerState
         .visualizerStream
         .listen(
       (frame) {
+        if (_sameFft(_fftNotifier.value, frame.values)) return;
         _fftNotifier.value = frame.values;
       },
       onError: (_) {

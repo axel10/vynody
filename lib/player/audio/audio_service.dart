@@ -1564,8 +1564,15 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   void _handlePlayerChanges() {
+    final previousIsPlaying = _isPlaying;
     _isPlaying = _player.player.isPlaying;
     _duration = _player.player.duration;
+
+    // 播放/暂停切换要把状态传给频谱输出流：暂停后它们会自行衰减到静止
+    // 再停表，否则 60Hz 定时器会一直推送、UI 一直标脏出帧。
+    if (previousIsPlaying != _isPlaying) {
+      _player.visualizer.updatePlaybackState(_position, _isPlaying);
+    }
 
     final currentSong = currentMusic;
     if (_isTransitioning || _player.isTransitioning) {
@@ -1810,6 +1817,9 @@ class AudioService extends Notifier<AudioSnapshot> {
       _isProUnlocked && !_isAppBackgrounded && !_isWindowMinimized;
 
   void _updateEffectiveVisualizerState() {
+    // 先对齐播放态再决定开关：重新开启频谱时如果正处于暂停，
+    // 输出流应当以「暂停态」起表（推一帧后立刻落下停表）。
+    _player.visualizer.updatePlaybackState(_position, _isPlaying);
     _player.visualizer.setEnabled(_isFftCaptureAllowed);
     notifyListeners();
   }
