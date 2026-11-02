@@ -16,6 +16,7 @@
 | 曲库数据 | `libraryCatalogProvider` 是唯一订阅 `db.watchAllSongMetadata()` 处；新视图用 `catalogDerived(ref, ...)`。`songs` 排除 external/deletedAt，`visibleSongs` 再加根目录/来源 |
 | 歌词进面板入口 | 唯一 `LyricsFetchCoordinator.ensureLyricsForSong`（队列内存 → SQLite 缓存 → 分层查询；同曲 `lyricsFetchInFlightPath` 在途即忽略，禁 cancel 重来）。缓存键/查询**禁依赖 duration**（`lyricsCacheKeyForPath` / `readCachedLyricsRecordByPath`，键只由 filePath 定）。来源优先级唯一 `kLyricsSourcePreferenceOrder`；fetch 落地与 watch 同步共用 `applyLyricsRecordToCurrent`，禁再写第二套合成；`result == null` 禁写空 lyrics |
 | 返回键 | `MainLayout._handleBackPressed()`：Modal → 播放抽屉 → index 2 → index 0 回上级 → index 4 传输中拦 → `SystemNavigator.pop()` |
+| 返回图标 | 全局唯一 `kAppBackIcon`（`lib/utils/app_icons.dart` = `chevron_left_rounded`），禁再写 `Icons.arrow_back*`；折角只有带杆箭头约 40% 宽，尺寸须比原值抬一档（导航栏/胶囊/面包屑 22、圆钮 20、工具栏 20、AppBar leading 24） |
 | 队列整体替换 | `PlaylistController.replaceActiveTracksAndSelect`（冷启动恢复同理），禁拆 `updatePlaylistTracks`+`playByIndex` |
 | 浮动 Dock 收起 | `floatingDockCollapsed(Progress)Provider`；切页面/子分类**禁** `setCollapsed`，只 `helper.reset(ref)`；顶部缓冲展开必须边沿触发且只对同一 Scrollable 成立，底部无条件展开 |
 | l10n / 设置项 | l10n：9 个 `app_*.arb` 同步，模板 `app_zh.arb`，改完 `flutter gen-l10n`。设置项：`settings_service.dart` 三段 → 6 处同步（key、`SettingProperty`、getter+setter、`resetXxx()`、`settings_search_registry.dart`、`sections/<组>_section.dart`） |

@@ -35,6 +35,7 @@ import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
+import 'package:vynody/utils/app_icons.dart';
 import 'package:vynody/widgets/album_zoom_item.dart';
 import 'package:vynody/widgets/library_insight_list.dart';
 import 'package:vynody/widgets/section_type_toggle.dart';
@@ -387,7 +388,7 @@ void main() {
     // 点详情页自己的左上角返回：只退详情，不能弹掉二级宿主
     final detailBack = find.descendant(
       of: find.byType(AlbumDetailPage),
-      matching: find.byIcon(Icons.arrow_back_rounded),
+      matching: find.byIcon(kAppBackIcon),
     );
     expect(detailBack, findsOneWidget);
     await tester.tap(detailBack);

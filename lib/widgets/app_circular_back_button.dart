@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../utils/app_icons.dart';
 import 'app_tooltip.dart';
 
 /// 全局统一的纯色/微半透圆底返回按钮（类似 Apple Music / macOS 经典悬浮返回钮）
@@ -11,8 +12,8 @@ class AppCircularBackButton extends StatelessWidget {
     this.onPressed,
     this.tooltip,
     this.size = 34.0,
-    this.iconSize = 18.0,
-    this.icon = Icons.arrow_back_ios_new_rounded,
+    this.iconSize = 20.0,
+    this.icon = kAppBackIcon,
     this.backgroundColor,
     this.foregroundColor,
   });

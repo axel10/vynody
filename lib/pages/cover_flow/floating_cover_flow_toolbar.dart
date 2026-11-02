@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/app_icons.dart';
 
 import '../../dialogs/library_source_filter_dialog.dart';
 import '../../dialogs/sort_options_dialog.dart';
@@ -121,10 +122,10 @@ class _FloatingCoverFlowToolbarState extends State<FloatingCoverFlowToolbar> {
             children: [
               IconButton(
                 tooltip: '${l10n.gridView} (ESC)',
-                iconSize: 18,
+                iconSize: 20,
                 visualDensity: VisualDensity.compact,
                 onPressed: widget.onViewModeToggled,
-                icon: const Icon(Icons.arrow_back_rounded),
+                icon: const Icon(kAppBackIcon),
               ),
               const SizedBox(width: 2),
               Icon(

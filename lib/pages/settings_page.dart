@@ -26,6 +26,7 @@ import 'settings/sections/windows_section.dart';
 import 'settings/settings_search_registry.dart';
 import 'settings/settings_section.dart';
 import 'package:vynody/utils/layout_constants.dart';
+import 'package:vynody/utils/app_icons.dart';
 import 'main_layout_riverpod.dart';
 
 export 'settings/settings_section.dart';
@@ -548,7 +549,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(kAppBackIcon),
                 onPressed: () => Navigator.of(context).pop(),
               ),
               const SizedBox(width: 8),
@@ -712,7 +713,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
               notificationPredicate: (_) => false,
               title: Text(l10n.settings),
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(kAppBackIcon),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
@@ -729,7 +730,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
                 notificationPredicate: (_) => false,
                 title: Text(_currentSection.title(context)),
                 leading: IconButton(
-                  icon: const Icon(Icons.arrow_back),
+                  icon: const Icon(kAppBackIcon),
                   onPressed: _goHome,
                 ),
               ),

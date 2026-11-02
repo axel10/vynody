@@ -25,6 +25,7 @@ import 'widgets/remote_library_songs_tab.dart';
 import 'widgets/remote_library_playlists_tab.dart';
 import 'widgets/remote_library_search_tab.dart';
 import '../../utils/song_locator_helper.dart';
+import '../../utils/app_icons.dart';
 import '../../utils/layout_constants.dart';
 import '../../widgets/locate_song_button.dart';
 
@@ -1673,7 +1674,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
             scrolledUnderElevation: 0,
             backgroundColor: theme.colorScheme.surface,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
+              icon: const Icon(kAppBackIcon, size: 24),
               tooltip: l10n.close,
               onPressed: _handleBack,
             ),
@@ -2035,7 +2036,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                       surfaceTintColor: Colors.transparent,
                       backgroundColor: theme.colorScheme.surface,
                       leading: IconButton(
-                        icon: const Icon(Icons.arrow_back_rounded),
+                        icon: const Icon(kAppBackIcon, size: 24),
                         tooltip: l10n.close,
                         onPressed: _handleBack,
                       ),
@@ -2065,7 +2066,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                   scrolledUnderElevation: 0,
                   backgroundColor: theme.colorScheme.surface,
                   leading: IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded),
+                    icon: const Icon(kAppBackIcon, size: 24),
                     tooltip: l10n.close,
                     onPressed: _handleBack,
                   ),

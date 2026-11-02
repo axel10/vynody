@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../utils/app_icons.dart';
 
 /// 统一的 32dp 紧凑图标按钮样式
 final ButtonStyle kCompactIconButtonStyle = IconButton.styleFrom(
@@ -159,8 +160,7 @@ class RemoteResponsiveToolbar extends StatelessWidget {
                           children: [
                             IconButton(
                               style: kCompactIconButtonStyle,
-                              icon: const Icon(Icons.arrow_back_rounded,
-                                  size: 18),
+                              icon: const Icon(kAppBackIcon, size: 20),
                               tooltip: l10n.closeSearch,
                               onPressed: () {
                                 searchFocusNode?.unfocus();

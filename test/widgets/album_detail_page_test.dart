@@ -14,6 +14,7 @@ import 'package:vynody/pages/album_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/app_icons.dart';
 import 'package:vynody/widgets/album_detail_widgets.dart';
 import 'package:vynody/widgets/app_top_nav_bar.dart';
 
@@ -159,7 +160,7 @@ void main() {
 
     // Verify back button in top navigation bar
     expect(find.byType(AppTopNavBar), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+    expect(find.byIcon(kAppBackIcon), findsOneWidget);
 
     // Verify that the title in the top bar is rendered
     expect(find.byKey(const ValueKey('album_title')), findsOneWidget);

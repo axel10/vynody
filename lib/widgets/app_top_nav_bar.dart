@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/utils/app_icons.dart';
 import 'package:vynody/utils/app_log.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/layout_constants.dart';
@@ -185,7 +186,7 @@ class AppTopNavBar extends StatelessWidget {
                     message: l10n?.goBack ?? 'Back',
                     useRootOverlay: true,
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded),
+                      icon: const Icon(kAppBackIcon, size: 24),
                       onPressed: () {
                         final nav = Navigator.of(context);
                         final rootNav = Navigator.of(context, rootNavigator: true);

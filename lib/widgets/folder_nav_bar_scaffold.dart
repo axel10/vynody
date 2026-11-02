@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:vynody/utils/app_icons.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 import 'auto_hide_header.dart';
@@ -286,7 +287,8 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
 
         final backButton = FolderBreadcrumbItem(
           style: style,
-          icon: Icons.arrow_back_rounded,
+          icon: kAppBackIcon,
+          iconSize: 22,
           onTap: widget.onGoBack,
         );
 
@@ -411,7 +413,7 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
                 NavCapsuleIsland(
                   parentTitle: widget.parentTitle ?? '',
                   icon: widget.onGoBack != null
-                      ? Icons.arrow_back_rounded
+                      ? kAppBackIcon
                       : Icons.folder_rounded,
                   onBack: widget.onGoBack ??
                       () => AutoHideHeaderScope.scrollToTop(context),
@@ -448,6 +450,7 @@ class FolderBreadcrumbItem extends StatelessWidget {
     required this.style,
     this.label,
     this.icon,
+    this.iconSize = 20.0,
     this.child,
     this.tooltip,
     this.onTap,
@@ -459,6 +462,7 @@ class FolderBreadcrumbItem extends StatelessWidget {
   final FolderNavBarStyle style;
   final String? label;
   final IconData? icon;
+  final double iconSize;
   final Widget? child;
   final String? tooltip;
   final VoidCallback? onTap;
@@ -476,7 +480,7 @@ class FolderBreadcrumbItem extends StatelessWidget {
             padding: const EdgeInsets.all(4),
             child: Icon(
               icon,
-              size: 20,
+              size: iconSize,
               color: style.iconColor,
               shadows: style.shadows,
             ),

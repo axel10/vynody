@@ -12,6 +12,7 @@ import 'package:vynody/player/sharing/sharing_service.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/widgets/desktop_window_title_bar.dart';
+import 'package:vynody/utils/app_icons.dart';
 import 'package:vynody/widgets/playing_equalizer_icon.dart';
 
 
@@ -498,7 +499,7 @@ class _RemoteControlPageState extends ConsumerState<RemoteControlPage>
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
+            icon: const Icon(kAppBackIcon, size: 24),
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             onPressed: () {
               if (_isSelectionMode) {

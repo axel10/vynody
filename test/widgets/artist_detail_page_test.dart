@@ -9,6 +9,7 @@ import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/pages/album_detail_page.dart';
 import 'package:vynody/pages/artist_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/utils/app_icons.dart';
 import 'package:vynody/widgets/album_zoom_item.dart';
 import 'package:vynody/widgets/app_top_nav_bar.dart';
 
@@ -160,7 +161,7 @@ void main() {
 
     // Verify top nav bar is present
     expect(find.byType(AppTopNavBar), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+    expect(find.byIcon(kAppBackIcon), findsOneWidget);
 
     // Verify title in top bar is present
     expect(find.byKey(const ValueKey('album_title')), findsOneWidget);
@@ -181,7 +182,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.tap(find.byIcon(kAppBackIcon));
     await tester.pumpAndSettle();
 
     expect(didGoBack, isTrue);

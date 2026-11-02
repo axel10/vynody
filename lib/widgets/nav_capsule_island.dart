@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:vynody/utils/app_icons.dart';
 import 'package:vynody/utils/blur_constants.dart';
 
 /// 统一的顶部浮动胶囊岛组件。
@@ -10,7 +11,7 @@ class NavCapsuleIsland extends StatelessWidget {
   const NavCapsuleIsland({
     super.key,
     this.parentTitle = '',
-    this.icon = Icons.arrow_back_rounded,
+    this.icon = kAppBackIcon,
     this.onBack,
     this.actions,
     this.showBack = true,
@@ -20,7 +21,7 @@ class NavCapsuleIsland extends StatelessWidget {
   /// 上一层的位置名称（用于 Tooltip 悬浮提示等）
   final String parentTitle;
 
-  /// 返回图标，默认为 [Icons.arrow_back_rounded]
+  /// 返回图标，默认为 [kAppBackIcon]
   final IconData icon;
 
   /// 点击返回上一层的回调动作
@@ -64,7 +65,7 @@ class NavCapsuleIsland extends StatelessWidget {
             child: Center(
               child: Icon(
                 icon,
-                size: 20,
+                size: 22,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
               ),
             ),
