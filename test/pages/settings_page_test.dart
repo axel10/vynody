@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +14,7 @@ import 'package:vynody/pages/settings/sections/general_section.dart';
 import 'package:vynody/pages/settings/sections/shortcuts_section.dart';
 import 'package:vynody/pages/settings/sections/tags_section.dart';
 import 'package:vynody/pages/settings/sections/transcode_section.dart';
+import 'package:vynody/pages/settings/settings_search_registry.dart';
 import 'package:vynody/pages/settings/widgets/settings_dropdown_tile.dart';
 import 'package:vynody/pages/settings/widgets/settings_group_card.dart';
 import 'package:vynody/pages/settings/widgets/settings_section_header.dart';
@@ -26,11 +29,45 @@ void main() {
   });
 
   test('SettingsSection enum provides correct metadata', () {
-    expect(SettingsSection.values.length, 12);
-    expect(SettingsSection.sidebarSections.contains(SettingsSection.general), isTrue);
-    expect(SettingsSection.sidebarSections.contains(SettingsSection.audio), isTrue);
-    expect(SettingsSection.sidebarSections.contains(SettingsSection.lyrics), isTrue);
-    expect(SettingsSection.sidebarSections.contains(SettingsSection.about), isTrue);
+    // 12 个真实分组 + home 伪条目（首页本身不是一个设置页）。
+    expect(SettingsSection.values.length, 13);
+    expect(SettingsSection.visibleSections.contains(SettingsSection.general), isTrue);
+    expect(SettingsSection.visibleSections.contains(SettingsSection.audio), isTrue);
+    expect(SettingsSection.visibleSections.contains(SettingsSection.lyrics), isTrue);
+    expect(SettingsSection.visibleSections.contains(SettingsSection.about), isTrue);
+  });
+
+  test('home 卡片分组与侧栏清单同源，且覆盖所有可见分组', () {
+    final visible = SettingsSection.visibleSections;
+
+    // 首页只是伪条目，不应出现在任何清单里。
+    expect(visible.contains(SettingsSection.home), isFalse);
+
+    // 分组字段必须覆盖每一个真实分组（新增枚举忘了归口会编译失败，这里兜底运行时）。
+    for (final section in visible) {
+      expect(section.group, isNotNull, reason: '${section.name} 缺少分组归口');
+    }
+
+    // 侧栏 = 首页卡片展平，顺序一致 —— 这是「两边漏项」的回归断言。
+    final flattened = SettingsSection.homeGroups.values.expand((e) => e).toList();
+    expect(flattened, visible);
+
+    // Windows 专属页只在 Windows 上出现。
+    expect(
+      visible.contains(SettingsSection.windows),
+      Platform.isWindows,
+    );
+  });
+
+  test('每个可见分组在搜索索引里都有条目', () {
+    final indexed = settingsSearchRegistry.map((item) => item.section).toSet();
+    for (final section in SettingsSection.visibleSections) {
+      expect(
+        indexed.contains(section),
+        isTrue,
+        reason: '${section.name} 没有搜索条目，搜索页会搜不到它',
+      );
+    }
   });
 
   test('ProFeature.wasapiExclusive exists and provides metadata', () {

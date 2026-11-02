@@ -2,6 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 
+/// 设置分组的归口。
+///
+/// 首页竖屏是「一张卡 = 一个分组」，横屏侧栏是「按同一顺序平铺」，
+/// 两者都从 [SettingsSection] 的元数据派生 —— 新增设置分组只改
+/// [SettingsSection]，不必再同步第二份清单。
+enum SettingsSectionGroup { core, library, tools, about }
+
 enum SettingsSection {
   home,
   general,
@@ -54,18 +61,52 @@ enum SettingsSection {
     };
   }
 
-  static List<SettingsSection> get sidebarSections => [
-        SettingsSection.general,
-        SettingsSection.audio,
-        SettingsSection.scanning,
-        SettingsSection.tags,
-        SettingsSection.transcode,
-        SettingsSection.lyrics,
-        SettingsSection.acoustid,
-        SettingsSection.lastFm,
-        SettingsSection.storage,
-        SettingsSection.shortcuts,
-        if (Platform.isWindows) SettingsSection.windows,
-        SettingsSection.about,
-      ];
+  /// 归属的首页卡片分组。[SettingsSection.home] 只是「首页」这个伪条目，
+  /// 不属于任何分组。
+  ///
+  /// 故意写全所有枚举值（不用 `_` 兜底）：新增分组若忘了归口，这里会编译报错。
+  SettingsSectionGroup? get group {
+    return switch (this) {
+      SettingsSection.home => null,
+      SettingsSection.general || SettingsSection.audio =>
+        SettingsSectionGroup.core,
+      SettingsSection.scanning ||
+      SettingsSection.tags ||
+      SettingsSection.transcode ||
+      SettingsSection.lyrics ||
+      SettingsSection.acoustid ||
+      SettingsSection.lastFm => SettingsSectionGroup.library,
+      SettingsSection.storage ||
+      SettingsSection.shortcuts ||
+      SettingsSection.windows => SettingsSectionGroup.tools,
+      SettingsSection.about => SettingsSectionGroup.about,
+    };
+  }
+
+  /// 当前平台是否提供该设置页。平台判定只写在这里。
+  bool get isAvailable {
+    if (this == SettingsSection.home) return false;
+    if (this == SettingsSection.windows) return Platform.isWindows;
+    return true;
+  }
+
+  /// 侧栏与首页卡片共用的唯一可见清单，顺序即枚举声明顺序。
+  static List<SettingsSection> get visibleSections => [
+    for (final section in values)
+      if (section.isAvailable) section,
+  ];
+
+  /// 首页竖屏卡片：按 [SettingsSectionGroup] 的声明顺序分桶，空桶不输出。
+  static Map<SettingsSectionGroup, List<SettingsSection>> get homeGroups {
+    final buckets = <SettingsSectionGroup, List<SettingsSection>>{
+      for (final group in SettingsSectionGroup.values) group: <SettingsSection>[],
+    };
+    for (final section in visibleSections) {
+      buckets[section.group]!.add(section);
+    }
+    return {
+      for (final entry in buckets.entries)
+        if (entry.value.isNotEmpty) entry.key: entry.value,
+    };
+  }
 }

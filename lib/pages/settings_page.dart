@@ -283,25 +283,8 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
   Widget _buildHomeBody(BuildContext context) {
     final isSearching = _searchQuery.trim().isNotEmpty;
 
-    final group1 = [
-      SettingsSection.general,
-      SettingsSection.audio,
-    ];
-    final group2 = [
-      SettingsSection.scanning,
-      SettingsSection.tags,
-      SettingsSection.transcode,
-      SettingsSection.lyrics,
-      SettingsSection.acoustid,
-    ];
-    final group3 = [
-      SettingsSection.storage,
-      SettingsSection.shortcuts,
-      if (Platform.isWindows) SettingsSection.windows,
-    ];
-    final group4 = [
-      SettingsSection.about,
-    ];
+    // 分组与组内条目唯一来源：SettingsSection.homeGroups。
+    final groups = SettingsSection.homeGroups.values.toList();
 
     return Column(
       children: [
@@ -325,25 +308,13 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
                   children: [
-                    _SettingsGroupCard(
-                      sections: group1,
-                      onSectionTap: _openSection,
-                    ),
-                    const SizedBox(height: 14),
-                    _SettingsGroupCard(
-                      sections: group2,
-                      onSectionTap: _openSection,
-                    ),
-                    const SizedBox(height: 14),
-                    _SettingsGroupCard(
-                      sections: group3,
-                      onSectionTap: _openSection,
-                    ),
-                    const SizedBox(height: 14),
-                    _SettingsGroupCard(
-                      sections: group4,
-                      onSectionTap: _openSection,
-                    ),
+                    for (int i = 0; i < groups.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 14),
+                      _SettingsGroupCard(
+                        sections: groups[i],
+                        onSectionTap: _openSection,
+                      ),
+                    ],
                   ],
                 ),
         ),
@@ -529,7 +500,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
   Widget _buildSidebar(BuildContext context, SettingsSection activeSection) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final sidebarSections = SettingsSection.sidebarSections;
+    final sidebarSections = SettingsSection.visibleSections;
     final statusBarTop = MediaQuery.paddingOf(context).top;
 
     // 与 MainLayout 的左侧 Rail 保持同一套文字色：用纯白 / 近黑，
