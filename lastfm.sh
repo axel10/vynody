@@ -1,0 +1,1 @@
+flutter run  --dart-define=LASTFM_SECRET="$LASTFM_SECRET"  --profile
