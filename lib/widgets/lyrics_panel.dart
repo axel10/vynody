@@ -75,6 +75,9 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
     this.secondaryTextColor,
     this.bottomSpacerHeight = 0.0,
     this.bottomTabBarHeight = 0.0,
+    this.bottomReserveBase,
+    this.bottomReserveProgress,
+    this.bottomReserveDelta = 0.0,
     this.onActiveLyricTopChanged,
     this.isTransitioning = false,
   });
@@ -86,6 +89,11 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
   final Color? secondaryTextColor;
   final double bottomSpacerHeight;
   final double bottomTabBarHeight;
+
+  /// 底部淡出的基准留白；只驱动淡出位置，不参与布局计算。
+  final double? bottomReserveBase;
+  final Animation<double>? bottomReserveProgress;
+  final double bottomReserveDelta;
   final ValueChanged<double?>? onActiveLyricTopChanged;
   final bool isTransitioning;
 
@@ -156,6 +164,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   String? _lastBuiltCjkFont;
   double? _lastBuiltBottomSpacerHeight;
   double? _lastBuiltBottomTabBarHeight;
+  double? _lastBuiltBottomReserveBase;
+  Animation<double>? _lastBuiltBottomReserveProgress;
+  double? _lastBuiltBottomReserveDelta;
   bool? _lastBuiltShowTranslation;
   bool? _lastBuiltShowWordByWord;
   int? _lastBuiltLayoutRevision;
@@ -2102,6 +2113,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             lyricsCjkFont != _lastBuiltCjkFont ||
             widget.bottomSpacerHeight != _lastBuiltBottomSpacerHeight ||
             widget.bottomTabBarHeight != _lastBuiltBottomTabBarHeight ||
+            widget.bottomReserveBase != _lastBuiltBottomReserveBase ||
+            widget.bottomReserveProgress != _lastBuiltBottomReserveProgress ||
+            widget.bottomReserveDelta != _lastBuiltBottomReserveDelta ||
             showLyricsTranslation != _lastBuiltShowTranslation ||
             showLyricsWordByWord != _lastBuiltShowWordByWord ||
             layoutRevision != _lastBuiltLayoutRevision ||
@@ -2131,6 +2145,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _lastBuiltCjkFont = lyricsCjkFont;
           _lastBuiltBottomSpacerHeight = widget.bottomSpacerHeight;
           _lastBuiltBottomTabBarHeight = widget.bottomTabBarHeight;
+          _lastBuiltBottomReserveBase = widget.bottomReserveBase;
+          _lastBuiltBottomReserveProgress = widget.bottomReserveProgress;
+          _lastBuiltBottomReserveDelta = widget.bottomReserveDelta;
           _lastBuiltShowTranslation = showLyricsTranslation;
           _lastBuiltShowWordByWord = showLyricsWordByWord;
           _lastBuiltLayoutRevision = layoutRevision;
@@ -2167,6 +2184,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             },
             bottomSpacerHeight: widget.bottomSpacerHeight,
             bottomTabBarHeight: widget.bottomTabBarHeight,
+            bottomReserveBase: widget.bottomReserveBase,
+            bottomReserveProgress: widget.bottomReserveProgress,
+            bottomReserveDelta: widget.bottomReserveDelta,
             isFocusMode: _isFocusMode,
             onLineTapped: (index) {
               _handleLineTapped(index, renderedLines);

@@ -443,11 +443,20 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
     final double effectiveLyricsBottomSpacer =
         widget.lyricsBottomSpacerHeight +
         (shouldExpandControls ? (progressBarTopFromBottom + 16.0) : 0.0);
+    // 但底部「淡出」必须跟着面板一起上下走，否则面板一动淡出就整块跳。
+    // 所以淡出另走一条只驱动 ShaderMask 的通道：基准 + delta * 进度。
+    final double lyricsBottomReserveDelta =
+        (!effectiveIsLandscape && expandPortraitLyricsControlsOnScroll)
+        ? (progressBarTopFromBottom + 16.0)
+        : 0.0;
 
     final lyricsPanelWidget = _LyricsPanelTransitionWrapper(
       isTransitioning: isTransitioningNotifier,
       isLyricsMode: effectiveIsLyricsMode,
       lyricsBottomSpacerHeight: effectiveLyricsBottomSpacer,
+      lyricsBottomReserveBase: widget.lyricsBottomSpacerHeight,
+      lyricsBottomReserveProgress: expandProgress,
+      lyricsBottomReserveDelta: lyricsBottomReserveDelta,
       lyricsBottomTabBarHeight: widget.lyricsBottomTabBarHeight,
     );
 
@@ -1668,12 +1677,18 @@ class _LyricsPanelTransitionWrapper extends StatefulWidget {
   final ValueNotifier<bool> isTransitioning;
   final bool isLyricsMode;
   final double lyricsBottomSpacerHeight;
+  final double lyricsBottomReserveBase;
+  final Animation<double> lyricsBottomReserveProgress;
+  final double lyricsBottomReserveDelta;
   final double lyricsBottomTabBarHeight;
 
   const _LyricsPanelTransitionWrapper({
     required this.isTransitioning,
     required this.isLyricsMode,
     required this.lyricsBottomSpacerHeight,
+    required this.lyricsBottomReserveBase,
+    required this.lyricsBottomReserveProgress,
+    required this.lyricsBottomReserveDelta,
     required this.lyricsBottomTabBarHeight,
   });
 
@@ -1741,6 +1756,9 @@ class _LyricsPanelTransitionWrapperState
           accentColor: accent,
           bottomSpacerHeight: widget.lyricsBottomSpacerHeight,
           bottomTabBarHeight: widget.lyricsBottomTabBarHeight,
+          bottomReserveBase: widget.lyricsBottomReserveBase,
+          bottomReserveProgress: widget.lyricsBottomReserveProgress,
+          bottomReserveDelta: widget.lyricsBottomReserveDelta,
           isTransitioning: _isTransitioning,
         );
       },

@@ -135,6 +135,7 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
     required this.onContextMenu,
     required this.bottomSpacerHeight,
     this.bottomTabBarHeight = 0.0,
+    this.bottomReserveBase,
     this.bottomReserveProgress,
     this.bottomReserveDelta = 0.0,
     required this.isFocusMode,
@@ -171,6 +172,16 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
   final void Function(Offset globalPosition) onContextMenu;
   final double bottomSpacerHeight;
   final double bottomTabBarHeight;
+
+  /// 底部淡出的基准留白（控制面板收起态）。为空时退回 [bottomSpacerHeight]。
+  /// 布局用的 [bottomSpacerHeight] 只跟随终值，淡出则靠这两个参数跟着面板走。
+  final double? bottomReserveBase;
+
+  /// 竖屏歌词页「滚动展开控制面板」的进度（0 = 面板收起，1 = 完全展开）。
+  final Animation<double>? bottomReserveProgress;
+
+  /// 展开态相对收起态多出来的底部留白。
+  final double bottomReserveDelta;
   final bool isFocusMode;
   final ValueChanged<int>? onLineTapped;
   final double scrollDelta;
@@ -222,8 +233,11 @@ class _LyricsPanelTimedLyricsViewState
         children: [
           Expanded(
             child: _LyricsFadeShaderMask(
-              bottomSpacerHeight:
-                  widget.bottomSpacerHeight + widget.bottomTabBarHeight,
+              bottomReserveBase:
+                  (widget.bottomReserveBase ?? widget.bottomSpacerHeight) +
+                  widget.bottomTabBarHeight,
+              bottomReserveProgress: widget.bottomReserveProgress,
+              bottomReserveDelta: widget.bottomReserveDelta,
               isSmallWin: widget.isSmallWin,
               lyricsFontScale: widget.lyricsFontScale,
               child: ClipRect(
@@ -777,88 +791,116 @@ class _VerticalOnlyClipper extends CustomClipper<Rect> {
 
 class _LyricsFadeShaderMask extends StatelessWidget {
   const _LyricsFadeShaderMask({
-    required this.bottomSpacerHeight,
+    required this.bottomReserveBase,
+    this.bottomReserveProgress,
+    this.bottomReserveDelta = 0.0,
     required this.isSmallWin,
     required this.lyricsFontScale,
     required this.child,
   });
 
-  final double bottomSpacerHeight;
+  /// 底部淡出的基准留白（控制面板收起态）。
+  final double bottomReserveBase;
+
+  /// 控制面板展开进度；有值时底部淡出跟着面板一起上下移动，而不是一步到位。
+  final Animation<double>? bottomReserveProgress;
+
+  /// 展开态相对收起态多出来的留白，按 `base + delta * progress` 参与淡出。
+  final double bottomReserveDelta;
   final bool isSmallWin;
   final double lyricsFontScale;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: ExcludeSemantics(
-        child: ShaderMask(
-          blendMode: BlendMode.dstIn,
-          shaderCallback: (bounds) {
-            final height = bounds.height > 0 ? bounds.height : 1.0;
-            if (height <= 1.0) {
-              return const LinearGradient(
-                colors: [Colors.white, Colors.white],
-              ).createShader(bounds);
-            }
+    final Animation<double>? progress = bottomReserveProgress;
 
-            final topFadeHeight =
-                PlaybackPageUiTuning.appleLyricsTopFadeHeight(lyricsFontScale);
-            final topFadeEnd = (topFadeHeight / height).clamp(0.0, 1.0);
-
-            final isPortrait =
-                (MediaQuery.of(context).orientation == Orientation.portrait) ||
-                isSmallWin;
-
-            final double bottomFadeEndHeight;
-            final double bottomFadeStartHeight;
-
-            if (isPortrait) {
-              final effectiveBottomReserve = math.max(20.0, bottomSpacerHeight);
-              bottomFadeEndHeight = effectiveBottomReserve;
-              final fadeLength =
-                  PlaybackPageUiTuning.appleLyricsBottomFadeLength;
-              bottomFadeStartHeight = effectiveBottomReserve + fadeLength;
-            } else {
-              bottomFadeEndHeight = 0.0;
-              bottomFadeStartHeight = math.max(40.0, bottomSpacerHeight + 40.0);
-            }
-
-            final bottomFadeStart =
-                ((bounds.height - bottomFadeStartHeight) / bounds.height).clamp(
-                  0.0,
-                  1.0,
-                );
-            final bottomFadeEnd =
-                ((bounds.height - bottomFadeEndHeight) / bounds.height).clamp(
-                  0.0,
-                  1.0,
-                );
-
-            final tEnd = topFadeEnd;
-            final bStart = bottomFadeStart.clamp(tEnd, 1.0);
-            final bEnd = bottomFadeEnd.clamp(bStart, 1.0);
-
-            // Ensure stops are in increasing order
-            final stops = [0.0, tEnd, bStart, bEnd, 1.0];
-
-            return LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: const [
-                Colors.transparent,
-                Colors.white,
-                Colors.white,
-                Colors.transparent,
-                Colors.transparent,
-              ],
-              stops: stops,
-            ).createShader(bounds);
-          },
-          child: child,
-        ),
-      ),
+    Widget buildMask(double reserve) => ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (bounds) => _buildFadeShader(bounds, context, reserve),
+      // 歌词内容单独成层：淡出遮罩每帧变化时只重做一次合成，
+      // 不必把整片歌词重新栅格化。
+      child: RepaintBoundary(child: child),
     );
+
+    final Widget maskContent;
+    if (progress == null || bottomReserveDelta == 0.0) {
+      maskContent = buildMask(bottomReserveBase);
+    } else {
+      maskContent = ListenableBuilder(
+        listenable: progress,
+        builder: (context, _) => buildMask(
+          bottomReserveBase +
+              bottomReserveDelta * progress.value.clamp(0.0, 1.0),
+        ),
+      );
+    }
+
+    return RepaintBoundary(
+      child: ExcludeSemantics(child: maskContent),
+    );
+  }
+
+  ui.Shader _buildFadeShader(
+    Rect bounds,
+    BuildContext context,
+    double reserve,
+  ) {
+    final height = bounds.height > 0 ? bounds.height : 1.0;
+    if (height <= 1.0) {
+      return const LinearGradient(
+        colors: [Colors.white, Colors.white],
+      ).createShader(bounds);
+    }
+
+    final topFadeHeight =
+        PlaybackPageUiTuning.appleLyricsTopFadeHeight(lyricsFontScale);
+    final topFadeEnd = (topFadeHeight / height).clamp(0.0, 1.0);
+
+    final isPortrait =
+        (MediaQuery.of(context).orientation == Orientation.portrait) ||
+        isSmallWin;
+
+    final double bottomFadeEndHeight;
+    final double bottomFadeStartHeight;
+
+    if (isPortrait) {
+      final effectiveBottomReserve = math.max(20.0, reserve);
+      bottomFadeEndHeight = effectiveBottomReserve;
+      final fadeLength = PlaybackPageUiTuning.appleLyricsBottomFadeLength;
+      bottomFadeStartHeight = effectiveBottomReserve + fadeLength;
+    } else {
+      bottomFadeEndHeight = 0.0;
+      bottomFadeStartHeight = math.max(40.0, reserve + 40.0);
+    }
+
+    final bottomFadeStart =
+        ((bounds.height - bottomFadeStartHeight) / bounds.height).clamp(
+          0.0,
+          1.0,
+        );
+    final bottomFadeEnd =
+        ((bounds.height - bottomFadeEndHeight) / bounds.height).clamp(0.0, 1.0);
+
+    final tEnd = topFadeEnd;
+    final bStart = bottomFadeStart.clamp(tEnd, 1.0);
+    final bEnd = bottomFadeEnd.clamp(bStart, 1.0);
+
+    // Ensure stops are in increasing order
+    final stops = [0.0, tEnd, bStart, bEnd, 1.0];
+
+    return LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: const [
+        Colors.transparent,
+        Colors.white,
+        Colors.white,
+        Colors.transparent,
+        Colors.transparent,
+      ],
+      stops: stops,
+    ).createShader(bounds);
   }
 }
 
