@@ -417,27 +417,40 @@ class _WideQuickAccessBar extends ConsumerWidget {
       ),
     ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.only(
-        left: contentLeftPadding + horizontalPadding,
-        right: horizontalPadding,
-      ),
-      child: Row(
-        children: items.map((item) {
-          return Padding(
-            padding: const EdgeInsets.only(right: 14),
-            child: _WideQuickCard(
-              title: item.title,
-              icon: item.icon,
-              gradient: item.gradient,
-              badgeText: item.badgeText,
-              onTap: () => onTapSubIndex(item.index),
-            ),
-          );
-        }).toList(),
-      ),
+    // 卡片自身高度：图标 38 + 上下内边距 11×2 = 60，走马灯容器需要确定的行高
+    const cardHeight = 60.0;
+
+    return _CarouselScrollWrapper(
+      height: cardHeight,
+      // 紧凑横条：胶囊按钮比下方封面流略矮，避免撑满整行
+      buttonHeight: 40.0,
+      buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
+      leftButtonOffset: contentLeftPadding,
+      builder: (context, controller) {
+        return SingleChildScrollView(
+          controller: controller,
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.only(
+            left: contentLeftPadding + horizontalPadding,
+            right: horizontalPadding,
+          ),
+          child: Row(
+            children: items.map((item) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: _WideQuickCard(
+                  title: item.title,
+                  icon: item.icon,
+                  gradient: item.gradient,
+                  badgeText: item.badgeText,
+                  onTap: () => onTapSubIndex(item.index),
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      },
     );
   }
 }
@@ -812,11 +825,15 @@ class _PillNavButton extends StatefulWidget {
     required this.direction,
     required this.visible,
     required this.onTap,
+    this.height = 56.0,
   });
 
   final _PillNavDirection direction;
   final bool visible;
   final VoidCallback onTap;
+
+  /// 胶囊按钮高度。紧凑横条（如顶部快捷入口）传入较小值以免撑满整行。
+  final double height;
 
   @override
   State<_PillNavButton> createState() => _PillNavButtonState();
@@ -862,7 +879,7 @@ class _PillNavButtonState extends State<_PillNavButton> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               width: 28,
-              height: 56,
+              height: widget.height,
               decoration: BoxDecoration(
                 color: _isButtonHovered ? hoverColor : baseColor,
                 borderRadius: BorderRadius.circular(20),
@@ -906,6 +923,7 @@ class _CarouselScrollWrapper extends StatefulWidget {
     this.centerHeight,
     this.buttonPadding = 12.0,
     this.leftButtonOffset = 0.0,
+    this.buttonHeight = 56.0,
   });
 
   final double height;
@@ -913,6 +931,7 @@ class _CarouselScrollWrapper extends StatefulWidget {
   final double? centerHeight;
   final double buttonPadding;
   final double leftButtonOffset;
+  final double buttonHeight;
 
   @override
   State<_CarouselScrollWrapper> createState() => _CarouselScrollWrapperState();
@@ -991,7 +1010,7 @@ class _CarouselScrollWrapperState extends State<_CarouselScrollWrapper> {
   @override
   Widget build(BuildContext context) {
     final targetCenter = widget.centerHeight ?? widget.height;
-    const btnHeight = 56.0;
+    final btnHeight = widget.buttonHeight;
     final btnTop = ((targetCenter - btnHeight) / 2.0).clamp(0.0, double.infinity);
 
     return MouseRegion(
@@ -1023,6 +1042,7 @@ class _CarouselScrollWrapperState extends State<_CarouselScrollWrapper> {
                   direction: _PillNavDirection.left,
                   visible: _isHovered && _canScrollLeft,
                   onTap: _scrollPrevious,
+                  height: widget.buttonHeight,
                 ),
               ),
 
@@ -1034,6 +1054,7 @@ class _CarouselScrollWrapperState extends State<_CarouselScrollWrapper> {
                   direction: _PillNavDirection.right,
                   visible: _isHovered && _canScrollRight,
                   onTap: _scrollNext,
+                  height: widget.buttonHeight,
                 ),
               ),
             ],
