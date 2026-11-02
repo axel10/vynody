@@ -9,6 +9,7 @@ import 'package:vynody/player/remote/clients/webdav_client.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
 import 'package:vynody/widgets/folder_zoom_gesture_layer.dart';
+import 'package:vynody/widgets/song_zoom_item.dart';
 
 /// 远程目录页（WebDAV / SMB 共用）一页挂两段网格：子目录 + 文件。
 ///
@@ -45,10 +46,12 @@ void main() {
     ),
   ];
 
+  // 目录页只呈现「子目录 + 可播放音频」，非音频文件在加载阶段就被剔掉，
+  // 所以这里用音频文件验证文件段确实渲染。
   const files = [
     WebDavFile(
-      path: '/Music/notes.txt',
-      name: 'notes.txt',
+      path: '/Music/01 - Song.flac',
+      name: '01 - Song.flac',
       isDirectory: false,
       contentLength: 1024,
     ),
@@ -118,7 +121,7 @@ void main() {
     expect(find.byType(FolderZoomSliverBuilder), findsOneWidget);
     expect(find.text('Pop'), findsOneWidget);
     expect(find.text('Rock'), findsOneWidget);
-    expect(find.text('notes.txt'), findsOneWidget);
+    expect(find.byType(SongZoomItem), findsOneWidget);
   });
 
   testWidgets('没有页面级 builder 时，段组件退化成宿主（单独成页仍可用）', (tester) async {

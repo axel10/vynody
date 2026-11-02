@@ -9,13 +9,10 @@ import 'package:vynody/player/remote/clients/webdav_client.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/services/remote_scan_root.dart';
-import 'package:vynody/utils/folder_helpers.dart';
 import 'package:vynody/utils/remote_context_menu_utils.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
 import 'package:vynody/widgets/folder_zoom_item.dart';
-import 'package:vynody/widgets/hoverable_card.dart';
 import 'package:vynody/widgets/song_zoom_item.dart';
-import 'package:vynody/widgets/draggable_song_item.dart';
 
 /// Renders WebDAV subfolders in unified zoom-driven grid or list view.
 class WebDavSubfoldersSliver extends ConsumerWidget {
@@ -278,69 +275,37 @@ class WebDavSongsSliver extends ConsumerWidget {
                     RemoteMediaResolver.buildRemoteUri(server, file.path);
                 final isSelected = selectedSongPaths.contains(uri);
 
-                if (file.isAudio) {
-                  final meta = metadataMap[uri] ??
-                      ref.watch(
-                        scannerServiceProvider.select(
-                          (s) => s.metadataMap[uri],
-                        ),
-                      );
-                  final musicFile = RemoteMediaResolver.buildMusicFile(
-                    file,
-                    server,
-                    metadata: meta,
-                  );
-                  final isCurrent = currentMusicPath == uri;
-                  final isHighlighted = highlightedSongPath == uri;
+                // 目录加载时已把非音频文件（封面图、.cue/.nfo/.txt、系统文件）
+                // 全部剔掉，走到这里的必然是音频。
+                final meta = metadataMap[uri] ??
+                    ref.watch(
+                      scannerServiceProvider.select(
+                        (s) => s.metadataMap[uri],
+                      ),
+                    );
+                final musicFile = RemoteMediaResolver.buildMusicFile(
+                  file,
+                  server,
+                  metadata: meta,
+                );
+                final isCurrent = currentMusicPath == uri;
+                final isHighlighted = highlightedSongPath == uri;
 
-                  return SongZoomItem(
-                    key: ValueKey('webdav_song_$uri'),
-                    song: musicFile,
-                    metrics: metrics,
-                    section: section,
-                    isCurrent: isCurrent,
-                    isPlaying: isAudioPlaying,
-                    isSelected: isSelected,
-                    isSelectionMode: isSelectionMode,
-                    selectedPaths: selectedSongPaths,
-                    isHighlighted: isHighlighted,
-                    onTap: () => onSongTap(file, index),
-                    onLongPress: () => onSongLongPress?.call(file),
-                    onSecondaryTapDown: (details) =>
-                        onSongSecondaryTapDown?.call(file, details),
-                  );
-                }
-
-                final musicFile =
-                    RemoteMediaResolver.buildMusicFile(file, server);
-                return DraggableSongItem(
-                  key: ValueKey('webdav_file_$uri'),
+                return SongZoomItem(
+                  key: ValueKey('webdav_song_$uri'),
                   song: musicFile,
-                  enabled: true,
+                  metrics: metrics,
+                  section: section,
+                  isCurrent: isCurrent,
+                  isPlaying: isAudioPlaying,
                   isSelected: isSelected,
                   isSelectionMode: isSelectionMode,
                   selectedPaths: selectedSongPaths,
-                  child: metrics.isGridTarget
-                      ? HoverableCard(
-                          child: WebDavGenericFileGridCard(
-                            file: file,
-                            isSelected: isSelected,
-                            isSelectionMode: isSelectionMode,
-                            onTap: () => onSongTap(file, index),
-                            onLongPress: () => onSongLongPress?.call(file),
-                            onSecondaryTapDown: (details) =>
-                                onSongSecondaryTapDown?.call(file, details),
-                          ),
-                        )
-                      : WebDavGenericFileListTile(
-                          file: file,
-                          isSelected: isSelected,
-                          isSelectionMode: isSelectionMode,
-                          onTap: () => onSongTap(file, index),
-                          onLongPress: () => onSongLongPress?.call(file),
-                          onSecondaryTapDown: (details) =>
-                              onSongSecondaryTapDown?.call(file, details),
-                        ),
+                  isHighlighted: isHighlighted,
+                  onTap: () => onSongTap(file, index),
+                  onLongPress: () => onSongLongPress?.call(file),
+                  onSecondaryTapDown: (details) =>
+                      onSongSecondaryTapDown?.call(file, details),
                 );
               },
               childCount: files.length,
@@ -348,275 +313,6 @@ class WebDavSongsSliver extends ConsumerWidget {
           ),
         );
       },
-    );
-  }
-}
-
-/// Generic File Grid Card for non-audio files in WebDAV directory.
-class WebDavGenericFileGridCard extends StatelessWidget {
-  final WebDavFile file;
-  final bool isSelected;
-  final bool isSelectionMode;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
-  final void Function(TapDownDetails)? onSecondaryTapDown;
-
-  const WebDavGenericFileGridCard({
-    super.key,
-    required this.file,
-    this.isSelected = false,
-    this.isSelectionMode = false,
-    this.onTap,
-    this.onLongPress,
-    this.onSecondaryTapDown,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-
-    return GestureDetector(
-      onSecondaryTapDown: onSecondaryTapDown,
-      onLongPress: onLongPress,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        enableFeedback: false,
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.6),
-            border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
-              width: 1.0,
-            ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AspectRatio(
-                  aspectRatio: 1.0,
-                  child: ClipRRect(
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(11)),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Container(
-                          color: theme.colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.4),
-                          child: Center(
-                            child: Icon(
-                              Icons.insert_drive_file_outlined,
-                              size: 48,
-                              color: theme.colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ),
-                        if (isSelectionMode)
-                          Container(
-                            color: isSelected
-                                ? theme.colorScheme.primaryContainer
-                                    .withValues(alpha: 0.4)
-                                : Colors.black26,
-                          ),
-                        if (isSelectionMode)
-                          Positioned(
-                            top: 8,
-                            left: 8,
-                            child: Icon(
-                              isSelected
-                                  ? Icons.check_circle_rounded
-                                  : Icons.radio_button_off_rounded,
-                              color: isSelected
-                                  ? theme.colorScheme.primary
-                                  : Colors.white70,
-                              size: 24,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          file.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: (isPortrait
-                                  ? theme.textTheme.titleSmall
-                                  : theme.textTheme.titleMedium)
-                              ?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.7),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          formatFileSize(file.contentLength),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: (isPortrait
-                                  ? theme.textTheme.bodySmall
-                                  : theme.textTheme.bodyMedium)
-                              ?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Generic File List Tile for non-audio files in WebDAV directory.
-class WebDavGenericFileListTile extends StatelessWidget {
-  final WebDavFile file;
-  final bool isSelected;
-  final bool isSelectionMode;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
-  final void Function(TapDownDetails)? onSecondaryTapDown;
-
-  const WebDavGenericFileListTile({
-    super.key,
-    required this.file,
-    this.isSelected = false,
-    this.isSelectionMode = false,
-    this.onTap,
-    this.onLongPress,
-    this.onSecondaryTapDown,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final sizeStr = formatFileSize(file.contentLength);
-
-    final leadingWidget = SizedBox(
-      width: 56,
-      height: 56,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-              child: Center(
-                child: Icon(
-                  Icons.insert_drive_file_outlined,
-                  size: 26,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-          ),
-          if (isSelectionMode)
-            Positioned.fill(
-              child: Align(
-                alignment: Alignment.center,
-                child: SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: Checkbox(
-                    value: isSelected,
-                    onChanged: (_) => onTap?.call(),
-                    fillColor: WidgetStateProperty.all(Colors.white),
-                    checkColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onSecondaryTapDown: onSecondaryTapDown,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          color: isSelectionMode && isSelected
-              ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            enableFeedback: false,
-            onTap: onTap,
-            onLongPress: onLongPress,
-            hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  leadingWidget,
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          file.name,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          sizeStr,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 12,
-                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

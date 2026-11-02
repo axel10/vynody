@@ -234,6 +234,19 @@ class _RemoteFolderBrowserPageState
     return cleanCurrent == cleanRoot;
   }
 
+  /// 目录页只呈现「子目录 + 可播放音频」。
+  ///
+  /// 远程目录里常混着封面图、`.cue` / `.nfo` / `.log` / `.txt` 以及 `.DS_Store`
+  /// 这类系统文件。它们在这个页面上既不能播放也没有任何可用的操作：点击无响应，
+  /// 长按能进多选但 `_getAudioFiles` 又会把它们过滤掉（已选数量对不上），
+  /// 还会把「歌曲数」和专辑曲序带偏。所以在拿到底层列表的这一层就统一剔除，
+  /// 后续排序、计数、全选、选择面板都只面对干净列表。
+  ///
+  /// 注意这里不动图片的用途：子目录封面由 [RemoteFolderCoverService] 自己
+  /// 走 `client.listFiles` 去找 `cover.jpg`，不依赖本页的列表。
+  static List<WebDavFile> _visibleDirectoryItems(Iterable<WebDavFile> items) =>
+      items.where((i) => i.isDirectory || i.isAudio).toList();
+
   Future<void> _loadDirectory(String path, {bool forceRefresh = false}) async {
     _clearAllSelection();
     final session = ref.read(activeRemoteSessionProvider);
@@ -255,7 +268,8 @@ class _RemoteFolderBrowserPageState
     if (!forceRefresh &&
         isSameServer &&
         session.webDavDirectoryCache.containsKey(path)) {
-      final cachedList = List<WebDavFile>.of(session.webDavDirectoryCache[path]!);
+      final cachedList =
+          _visibleDirectoryItems(session.webDavDirectoryCache[path]!);
       _sortItems(cachedList);
       setState(() {
         _currentPath = path;
@@ -302,16 +316,22 @@ class _RemoteFolderBrowserPageState
     });
 
     try {
-      final list = await _client.listFiles(path);
-      _sortItems(list);
+      // `/dav` 前缀探测要用原始列表：万一根目录下只剩非音频文件，过滤后的
+      // 列表是空的，探测会失效。
+      final remoteItems = await _client.listFiles(path);
 
       var effectivePath = path;
-      if (path == '/' && list.isNotEmpty && list.first.path.startsWith('/dav')) {
+      if (path == '/' &&
+          remoteItems.isNotEmpty &&
+          remoteItems.first.path.startsWith('/dav')) {
         effectivePath = '/dav';
         if (_rootPath == '/') {
           _rootPath = '/dav';
         }
       }
+
+      final list = _visibleDirectoryItems(remoteItems);
+      _sortItems(list);
 
       if (mounted && _loadEpoch == currentEpoch) {
         setState(() {
