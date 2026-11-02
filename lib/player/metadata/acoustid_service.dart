@@ -89,6 +89,7 @@ abstract class AcoustIDRelease with _$AcoustIDRelease {
     );
   }
 
+  /// 缓存序列化：只写 UI 真正会读的字段，禁写 `raw`（= 该层整棵原始响应）。
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -96,7 +97,6 @@ abstract class AcoustIDRelease with _$AcoustIDRelease {
       'country': country,
       'dateLabel': dateLabel,
       'trackCount': trackCount,
-      'raw': raw,
     };
   }
 }
@@ -149,9 +149,8 @@ abstract class AcoustIDReleaseGroup with _$AcoustIDReleaseGroup {
       'id': id,
       'title': title,
       'type': type,
-      'secondaryTypes': secondaryTypes,
+      'secondarytypes': secondaryTypes,
       'releases': releases.map((item) => item.toJson()).toList(),
-      'raw': raw,
     };
   }
 }
@@ -204,19 +203,8 @@ abstract class AcoustIDRecording with _$AcoustIDRecording {
       'id': id,
       'title': title,
       'artist': artist,
-      'artists':
-          raw['artists'] ??
-          (artist.isNotEmpty
-              ? [
-                  {'name': artist},
-                ]
-              : const []),
-      'duration': durationMillis == null ? null : durationMillis! / 1000.0,
-      'length': durationMillis,
       'durationMillis': durationMillis,
       'releasegroups': releaseGroups.map((item) => item.toJson()).toList(),
-      'releaseGroups': releaseGroups.map((item) => item.toJson()).toList(),
-      'raw': raw,
     };
   }
 
@@ -338,7 +326,6 @@ abstract class AcoustIDResult with _$AcoustIDResult {
       'id': id,
       'score': score,
       'recordings': recordings.map((item) => item.toJson()).toList(),
-      'raw': raw,
     };
   }
 

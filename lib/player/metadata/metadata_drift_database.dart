@@ -55,6 +55,10 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
       await _repairLegacyLyricsCacheRows();
       await _repairLegacyArtistCacheRows();
+      if (await purgeLegacyAcoustIDCacheRows() > 0) {
+        // 旧格式缓存行体积巨大（平均 120 KB/行），删完必须 VACUUM 才真正缩小文件。
+        await _reclaimDatabaseSpace();
+      }
 
       // folder_entries 需要按根批量删/查，rootPath 建索引。
       await customStatement(
@@ -73,6 +77,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       }
     },
     onCreate: (m) async {
+      // 必须在建表之前设置，才会写进库头。新库从此支持 incremental_vacuum，
+      // 删除的页可以归还文件系统，不会像旧库那样只涨不缩。
+      await customStatement('PRAGMA auto_vacuum = INCREMENTAL');
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
@@ -2727,6 +2734,10 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return rows.map(_lyricsTranslationCacheFromRow).toList(growable: false);
   }
 
+  /// 指纹缓存保留上限。指纹只由 20 秒音频决定，命中率极低但单条体积不小，
+  /// 因此按 `updatedAtMillis` 只保留最近若干条，超出即淘汰。
+  static const int kAcoustIDCacheMaxRows = 500;
+
   Future<void> insertOrUpdateAcoustIDCache(AcoustIDCacheRecord record) async {
     await into(acoustidCaches).insertOnConflictUpdate(
       AcoustidCachesCompanion(
@@ -2736,6 +2747,51 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         updatedAtMillis: Value(record.updatedAtMillis),
       ),
     );
+    await _pruneAcoustIDCache();
+  }
+
+  Future<void> _pruneAcoustIDCache() async {
+    final stale =
+        await (select(acoustidCaches)
+              ..orderBy([(t) => OrderingTerm.desc(t.updatedAtMillis)])
+              ..limit(-1, offset: kAcoustIDCacheMaxRows))
+            .get();
+    if (stale.isEmpty) return;
+
+    final staleFingerprints = stale.map((row) => row.fingerprint).toList();
+    await (delete(
+      acoustidCaches,
+    )..where((t) => t.fingerprint.isIn(staleFingerprints))).go();
+    // 淘汰掉的页挂进 freelist 后不会自动还给文件系统，靠 incremental_vacuum 回收。
+    await _incrementalVacuum();
+  }
+
+  /// 一次性清理旧版把整棵响应塞进 `raw` 的超大缓存行（新格式不再写 `raw`）。
+  /// 返回被删除的行数，供调用方决定是否需要回收空间。
+  Future<int> purgeLegacyAcoustIDCacheRows() async {
+    return customUpdate(
+      'DELETE FROM acoustid_cache WHERE resultsJson LIKE \'%"raw":%\'',
+    );
+  }
+
+  /// 删除数据只会在 freelist 里留下空洞，文件本身不会缩小。这里把页真正归还给
+  /// 文件系统，并把 auto_vacuum 切成 INCREMENTAL，后续删除才能按需回收。
+  Future<void> _reclaimDatabaseSpace() async {
+    try {
+      await customStatement('PRAGMA auto_vacuum = INCREMENTAL');
+      await customStatement('VACUUM');
+      debugPrint('[Database] reclaimed free pages via VACUUM');
+    } catch (e) {
+      debugPrint('[Database] reclaim space failed: $e');
+    }
+  }
+
+  Future<void> _incrementalVacuum() async {
+    try {
+      await customStatement('PRAGMA incremental_vacuum');
+    } catch (e) {
+      debugPrint('[Database] incremental vacuum failed: $e');
+    }
   }
 
   Future<AcoustIDCacheRecord?> getAcoustIDCache(String fingerprint) async {
