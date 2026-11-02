@@ -12,6 +12,28 @@ import 'package:vynody/widgets/animated_play_pause_button.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
 
+// ---------------------------------------------------------------------------
+// 折叠形变的几何基准
+//
+// 收起动画里「多个 Tab 图标合成胶囊里的那一个」依赖几个固定锚点：header 高度、
+// 胶囊图标的水平留白与宽度、进度条条带高度。以前这些数字在 header 与 tab 栏里
+// 各写一份，合并轨迹要按它们派生目标点，所以统一收敛到下面这组函数/常量，
+// 禁止在各处再写字面量。
+// ---------------------------------------------------------------------------
+
+/// Mini 顶栏（含收起态胶囊）在收起进度 [t] 时的高度
+double _dockHeaderHeight({required bool isTablet, required double t}) =>
+    isTablet ? (64.0 - 6.0 * t) : (54.0 - 2.0 * t);
+
+/// Mini 顶栏内容区的水平内边距
+double _dockHeaderPaddingH(bool isTablet) => isTablet ? 10.0 : 8.0;
+
+/// 收起态胶囊里那个单图标的点击区宽度
+double _dockCapsuleIconWidth(bool isTablet) => isTablet ? 56.0 : 48.0;
+
+/// 实时播放进度条条带的固定高度
+const double _kDockProgressStripHeight = 28.0;
+
 /// 一体化悬浮底部面板（Mini播放器 + 实时进度条分割线 + Tab栏）
 class FloatingDockBottomBar extends ConsumerStatefulWidget {
   const FloatingDockBottomBar({
@@ -326,26 +348,27 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                                     : const SizedBox.shrink(),
                               ),
 
-                              // 3. 下半部：Tab 导航栏（折叠时 Tab 图标向左手风琴收起，整体向上折叠）
-                              ClipRect(
+                              // 3. 下半部：Tab 导航栏（折叠时各图标飞向左上角的
+                              //    单图标槽位并收敛，整行高度同步收到 0）
+                              //
+                              //    这里刻意不再套 ClipRect：旧实现靠裁剪把这一行
+                              //    从下往上"抹"掉，观感是整行图标上下位移；现在图标
+                              //    是各自平移出这一行的（Align 不裁剪，只压缩布局高度），
+                              //    越界部分由最外层 ClipRRect 兜底。
+                              IgnorePointer(
+                                ignoring: t > 0.2,
                                 child: Align(
                                   alignment: Alignment.topCenter,
                                   heightFactor: (1.0 - t).clamp(0.0, 1.0),
-                                  child: Opacity(
-                                    opacity: (1.0 - t * 1.5).clamp(0.0, 1.0),
-                                    child: IgnorePointer(
-                                      ignoring: t > 0.2,
-                                      child: _buildBottomTabs(
-                                        context,
-                                        theme,
-                                        isDark,
-                                        l10n,
-                                        tabs: tabs,
-                                        isPlayback: widget.isPlayback,
-                                        isTablet: isTablet,
-                                        collapseProgress: t,
-                                      ),
-                                    ),
+                                  child: _buildBottomTabs(
+                                    context,
+                                    theme,
+                                    isDark,
+                                    l10n,
+                                    tabs: tabs,
+                                    isPlayback: widget.isPlayback,
+                                    isTablet: isTablet,
+                                    collapseProgress: t,
                                   ),
                                 ),
                               ),
@@ -403,9 +426,16 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
         ? (8.0 - 2.0 * collapseProgress)
         : 2.0;
 
-    final double headerHeight = isTablet
-        ? (64.0 - 6.0 * collapseProgress)
-        : (54.0 - 2.0 * collapseProgress);
+    final double headerHeight = _dockHeaderHeight(
+      isTablet: isTablet,
+      t: collapseProgress,
+    );
+    final double headerPaddingH = _dockHeaderPaddingH(isTablet);
+    // 胶囊图标延后出现：让下方飞上来的图标先落到位，再由它"接管"
+    final double capsuleIconOpacity = ((collapseProgress - 0.28) / 0.6).clamp(
+      0.0,
+      1.0,
+    );
 
     final activeColor = (widget.isPlayback || isDark)
         ? Colors.white
@@ -422,7 +452,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
           // 1. 歌曲信息与按钮区域（拖动进度条时高斯模糊并淡出）
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isTablet ? 10.0 : 8.0,
+              horizontal: headerPaddingH,
               vertical: 4.0,
             ),
             child: Stack(
@@ -460,7 +490,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                             alignment: Alignment.centerLeft,
                             widthFactor: collapseProgress.clamp(0.0, 1.0),
                             child: Opacity(
-                              opacity: collapseProgress.clamp(0.0, 1.0),
+                              opacity: capsuleIconOpacity,
                               child: Transform.scale(
                                 scale: 0.7 + 0.3 * collapseProgress,
                                 child: Row(
@@ -491,7 +521,9 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                                                   }
                                                 : null,
                                             child: SizedBox(
-                                              width: isTablet ? 56.0 : 48.0,
+                                              width: _dockCapsuleIconWidth(
+                                                isTablet,
+                                              ),
                                               height: isTablet ? 48.0 : 44.0,
                                               child: Center(
                                                 child: Icon(
@@ -691,7 +723,11 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     );
   }
 
-  /// 下半部 Tab 导航项（支持收起过程中 Tab 图标向左手风琴收拢过渡）
+  /// 下半部 Tab 导航项。
+  ///
+  /// 收起/展开不做「整行上下位移」，而是每个图标各自沿一条轨迹飞向收起态胶囊
+  /// 里那个单图标的位置：左移 + 上移 + 缩小 + 淡出，多个图标合流到一点；
+  /// 展开时同一条轨迹反向播放，就是一个图标向外铺开成多个。
   Widget _buildBottomTabs(
     BuildContext context,
     ThemeData theme,
@@ -702,33 +738,90 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     bool isTablet = false,
     double collapseProgress = 0.0,
   }) {
-    return Container(
-      height: isTablet ? 56.0 : 52.0,
-      padding: EdgeInsets.symmetric(
-        horizontal: isTablet ? 10.0 : 6.0,
-        vertical: 4.0,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: tabs.asMap().entries.map((entry) {
-          final tabIndexInList = entry.key;
-          final tab = entry.value;
-          final isSelected = widget.currentIndex == tab.index;
-          return Expanded(
-            child: Transform.translate(
-              // 手风琴向左收起：越靠右的 Tab 越快向左叠拢收折
-              offset: Offset(-24.0 * tabIndexInList * collapseProgress, 0.0),
-              child: _TabButton(
-                item: tab,
-                isSelected: isSelected,
-                isPlayback: isPlayback,
-                isDark: isDark,
-                isTablet: isTablet,
-                onTap: () => widget.onDestinationSelected(tab.index),
-              ),
-            ),
+    final double t = collapseProgress.clamp(0.0, 1.0);
+    final double rowHeight = isTablet ? 56.0 : 52.0;
+    final double horizontalPadding = isTablet ? 10.0 : 6.0;
+    final double slotCenterY = rowHeight / 2;
+    final double slotCenterTargetY =
+        -(_kDockProgressStripHeight * (1.0 - t) +
+            _dockHeaderHeight(isTablet: isTablet, t: t) / 2);
+
+    // 合流目标：收起态胶囊里那个单图标的中心，坐标相对本行左上角。
+    // 纵向必须跟着「进度条 + header」在收起过程中的实际高度走，
+    // 否则图标会落在空处而不是落进那个图标里。
+    final double mergeTargetX =
+        _dockHeaderPaddingH(isTablet) + _dockCapsuleIconWidth(isTablet) / 2;
+
+    // 外层 morph 用的是 easeOutCubic（前 1/3 时间就走掉大半进度），
+    // 所以这里的位移要尽早收完，把后段留给「停在那一个图标上慢慢溶掉」，
+    // 否则会出现「刚开始飞就已经看不见了」的闪烁感。
+    final double converge = Curves.easeInOutCubic.transform(
+      (t / 0.62).clamp(0.0, 1.0),
+    );
+    // 普通图标落位之后才开始隐去
+    final double flyOpacity = (1.0 - (t - 0.30) / 0.42).clamp(0.0, 1.0);
+    // 当前 Tab 的图标与胶囊图标同形，留到最后再淡：读起来像是它们被这一个吸收
+    final double selectedOpacity = (1.0 - (t - 0.42) / 0.52).clamp(0.0, 1.0);
+
+    return SizedBox(
+      width: double.infinity,
+      height: rowHeight,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double slotWidth =
+              (constraints.maxWidth - horizontalPadding * 2) / tabs.length;
+
+          // 绘制顺序：当前 Tab 的图标放最后画。合流后它压在其余图标之上，
+          // 淡出时读起来像是「别的图标被它吸收」，而不是被无关图标盖住。
+          final int selectedPos = tabs.indexWhere(
+            (e) => e.index == widget.currentIndex,
           );
-        }).toList(),
+          final List<int> paintOrder = [
+            for (var i = 0; i < tabs.length; i++)
+              if (i != selectedPos) i,
+            if (selectedPos >= 0) selectedPos,
+          ];
+
+          return Stack(
+            clipBehavior: Clip.none,
+            children: paintOrder.map((i) {
+              final _TabItem tab = tabs[i];
+              final bool isSelected = i == selectedPos;
+              final double slotCenterX =
+                  horizontalPadding + slotWidth * (i + 0.5);
+
+              final double dx = (mergeTargetX - slotCenterX) * converge;
+              final double dy = (slotCenterTargetY - slotCenterY) * converge;
+              final double opacity = isSelected ? selectedOpacity : flyOpacity;
+
+              if (opacity <= 0.001) return const SizedBox.shrink();
+
+              return Positioned(
+                left: horizontalPadding + slotWidth * i,
+                top: 0,
+                width: slotWidth,
+                height: rowHeight,
+                child: Transform.translate(
+                  offset: Offset(dx, dy),
+                  child: Transform.scale(
+                    scale: 1.0 - 0.45 * converge,
+                    child: Opacity(
+                      opacity: opacity,
+                      child: _TabButton(
+                        item: tab,
+                        isSelected: isSelected,
+                        isPlayback: isPlayback,
+                        isDark: isDark,
+                        isTablet: isTablet,
+                        onTap: () => widget.onDestinationSelected(tab.index),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        },
       ),
     );
   }
@@ -894,7 +987,7 @@ class _FloatingDockProgressBar extends StatelessWidget {
             },
             onTapCancel: onDragCancel,
             child: Container(
-              height: 28.0, // 扩张手势触控热区（上下各延伸），大幅提升手机端命中率
+              height: _kDockProgressStripHeight, // 扩张手势触控热区（上下各延伸），大幅提升手机端命中率
               alignment: Alignment.center,
               child: Stack(
                 clipBehavior: Clip.none,

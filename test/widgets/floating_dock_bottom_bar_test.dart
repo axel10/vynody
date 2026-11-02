@@ -325,6 +325,116 @@ void main() {
   });
 
   testWidgets(
+      'FloatingDockBottomBar collapses tabs by merging them into the capsule icon instead of sliding the row vertically',
+      (tester) async {
+    tester.view.physicalSize = const Size(393, 852);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const testSong = MusicFile(
+      path: '/test.mp3',
+      name: 'Test Song',
+      title: 'Test Song',
+      artist: 'Test Artist',
+    );
+
+    late WidgetRef capturedRef;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settings),
+          audioServiceProvider.overrideWith((ref) => _MockAudioService()),
+          audioCurrentMusicProvider.overrideWith((ref) => testSong),
+          audioIsPlayingProvider.overrideWith((ref) => false),
+          audioIsBufferingProvider.overrideWith((ref) => false),
+          audioProgressProvider.overrideWith((ref) => 0.0),
+          audioPositionProvider.overrideWith((ref) => Duration.zero),
+          audioDurationProvider.overrideWith((ref) => Duration.zero),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
+          home: Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) {
+                capturedRef = ref;
+                return Stack(
+                  children: [
+                    FloatingDockBottomBar(
+                      currentIndex: 0,
+                      onDestinationSelected: (_) {},
+                      isPlayback: false,
+                      isHidden: false,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final settingsFinder = find.byIcon(Icons.settings_outlined);
+    final shareFinder = find.byIcon(Icons.share_outlined);
+    expect(settingsFinder, findsOneWidget);
+    expect(shareFinder, findsOneWidget);
+
+    final expandedSettings = tester.getCenter(settingsFinder);
+    final expandedShare = tester.getCenter(shareFinder);
+    // 展开态：相邻图标各占一个槽位，横向相距一个槽宽
+    expect(expandedSettings.dx - expandedShare.dx, greaterThan(40.0));
+
+    capturedRef.read(floatingDockCollapsedProvider.notifier).setCollapsed(true);
+    await tester.pump(); // 启动折叠形变
+
+    // 逐帧采样，直到这一行图标淡尽：不依赖具体曲线，只看轨迹形状
+    Offset? lastVisible;
+    var minGap = double.infinity;
+    for (var frame = 0; frame < 24; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      if (!tester.any(settingsFinder)) break;
+      lastVisible = tester.getCenter(settingsFinder);
+      if (tester.any(shareFinder)) {
+        final gap = (lastVisible.dx - tester.getCenter(shareFinder).dx).abs();
+        if (gap < minGap) minGap = gap;
+      }
+    }
+    expect(lastVisible, isNotNull);
+
+    // 合流：最右的图标贴到了前面图标的位置上（旧实现的间距始终是一个槽宽）
+    expect(minGap, lessThan(8.0));
+    // 方向是「左移 + 上移」，而不是整行图标一起上下位移
+    expect(lastVisible!.dx, lessThan(expandedSettings.dx - 40.0));
+    expect(lastVisible.dy, lessThan(expandedSettings.dy - 8.0));
+
+    await tester.pumpAndSettle();
+    // 完全收起后这一行不再残留图标，落点就是收起态胶囊里的那个单图标
+    expect(settingsFinder, findsNothing);
+    expect(shareFinder, findsNothing);
+    final capsuleFinder = find.byIcon(Icons.folder);
+    expect(capsuleFinder, findsOneWidget);
+    expect(
+      (tester.getCenter(capsuleFinder).dx - lastVisible.dx).abs(),
+      lessThan(6.0),
+    );
+
+    // 再展开：图标铺回各自槽位
+    capturedRef
+        .read(floatingDockCollapsedProvider.notifier)
+        .setCollapsed(false);
+    await tester.pumpAndSettle();
+    final restoredSettings = tester.getCenter(
+      find.byIcon(Icons.settings_outlined),
+    );
+    expect(restoredSettings.dx, closeTo(expandedSettings.dx, 1.0));
+  });
+
+  testWidgets(
       'FloatingDockScrollHelper accumulates scroll distance, updates progress, and collapses at threshold',
       (tester) async {
     late WidgetRef capturedRef;
