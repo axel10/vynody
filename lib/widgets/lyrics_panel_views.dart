@@ -135,6 +135,8 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
     required this.onContextMenu,
     required this.bottomSpacerHeight,
     this.bottomTabBarHeight = 0.0,
+    this.bottomReserveProgress,
+    this.bottomReserveDelta = 0.0,
     required this.isFocusMode,
     this.onLineTapped,
     required this.scrollDelta,
