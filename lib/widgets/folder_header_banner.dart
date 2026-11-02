@@ -112,8 +112,49 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
     } else {
       _resolvedPath = null;
     }
+    // 比例必须赶在首帧之前定下来：`_aspectRatio == null` 会被兜底当成「宽/方」，
+    // 一旦异步解码回来发现封面是竖长的，banner 会当场切到「模糊背景 + 内联封面」
+    // 分支，高度瞬增一整块内联封面（180 + 12），把下方列表整体顶下去。
+    _aspectRatio = _aspectRatioFromMetadata();
     _checkImageAspectRatio();
     _loadHighResArtwork();
+  }
+
+  /// 用曲库里已经落库的 `artworkWidth/artworkHeight` 同步算出封面比例。
+  ///
+  /// 这两个值由 `generate_track_artwork` 在生成缩略图时一并返回，和缩略图文件同源
+  /// （`build_thumbnail` 只按比例缩放、不裁剪），足以等效替代「解码文件再量宽高」
+  /// 那条异步路径，把分支判定提前到首帧。
+  double? _aspectRatioFromMetadata() {
+    final songPath = widget.representativeSong?.path ?? widget.songPath;
+    if (songPath == null || songPath.isEmpty) return null;
+    try {
+      final meta = ref.read(scannerServiceProvider).metadataMap[songPath];
+      final width = meta?.artworkWidth;
+      final height = meta?.artworkHeight;
+      if (width == null || height == null || width <= 0 || height <= 0) {
+        return null;
+      }
+      return width / height;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 异步解码得到的比例只作为修正，不覆盖元数据已经给出的同一比例。
+  ///
+  /// 两个来源（元数据 vs 缩略图像素）之间只差缩放取整，若放任这点浮点差异
+  /// setState，比例卡在 0.85 阈值附近时会在「满幅封面」和「模糊背景 + 内联封面」
+  /// 之间来回切，每次切都伴随一次整页布局位移。
+  void _applyAspectRatio(double ratio) {
+    final current = _aspectRatio;
+    if (current == ratio) return;
+    if (current != null && (current - ratio).abs() <= _kAspectRatioTolerance) {
+      return;
+    }
+    setState(() {
+      _aspectRatio = ratio;
+    });
   }
 
   void _updateAspectRatioFromBytes(Uint8List bytes) {
@@ -124,12 +165,7 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
         final w = info.image.width;
         final h = info.image.height;
         if (w > 0 && h > 0) {
-          final ratio = w / h;
-          if (_aspectRatio != ratio) {
-            setState(() {
-              _aspectRatio = ratio;
-            });
-          }
+          _applyAspectRatio(w / h);
         }
       }
     }));
@@ -145,12 +181,7 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
         final w = info.image.width;
         final h = info.image.height;
         if (w > 0 && h > 0) {
-          final ratio = w / h;
-          if (_aspectRatio != ratio) {
-            setState(() {
-              _aspectRatio = ratio;
-            });
-          }
+          _applyAspectRatio(w / h);
         }
       }
     }, onError: (_, _) {}));
@@ -165,9 +196,14 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
     } else if (_rawArtwork?.filePath != null && _rawArtwork!.filePath!.isNotEmpty) {
       _updateAspectRatioFromFile(_rawArtwork!.filePath!);
     } else {
-      setState(() {
-        _aspectRatio = null;
-      });
+      // 没有可用的图片源：只把「解码得来的」比例清掉，元数据给出的那张保留，
+      // 免得高清图晚到时先退回「宽/方」分支、再被解码结果翻回来，白跳两次。
+      final metadataRatio = _aspectRatioFromMetadata();
+      if (_aspectRatio != metadataRatio) {
+        setState(() {
+          _aspectRatio = metadataRatio;
+        });
+      }
     }
   }
 
@@ -262,7 +298,10 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
     final hasImage = hasRawImage || hasLocalFile;
     final coverFile = hasLocalFile ? File(_resolvedPath!) : null;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    final isWideOrSquare = hasImage && (_aspectRatio == null || _aspectRatio! >= 0.85);
+    final isWideOrSquare =
+        hasImage &&
+        (_aspectRatio == null ||
+            _aspectRatio! >= _kAspectRatioWideOrSquareThreshold);
     final bool isLowEndDevice = widget.isLowEndDevice ?? ref.watch(isLowMidEndDeviceProvider);
 
     // 首帧占位图的解码尺寸。
@@ -646,6 +685,24 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
 /// Default cover image opacity values for light theme banner display
 const double _kLightModeCoverOpacity = 0.35;
 const double _kLightModeBlurredCoverOpacity = 0.35;
+
+/// 判定「宽/方封面」的比例阈值：≥ 该值铺满整宽，否则走模糊背景 + 内联封面。
+const double _kAspectRatioWideOrSquareThreshold = 0.85;
+
+/// 两个比例来源（元数据 / 解码像素）视为同一值的容差。
+///
+/// 元数据记的是原始封面的宽高，缩略图是同一张等比缩放（取整）来的，两者差异只有
+/// 亚像素量级（< 0.001）；小于该容差就不触发重建，避免比例刚好落在阈值附近时
+/// 在两个分支之间来回抖。取 0.005 是为了不把「元数据略偏、真实比例该换分支」
+/// 的情形也一起吞掉。
+const double _kAspectRatioTolerance = 0.005;
+
+/// 竖屏「非 1:1 封面」这一块内联封面的固定高度。
+///
+/// 必须定高、不能靠图片自身的 intrinsic size：`_buildBannerImage` 的高清图与
+/// seed 占位图在解码完成前 intrinsic 尺寸都是 0，靠它撑高会让这一块先按 0 排版、
+/// 解码后跳到 180，把下方列表在两帧之内顶两次。
+const double _kPortraitInlineCoverHeight = 180.0;
 
 /// 目录页 banner 背景模糊层的 sigma（单位为逻辑像素）。
 ///
@@ -1102,10 +1159,15 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: hasImage
-                                  ? _buildBannerImage(
-                                      fit: BoxFit.contain,
-                                      cacheWidth: seedCacheWidth,
-                                      cacheHeight: seedCacheHeight,
+                                  // 定高占位：解码前后同一个足迹，不再由 intrinsic
+                                  // size 决定，避免「0 → 180」的二次顶动。
+                                  ? SizedBox(
+                                      height: _kPortraitInlineCoverHeight,
+                                      child: _buildBannerImage(
+                                        fit: BoxFit.contain,
+                                        cacheWidth: seedCacheWidth,
+                                        cacheHeight: seedCacheHeight,
+                                      ),
                                     )
                                   : coverWidget,
                             ),

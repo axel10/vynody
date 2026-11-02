@@ -41,6 +41,7 @@
 | 缩放段间距 | 网格外层 `SliverPadding` 必须与档位无关，禁 `lerp(0→8, gridMorph)`；回归 `zoom_section_gap_test.dart` |
 | 条目包装层常驻 | `ZoomItemScaffold` 的 `Opacity`/`Transform.scale`/`ZoomItemEffectiveMetrics` 三层**必须常驻**，禁按 `isFadeScale` 增删：根类型一变整条子树重建 → `SongThumbnail` 丢 State |
 | 缩略图淡入时钟 | 只有「就位的是封面」才套 `kArtworkFadeInDuration`；落定为**默认图标**（null/异常）必须 `_needsFadeIn = false`。`artworkPath`/`thumbnailPath` 是 UI 懒生成，为空 ≠ 没封面 |
+| **目录页 banner 分支** | `isWideOrSquare`（阈值 `_kAspectRatioWideOrSquareThreshold`）同时决定「背景模糊层」与「前景内联封面块」，两条路径高度差一整个内联封面 → 比例**必须首帧定**：`_aspectRatioFromMetadata()` 读 `metadataMap[path].artworkWidth/Height`（原始封面宽高，缩略图只是等比缩放）。异步解码只走 `_applyAspectRatio()`（含 `_kAspectRatioTolerance` 容差），禁直接 `setState` 覆盖。内联封面块定高 `_kPortraitInlineCoverHeight`，**禁**靠 image intrinsic size（解码前为 0 → 顶动列表） |
 | **封面同步缓存** | `ArtworkResolver.peekCachedThumbnail()` 是「已解析过」的同步入口（`resolveForThumbnail` 命中缓存也要隔一个微任务，首帧仍空白）。`SongThumbnail._checkOrQueryArtwork` 必须在置待解析之前探一次：命中即 `_artworkFilePath` + `_isGenerating=false` + `fromInitState` 时 `_needsFadeIn=false`。否则任何重建/行回收都会让远程封面「空白 + 280ms 淡入」= 闪。回归 `song_thumbnail_fade_in_test.dart` 末条 |
 
 ## 硬性禁止（全文见 `MEMORY-rules.md`）
