@@ -2340,17 +2340,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       activeSource = activePreference.source;
       activeLang = activePreference.languageCode;
     } else {
-      final fallbackOrder = [
-        LyricsCacheSource.external,
-        LyricsCacheSource.embedded,
-        LyricsCacheSource.manualAdjust,
-        LyricsCacheSource.aiTimeline,
-        LyricsCacheSource.aiKaraoke,
-        LyricsCacheSource.aiGenerate,
-        LyricsCacheSource.ai,
-        LyricsCacheSource.lrclib,
-      ];
-      for (final src in fallbackOrder) {
+      for (final src in kLyricsSourcePreferenceOrder) {
         if (sources.any((r) => r.source == src)) {
           activeSource = src;
           if (src.isAiSource) {

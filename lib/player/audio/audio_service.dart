@@ -1586,6 +1586,8 @@ class AudioService extends Notifier<AudioSnapshot> {
           currentSong.path,
           currentSong.copyWith(durationMillis: durMs),
         );
+        // 时长首次就绪 —— 若歌词查询正卡在「等 duration」上，这里把它续起来。
+        _lyricsController.onSongDurationReady(currentSong.path);
         if (RemoteMediaResolver.isRemoteUri(currentSong.path)) {
           unawaited(() async {
             final existing = await _db.getSongMetadata(currentSong.path);
@@ -1831,26 +1833,11 @@ class AudioService extends Notifier<AudioSnapshot> {
   void ensureLyricsLoadedForCurrentSong() {
     final song = currentMusic;
     if (song == null) return;
-    if (song.lyrics != null) {
-      _lyricsController.restoreFromSongLyrics(song);
-    } else if (!hasLyrics && !isLyricsLoading) {
-      if (!_lyricsController.isLyricsGenerationForSong(song.path)) {
-        unawaited(() async {
-          final fastRestored =
-              await _lyricsController.tryFastRestoreFromCache(song);
-          if (!fastRestored && !hasLyrics && !isLyricsLoading) {
-            _logLyricsDebug(
-              'ensureLyricsLoaded fetch -> title="${song.displayName}"',
-            );
-            _lyricsController.scheduleFetch(song);
-          }
-        }());
-      }
-    }
+    unawaited(_lyricsController.ensureLyricsForSong(song));
   }
 
   /// 设置歌词模式是否激活。
-  /// 当激活时，如果当前歌曲尚未加载歌词，则立即触发加载。
+  /// 当激活时，由统一入口决定是从内存、本地缓存还是分层查询拿歌词。
   void setLyricsActive(bool active) {
     if (_isLyricsActive == active) return;
     _isLyricsActive = active;
@@ -1860,18 +1847,14 @@ class AudioService extends Notifier<AudioSnapshot> {
       'loading=$isLyricsLoading searched=$lyricsSearchAttempted',
     );
 
-    if (isLyricsNeeded &&
-        currentMusic?.path != null &&
-        !hasLyrics &&
-        !isLyricsLoading &&
-        !_lyricsController.isLyricsGenerationForSong(currentMusic!.path)) {
+    if (active && isLyricsNeeded) {
       final song = currentMusic;
       if (song != null) {
         _logLyricsDebug(
-          'lyrics mode immediate fetch -> index=$_currentIndex '
+          'lyrics mode activating, ensure lyrics -> index=$_currentIndex '
           'title="${song.displayName}" duration=$_duration',
         );
-        _lyricsController.scheduleFetch(song);
+        unawaited(_lyricsController.ensureLyricsForSong(song));
       }
     }
     notifyListeners();
@@ -2760,24 +2743,14 @@ class AudioService extends Notifier<AudioSnapshot> {
     // snapshot. A lyrics fetch can complete while metadata refresh is still in
     // flight, and the queue entry may already contain the freshly attached
     // lyrics even if `song` was captured earlier without them.
+    // 当前曲目已带歌词时直接恢复；其余交给下面的统一入口决定
+    // 是走本地缓存还是分层查询，避免这里和入口各写一套判定。
     final latestCurrentSong = currentMusic ?? song;
-
-    // If the current song already carries lyrics, restore them directly.
-    // Otherwise clear lyric state and let the async lyric fetch pipeline decide
-    // whether anything should be loaded.
     final songLyrics = latestCurrentSong.lyrics;
-    if (isLyricsNeeded && songLyrics != null) {
+    if (!isLyricsNeeded) {
+      _lyricsController.clearState(preserveTaskState: true);
+    } else if (songLyrics != null) {
       _lyricsController.restoreFromSongLyrics(latestCurrentSong);
-    } else if (isLyricsNeeded) {
-      final fastRestored =
-          await _lyricsController.tryFastRestoreFromCache(latestCurrentSong);
-      if (!fastRestored) {
-        _logLyricsDebug(
-          'lyrics state cleared -> title="${song.displayName}" '
-          'needed=$isLyricsNeeded hasCache=false',
-        );
-        _lyricsController.clearState(preserveTaskState: true);
-      }
     } else {
       _lyricsController.clearState(preserveTaskState: true);
     }
@@ -2805,7 +2778,8 @@ class AudioService extends Notifier<AudioSnapshot> {
     _linuxIntegration?.updateMetadata(song);
 
     // Trigger lyric loading only when lyric mode / desktop lyric is active and we still do not
-    // have lyrics for this track.
+    // have lyrics for this track. 统一入口内部先看队列内存、再看本地缓存，
+    // 最后才走分层查询，同一首歌重复触发是幂等的。
     if (isLyricsNeeded && !hasLyrics) {
       if (_lyricsController.isLyricsGenerationForSong(song.path)) {
         _logLyricsDebug(
@@ -2814,10 +2788,10 @@ class AudioService extends Notifier<AudioSnapshot> {
         );
       } else {
         _logLyricsDebug(
-          'post-metadata fetch -> title="${song.displayName}" '
+          'post-metadata ensure -> title="${song.displayName}" '
           'duration=$_duration hasLyrics=$hasLyrics loading=$isLyricsLoading',
         );
-        _lyricsController.scheduleFetch(song);
+        unawaited(_lyricsController.ensureLyricsForSong(latestCurrentSong));
       }
     }
 

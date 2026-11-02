@@ -154,6 +154,15 @@ class LyricsControllerContext {
   int lyricsRetrySerial = 0;
   CancelToken? lyricsFetchCancelToken;
   CancelToken? lyricsAiCancelToken;
+
+  /// 当前正在执行（含网络/本地分层查询）的歌词请求所属曲目路径。
+  /// 用于统一入口的幂等判断：同一首歌已在途时，重复触发直接忽略，
+  /// 而不是把前一个请求 cancel 掉重来。
+  String? lyricsFetchInFlightPath;
+
+  /// 因 duration 未就绪而挂起的曲目路径与兜底定时器。
+  String? lyricsDurationPendingPath;
+  Timer? lyricsDurationPendingTimer;
   LyricsGenerationDisplayState lyricsGenerationDisplayState =
       const LyricsGenerationDisplayState();
 

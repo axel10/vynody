@@ -16,6 +16,7 @@ import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:vynody/player/lyrics/timeline/lyrics_timeline.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
 class LyricsControllerSupport {
   LyricsControllerSupport(this._context);
@@ -33,6 +34,10 @@ class LyricsControllerSupport {
       reason ?? 'lyrics generation started',
     );
     _context.lyricsFetchCancelToken = null;
+    _context.lyricsFetchInFlightPath = null;
+    _context.lyricsDurationPendingTimer?.cancel();
+    _context.lyricsDurationPendingTimer = null;
+    _context.lyricsDurationPendingPath = null;
     _context.setIsLyricsLoading(false);
   }
 
@@ -158,6 +163,86 @@ class LyricsControllerSupport {
           ),
         ),
     };
+  }
+
+  /// 只由文件路径推导的缓存键。
+  ///
+  /// [LyricsQuery.cacheKey] 同样只依赖 filePath，但构造 [LyricsQuery] 得先拿到
+  /// duration；刚切歌、播放器时长还没回填的那几秒里这条路走不通。缓存查询不该
+  /// 被 duration 卡住，所以这里给一个不依赖时长的独立入口。
+  String lyricsCacheKeyForPath(String path) {
+    if (path.trim().isEmpty) return '';
+    return ScannerPathUtils.normalizeLyricCacheKey(path);
+  }
+
+  Future<LyricsCacheRecord?> readCachedLyricsRecordByPath(String path) {
+    final cacheKey = lyricsCacheKeyForPath(path);
+    if (cacheKey.isEmpty) return Future<LyricsCacheRecord?>.value();
+    return _context.lyricsCacheRepository.getLyricsCache(cacheKey);
+  }
+
+  /// 从候选记录里挑出应当展示的一条。
+  ///
+  /// 优先尊重用户手工选择过的来源（[preference]），否则按
+  /// [kLyricsSourcePreferenceOrder] 取最贴近用户的那条。
+  LyricsCacheRecord? pickPreferredCacheRecord(
+    List<LyricsCacheRecord> records, {
+    ({LyricsCacheSource source, String languageCode})? preference,
+  }) {
+    if (records.isEmpty) return null;
+
+    if (preference != null) {
+      for (final record in records) {
+        if (record.source == preference.source &&
+            record.languageCode == preference.languageCode) {
+          return record;
+        }
+      }
+      for (final record in records) {
+        if (record.source == preference.source) return record;
+      }
+    }
+
+    for (final source in kLyricsSourcePreferenceOrder) {
+      for (final record in records) {
+        if (record.source == source) return record;
+      }
+    }
+    return records.first;
+  }
+
+  /// 把一条缓存记录合成为当前展示状态并写回队列。
+  ///
+  /// 网络/本地查询落地与缓存变更同步都走这里，保证两条路径产出同一份
+  /// [MusicLyric]：source 语义、行列表与 timelineOffset 只有一套规则，
+  /// 之后 watch 再触发覆盖时才是幂等的。
+  bool applyLyricsRecordToCurrent({
+    required String songPath,
+    required LyricsCacheRecord record,
+    Map<String, MusicLyricTranslation> translations =
+        const <String, MusicLyricTranslation>{},
+  }) {
+    final nextLyrics = lyricsFromCacheRecord(record, translations: translations);
+    final hasAnyLyrics = nextLyrics.plainText.trim().isNotEmpty ||
+        nextLyrics.syncedLines.isNotEmpty ||
+        nextLyrics.translations.isNotEmpty;
+
+    final updatedSong = replaceSongIfPath(
+      songPath,
+      (queueSong) => queueSong.copyWith(lyrics: nextLyrics),
+    );
+    if (updatedSong == null) return false;
+    if (_context.currentMusic()?.path != songPath) return true;
+
+    _context.setHasLyrics(hasAnyLyrics);
+    _context.setIsLyricsLoading(false);
+    _context.setLyricsSearchAttempted(true);
+    _context.setCurrentLyricsLines(nextLyrics.syncedLines);
+    _context.setCurrentLyricsText(nextLyrics.plainText);
+    if (!_context.state.isLyricsTranslating) {
+      _context.setLyricsTranslationStatus('');
+    }
+    return true;
   }
 
   String _lyricsTextFromRecord(LyricsCacheRecord record) {

@@ -4,12 +4,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/models/music_file.dart';
-import 'package:vynody/models/music_lyric.dart';
 import 'package:vynody/models/music_lyric_translation.dart';
 import 'package:vynody/utils/language_code_utils.dart';
 import 'package:vynody/utils/lrc_utils.dart';
-import 'package:vynody/utils/lyrics_id_utils.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_context.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_utils.dart';
@@ -23,11 +22,170 @@ class LyricsFetchCoordinator {
   final LyricsControllerContext _context;
   final LyricsControllerSupport _support;
 
-  void scheduleFetch(MusicFile song) {
+  /// duration 未就绪时的最长挂起时间。
+  /// 超过这个窗口仍拿不到时长，说明这次播放的元数据链本身有问题，
+  /// 继续等没有意义，交给下一次元数据刷新重新触发。
+  static const Duration _durationWaitTimeout = Duration(seconds: 15);
+
+  void scheduleFetch(MusicFile song, {Duration? preservedTimelineOffset}) {
+    unawaited(
+      fetchAndLog(song, preservedTimelineOffset: preservedTimelineOffset),
+    );
+  }
+
+  /// 进歌词模式的唯一入口。
+  ///
+  /// 触发点（歌词模式开启、切歌、元数据就绪、桌面歌词开启）全部收敛到这里，
+  /// 顺序固定为「队列内存 → 本地缓存 → 分层查询」，并保证同一首歌幂等：
+  /// 已在途就忽略，而不是把前一个请求 cancel 掉重来。
+  Future<void> ensureLyricsForSong(MusicFile song) async {
+    if (_context.currentMusic()?.path != song.path) return;
+
+    if (_context.lyricsGeneration.isGenerating &&
+        _context.lyricsGeneration.songPath == song.path) {
+      _support.logDebug(
+        'ensure skipped, lyrics generation in progress -> '
+        'title="${song.displayName}"',
+      );
+      return;
+    }
+
+    if (_context.lyricsFetchInFlightPath == song.path) {
+      _support.logDebug(
+        'ensure skipped, fetch already in flight -> '
+        'title="${song.displayName}"',
+      );
+      return;
+    }
+
+    final queuedSong = _support.songForPath(song.path);
+    final queuedLyrics = queuedSong?.lyrics;
+    final hasQueuedLyrics = queuedLyrics != null &&
+        (queuedLyrics.plainText.trim().isNotEmpty ||
+            queuedLyrics.syncedLines.isNotEmpty ||
+            queuedLyrics.translations.isNotEmpty);
+    if (hasQueuedLyrics && queuedSong != null) {
+      _support.logDebug(
+        'ensure memory hit -> title="${song.displayName}" '
+        'lines=${queuedLyrics.syncedLines.length}',
+      );
+      restoreFromQueuedLyrics(queuedSong);
+      return;
+    }
+
+    if (await tryFastRestoreFromCache(song)) {
+      return;
+    }
+
+    if (_context.currentMusic()?.path != song.path) return;
+    await fetchAndLog(song);
+  }
+
+  /// 队列里的曲目已经带歌词时直接恢复，不触碰数据库与网络。
+  void restoreFromQueuedLyrics(MusicFile song) {
+    final songLyrics = song.lyrics;
+    if (songLyrics == null) {
+      _context.clearState(notify: false, preserveTaskState: true);
+      return;
+    }
+
+    _context.setHasLyrics(
+      songLyrics.plainText.trim().isNotEmpty ||
+          songLyrics.syncedLines.isNotEmpty ||
+          songLyrics.translations.isNotEmpty,
+    );
+    _context.setIsLyricsLoading(false);
+    _context.setCurrentLyricsLines(songLyrics.syncedLines);
+    _context.setCurrentLyricsText(songLyrics.plainText);
+    _context.setLyricsSearchAttempted(true);
+    unawaited(_support.restoreCachedTranslations(song));
+    unawaited(_context.watchLyricsCacheForSong(song));
+    _context.bumpRevision();
+    _support.logDebug(
+      'lyrics restored from queue -> title="${song.displayName}" '
+      'lines=${songLyrics.syncedLines.length} synced=${songLyrics.isSynced}',
+    );
+  }
+
+  /// 纯 SQLite 命中，微秒级返回。
+  ///
+  /// 这里刻意不走 [LyricsControllerSupport.buildLyricsQueryForSong]：
+  /// 那条路要先解析出 duration，刚切歌那几秒拿不到就直接返回 null，
+  /// 会让明明存在的缓存 miss。缓存键只由文件路径决定，与时长无关。
+  Future<bool> tryFastRestoreFromCache(MusicFile song) async {
+    final cached = await _support.readCachedLyricsRecordByPath(song.path);
+    if (cached == null || cached.source == LyricsCacheSource.none) {
+      return false;
+    }
+    final hasText = cached.syncedLyrics?.trim().isNotEmpty ?? false;
+    if (!hasText && cached.syncedLines.isEmpty) {
+      return false;
+    }
+
+    final cacheKey = cached.cacheKey.isNotEmpty
+        ? cached.cacheKey
+        : _support.lyricsCacheKeyForPath(song.path);
+    final translationRecords = await _context.lyricsCacheRepository
+        .getLyricsTranslationCaches(cacheKey);
+    final translations = _support.translationsFromCacheRecords(
+      translationRecords,
+    );
+
+    if (!_support.applyLyricsRecordToCurrent(
+      songPath: song.path,
+      record: cached,
+      translations: translations,
+    )) {
+      return false;
+    }
+
+    unawaited(_context.watchLyricsCacheForSong(song));
+    _context.bumpRevision();
+    if (translations.isNotEmpty) {
+      _context.bumpLyricsLayoutRevision();
+    }
+    _support.logDebug(
+      'fast restore from SQLite cache hit -> title="${song.displayName}" '
+      'source=${cached.source.dbValue} lines=${cached.syncedLines.length}',
+    );
+    return true;
+  }
+
+  /// 播放器时长首次就绪时由 AudioService 回调，用来续跑被挂起的查询。
+  void onSongDurationReady(String path) {
+    if (_context.lyricsDurationPendingPath != path) return;
+
+    _context.lyricsDurationPendingTimer?.cancel();
+    _context.lyricsDurationPendingTimer = null;
+    _context.lyricsDurationPendingPath = null;
+
+    final song = _context.currentMusic();
+    if (song == null || song.path != path) return;
+    if (_context.state.hasLyrics) return;
+
+    _support.logDebug(
+      'duration ready, resuming deferred lyrics fetch -> "$path"',
+    );
     unawaited(fetchAndLog(song));
   }
 
-  Future<void> fetchAndLog(MusicFile song) async {
+  void _deferUntilDurationReady(MusicFile song) {
+    _context.lyricsDurationPendingTimer?.cancel();
+    _context.lyricsDurationPendingPath = song.path;
+    _context.lyricsDurationPendingTimer = Timer(_durationWaitTimeout, () {
+      if (_context.lyricsDurationPendingPath != song.path) return;
+      _context.lyricsDurationPendingPath = null;
+      _context.lyricsDurationPendingTimer = null;
+      _support.logDebug(
+        'duration wait expired -> title="${song.displayName}" path="${song.path}"',
+      );
+    });
+  }
+
+  Future<void> fetchAndLog(
+    MusicFile song, {
+    Duration? preservedTimelineOffset,
+  }) async {
     if (_context.lyricsGeneration.isGenerating &&
         _context.lyricsGeneration.songPath == song.path) {
       _support.logDebug(
@@ -42,6 +200,7 @@ class LyricsFetchCoordinator {
     );
     final cancelToken = CancelToken();
     _context.lyricsFetchCancelToken = cancelToken;
+    _context.lyricsFetchInFlightPath = song.path;
     _context.setIsLyricsLoading(true);
 
     _support.logDebug(
@@ -53,15 +212,18 @@ class LyricsFetchCoordinator {
     final queryDuration = meta.duration;
     if (queryDuration == null) {
       _support.logDebug(
-        'fetch skipped, duration not ready -> title="${song.displayName}" '
+        'fetch deferred, duration not ready -> title="${song.displayName}" '
         'path="${song.path}" playerDuration=${_context.playerDuration()} '
         'songDuration=${song.durationMillis}',
       );
       if (_context.lyricsFetchCancelToken == cancelToken) {
         _context.lyricsFetchCancelToken = null;
       }
+      if (_context.lyricsFetchInFlightPath == song.path) {
+        _context.lyricsFetchInFlightPath = null;
+      }
       _context.setIsLyricsLoading(false);
-      unawaited(retryFetchUntilReady(song));
+      _deferUntilDurationReady(song);
       return;
     }
 
@@ -113,13 +275,11 @@ class LyricsFetchCoordinator {
 
       _context.setIsLyricsLoading(false);
       _context.setLyricsSearchAttempted(true);
-      _context.setHasLyrics(result != null && result.track.hasLyrics);
-      _context.setCurrentLyricsLines(effectiveSyncedLines);
-      _context.setCurrentLyricsText(rawLyricsText);
 
       final translationsMap = <String, MusicLyricTranslation>{};
-      if (song.lyrics?.translations != null) {
-        translationsMap.addAll(song.lyrics!.translations);
+      final previousLyrics = _support.songForPath(song.path)?.lyrics;
+      if (previousLyrics?.translations != null) {
+        translationsMap.addAll(previousLyrics!.translations);
       }
       if (parsedResult.hasTranslation) {
         final langCode = LanguageCodeUtils.currentAppLanguageCode().isNotEmpty
@@ -145,32 +305,63 @@ class LyricsFetchCoordinator {
         }
       }
 
-      final updated = _support.replaceCurrentSongIfPath(
-        song.path,
-        (currentSong) => currentSong.copyWith(
-          lyrics: MusicLyric(
-            id:
-                result?.track.lyricsId ??
-                LyricsIdUtils.fromLyricsText(_context.state.currentLyricsText),
-            syncedLines: _context.state.currentLyricsLines,
-            plainText: _context.state.currentLyricsText,
-            source: result?.source ?? 'lrclib',
-            timelineOffset:
-                result?.timelineOffset ??
-                song.lyrics?.timelineOffset ??
-                Duration.zero,
-            translations: translationsMap,
-          ),
-        ),
+      if (result == null || rawLyricsText.trim().isEmpty) {
+        _context.setHasLyrics(false);
+        _context.setCurrentLyricsLines(const <LyricLine>[]);
+        _context.setCurrentLyricsText('');
+        // 不写空 lyrics：写进去会让下一次 ensureLyricsForSong 走「内存恢复」
+        // 分支，把一首没查到歌词的歌永久钉死在空状态。
+        _context.bumpRevision();
+        _support.logDebug(
+          'fetch returned no lyrics -> title="${song.displayName}" '
+          'requestId=$requestId',
+        );
+        _context.lyricsService.debugPrintSelection(query, result);
+        return;
+      }
+
+      // 保留用户手工调过的偏移：网络结果默认是零偏移，
+      // 直接落库会把调好的对齐关系冲掉。
+      final existingOffset = previousLyrics?.timelineOffset ?? Duration.zero;
+      final resultOffset = result.timelineOffset;
+      final effectiveOffset = resultOffset != Duration.zero
+          ? resultOffset
+          : (existingOffset != Duration.zero
+                ? existingOffset
+                : (preservedTimelineOffset ?? Duration.zero));
+
+      // 库与展示用同一份数据：service 层写库用的是 result.syncedLines，
+      // 与这里 parse 出来的行列表可能不同，覆盖一次保证读回来一模一样。
+      final unifiedRecord = LyricsCacheRecord(
+        cacheKey: query.cacheKey,
+        source: LyricsCacheSource.fromExternalSourceTag(result.source),
+        isSynced: effectiveSyncedLines.any((line) => line.isTimed),
+        syncedLyrics: rawLyricsText,
+        syncedLines: effectiveSyncedLines,
+        timelineOffsetMillis: effectiveOffset.inMilliseconds,
+        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
       );
+      try {
+        await _context.lyricsCacheRepository.saveLyricsCache(unifiedRecord);
+      } catch (e) {
+        debugPrint(
+          '[LyricsController] Failed to persist unified lyrics cache: $e',
+        );
+      }
+
+      _support.applyLyricsRecordToCurrent(
+        songPath: song.path,
+        record: unifiedRecord,
+        translations: translationsMap,
+      );
+
+      final updated = _support.songForPath(song.path);
       if (updated != null) {
         unawaited(_context.watchLyricsCacheForSong(updated));
         unawaited(_support.restoreCachedTranslations(updated));
       }
 
-      if (result != null &&
-          song.path.isNotEmpty &&
-          rawLyricsText.trim().isNotEmpty) {
+      if (song.path.isNotEmpty) {
         final description = switch (result.source) {
           'embedded' => 'Embedded',
           'local_lrc' => 'Local LRC',
@@ -182,7 +373,7 @@ class LyricsFetchCoordinator {
             cacheKey: song.path,
             lyrics: rawLyricsText,
             translation: parsedResult.translatedLines?.join('\n'),
-            timelineOffsetMillis: 0,
+            timelineOffsetMillis: effectiveOffset.inMilliseconds,
             description: description,
           ),
         );
@@ -198,8 +389,7 @@ class LyricsFetchCoordinator {
       _context.bumpRevision();
       _support.logDebug(
         'fetch completed -> title="${song.displayName}" requestId=$requestId '
-        'hasLyrics=${result != null && result.track.hasLyrics} '
-        'source=${result?.source ?? 'none'}',
+        'hasLyrics=${result.track.hasLyrics} source=${result.source}',
       );
       _context.lyricsService.debugPrintSelection(query, result);
     } on DioException catch (e) {
@@ -232,6 +422,9 @@ class LyricsFetchCoordinator {
         );
         _context.lyricsFetchCancelToken = null;
       }
+      if (_context.lyricsFetchInFlightPath == song.path) {
+        _context.lyricsFetchInFlightPath = null;
+      }
     }
   }
 
@@ -261,39 +454,6 @@ class LyricsFetchCoordinator {
       );
     } catch (e) {
       debugPrint('[LyricsController] Failed to cache embedded translation: $e');
-    }
-  }
-
-  Future<void> retryFetchUntilReady(MusicFile song) async {
-    if (_context.lyricsGeneration.isGenerating &&
-        _context.lyricsGeneration.songPath == song.path) {
-      return;
-    }
-
-    final retryId = ++_context.lyricsRetrySerial;
-    for (var attempt = 0; attempt < 12; attempt++) {
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-
-      if (retryId != _context.lyricsRetrySerial) return;
-      if (!_context.isLyricsActive() ||
-          _context.currentMusic()?.path != song.path) {
-        return;
-      }
-      if (_context.state.hasLyrics) {
-        return;
-      }
-      if (_context.state.isLyricsLoading) {
-        continue;
-      }
-
-      if (await _support.resolveLyricsDuration(song) != null) {
-        _support.logDebug(
-          'retry triggering fetch -> title="${song.displayName}" '
-          'attempt=${attempt + 1} retryId=$retryId',
-        );
-        unawaited(fetchAndLog(song));
-        return;
-      }
     }
   }
 
@@ -392,13 +552,18 @@ class LyricsFetchCoordinator {
     final song = _context.currentMusic();
     if (song == null) return;
 
+    // 清缓存会连库里的 timelineOffset 一起删掉，先把用户调过的偏移抓出来，
+    // 重查结束后回填，避免「重新查询」把对齐关系清零。
+    final preservedOffset = _support.songForPath(song.path)?.lyrics?.timelineOffset;
+
     _support.logDebug(
       '[LyricsQuery:Requery] Manual requery triggered -> title="${song.displayName}" '
-      'artist="${song.artist ?? ''}" album="${song.album ?? ''}"',
+      'artist="${song.artist ?? ''}" album="${song.album ?? ''}" '
+      'preservedOffset=${preservedOffset?.inMilliseconds ?? 0}',
     );
     await clearLyricsCacheForCurrentSong();
     if (_context.currentMusic()?.path != song.path) return;
-    scheduleFetch(song);
+    scheduleFetch(song, preservedTimelineOffset: preservedOffset);
   }
 
   Future<void> clearTranslationCache() async {

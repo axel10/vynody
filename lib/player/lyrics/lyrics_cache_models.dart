@@ -81,6 +81,24 @@ enum LyricsCacheSource {
     }
   }
 
+  /// 把 [LyricsService] 内部的来源标签映射为缓存来源。
+  ///
+  /// `local_lrc` / `remote_server` 都归到 [external]：它们本质都是「本地文件或
+  /// 媒体库服务端给出的歌词」。若走 [fromMusicLyricSource] 的 default 分支，
+  /// 这两类会被误判成 lrclib，导致写入缓存后再次读回时来源标签变了。
+  static LyricsCacheSource fromExternalSourceTag(String? value) {
+    switch (value?.trim().toLowerCase() ?? '') {
+      case 'local_lrc':
+      case 'remote_server':
+      case 'external':
+        return LyricsCacheSource.external;
+      case 'embedded':
+        return LyricsCacheSource.embedded;
+      default:
+        return fromMusicLyricSource(value);
+    }
+  }
+
   String get dbValue {
     return switch (this) {
       LyricsCacheSource.none => 'none',
@@ -270,3 +288,19 @@ List<LyricLine> _decodeSyncedLines(Object? rawValue) {
       .toList(growable: false);
   return LrcUtils.refineWordDurations(lines);
 }
+
+/// 缓存来源的展示优先级：越靠前越「贴近用户」，越优先展示。
+///
+/// 这一份表是唯一来源 —— `_syncLyricsCacheWatch` 的实际选源与「换源」弹窗的
+/// 当前来源高亮都从这里派生。此前两处各自维护、顺序不同且漏了 aiKaraoke，
+/// 会出现「弹窗高亮 A、实际显示 B」。
+const List<LyricsCacheSource> kLyricsSourcePreferenceOrder = <LyricsCacheSource>[
+  LyricsCacheSource.manualAdjust,
+  LyricsCacheSource.external,
+  LyricsCacheSource.embedded,
+  LyricsCacheSource.aiTimeline,
+  LyricsCacheSource.aiKaraoke,
+  LyricsCacheSource.aiGenerate,
+  LyricsCacheSource.ai,
+  LyricsCacheSource.lrclib,
+];

@@ -14,6 +14,7 @@
 | 载荷校验 | `RemotePayloadGuard.inspect()` 必须在「有字节就算成功」之前；只读头 2048B，禁按大小阈值。`_downloadTask` 与 `downloadRemoteTrackToTempFile` 共用 |
 | 拒绝下载 / 临时下载 | Subsonic 禁用 `download.view` 回 200+失败 JSON(50) → `isDownloadsDisabled`；Jellyfin 走 `buildStreamUrl`，401/403/404 经 `_describeHttpFailure()`。临时下载先查 `AudioStreamCacheManager`，再按 server 分派（subsonic / jellyfin / smb / 其余 WebDav），**禁只判 subsonic、其余全落 WebDavClient** |
 | 曲库数据 | `libraryCatalogProvider` 是唯一订阅 `db.watchAllSongMetadata()` 处；新视图用 `catalogDerived(ref, ...)`。`songs` 排除 external/deletedAt，`visibleSongs` 再加根目录/来源 |
+| 歌词进面板入口 | 唯一 `LyricsFetchCoordinator.ensureLyricsForSong`（队列内存 → SQLite 缓存 → 分层查询；同曲 `lyricsFetchInFlightPath` 在途即忽略，禁 cancel 重来）。缓存键/查询**禁依赖 duration**（`lyricsCacheKeyForPath` / `readCachedLyricsRecordByPath`，键只由 filePath 定）。来源优先级唯一 `kLyricsSourcePreferenceOrder`；fetch 落地与 watch 同步共用 `applyLyricsRecordToCurrent`，禁再写第二套合成；`result == null` 禁写空 lyrics |
 | 返回键 | `MainLayout._handleBackPressed()`：Modal → 播放抽屉 → index 2 → index 0 回上级 → index 4 传输中拦 → `SystemNavigator.pop()` |
 | 队列整体替换 | `PlaylistController.replaceActiveTracksAndSelect`（冷启动恢复同理），禁拆 `updatePlaylistTracks`+`playByIndex` |
 | 浮动 Dock 收起 | `floatingDockCollapsed(Progress)Provider`；切页面/子分类**禁** `setCollapsed`，只 `helper.reset(ref)`；顶部缓冲展开必须边沿触发且只对同一 Scrollable 成立，底部无条件展开 |
