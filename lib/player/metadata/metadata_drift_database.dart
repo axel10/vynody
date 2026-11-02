@@ -55,10 +55,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
       await _repairLegacyLyricsCacheRows();
       await _repairLegacyArtistCacheRows();
-      if (await purgeLegacyAcoustIDCacheRows() > 0) {
-        // 旧格式缓存行体积巨大（平均 120 KB/行），删完必须 VACUUM 才真正缩小文件。
-        await _reclaimDatabaseSpace();
-      }
+      await purgeLegacyAcoustIDCacheRows();
+      // 删数据只在 freelist 留空洞，文件不会自己缩小，必须在这里主动回收。
+      await _maintainDatabaseSpace();
 
       // folder_entries 需要按根批量删/查，rootPath 建索引。
       await customStatement(
@@ -2767,22 +2766,47 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   /// 一次性清理旧版把整棵响应塞进 `raw` 的超大缓存行（新格式不再写 `raw`）。
-  /// 返回被删除的行数，供调用方决定是否需要回收空间。
   Future<int> purgeLegacyAcoustIDCacheRows() async {
     return customUpdate(
       'DELETE FROM acoustid_cache WHERE resultsJson LIKE \'%"raw":%\'',
     );
   }
 
-  /// 删除数据只会在 freelist 里留下空洞，文件本身不会缩小。这里把页真正归还给
-  /// 文件系统，并把 auto_vacuum 切成 INCREMENTAL，后续删除才能按需回收。
-  Future<void> _reclaimDatabaseSpace() async {
+  /// 空闲页达到这个量（4 KB/页，约 16 MB）就做一次整库 VACUUM，
+  /// 低于它只做 incremental_vacuum —— 避免为了几 MB 在启动时付出全库重写。
+  static const int kVacuumFreelistPageThreshold = 4096;
+
+  /// `PRAGMA auto_vacuum` 的 INCREMENTAL 取值。
+  static const int _autoVacuumIncremental = 2;
+
+  /// SQLite 删除数据只把页挂进 freelist，文件本身从不缩小；而 `auto_vacuum = 0`
+  /// 的库连 incremental_vacuum 都无效。所以空洞必须在代码里主动收：
+  /// 1) 库不是 INCREMENTAL 模式就切过去（必须跟一次 VACUUM 才落地，一次性成本）；
+  /// 2) 空闲页超过阈值时做整库 VACUUM；
+  /// 3) 其余情况用 incremental_vacuum 把文件尾部的空闲页归还给文件系统。
+  Future<void> _maintainDatabaseSpace() async {
     try {
-      await customStatement('PRAGMA auto_vacuum = INCREMENTAL');
-      await customStatement('VACUUM');
-      debugPrint('[Database] reclaimed free pages via VACUUM');
+      final modeRow = await customSelect('PRAGMA auto_vacuum').getSingle();
+      final mode = modeRow.read<int>('auto_vacuum');
+      final freeRow = await customSelect('PRAGMA freelist_count').getSingle();
+      final freePages = freeRow.read<int>('freelist_count');
+
+      if (mode != _autoVacuumIncremental ||
+          freePages >= kVacuumFreelistPageThreshold) {
+        await customStatement('PRAGMA auto_vacuum = INCREMENTAL');
+        await customStatement('VACUUM');
+        debugPrint(
+          '[Database] VACUUM done: auto_vacuum $mode -> '
+          '$_autoVacuumIncremental, freelist was $freePages pages',
+        );
+        return;
+      }
+
+      if (freePages > 0) {
+        await _incrementalVacuum();
+      }
     } catch (e) {
-      debugPrint('[Database] reclaim space failed: $e');
+      debugPrint('[Database] space maintenance failed: $e');
     }
   }
 
