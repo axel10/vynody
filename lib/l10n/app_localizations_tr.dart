@@ -45,7 +45,7 @@ class AppLocalizationsTr extends AppLocalizations {
       'Seçilen öğe bir dosyadır. Lütfen bir klasör seçin veya sağ üstteki \'Aç\' düğmesine dokunun';
 
   @override
-  String get scanDirectory => 'Dizini Tara';
+  String get scanDirectory => 'Kaynaklar';
 
   @override
   String get sort => 'Sırala';

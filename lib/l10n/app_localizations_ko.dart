@@ -44,7 +44,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '선택한 항목은 파일입니다. 폴더를 선택하거나 오른쪽 상단의 \'열기\'를 탭하세요';
 
   @override
-  String get scanDirectory => '디렉토리 검색';
+  String get scanDirectory => '소스';
 
   @override
   String get sort => '정렬';

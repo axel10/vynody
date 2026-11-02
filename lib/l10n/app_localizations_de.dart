@@ -45,7 +45,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Das ausgewählte Element ist eine Datei. Bitte wählen Sie einen Ordner aus oder tippen Sie oben rechts auf „Öffnen“';
 
   @override
-  String get scanDirectory => 'Verzeichnis scannen';
+  String get scanDirectory => 'Quellen';
 
   @override
   String get sort => 'Sortieren';

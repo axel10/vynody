@@ -25,7 +25,7 @@
   "directoryAddedSuccess": "Verzeichnis erfolgreich hinzugefügt",
   "directoryAddedNoMusic": "Verzeichnis hinzugefügt, aber keine abspielbaren Audiodateien gefunden",
   "selectDirectoryHint": "Das ausgewählte Element ist eine Datei. Bitte wählen Sie einen Ordner aus oder tippen Sie oben rechts auf „Öffnen“",
-  "scanDirectory": "Verzeichnis scannen",
+  "scanDirectory": "Quellen",
   "sort": "Sortieren",
   "addRootDirectory": "Stammverzeichnis hinzufügen",
   "goBack": "Zurück",

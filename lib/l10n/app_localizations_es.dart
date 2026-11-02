@@ -45,7 +45,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'El elemento seleccionado es un archivo. Seleccione una carpeta o toque «Abrir» en la esquina superior derecha';
 
   @override
-  String get scanDirectory => 'Escanear directorio';
+  String get scanDirectory => 'Fuentes';
 
   @override
   String get sort => 'Ordenar';

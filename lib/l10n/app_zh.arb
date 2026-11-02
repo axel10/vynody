@@ -46,7 +46,7 @@
   "@selectDirectoryHint": {
     "description": "Hint shown when a user selects a file instead of a folder in directory picker"
   },
-  "scanDirectory": "扫描目录",
+  "scanDirectory": "媒体源",
   "@scanDirectory": {
     "description": "Scan directory button"
   },

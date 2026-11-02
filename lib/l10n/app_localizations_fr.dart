@@ -45,7 +45,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'L\'élément sélectionné est un fichier. Veuillez sélectionner un dossier ou appuyer sur « Ouvrir » en haut à droite';
 
   @override
-  String get scanDirectory => 'Analyser le répertoire';
+  String get scanDirectory => 'Sources';
 
   @override
   String get sort => 'Trier';

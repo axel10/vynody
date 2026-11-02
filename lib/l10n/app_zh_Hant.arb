@@ -10,7 +10,7 @@
   "directoryAddedSuccess": "目錄新增成功",
   "directoryAddedNoMusic": "目錄已新增，但未發現可播放的音訊檔案",
   "selectDirectoryHint": "所選項目為單曲檔案，請選擇資料夾或點擊右上角「開啟」",
-  "scanDirectory": "掃描目錄",
+  "scanDirectory": "媒體源",
   "sort": "排序",
   "addRootDirectory": "新增根目錄",
   "goBack": "返回上一層",

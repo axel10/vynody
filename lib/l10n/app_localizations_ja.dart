@@ -45,7 +45,7 @@ class AppLocalizationsJa extends AppLocalizations {
       '選択された項目はファイルです。フォルダを選択するか、右上の「開く」をタップしてください';
 
   @override
-  String get scanDirectory => 'ディレクトリをスキャン';
+  String get scanDirectory => 'ソース';
 
   @override
   String get sort => '並び替え';

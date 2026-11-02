@@ -164,7 +164,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(NavCapsuleIsland), findsNothing);
     expect(find.byType(NavActionsCapsule), findsOneWidget);
-    expect(find.text('扫描目录'), findsNothing);
+    expect(find.text('媒体源'), findsNothing);
   });
 
   testWidgets('FolderHeaderNavBar in portrait mode does not show standalone zoom button', (tester) async {

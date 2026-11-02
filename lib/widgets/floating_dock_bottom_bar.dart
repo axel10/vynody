@@ -133,7 +133,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     final tabs = [
       _TabItem(
         index: 0,
-        label: l10n.file,
+        label: l10n.scanDirectory,
         icon: Icons.folder_outlined,
         selectedIcon: Icons.folder,
       ),

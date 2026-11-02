@@ -174,7 +174,7 @@ abstract class AppLocalizations {
   /// Scan directory button
   ///
   /// In zh, this message translates to:
-  /// **'扫描目录'**
+  /// **'媒体源'**
   String get scanDirectory;
 
   /// Sort option

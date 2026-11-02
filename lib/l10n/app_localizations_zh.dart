@@ -43,7 +43,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectDirectoryHint => '所选项目为单曲文件，请选择文件夹或点击右上角「打开」';
 
   @override
-  String get scanDirectory => '扫描目录';
+  String get scanDirectory => '媒体源';
 
   @override
   String get sort => '排序';
@@ -5579,7 +5579,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get selectDirectoryHint => '所選項目為單曲檔案，請選擇資料夾或點擊右上角「開啟」';
 
   @override
-  String get scanDirectory => '掃描目錄';
+  String get scanDirectory => '媒體源';
 
   @override
   String get sort => '排序';

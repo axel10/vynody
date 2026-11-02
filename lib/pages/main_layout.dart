@@ -1801,7 +1801,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
     final destinations = [
       (
         index: 0,
-        label: l10n.file,
+        label: l10n.scanDirectory,
         icon: Icons.folder_outlined,
         selectedIcon: Icons.folder,
       ),
