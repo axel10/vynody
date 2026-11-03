@@ -93,8 +93,9 @@ class PlaybackPageUiTuning {
     required double bottomPadding,
     required bool reserveBottomNavSpace,
     bool isSmallWin = false,
+    bool isMobilePhone = false,
   }) {
-    if (isSmallWin) {
+    if (isSmallWin || (isLandscape && isMobilePhone)) {
       return EdgeInsets.zero;
     }
     final left = isLyricsMode

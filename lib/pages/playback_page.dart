@@ -1236,8 +1236,16 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
           final isDesktop = targetPlatform == TargetPlatform.windows ||
               targetPlatform == TargetPlatform.macOS ||
               targetPlatform == TargetPlatform.linux;
+          final isMobile = targetPlatform == TargetPlatform.android ||
+              targetPlatform == TargetPlatform.iOS;
+          final isTablet = size.shortestSide >=
+              AppOrientationManager.tabletShortestSideBreakpoint;
+          final isMobilePhone = isMobile && !isTablet;
 
           final content = SafeArea(
+            left: !isLandscape,
+            top: !isLandscape,
+            right: !isLandscape,
             bottom: false,
             child: AnimatedPadding(
               duration: const Duration(milliseconds: 400),
@@ -1248,6 +1256,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                 bottomPadding: effectiveBottomPadding,
                 reserveBottomNavSpace: shouldReserveBottomNavSpace,
                 isSmallWin: isSmallWin,
+                isMobilePhone: isMobilePhone,
               ),
               child: Column(
                 children: [
