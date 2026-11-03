@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import 'package:vynody/l10n/app_localizations.dart';
@@ -26,6 +24,7 @@ class AppTopNavBar extends StatelessWidget {
     this.onTitleTap,
     this.titleOpacity = 1.0,
     this.isFloatingCapsule = false,
+    this.contentMaxWidth,
   });
 
   final String? title;
@@ -48,25 +47,19 @@ class AppTopNavBar extends StatelessWidget {
   /// 是否以浮动胶囊形态渲染（用于向下滚动后再向上滚动时展示）
   final bool isFloatingCapsule;
 
+  /// 内容区域的最大宽度限制（与页面主内容区对齐，避免胶囊按钮在宽屏下飞到屏幕最边缘）
+  final double? contentMaxWidth;
+
   /// 标准内容高度（44px）
   static const double contentHeight = 44.0;
 
   /// 依据横竖屏与窗口环境计算顶部安全避让间距
   static double getSafeTopPadding(BuildContext context) {
-    final orientation = MediaQuery.of(context).orientation;
-    final bool isLandscape = orientation == Orientation.landscape;
-    if (isLandscape) {
-      if (Platform.isMacOS) {
-        final windowWidth = MediaQuery.sizeOf(context).width;
-        final isRailCollapsed =
-            windowWidth < kSidebarRailExtendedMinWindowWidth;
-        if (isRailCollapsed) {
-          return getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
-        }
-      }
-      return 0.0;
-    }
-    return getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
+    return getTitleBarTopPadding(
+      context,
+      defaultWindowPadding: 32.0,
+      statusBarOffset: 4.0,
+    );
   }
 
   /// 计算整个顶部栏的总高度（safeTopPadding + contentHeight）
@@ -108,39 +101,53 @@ class AppTopNavBar extends StatelessWidget {
       }
       final effectiveParentTitle =
           parentTitle ?? l10n?.list ?? l10n?.goBack ?? 'Back';
+      final Widget capsule = Align(
+        alignment: Alignment.centerLeft,
+        child: NavCapsuleIsland(
+          parentTitle: effectiveParentTitle,
+          onBack: () {
+            final nav = Navigator.of(context);
+            final rootNav = Navigator.of(context, rootNavigator: true);
+            final currentRoute = ModalRoute.of(context);
+            AppLog.log(
+              '[NavTrace] AppTopNavBar capsule back button pressed! '
+              'parentTitle="$effectiveParentTitle", '
+              'route="${currentRoute?.settings.name}", '
+              'localCanPop=${nav.canPop()}, '
+              'rootCanPop=${rootNav.canPop()}',
+              mirrorToConsole: true,
+            );
+            if (onBack != null) {
+              onBack!();
+            } else {
+              nav.maybePop();
+            }
+          },
+          actions: actions,
+          showBack: showBackButton,
+          tooltip: l10n?.goBack ?? 'Back',
+        ),
+      );
+
+      final Widget islandArea = contentMaxWidth != null
+          ? Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: contentMaxWidth!),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: capsule,
+                ),
+              ),
+            )
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: capsule,
+            );
+
       return Padding(
-        padding: EdgeInsets.only(
-          top: safeTopPadding + 4.0,
-          left: 16.0,
-          right: 16.0,
-        ),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: NavCapsuleIsland(
-            parentTitle: effectiveParentTitle,
-            onBack: () {
-              final nav = Navigator.of(context);
-              final rootNav = Navigator.of(context, rootNavigator: true);
-              final currentRoute = ModalRoute.of(context);
-              AppLog.log(
-                '[NavTrace] AppTopNavBar capsule back button pressed! '
-                'parentTitle="$effectiveParentTitle", '
-                'route="${currentRoute?.settings.name}", '
-                'localCanPop=${nav.canPop()}, '
-                'rootCanPop=${rootNav.canPop()}',
-                mirrorToConsole: true,
-              );
-              if (onBack != null) {
-                onBack!();
-              } else {
-                nav.maybePop();
-              }
-            },
-            actions: actions,
-            showBack: showBackButton,
-            tooltip: l10n?.goBack ?? 'Back',
-          ),
-        ),
+        padding: EdgeInsets.only(top: safeTopPadding + 4.0),
+        child: islandArea,
       );
     }
 

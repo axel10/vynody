@@ -248,6 +248,40 @@ final isCoverFlowImmersiveActiveProvider = Provider<bool>((ref) {
   return mainIndex == 2 && libIndex == 4 && is3D;
 });
 
+class IsAlbumDetailActiveNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) {
+    if (!ref.mounted) return;
+    if (state != value) {
+      state = value;
+    }
+  }
+}
+
+final isAlbumDetailActiveProvider =
+    NotifierProvider<IsAlbumDetailActiveNotifier, bool>(
+  IsAlbumDetailActiveNotifier.new,
+);
+
+class LandscapeMiniPlayerExtraLeftNotifier extends Notifier<double> {
+  @override
+  double build() => 0.0;
+
+  void set(double value) {
+    if (!ref.mounted) return;
+    if (state != value) {
+      state = value;
+    }
+  }
+}
+
+final landscapeMiniPlayerExtraLeftProvider =
+    NotifierProvider<LandscapeMiniPlayerExtraLeftNotifier, double>(
+  LandscapeMiniPlayerExtraLeftNotifier.new,
+);
+
 class IsSettingsPageActiveNotifier extends Notifier<bool> {
   @override
   bool build() => false;

@@ -407,6 +407,26 @@ void main() {
           findsNothing);
     });
 
+    testWidgets('专辑详情页：手机横屏左右分栏布局与歌曲列表展示正常', (tester) async {
+      setSurface(tester, const Size(844, 390));
+      final container = createContainer();
+
+      await tester.pumpWidget(wrap(container, AlbumDetailPage(album: sampleAlbum)));
+      await tester.pumpAndSettle();
+
+      // 验证专辑标题与艺术家
+      expect(find.text(sampleAlbum.title), findsOneWidget);
+      expect(find.text(sampleAlbum.artist), findsWidgets);
+
+      // 验证歌曲列表直接可见
+      for (final song in sampleAlbum.songs) {
+        expect(find.text(song.displayName), findsOneWidget);
+      }
+
+      // 验证无 RenderFlex 溢出
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('艺术家详情页：长按歌曲进入多选后保持激活', (tester) async {
       setSurface(tester, const Size(390, 1400));
       final container = createContainer();
@@ -428,6 +448,51 @@ void main() {
       expect(find.byKey(const ValueKey('library-selection-panel')),
           findsOneWidget);
       expect(selectionOf(container).selectedKeys, {song.path});
+    });
+
+    testWidgets('手机横屏下打开专辑详情页同步激活状态与右移位移，退出时重置', (tester) async {
+      setSurface(tester, const Size(840, 390));
+      final container = createContainer();
+
+      expect(container.read(isAlbumDetailActiveProvider), isFalse);
+      expect(container.read(landscapeMiniPlayerExtraLeftProvider), 0.0);
+
+      await tester.pumpWidget(
+        wrap(
+          container,
+          Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AlbumDetailPage(album: sampleAlbum),
+                    ),
+                  ),
+                  child: const Text('open-album'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('open-album'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlbumDetailPage), findsOneWidget);
+
+      final expectedExtraLeft = (840.0 * 0.36).clamp(240.0, 310.0);
+      expect(container.read(isAlbumDetailActiveProvider), isTrue);
+      expect(container.read(landscapeMiniPlayerExtraLeftProvider), expectedExtraLeft);
+
+      // 返回退出详情页
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(AlbumDetailPage), findsNothing);
+
+      expect(container.read(isAlbumDetailActiveProvider), isFalse);
+      expect(container.read(landscapeMiniPlayerExtraLeftProvider), 0.0);
     });
 
     testWidgets('多选状态下返回键先退出多选，再次返回才关闭页面', (tester) async {

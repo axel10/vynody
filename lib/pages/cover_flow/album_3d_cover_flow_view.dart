@@ -7,7 +7,7 @@ import 'package:vynody/models/album_summary.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../widgets/song_thumbnail.dart';
-import 'album_cover_flow_quick_detail_dialog.dart';
+import '../album_detail_page.dart';
 
 class Album3DCoverFlowView extends ConsumerStatefulWidget {
   const Album3DCoverFlowView({
@@ -18,6 +18,7 @@ class Album3DCoverFlowView extends ConsumerStatefulWidget {
     required this.selectedAlbumIds,
     required this.bottomOffset,
     this.isHeroEnabled = true,
+    this.onOpenAlbum,
     required this.onToggleSelection,
     required this.onEnterSelectionMode,
     this.onExit3DView,
@@ -30,6 +31,7 @@ class Album3DCoverFlowView extends ConsumerStatefulWidget {
   final Set<String> selectedAlbumIds;
   final double bottomOffset;
   final bool isHeroEnabled;
+  final ValueChanged<AlbumSummary>? onOpenAlbum;
   final ValueChanged<String> onToggleSelection;
   final ValueChanged<String> onEnterSelectionMode;
   final VoidCallback? onExit3DView;
@@ -167,6 +169,21 @@ class Album3DCoverFlowViewState extends ConsumerState<Album3DCoverFlowView>
     _animController.forward();
   }
 
+  void _openAlbum(AlbumSummary album) {
+    if (widget.onOpenAlbum != null) {
+      widget.onOpenAlbum!(album);
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          settings: RouteSettings(
+            name: '/album_detail/${Uri.encodeComponent(album.id)}',
+          ),
+          builder: (_) => AlbumDetailPage(album: album),
+        ),
+      );
+    }
+  }
+
   void _onPointerScroll(PointerScrollEvent event) {
     if (widget.albums.isEmpty) return;
     if (event.scrollDelta.dy > 0 || event.scrollDelta.dx > 0) {
@@ -287,7 +304,7 @@ class Album3DCoverFlowViewState extends ConsumerState<Album3DCoverFlowView>
               } else if (event.logicalKey == LogicalKeyboardKey.enter ||
                   event.logicalKey == LogicalKeyboardKey.space) {
                 if (widget.albums.isNotEmpty) {
-                  showAlbumQuickDetailModal(context, ref, activeAlbum);
+                  _openAlbum(activeAlbum);
                   return KeyEventResult.handled;
                 }
               }
@@ -416,7 +433,7 @@ class Album3DCoverFlowViewState extends ConsumerState<Album3DCoverFlowView>
                                 if (widget.isSelectionMode) {
                                   widget.onToggleSelection(album.id);
                                 } else {
-                                  showAlbumQuickDetailModal(context, ref, album);
+                                  _openAlbum(album);
                                 }
                               } else {
                                 _animateToPage(i);
@@ -494,11 +511,7 @@ class Album3DCoverFlowViewState extends ConsumerState<Album3DCoverFlowView>
                                 if (widget.isSelectionMode) {
                                   widget.onToggleSelection(activeAlbum.id);
                                 } else {
-                                  showAlbumQuickDetailModal(
-                                    context,
-                                    ref,
-                                    activeAlbum,
-                                  );
+                                  _openAlbum(activeAlbum);
                                 }
                               },
                               child: Column(

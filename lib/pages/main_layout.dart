@@ -1349,6 +1349,13 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     final bool isLandscape = !isSmallWin && (effectiveWidth > size.height);
     final bool isCoverFlowImmersive =
         isLandscape && ref.watch(isCoverFlowImmersiveActiveProvider);
+    final bool isShortLandscape = isLandscape && size.height < 500;
+    final bool isAlbumDetailActive = ref.watch(isAlbumDetailActiveProvider);
+    final double extraLeft = (isCoverFlowImmersive && isAlbumDetailActive)
+        ? ref.watch(landscapeMiniPlayerExtraLeftProvider)
+        : 0.0;
+    final bool hideMiniPlayerForCoverFlow =
+        isCoverFlowImmersive && isShortLandscape && !isAlbumDetailActive;
     final bool useSidebar = isLandscape;
     final bool isSidebarHidden = isCoverFlowImmersive;
     final bool hideImmersiveTabBar = isSidebarHidden;
@@ -1485,7 +1492,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                     bottom:
                         (currentMusic != null &&
                             !hideMiniPlayerForSelection &&
-                            !isCoverFlowImmersive &&
+                            !hideMiniPlayerForCoverFlow &&
                             !isKeyboardVisible)
                         ? (20.0 +
                               MediaQuery.of(context).padding.bottom +
@@ -1497,17 +1504,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                   ? 80.0
                                   : 0.0))
                         : -120.0,
-                    left: railWidth,
+                    left: railWidth + extraLeft,
                     right: rightDrawerWidth,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      opacity: isCoverFlowImmersive ? 0.0 : 1.0,
-                      child: IgnorePointer(
-                        ignoring: isCoverFlowImmersive,
-                        child: Center(
-                          child: currentMusic != null
-                              ? Builder(
+                    child: Center(
+                      child: currentMusic != null
+                          ? Builder(
                                   builder: (context) {
                                     final audio = ref.read(
                                       audioServiceProvider,
@@ -1515,6 +1516,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                     final availableWidth =
                                         MediaQuery.of(context).size.width -
                                         railWidth -
+                                        extraLeft -
                                         rightDrawerWidth;
 
                                     return Container(
@@ -1592,8 +1594,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                 ),
                         ),
                       ),
-                    ),
-                  ),
                 if (!useSidebar)
                   Builder(
                     builder: (context) {
@@ -1605,11 +1605,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                         onDestinationSelected: _onDestinationSelected,
                         isPlayback: false,
                         isHidden:
-                            isCoverFlowImmersive ||
                             hideMiniPlayerForSelection ||
                             isKeyboardVisible,
                         hideMiniPlayer:
-                            hideMiniPlayerForSelection || isCoverFlowImmersive,
+                            hideMiniPlayerForSelection,
                         rightDrawerWidth: rightDrawerWidth,
                         additionalBottomOffset:
                             (((isRootSelectionMode && _currentIndex == 0) ||

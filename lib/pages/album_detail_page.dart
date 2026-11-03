@@ -23,7 +23,9 @@ import 'package:vynody/utils/layout_constants.dart';
 import '../player/platform/right_queue_drawer_controller.dart';
 import '../widgets/auto_hide_header.dart';
 import '../widgets/app_top_nav_bar.dart';
+import '../widgets/app_circular_back_button.dart';
 import '../utils/app_log.dart';
+import 'main_layout_riverpod.dart';
 
 class AlbumDetailPage extends ConsumerStatefulWidget {
   const AlbumDetailPage({super.key, required this.album});
@@ -42,16 +44,71 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.library;
 
   late final ScrollController _scrollController;
+  late final IsAlbumDetailActiveNotifier _isAlbumDetailActiveNotifier;
+  late final LandscapeMiniPlayerExtraLeftNotifier _landscapeMiniPlayerExtraLeftNotifier;
   bool _isPastTop = false;
+  bool _isPopping = false;
+  Animation<double>? _routeAnimation;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _isAlbumDetailActiveNotifier =
+        ref.read(isAlbumDetailActiveProvider.notifier);
+    _landscapeMiniPlayerExtraLeftNotifier =
+        ref.read(landscapeMiniPlayerExtraLeftProvider.notifier);
     AppLog.log(
       '[NavTrace] AlbumDetailPage.initState: album="${widget.album.title}" (id=${widget.album.id}, songs=${widget.album.songs.length})',
       mirrorToConsole: true,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isPopping) return;
+      _isAlbumDetailActiveNotifier.set(true);
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final modalRoute = ModalRoute.of(context);
+    if (modalRoute != null && modalRoute.animation != _routeAnimation) {
+      _routeAnimation?.removeStatusListener(_onRouteAnimationStatus);
+      _routeAnimation = modalRoute.animation;
+      _routeAnimation?.addStatusListener(_onRouteAnimationStatus);
+    }
+  }
+
+  void _onRouteAnimationStatus(AnimationStatus status) {
+    if (status == AnimationStatus.reverse) {
+      _isPopping = true;
+      _isAlbumDetailActiveNotifier.set(false);
+      _landscapeMiniPlayerExtraLeftNotifier.set(0.0);
+    } else if (status == AnimationStatus.completed) {
+      _isPopping = false;
+      _isAlbumDetailActiveNotifier.set(true);
+      if (mounted) {
+        final mediaSize = MediaQuery.sizeOf(context);
+        final isPortrait =
+            MediaQuery.of(context).orientation == Orientation.portrait;
+        final bool isShortLandscape = !isPortrait && (mediaSize.height < 500);
+        final double leftColWidth =
+            (mediaSize.width * 0.36).clamp(240.0, 310.0);
+        _landscapeMiniPlayerExtraLeftNotifier
+            .set(isShortLandscape ? leftColWidth : 0.0);
+      }
+    }
+  }
+
+  void _handleBack() {
+    if (isSelectionMode) {
+      cancelSongSelection();
+      return;
+    }
+    _isPopping = true;
+    _isAlbumDetailActiveNotifier.set(false);
+    _landscapeMiniPlayerExtraLeftNotifier.set(0.0);
+    Navigator.of(context).maybePop();
   }
 
   @override
@@ -60,12 +117,103 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
       '[NavTrace] AlbumDetailPage.dispose: album="${widget.album.title}" (id=${widget.album.id})',
       mirrorToConsole: true,
     );
+    _routeAnimation?.removeStatusListener(_onRouteAnimationStatus);
+    Future.microtask(() {
+      _isAlbumDetailActiveNotifier.set(false);
+      _landscapeMiniPlayerExtraLeftNotifier.set(0.0);
+    });
     _scrollController.dispose();
     super.dispose();
   }
 
   static double getBarHeight(BuildContext context) =>
       AppTopNavBar.getBarHeight(context);
+
+  Widget _buildSongSliverList({
+    required MusicFile? currentMusic,
+    required bool isMixedAlbum,
+    required bool isLargeAlbum,
+    required String unknownArtist,
+    required double itemExtent,
+  }) {
+    return SliverFixedExtentList.builder(
+      itemExtent: itemExtent,
+      itemCount: widget.album.songs.length,
+      itemBuilder: (context, index) {
+        final song = widget.album.songs[index];
+        final isCurrent = currentMusic?.path == song.path;
+        final isSelected = isSongSelected(song.path);
+        final showRemote =
+            isMixedAlbum && RemoteMediaHelper.isRemote(song);
+
+        return _AlbumSongItem(
+          song: song,
+          index: index,
+          isCurrent: isCurrent,
+          isSelected: isSelected,
+          isSelectionMode: isSelectionMode,
+          selectedPaths: selectedSongPaths,
+          isLargeAlbum: isLargeAlbum,
+          showRemoteIndicator: showRemote,
+          unknownArtist: unknownArtist,
+          onTap: () {
+            handleSongTap(
+              index: index,
+              songPath: song.path,
+              allSongs: widget.album.songs,
+              onNormalTap: () {
+                ref.read(audioServiceProvider).playPlaylist(
+                  widget.album.songs,
+                  initialIndex: index,
+                  source: PlaybackSource(
+                    type: PlaybackSourceType.album,
+                    id: widget.album.id,
+                    name: widget.album.title,
+                  ),
+                );
+              },
+            );
+          },
+          onLongPress: () {
+            lastAnchorIndex = index;
+            if (!isSelectionMode) {
+              enterSongSelectionMode(song.path);
+            }
+          },
+          onSecondaryTapDown: (details) {
+            if (!isSelectionMode) {
+              showSongContextMenu(
+                context,
+                details.globalPosition,
+                song: song,
+                songs: [song],
+                mode: SongContextMenuMode.full,
+                onMultiSelect: () {
+                  lastAnchorIndex = index;
+                  enterSongSelectionMode(song.path);
+                },
+                onPlayNext: () =>
+                    ref.read(audioServiceProvider).enqueueNext([song]),
+                onAddToQueue: () =>
+                    ref.read(audioServiceProvider).appendToQueue([song]),
+                onAddToPlaylist: () async {
+                  await showAddSongsToPlaylistDialog(
+                    context,
+                    ref.read(playlistServiceProvider),
+                    [song],
+                  );
+                },
+              );
+            }
+          },
+          onToggleSelection: () {
+            lastAnchorIndex = index;
+            toggleSongSelection(song.path);
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +223,26 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
+    final mediaSize = MediaQuery.sizeOf(context);
+    final bool isShortLandscape = !isPortrait && (mediaSize.height < 500);
+    final double leftColWidth = (mediaSize.width * 0.36).clamp(240.0, 310.0);
+    final modalRoute = ModalRoute.of(context);
+    final bool isRoutePopping = _isPopping ||
+        (modalRoute != null &&
+            (modalRoute.animation?.status == AnimationStatus.reverse ||
+                !modalRoute.isActive));
+    final double targetExtraLeft =
+        (isShortLandscape && !isRoutePopping) ? leftColWidth : 0.0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (isRoutePopping) {
+        _isAlbumDetailActiveNotifier.set(false);
+        _landscapeMiniPlayerExtraLeftNotifier.set(0.0);
+      } else {
+        _isAlbumDetailActiveNotifier.set(true);
+        _landscapeMiniPlayerExtraLeftNotifier.set(targetExtraLeft);
+      }
+    });
 
     final selectedSongs = isSelectionMode
         ? getSelectedSongs(widget.album.songs)
@@ -104,7 +272,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
-            fontSize: 14,
+            fontSize: isShortLandscape ? 12 : 14,
           ),
         ),
         if (RemoteMediaHelper.isAllRemote(widget.album.songs))
@@ -125,12 +293,17 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
             name: widget.album.title,
           ),
         ),
-        icon: const Icon(Icons.play_arrow),
+        icon: Icon(Icons.play_arrow, size: isShortLandscape ? 18 : 20),
         label: Text(l10n.playAll),
         style: !isPortrait
             ? FilledButton.styleFrom(
                 shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                visualDensity: isShortLandscape ? VisualDensity.compact : null,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isShortLandscape ? 12 : 20,
+                  vertical: isShortLandscape ? 8 : 12,
+                ),
+                textStyle: isShortLandscape ? theme.textTheme.labelMedium : null,
               )
             : null,
       ),
@@ -156,11 +329,16 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                   name: widget.album.title,
                 ),
               ),
-              icon: const Icon(Icons.shuffle),
+              icon: Icon(Icons.shuffle, size: isShortLandscape ? 18 : 20),
               label: Text(l10n.shufflePlay),
               style: FilledButton.styleFrom(
                 shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                visualDensity: isShortLandscape ? VisualDensity.compact : null,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isShortLandscape ? 12 : 20,
+                  vertical: isShortLandscape ? 8 : 12,
+                ),
+                textStyle: isShortLandscape ? theme.textTheme.labelMedium : null,
               ),
             ),
     ];
@@ -203,82 +381,12 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                   ),
                 ),
         ),
-        SliverFixedExtentList.builder(
+        _buildSongSliverList(
+          currentMusic: currentMusic,
+          isMixedAlbum: isMixedAlbum,
+          isLargeAlbum: isLargeAlbum,
+          unknownArtist: unknownArtist,
           itemExtent: 64.0,
-          itemCount: widget.album.songs.length,
-          itemBuilder: (context, index) {
-            final song = widget.album.songs[index];
-            final isCurrent = currentMusic?.path == song.path;
-            final isSelected = isSongSelected(song.path);
-            final showRemote =
-                isMixedAlbum && RemoteMediaHelper.isRemote(song);
-
-            return _AlbumSongItem(
-              song: song,
-              index: index,
-              isCurrent: isCurrent,
-              isSelected: isSelected,
-              isSelectionMode: isSelectionMode,
-              selectedPaths: selectedSongPaths,
-              isLargeAlbum: isLargeAlbum,
-              showRemoteIndicator: showRemote,
-              unknownArtist: unknownArtist,
-              onTap: () {
-                handleSongTap(
-                  index: index,
-                  songPath: song.path,
-                  allSongs: widget.album.songs,
-                  onNormalTap: () {
-                    audio.playPlaylist(
-                      widget.album.songs,
-                      initialIndex: index,
-                      source: PlaybackSource(
-                        type: PlaybackSourceType.album,
-                        id: widget.album.id,
-                        name: widget.album.title,
-                      ),
-                    );
-                  },
-                );
-              },
-              onLongPress: () {
-                lastAnchorIndex = index;
-                if (!isSelectionMode) {
-                  enterSongSelectionMode(song.path);
-                }
-              },
-              onSecondaryTapDown: (details) {
-                if (!isSelectionMode) {
-                  showSongContextMenu(
-                    context,
-                    details.globalPosition,
-                    song: song,
-                    songs: [song],
-                    mode: SongContextMenuMode.full,
-                    onMultiSelect: () {
-                      lastAnchorIndex = index;
-                      enterSongSelectionMode(song.path);
-                    },
-                    onPlayNext: () =>
-                        ref.read(audioServiceProvider).enqueueNext([song]),
-                    onAddToQueue: () =>
-                        ref.read(audioServiceProvider).appendToQueue([song]),
-                    onAddToPlaylist: () async {
-                      await showAddSongsToPlaylistDialog(
-                        context,
-                        ref.read(playlistServiceProvider),
-                        [song],
-                      );
-                    },
-                  );
-                }
-              },
-              onToggleSelection: () {
-                lastAnchorIndex = index;
-                toggleSongSelection(song.path);
-              },
-            );
-          },
         ),
         SliverToBoxAdapter(
           child: SizedBox(
@@ -293,10 +401,151 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
       ],
     );
 
-    final isLandscape =
-        MediaQuery.orientationOf(context) == Orientation.landscape;
+    final Widget shortLandscapeBody = Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: leftColWidth,
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              border: Border(
+                right: BorderSide(
+                  color: theme.dividerColor.withValues(alpha: 0.12),
+                  width: 0.8,
+                ),
+              ),
+            ),
+            child: SafeArea(
+              top: true,
+              bottom: true,
+              left: true,
+              right: false,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final double coverSize =
+                      (constraints.maxHeight * 0.36).clamp(92.0, 136.0);
+                  return SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14.0,
+                      vertical: 6.0,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: AppCircularBackButton(
+                            onPressed: _handleBack,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: theme.brightness == Brightness.dark
+                                      ? 0.35
+                                      : 0.12,
+                                ),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: AlbumCover(
+                              album: widget.album,
+                              size: coverSize,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.album.title,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (widget.album.artist.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.album.artist,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 4),
+                        metadataWidget,
+                        const SizedBox(height: 8),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: actionButtons,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: SafeArea(
+            top: true,
+            bottom: false,
+            left: false,
+            right: true,
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              slivers: [
+                const SliverToBoxAdapter(child: SizedBox(height: 6)),
+                _buildSongSliverList(
+                  currentMusic: currentMusic,
+                  isMixedAlbum: isMixedAlbum,
+                  isLargeAlbum: isLargeAlbum,
+                  unknownArtist: unknownArtist,
+                  itemExtent: 64.0,
+                ),
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: isSelectionMode
+                        ? 220.0
+                        : (currentMusic != null
+                            ? (140.0 + MediaQuery.of(context).padding.bottom)
+                            : (32.0 + MediaQuery.of(context).padding.bottom)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final isLandscape = !isPortrait;
+    final bool isCoverFlowImmersive = ref.watch(isCoverFlowImmersiveActiveProvider);
     final double leftPadding =
-        isLandscape ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width)) : 0.0;
+        (isLandscape && !isCoverFlowImmersive && !isShortLandscape)
+            ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width))
+            : 0.0;
 
     final page = NotificationListener<ScrollNotification>(
       onNotification: (notification) {
@@ -316,37 +565,39 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
               padding: EdgeInsets.only(left: leftPadding),
               child: Stack(
                 children: [
-                  scrollBody,
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: AutoHideHeader(
-                      isVisible: isHeaderVisible,
-                      child: AppTopNavBar(
-                        title: widget.album.title,
-                        parentTitle: l10n.albums,
-                        titleKey: const ValueKey('album_title'),
-                        isFloatingCapsule: _isPastTop,
-                        onBack: () => Navigator.of(context).maybePop(),
+                  isShortLandscape ? shortLandscapeBody : scrollBody,
+                  if (!isShortLandscape)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: AutoHideHeader(
+                        isVisible: isHeaderVisible,
+                        child: AppTopNavBar(
+                          title: widget.album.title,
+                          parentTitle: l10n.albums,
+                          titleKey: const ValueKey('album_title'),
+                          isFloatingCapsule: _isPastTop,
+                          contentMaxWidth: kSingleColumnContentMaxWidth,
+                          onBack: _handleBack,
+                        ),
                       ),
                     ),
-                  ),
                   AnimatedSelectionPanel(
                     isVisible: isSelectionMode,
-                  child: LibrarySelectionPanel(
-                    key: const ValueKey('library-selection-panel'),
-                    selectedSongs: selectedSongs,
-                    allSongs: widget.album.songs,
-                    onToggleSelectAll: () =>
-                        toggleSelectAllSongs(widget.album.songs),
-                    onCancel: cancelSongSelection,
+                    child: LibrarySelectionPanel(
+                      key: const ValueKey('library-selection-panel'),
+                      selectedSongs: selectedSongs,
+                      allSongs: widget.album.songs,
+                      onToggleSelectAll: () =>
+                          toggleSelectAllSongs(widget.album.songs),
+                      onCancel: cancelSongSelection,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
+          );
 
         final wrapped = MiniPlayerWrapper(child: content);
         // PopScope 常驻、仅切换 canPop：避免多选开关导致根节点类型变化，
@@ -358,7 +609,12 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
               '[NavTrace] AlbumDetailPage.PopScope invoked (selection mode): didPop=$didPop, result=$result',
               mirrorToConsole: true,
             );
-            if (didPop) return;
+            if (didPop) {
+              _isPopping = true;
+              _isAlbumDetailActiveNotifier.set(false);
+              _landscapeMiniPlayerExtraLeftNotifier.set(0.0);
+              return;
+            }
             cancelSongSelection();
           },
           child: wrapped,

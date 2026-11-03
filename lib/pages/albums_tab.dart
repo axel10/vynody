@@ -210,9 +210,11 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
 
                 // 多选面板高度：3D cover flow 用单行精简版，普通网格列表用完整版
                 final selectionPanelHeight = _is3DView ? 120.0 : 220.0;
+                final isShortLandscape =
+                    isLandscape && MediaQuery.sizeOf(context).height < 500;
                 final bottomPadding =
                     120.0 + (isSelectionMode ? selectionPanelHeight : 0.0);
-                final bottomOffset = isCoverFlowImmersive
+                final bottomOffset = (isCoverFlowImmersive && isShortLandscape)
                     ? (isSelectionMode ? 100.0 : 0.0)
                     : MiniPlayerUiTuning.getListBottomPadding(
                         context,
@@ -309,6 +311,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                                               selectedAlbumIds: selectedKeys,
                                               bottomOffset: bottomOffset,
                                               isHeroEnabled: _is3DView,
+                                              onOpenAlbum: _openAlbumDetail,
                                               onToggleSelection: toggleSelection,
                                               onEnterSelectionMode: enterSelectionMode,
                                               onExit3DView: () {
@@ -394,6 +397,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                                                 selectedAlbumIds: selectedKeys,
                                                 bottomOffset: bottomOffset,
                                                 isHeroEnabled: _is3DView,
+                                                onOpenAlbum: _openAlbumDetail,
                                                 onToggleSelection: toggleSelection,
                                                 onEnterSelectionMode: enterSelectionMode,
                                                 onAlbumContextMenu: (album, position) =>
