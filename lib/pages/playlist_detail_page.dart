@@ -543,6 +543,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                       ),
                       SliverPadding(
                         padding: EdgeInsets.only(
+                          top: isPortrait ? 8.0 : 16.0,
                           bottom: MiniPlayerUiTuning.getListBottomPadding(
                             context,
                             hasPlayingMusic: currentMusic != null,

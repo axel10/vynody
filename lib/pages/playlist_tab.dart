@@ -22,6 +22,10 @@ import '../widgets/playlist_zoom_item.dart';
 import 'main_layout_riverpod.dart';
 import 'playlist_detail_page.dart';
 
+/// 播放列表网格/列表与栏头（LibraryCategoryHeader）之间的顶部呼吸空间。
+/// 避免条目紧贴分类头部，并在大网格卡片 hover 放大（1.03）时顶部被截断遮挡。
+const double kPlaylistGridTopInset = 16.0;
+
 /// 播放列表总览页（第一级页面）
 class PlaylistTab extends ConsumerStatefulWidget {
   const PlaylistTab({
@@ -375,28 +379,6 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                             icon: const Icon(Icons.file_download_outlined),
                             onPressed: () => _importM3uPlaylist(context),
                           ),
-                          if (playlistService.playlists.any(
-                            (p) =>
-                                p.id != 'default' &&
-                                p.id != PlaylistService.favoritePlaylistId,
-                          ))
-                            IconButton(
-                              tooltip: l10n.multiSelect,
-                              icon: const Icon(Icons.checklist_rounded),
-                              onPressed: () {
-                                final firstCustom = playlistService.playlists
-                                    .firstWhereOrNull(
-                                      (p) =>
-                                          p.id != 'default' &&
-                                          p.id !=
-                                              PlaylistService
-                                                  .favoritePlaylistId,
-                                    );
-                                if (firstCustom != null) {
-                                  enterSelectionMode(firstCustom.id);
-                                }
-                              },
-                            ),
                         ],
                       ),
                     ),
@@ -444,6 +426,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                             padding: EdgeInsets.only(
                               left: hPad,
                               right: hPad,
+                              top: kPlaylistGridTopInset,
                               bottom: MiniPlayerUiTuning.getListBottomPadding(
                                 context,
                                 hasPlayingMusic: currentMusic != null,
