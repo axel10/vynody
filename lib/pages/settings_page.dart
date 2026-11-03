@@ -81,16 +81,30 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   void _openSection(SettingsSection section) {
-    setState(() {
-      _currentSection = section;
-    });
+    if (section == SettingsSection.home) return;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+    if (isLandscape) {
+      setState(() {
+        _currentSection = section;
+      });
+    } else {
+      if (Platform.isIOS || Platform.isMacOS) {
+        Navigator.of(context).push(
+          CupertinoPageRoute<void>(
+            builder: (_) => SettingsDetailPage(section: section),
+          ),
+        );
+      } else {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => SettingsDetailPage(section: section),
+          ),
+        );
+      }
+    }
   }
 
-  void _goHome() {
-    setState(() {
-      _currentSection = SettingsSection.home;
-    });
-  }
 
   void _clearSearch() {
     _searchController.clear();
@@ -475,21 +489,10 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
     SettingsService settings,
     SettingsSection section,
   ) {
-    return switch (section) {
-      SettingsSection.home => _buildHomeBody(context),
-      SettingsSection.general => GeneralSection(settings: settings),
-      SettingsSection.audio => AudioSection(settings: settings),
-      SettingsSection.scanning => ScanningSection(settings: settings),
-      SettingsSection.tags => TagsSection(settings: settings),
-      SettingsSection.transcode => TranscodeSection(settings: settings),
-      SettingsSection.lyrics => LyricsSection(settings: settings),
-      SettingsSection.acoustid => AcoustidSection(settings: settings),
-      SettingsSection.lastFm => LastFmSection(settings: settings),
-      SettingsSection.storage => StorageSection(settings: settings),
-      SettingsSection.shortcuts => const ShortcutsSection(),
-      SettingsSection.windows => const WindowsSection(),
-      SettingsSection.about => const AboutSection(),
-    };
+    if (section == SettingsSection.home) {
+      return _buildHomeBody(context);
+    }
+    return buildSettingsSectionContent(context, settings, section);
   }
 
   double _calculateSidebarWidth(BuildContext context) {
@@ -626,22 +629,6 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Page<dynamic> _buildPage({
-    required LocalKey key,
-    required Widget child,
-  }) {
-    if (Platform.isIOS || Platform.isMacOS) {
-      return CupertinoPage<dynamic>(
-        key: key,
-        child: child,
-      );
-    }
-    return MaterialPage<dynamic>(
-      key: key,
-      child: child,
-    );
-  }
-
   Widget _buildRootScaffold(BuildContext context, SettingsService settings) {
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     final l10n = AppLocalizations.of(context)!;
@@ -674,47 +661,18 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
         ),
       );
     } else {
-      final pages = <Page<dynamic>>[
-        _buildPage(
-          key: const ValueKey('settings-home'),
-          child: Scaffold(
-            appBar: AppBar(
-              scrolledUnderElevation: 0,
-              surfaceTintColor: Colors.transparent,
-              notificationPredicate: (_) => false,
-              title: Text(l10n.settings),
-              leading: IconButton(
-                icon: const Icon(kAppBackIcon),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-            body: _buildHomeBody(context),
+      return Scaffold(
+        appBar: AppBar(
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          notificationPredicate: (_) => false,
+          title: Text(l10n.settings),
+          leading: IconButton(
+            icon: const Icon(kAppBackIcon),
+            onPressed: () => Navigator.of(context).pop(),
           ),
         ),
-        if (_currentSection != SettingsSection.home)
-          _buildPage(
-            key: ValueKey('settings-detail-${_currentSection.name}'),
-            child: Scaffold(
-              appBar: AppBar(
-                scrolledUnderElevation: 0,
-                surfaceTintColor: Colors.transparent,
-                notificationPredicate: (_) => false,
-                title: Text(_currentSection.title(context)),
-                leading: IconButton(
-                  icon: const Icon(kAppBackIcon),
-                  onPressed: _goHome,
-                ),
-              ),
-              body: _buildSectionContent(context, settings, _currentSection),
-            ),
-          ),
-      ];
-
-      return Navigator(
-        pages: pages,
-        onDidRemovePage: (page) {
-          _goHome();
-        },
+        body: _buildHomeBody(context),
       );
     }
   }
@@ -722,52 +680,12 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsServiceProvider);
-    final theme = Theme.of(context);
-    final isMacOS = Platform.isMacOS;
-    final showCustomTitleBar =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-
-    Widget content = ScaffoldMessenger(
-      child: _buildRootScaffold(context, settings),
-    );
-
-    if (showCustomTitleBar || isMacOS) {
-      content = Material(
-        color: theme.colorScheme.surface,
-        child: Column(
-          children: [
-            if (showCustomTitleBar)
-              DesktopWindowTitleBar(brightness: theme.brightness)
-            else
-              const DragToMoveArea(child: SizedBox(height: 32)),
-            Expanded(child: content),
-          ],
-        ),
-      );
-    } else if (isWindowedEnvironment(context)) {
-      final topPadding = getTitleBarTopPadding(context);
-      content = Material(
-        color: theme.colorScheme.surface,
-        child: Column(
-          children: [
-            SizedBox(height: topPadding),
-            Expanded(
-              child: MediaQuery.removePadding(
-                context: context,
-                removeTop: true,
-                child: content,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
+    final scaffold = _buildRootScaffold(context, settings);
+    final content = wrapSettingsWithWindowFrame(context, scaffold);
 
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
-    final canPop = isLandscape ||
-        (_currentSection == SettingsSection.home && _searchQuery.isEmpty);
+    final canPop = isLandscape || _searchQuery.isEmpty;
 
     return PopScope(
       canPop: canPop,
@@ -777,9 +695,104 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
           _clearSearch();
           return;
         }
-        _goHome();
       },
       child: content,
+    );
+  }
+}
+
+Widget wrapSettingsWithWindowFrame(BuildContext context, Widget child) {
+  final theme = Theme.of(context);
+  final isMacOS = Platform.isMacOS;
+  final showCustomTitleBar =
+      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+  Widget content = ScaffoldMessenger(
+    child: child,
+  );
+
+  if (showCustomTitleBar || isMacOS) {
+    return Material(
+      color: theme.colorScheme.surface,
+      child: Column(
+        children: [
+          if (showCustomTitleBar)
+            DesktopWindowTitleBar(brightness: theme.brightness)
+          else
+            const DragToMoveArea(child: SizedBox(height: 32)),
+          Expanded(child: content),
+        ],
+      ),
+    );
+  } else if (isWindowedEnvironment(context)) {
+    final topPadding = getTitleBarTopPadding(context);
+    return Material(
+      color: theme.colorScheme.surface,
+      child: Column(
+        children: [
+          SizedBox(height: topPadding),
+          Expanded(
+            child: MediaQuery.removePadding(
+              context: context,
+              removeTop: true,
+              child: content,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  return content;
+}
+
+Widget buildSettingsSectionContent(
+  BuildContext context,
+  SettingsService settings,
+  SettingsSection section,
+) {
+  return switch (section) {
+    SettingsSection.home => const SizedBox.shrink(),
+    SettingsSection.general => GeneralSection(settings: settings),
+    SettingsSection.audio => AudioSection(settings: settings),
+    SettingsSection.scanning => ScanningSection(settings: settings),
+    SettingsSection.tags => TagsSection(settings: settings),
+    SettingsSection.transcode => TranscodeSection(settings: settings),
+    SettingsSection.lyrics => LyricsSection(settings: settings),
+    SettingsSection.acoustid => AcoustidSection(settings: settings),
+    SettingsSection.lastFm => LastFmSection(settings: settings),
+    SettingsSection.storage => StorageSection(settings: settings),
+    SettingsSection.shortcuts => const ShortcutsSection(),
+    SettingsSection.windows => const WindowsSection(),
+    SettingsSection.about => const AboutSection(),
+  };
+}
+
+class SettingsDetailPage extends ConsumerWidget {
+  final SettingsSection section;
+
+  const SettingsDetailPage({
+    super.key,
+    required this.section,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsServiceProvider);
+    return wrapSettingsWithWindowFrame(
+      context,
+      Scaffold(
+        appBar: AppBar(
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          notificationPredicate: (_) => false,
+          title: Text(section.title(context)),
+          leading: IconButton(
+            icon: const Icon(kAppBackIcon),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: buildSettingsSectionContent(context, settings, section),
+      ),
     );
   }
 }

@@ -1625,7 +1625,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                         animation: secondaryAnimation,
                         child: dock,
                         builder: (context, child) =>
-                            secondaryAnimation.value > 0.0
+                            secondaryAnimation.value >= 1.0
                             ? const SizedBox.shrink()
                             : child!,
                       );
