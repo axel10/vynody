@@ -1674,12 +1674,12 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                 currentIndex: 1,
                                 onDestinationSelected: (index) {
                                   if (index == 1) return;
-                                  _collapsePlayback();
                                   if (index == 5) {
                                     _openSettingsPage();
-                                  } else {
-                                    _selectTab(index);
+                                    return;
                                   }
+                                  _collapsePlayback();
+                                  _selectTab(index);
                                 },
                                 isPlayback: true,
                                 isHidden:
