@@ -2,6 +2,7 @@
 library;
 
 import 'dart:io';
+import 'dart:ui' show Display;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -54,6 +55,48 @@ double sidebarRailWidthFor(
       .clamp(kMinSidebarRailWidthExtended, kMaxSidebarRailWidthExtended);
 }
 
+/// [Display.size] 在各平台的上报口径并不统一：
+/// - Linux（GTK embedder）：取自 `gdk_monitor_get_geometry()`，返回的已经是
+///   application / 逻辑像素，**不需要**再除以 [Display.devicePixelRatio]。
+/// - Windows（`rcMonitor` 宽高）、macOS（`frame.size * backingScaleFactor`）、
+///   Android/iOS：返回的都是物理像素，需要除以 [Display.devicePixelRatio]。
+///
+/// 若 Linux 上照搬「除以 dpr」的写法，HiDPI 屏会被二次缩小
+/// （如 1920x1200 @2x 实际报成 960x600），横屏歌词模式左侧控件区因此被压扁。
+bool get displaySizeReportedInLogicalPixels => !kIsWeb && Platform.isLinux;
+
+/// 把显示器尺寸换算为逻辑像素（dp），[rawSize] 与 [devicePixelRatio] 取自 [Display]。
+///
+/// [sizeIsLogical] 为 `null` 时按当前运行平台自动判断口径。
+Size logicalDisplaySizeFrom(
+  Size rawSize,
+  double devicePixelRatio, {
+  bool? sizeIsLogical,
+}) {
+  final bool isLogical = sizeIsLogical ?? displaySizeReportedInLogicalPixels;
+  if (isLogical || devicePixelRatio.isNaN || devicePixelRatio <= 0) {
+    return rawSize;
+  }
+  return rawSize / devicePixelRatio;
+}
+
+/// 将 [Display.size] 统一换算为逻辑像素（dp）。
+Size displayLogicalSize(Display display, {bool? sizeIsLogical}) =>
+    logicalDisplaySizeFrom(
+      display.size,
+      display.devicePixelRatio,
+      sizeIsLogical: sizeIsLogical,
+    );
+
+/// 当前视图所在显示器的逻辑尺寸；取不到显示器信息时返回 `null`。
+Size? logicalDisplaySizeOf(BuildContext context) {
+  try {
+    return displayLogicalSize(View.of(context).display);
+  } catch (_) {
+    return null;
+  }
+}
+
 /// 判断当前是否处于窗口化运行环境（桌面端或平板多任务/窗口模式，如 iPadOS 台前调度 Stage Manager、分屏）
 bool isWindowedEnvironment(BuildContext context) {
   final isDesktop = !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
@@ -61,17 +104,20 @@ bool isWindowedEnvironment(BuildContext context) {
 
   try {
     final view = View.of(context);
-    final windowSize = view.physicalSize;
-    final displaySize = view.display.size;
+    final double dpr = view.devicePixelRatio;
+    if (dpr > 0) {
+      // 窗口逻辑尺寸与显示器逻辑尺寸同量纲比较（2.0dp 容差）
+      final windowSize = view.physicalSize / dpr;
+      final displaySize = displayLogicalSize(view.display);
 
-    // 当物理显示器尺寸有效时比对窗口与物理屏幕（长宽对比，支持横竖屏旋转，容差 2.0 物理像素）
-    if (displaySize.width > 0 && displaySize.height > 0) {
-      final isFullScreen =
-          (windowSize.width >= displaySize.width - 2.0 &&
-              windowSize.height >= displaySize.height - 2.0) ||
-          (windowSize.width >= displaySize.height - 2.0 &&
-              windowSize.height >= displaySize.width - 2.0);
-      return !isFullScreen;
+      if (displaySize.width > 0 && displaySize.height > 0) {
+        final isFullScreen =
+            (windowSize.width >= displaySize.width - 2.0 &&
+                windowSize.height >= displaySize.height - 2.0) ||
+            (windowSize.width >= displaySize.height - 2.0 &&
+                windowSize.height >= displaySize.width - 2.0);
+        return !isFullScreen;
+      }
     }
   } catch (_) {
     // 降级保护

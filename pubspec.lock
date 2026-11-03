@@ -518,10 +518,10 @@ packages:
     dependency: transitive
     description:
       name: flutter_cache_manager
-      sha256: "7253cd28eed9b79cbf403d72247459a2f333c8b2ccc702161eaeeac205c4a1cb"
+      sha256: "94515cbc3d560e7aefb40cdf683ee3f5063d23f7b689b431b4e7d3dec83bc06a"
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "3.4.6"
+    version: "3.4.8"
   flutter_colorpicker:
     dependency: "direct main"
     description:
@@ -586,10 +586,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_reorderable_grid_view
-      sha256: "1dbb568472ffd9b312a52de784d4b480770e032d4cda060d6b400e01be7243c4"
+      sha256: "96fa216fb9745d8b6a1fc00c24b1e335b4440cf66fab44e9dfc9ba27223bf114"
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "5.9.0"
+    version: "5.10.0"
   flutter_riverpod:
     dependency: "direct main"
     description:
@@ -673,9 +673,11 @@ packages:
   flutter_taglib:
     dependency: "direct main"
     description:
-      path: "audio_core/flutter_taglib"
-      relative: true
-    source: path
+      path: "."
+      ref: master
+      resolved-ref: "96f9f39059107e627ca6a5f708ec4ec483a56709"
+      url: "https://github.com/axel10/flutter_taglib"
+    source: git
     version: "1.6.0"
   flutter_test:
     dependency: "direct dev"
@@ -990,9 +992,11 @@ packages:
   mesh_flow:
     dependency: "direct main"
     description:
-      path: mesh_flow
-      relative: true
-    source: path
+      path: "."
+      ref: master
+      resolved-ref: "98ea98daab58f55bc36cc70c70b4f89b3a0549ca"
+      url: "https://github.com/axel10/mesh_flow"
+    source: git
     version: "0.0.1"
   mesh_gradient:
     dependency: "direct main"
@@ -1650,7 +1654,7 @@ packages:
     dependency: "direct main"
     description:
       path: super_drag_and_drop
-      ref: a6b1fe1471e8f7af354bedcfb0c89f42bcf24d16
+      ref: main
       resolved-ref: a6b1fe1471e8f7af354bedcfb0c89f42bcf24d16
       url: "https://github.com/axel10/super_native_extensions"
     source: git
@@ -1788,10 +1792,10 @@ packages:
     dependency: transitive
     description:
       name: vector_graphics
-      sha256: "4e5f106dfc6f0e4e7efe11603e38c34352d912905320b930128a9b1ad61363f4"
+      sha256: "82885f6ac633044e7a4e4d8d745724a67aa0dc50af5d8a81ec29379f63c29035"
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "1.2.5"
+    version: "1.2.6"
   vector_graphics_codec:
     dependency: transitive
     description:
@@ -1933,9 +1937,11 @@ packages:
   zoomable_sliver_grid:
     dependency: "direct main"
     description:
-      path: zoomable_sliver_grid
-      relative: true
-    source: path
+      path: "."
+      ref: master
+      resolved-ref: dc283da3f8365e534067fdd12d734179b9ff0310
+      url: "https://github.com/axel10/zoomable_sliver_grid"
+    source: git
     version: "0.0.4"
 sdks:
   dart: ">=3.12.2 <4.0.0"

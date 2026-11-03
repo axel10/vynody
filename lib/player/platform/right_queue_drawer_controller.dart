@@ -149,9 +149,8 @@ class RightQueueDrawerNotifier extends Notifier<bool> {
           WidgetsBinding.instance.platformDispatcher.implicitView;
       final Display? display = view?.display;
       if (display == null) return null;
-      final double dpr = display.devicePixelRatio;
-      if (dpr <= 0) return null;
-      return display.size.width / dpr;
+      final double width = displayLogicalSize(display).width;
+      return width > 0 ? width : null;
     } catch (_) {
       return null;
     }

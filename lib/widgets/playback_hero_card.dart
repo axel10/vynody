@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/layout_constants.dart';
 import 'package:vynody/widgets/lyrics_panel.dart';
 import 'package:vynody/widgets/playback_ui_tuning.dart';
 
@@ -1327,29 +1328,10 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
         lLyricsCoverInfoSpacing +
         lLyricsInfoControlsSpacing;
 
-    double screenHeight = height;
-    try {
-      final display = View.of(context).display;
-      if (display.size.height > 0 && display.devicePixelRatio > 0) {
-        final double displayHeight = display.size.height / display.devicePixelRatio;
-        final platform = Theme.of(context).platform;
-        final isDesktop = platform == TargetPlatform.linux ||
-            platform == TargetPlatform.windows ||
-            platform == TargetPlatform.macOS;
-        
-        if (isDesktop && displayHeight <= 600.0) {
-          screenHeight = math.max(1080.0, height);
-        } else {
-          screenHeight = displayHeight;
-        }
-      }
-    } catch (_) {
-      final platform = Theme.of(context).platform;
-      final isDesktop = platform == TargetPlatform.linux ||
-          platform == TargetPlatform.windows ||
-          platform == TargetPlatform.macOS;
-      screenHeight = isDesktop ? math.max(1080.0, height) : height;
-    }
+    // 左侧控件区高度上限以「显示器逻辑高度」为基准。各平台 Display.size 的量纲
+    // 不同（Linux 已是逻辑像素，Windows/macOS/移动端是物理像素），统一走
+    // [logicalDisplaySizeOf] 换算，失败时退回当前窗口高度。
+    final double screenHeight = logicalDisplaySizeOf(context)?.height ?? height;
 
     final double maxLeftAreaTotalHeight = math.min(
       lLyricsAvailableHeight,
