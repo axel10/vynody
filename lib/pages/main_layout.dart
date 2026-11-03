@@ -1671,7 +1671,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                             ),
                             if (!useSidebar && !isSmallWin)
                               FloatingDockBottomBar(
-                                currentIndex: 1,
+                                // 播放页是覆盖在底层 Tab 之上的抽屉，它自己不占
+                                // 导航位。这里沿用底层 Tab 的索引，让 Dock 高亮
+                                // 保持与「当前路由位置」一致，而不是全部熄掉。
+                                currentIndex: _currentIndex,
                                 onDestinationSelected: (index) {
                                   if (index == 1) return;
                                   if (index == 5) {
