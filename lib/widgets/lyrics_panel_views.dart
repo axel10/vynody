@@ -648,9 +648,12 @@ class _LyricsPanelTimedLyricsViewState
                                   duration: const Duration(milliseconds: 300),
                                   curve: Curves.easeOutCubic,
                                   builder: (context, blurSigma, child) {
-                                    if (blurSigma <= 0.0) {
-                                      return child!;
-                                    }
+                                    // 结构必须恒定：即使 blurSigma 归零也保留
+                                    // ImageFiltered 这一层。若在 0 时返回裸 child，
+                                    // 跳行时本行 blur 从正数动画到 0（或 0 到正数）
+                                    // 会跨越这一步 → 父级类型变化 → 整行子树重建
+                                    // → 行内 AppleLyricTranslationFadeIn 丢 State，
+                                    // 译文重播淡入（表现为「跳到下一行时译文又出现一次」）。
                                     return ImageFiltered(
                                       imageFilter: ui.ImageFilter.blur(
                                         sigmaX: blurSigma,
@@ -725,31 +728,29 @@ class _LyricsPanelTimedLyricsViewState
                                 );
                               }
 
-                              final Widget resultWidget;
+                              // 错峰滑入只在「附近窗口」内生效，但这一层必须常驻：
+                              // 窗口边界随 firstVisibleIndex 移动，若按条件增删包裹层，
+                              // 进出窗口的行根类型会变 → 整行子树重建 → 行内
+                              // AppleLyricTranslationFadeIn 丢 State、译文重播淡入。
                               final bool isInStaggerRange =
                                   !widget.isGenerating &&
                                   widget.isFocusMode &&
                                   index >= widget.firstVisibleIndex - 10 &&
                                   index <= widget.firstVisibleIndex + 30;
 
-                              if (isInStaggerRange) {
-                                resultWidget =
-                                    StaggeredAppleLyricsScrollWrapper(
-                                      index: index,
-                                      activeIndex: widget.activeIndex,
-                                      scrollDelta: widget.scrollDelta,
-                                      scrollTriggerTime:
-                                          widget.scrollTriggerTime,
-                                      isEnteringFocusMode:
-                                          widget.isEnteringFocusMode,
-                                      firstVisibleIndex:
-                                          widget.firstVisibleIndex,
-                                      isTransitioning: widget.isTransitioning,
-                                      child: contentWidget,
-                                    );
-                              } else {
-                                resultWidget = contentWidget;
-                              }
+                              final Widget resultWidget =
+                                  StaggeredAppleLyricsScrollWrapper(
+                                    index: index,
+                                    activeIndex: widget.activeIndex,
+                                    scrollDelta: widget.scrollDelta,
+                                    scrollTriggerTime: widget.scrollTriggerTime,
+                                    isEnteringFocusMode:
+                                        widget.isEnteringFocusMode,
+                                    firstVisibleIndex: widget.firstVisibleIndex,
+                                    isTransitioning: widget.isTransitioning,
+                                    enabled: isInStaggerRange,
+                                    child: contentWidget,
+                                  );
 
                               return KeyedSubtree(
                                 key: ValueKey('lyric_active_$index'),
@@ -904,6 +905,14 @@ class _LyricsFadeShaderMask extends StatelessWidget {
   }
 }
 
+/// 苹果歌词面板在滚动 / 切行时给附近行做的「逐行错峰滑入」包装层。
+///
+/// 这一层**必须常驻**，不允许按条件增删：错峰窗口的边界跟着
+/// `firstVisibleIndex` 走，若进出窗口时增删包裹层，行子树根类型变化 →
+/// 整行 Element 重建 → 行内 `AppleLyricTranslationFadeIn` 丢 State、译文
+/// 重播淡入（表现为「跳到下一行时译文又淡入一次」）。
+/// 真正参不参与动画由 [enabled] 决定；未启用时不持有 AnimationController，
+/// 只透传 child，避免上千行常驻 ticker。
 class StaggeredAppleLyricsScrollWrapper extends StatefulWidget {
   final Widget child;
   final int index;
@@ -913,6 +922,7 @@ class StaggeredAppleLyricsScrollWrapper extends StatefulWidget {
   final bool isEnteringFocusMode;
   final int firstVisibleIndex;
   final bool isTransitioning;
+  final bool enabled;
 
   const StaggeredAppleLyricsScrollWrapper({
     super.key,
@@ -924,6 +934,7 @@ class StaggeredAppleLyricsScrollWrapper extends StatefulWidget {
     required this.isEnteringFocusMode,
     required this.firstVisibleIndex,
     required this.isTransitioning,
+    this.enabled = true,
   });
 
   @override
@@ -933,24 +944,44 @@ class StaggeredAppleLyricsScrollWrapper extends StatefulWidget {
 
 class _StaggeredAppleLyricsScrollWrapperState
     extends State<StaggeredAppleLyricsScrollWrapper>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+    with TickerProviderStateMixin {
+  AnimationController? _controller;
+  Animation<double>? _animation;
   double _startOffset = 0.0;
   double _currentOffset = 0.0;
   Timer? _delayTimer;
 
+  static const Duration _animationDuration = Duration(milliseconds: 550);
+
+  void _ensureController() {
+    if (_controller != null) return;
+    final controller = AnimationController(
+      vsync: this,
+      duration: _animationDuration,
+    );
+    _controller = controller;
+    _animation = CurvedAnimation(
+      parent: controller,
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  /// 退出错峰窗口（或转场）时彻底释放 ticker，只留下一个空 State。
+  void _releaseController() {
+    _delayTimer?.cancel();
+    _delayTimer = null;
+    _controller?.dispose();
+    _controller = null;
+    _animation = null;
+    _currentOffset = 0.0;
+    _startOffset = 0.0;
+  }
+
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 550),
-    );
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    );
+    if (!widget.enabled) return;
+    _ensureController();
 
     final double maxDelta = widget.isEnteringFocusMode ? 1500.0 : 800.0;
     final timePassed =
@@ -959,34 +990,7 @@ class _StaggeredAppleLyricsScrollWrapperState
         !widget.isTransitioning &&
         timePassed < 700 &&
         widget.scrollDelta.abs() <= maxDelta) {
-      _startOffset = widget.scrollDelta;
-      _currentOffset = widget.scrollDelta;
-
-      final int delayMs;
-      if (widget.isEnteringFocusMode) {
-        delayMs = math.min(
-          350,
-          math.max(0, widget.index - widget.firstVisibleIndex) * 15,
-        );
-      } else {
-        if (widget.index > widget.activeIndex) {
-          delayMs = math.min(300, (widget.index - widget.activeIndex) * 24);
-        } else if (widget.index < widget.activeIndex) {
-          delayMs = math.min(120, (widget.activeIndex - widget.index) * 12);
-        } else {
-          delayMs = 0;
-        }
-      }
-
-      if (delayMs == 0) {
-        _controller.forward(from: 0.0);
-      } else {
-        _delayTimer = Timer(Duration(milliseconds: delayMs), () {
-          if (mounted) {
-            _controller.forward(from: 0.0);
-          }
-        });
-      }
+      _startAnimation();
     }
   }
 
@@ -994,12 +998,23 @@ class _StaggeredAppleLyricsScrollWrapperState
   void didUpdateWidget(StaggeredAppleLyricsScrollWrapper oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    if (!widget.enabled) {
+      _releaseController();
+      return;
+    }
+    if (_controller == null) {
+      // 刚刚进入错峰窗口：补建控制器并按当前滚动参数播一次。
+      _ensureController();
+      _startAnimation();
+      return;
+    }
+
     final double maxDelta = widget.isEnteringFocusMode ? 1500.0 : 800.0;
     if (widget.isTransitioning ||
         widget.scrollTriggerTime <= 0 ||
         widget.scrollDelta.abs() > maxDelta) {
       _delayTimer?.cancel();
-      _controller.stop();
+      _controller!.stop();
       _currentOffset = 0.0;
       _startOffset = 0.0;
       return;
@@ -1012,8 +1027,11 @@ class _StaggeredAppleLyricsScrollWrapperState
   }
 
   void _startAnimation() {
+    final controller = _controller;
+    if (controller == null) return;
+
     _delayTimer?.cancel();
-    _controller.stop();
+    controller.stop();
 
     final double maxDelta = widget.isEnteringFocusMode ? 1500.0 : 800.0;
     if (widget.scrollDelta.abs() > maxDelta || widget.scrollTriggerTime <= 0) {
@@ -1041,11 +1059,11 @@ class _StaggeredAppleLyricsScrollWrapperState
     _startOffset = widget.scrollDelta + _currentOffset;
 
     if (delayMs == 0) {
-      _controller.forward(from: 0.0);
+      controller.forward(from: 0.0);
     } else {
       _delayTimer = Timer(Duration(milliseconds: delayMs), () {
         if (mounted) {
-          _controller.forward(from: 0.0);
+          _controller?.forward(from: 0.0);
         }
       });
     }
@@ -1054,25 +1072,30 @@ class _StaggeredAppleLyricsScrollWrapperState
   @override
   void dispose() {
     _delayTimer?.cancel();
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // 结构必须恒定：ExcludeSemantics > AnimatedBuilder > Transform > child。
+    // 未启用时只是不产生位移，绝不删层 —— 少一层就会让 child 换父级而重建。
+    final Animation<double> animation =
+        _animation ?? const AlwaysStoppedAnimation<double>(0.0);
     return ExcludeSemantics(
       child: AnimatedBuilder(
-        animation: _animation,
+        animation: animation,
         child: widget.child,
         builder: (context, child) {
-          if (widget.isTransitioning) {
-            return child!;
-          }
-
-          if (_controller.isAnimating) {
-            _currentOffset = _startOffset * (1.0 - _animation.value);
-          } else if (_delayTimer?.isActive ?? false) {
-            _currentOffset = _startOffset;
+          final controller = _controller;
+          if (controller != null && !widget.isTransitioning) {
+            if (controller.isAnimating) {
+              _currentOffset = _startOffset * (1.0 - animation.value);
+            } else if (_delayTimer?.isActive ?? false) {
+              _currentOffset = _startOffset;
+            } else {
+              _currentOffset = 0.0;
+            }
           } else {
             _currentOffset = 0.0;
           }
