@@ -62,9 +62,12 @@ class AppTopNavBar extends StatelessWidget {
     );
   }
 
-  /// 计算整个顶部栏的总高度（safeTopPadding + contentHeight）
+  /// 计算整个顶部栏的总高度（safeTopPadding + contentHeight），自动兼容浮动胶囊高度
   static double getBarHeight(BuildContext context) {
-    return getSafeTopPadding(context) + contentHeight;
+    final floatHeight = kNavCapsuleHeight + kNavCapsuleTopOffset * 2;
+    final effectiveHeight =
+        contentHeight > floatHeight ? contentHeight : floatHeight;
+    return getSafeTopPadding(context) + effectiveHeight;
   }
 
   void _handleTitleTap(BuildContext context) {
@@ -146,7 +149,7 @@ class AppTopNavBar extends StatelessWidget {
             );
 
       return Padding(
-        padding: EdgeInsets.only(top: safeTopPadding + 4.0),
+        padding: EdgeInsets.only(top: safeTopPadding + kNavCapsuleTopOffset),
         child: islandArea,
       );
     }

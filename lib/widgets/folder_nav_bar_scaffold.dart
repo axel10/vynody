@@ -399,7 +399,7 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
 
         final Widget capsuleIsland = Padding(
           padding: EdgeInsets.only(
-            top: topPadding + 4.0,
+            top: topPadding + kNavCapsuleTopOffset,
             left: 16.0,
             right: 16.0,
           ),

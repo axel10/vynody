@@ -3,6 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:vynody/utils/app_icons.dart';
 import 'package:vynody/utils/blur_constants.dart';
 
+/// 浮动导航胶囊统一配置尺寸与圆角
+///
+/// 供目录页和媒体库等页面向下滚动时出现的顶部浮动胶囊组件复用。
+const double kNavCapsuleHeight = 44.0;
+
+/// 浮动胶囊始终保持胶囊形状（圆角半径为高度的一半）
+const double kNavCapsuleRadius = kNavCapsuleHeight / 2;
+
+/// 浮动胶囊内部主按钮尺寸（触控热区与胶囊高度对齐）
+const double kNavCapsuleButtonSize = kNavCapsuleHeight;
+
+/// 浮动胶囊内部图标尺寸
+const double kNavCapsuleIconSize = 28.0;
+
+/// 浮动胶囊距离顶部安全区域（状态栏/标题栏）的额外间距
+const double kNavCapsuleTopOffset = 0.0;
+
 /// 统一的顶部浮动胶囊岛组件。
 ///
 /// 竖屏下页面滚动时始终保持在顶部悬浮呈现。
@@ -46,7 +63,7 @@ class NavCapsuleIsland extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final shapeRadius = BorderRadius.circular(20);
+    final shapeRadius = BorderRadius.circular(kNavCapsuleRadius);
     final effectiveTooltip =
         tooltip ?? (parentTitle.isNotEmpty ? parentTitle : null);
 
@@ -56,16 +73,16 @@ class NavCapsuleIsland extends StatelessWidget {
         type: MaterialType.transparency,
         child: InkWell(
           borderRadius: hasActions
-              ? const BorderRadius.horizontal(left: Radius.circular(20))
+              ? const BorderRadius.horizontal(left: Radius.circular(kNavCapsuleRadius))
               : shapeRadius,
           onTap: onBack ?? () => Navigator.of(context).maybePop(),
           child: SizedBox(
-            width: 40,
-            height: 40,
+            width: kNavCapsuleButtonSize,
+            height: kNavCapsuleButtonSize,
             child: Center(
               child: Icon(
                 icon,
-                size: 22,
+                size: kNavCapsuleIconSize,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
               ),
             ),
@@ -78,7 +95,7 @@ class NavCapsuleIsland extends StatelessWidget {
     }
 
     final Widget capsuleBody = Container(
-      height: 40,
+      height: kNavCapsuleHeight,
       decoration: BoxDecoration(
         borderRadius: shapeRadius,
         boxShadow: AppBlur.glassShadow(context),
@@ -91,7 +108,7 @@ class NavCapsuleIsland extends StatelessWidget {
             sigmaY: AppBlur.heavy,
           ),
           child: Container(
-            height: 40,
+            height: kNavCapsuleHeight,
             decoration: BoxDecoration(
               color: AppBlur.heavySurface(context),
               borderRadius: shapeRadius,
@@ -138,10 +155,11 @@ class NavActionsCapsule extends StatelessWidget {
   Widget build(BuildContext context) {
     if (actions.isEmpty) return const SizedBox.shrink();
 
-    final shapeRadius = BorderRadius.circular(20);
+    final shapeRadius = BorderRadius.circular(kNavCapsuleRadius);
 
     return Container(
-      height: 40,
+      height: kNavCapsuleHeight,
+      constraints: const BoxConstraints(minWidth: kNavCapsuleHeight),
       decoration: BoxDecoration(
         borderRadius: shapeRadius,
         boxShadow: AppBlur.glassShadow(context),
@@ -154,15 +172,18 @@ class NavActionsCapsule extends StatelessWidget {
             sigmaY: AppBlur.heavy,
           ),
           child: Container(
-            height: 40,
+            height: kNavCapsuleHeight,
+            constraints: const BoxConstraints(minWidth: kNavCapsuleHeight),
             padding: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
               color: AppBlur.heavySurface(context),
               borderRadius: shapeRadius,
               border: AppBlur.glassBorder(context),
             ),
+            alignment: Alignment.center,
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: actions,
             ),
           ),
