@@ -98,7 +98,7 @@ class NavCapsuleIsland extends StatelessWidget {
       height: kNavCapsuleHeight,
       decoration: BoxDecoration(
         borderRadius: shapeRadius,
-        boxShadow: AppBlur.glassShadow(context),
+        // boxShadow: AppBlur.glassShadow(context),
       ),
       child: ClipRRect(
         borderRadius: shapeRadius,
@@ -162,7 +162,7 @@ class NavActionsCapsule extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: kNavCapsuleHeight),
       decoration: BoxDecoration(
         borderRadius: shapeRadius,
-        boxShadow: AppBlur.glassShadow(context),
+        // boxShadow: AppBlur.glassShadow(context),
       ),
       child: ClipRRect(
         borderRadius: shapeRadius,
