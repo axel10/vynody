@@ -149,7 +149,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
     );
 
     final actionButtons = <Widget>[
-      ElevatedButton.icon(
+      FilledButton.icon(
         onPressed: activePlaylist.songs.isNotEmpty
             ? () => audio.playPlaylist(
                 activePlaylist.songs,
@@ -160,10 +160,10 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                 ),
               )
             : null,
-        icon: const Icon(Icons.play_arrow_rounded),
+        icon: const Icon(Icons.play_arrow),
         label: Text(l10n.playAll),
-        style: isPortrait
-            ? ElevatedButton.styleFrom(
+        style: !isPortrait
+            ? FilledButton.styleFrom(
                 shape: const StadiumBorder(),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
