@@ -98,153 +98,178 @@ class AppTopNavBar extends StatelessWidget {
         MediaQuery.orientationOf(context) == Orientation.landscape;
     final bool effectiveFloatingCapsule = isFloatingCapsule || isLandscape;
 
+    final Widget currentChild;
     if (effectiveFloatingCapsule) {
       if (!showBackButton && (actions == null || actions!.isEmpty)) {
-        return const SizedBox.shrink();
+        currentChild =
+            const SizedBox.shrink(key: ValueKey('app_top_nav_bar_empty'));
+      } else {
+        final effectiveParentTitle =
+            parentTitle ?? l10n?.list ?? l10n?.goBack ?? 'Back';
+        final Widget capsule = Align(
+          alignment: Alignment.centerLeft,
+          child: NavCapsuleIsland(
+            parentTitle: effectiveParentTitle,
+            onBack: () {
+              final nav = Navigator.of(context);
+              final rootNav = Navigator.of(context, rootNavigator: true);
+              final currentRoute = ModalRoute.of(context);
+              AppLog.log(
+                '[NavTrace] AppTopNavBar capsule back button pressed! '
+                'parentTitle="$effectiveParentTitle", '
+                'route="${currentRoute?.settings.name}", '
+                'localCanPop=${nav.canPop()}, '
+                'rootCanPop=${rootNav.canPop()}',
+                mirrorToConsole: true,
+              );
+              if (onBack != null) {
+                onBack!();
+              } else {
+                nav.maybePop();
+              }
+            },
+            actions: actions,
+            showBack: showBackButton,
+            tooltip: l10n?.goBack ?? 'Back',
+          ),
+        );
+
+        final Widget islandArea = contentMaxWidth != null
+            ? Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: contentMaxWidth!),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: capsule,
+                  ),
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: capsule,
+              );
+
+        currentChild = KeyedSubtree(
+          key: const ValueKey('app_top_nav_bar_capsule'),
+          child: Padding(
+            padding: EdgeInsets.only(top: safeTopPadding + kNavCapsuleTopOffset),
+            child: islandArea,
+          ),
+        );
       }
-      final effectiveParentTitle =
-          parentTitle ?? l10n?.list ?? l10n?.goBack ?? 'Back';
-      final Widget capsule = Align(
-        alignment: Alignment.centerLeft,
-        child: NavCapsuleIsland(
-          parentTitle: effectiveParentTitle,
-          onBack: () {
-            final nav = Navigator.of(context);
-            final rootNav = Navigator.of(context, rootNavigator: true);
-            final currentRoute = ModalRoute.of(context);
-            AppLog.log(
-              '[NavTrace] AppTopNavBar capsule back button pressed! '
-              'parentTitle="$effectiveParentTitle", '
-              'route="${currentRoute?.settings.name}", '
-              'localCanPop=${nav.canPop()}, '
-              'rootCanPop=${rootNav.canPop()}',
-              mirrorToConsole: true,
-            );
-            if (onBack != null) {
-              onBack!();
-            } else {
-              nav.maybePop();
-            }
-          },
-          actions: actions,
-          showBack: showBackButton,
-          tooltip: l10n?.goBack ?? 'Back',
-        ),
+    } else {
+      final Widget effectiveTitle = AnimatedOpacity(
+        opacity: titleOpacity.clamp(0.0, 1.0),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOutCubic,
+        child: titleWidget ??
+            (title != null
+                ? Text(
+                    title!,
+                    key: titleKey,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  )
+                : const SizedBox.shrink()),
       );
 
-      final Widget islandArea = contentMaxWidth != null
-          ? Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: contentMaxWidth!),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: capsule,
+      currentChild = KeyedSubtree(
+        key: const ValueKey('app_top_nav_bar_normal'),
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: AppBlur.heavyFilter,
+            child: Container(
+              padding: EdgeInsets.only(top: safeTopPadding),
+              decoration: BoxDecoration(
+                color: AppBlur.heavySurface(context),
+                border: Border(
+                  bottom: BorderSide(
+                    color: theme.dividerColor.withValues(alpha: 0.12),
+                    width: 0.8,
+                  ),
                 ),
               ),
-            )
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: capsule,
-            );
-
-      return Padding(
-        padding: EdgeInsets.only(top: safeTopPadding + kNavCapsuleTopOffset),
-        child: islandArea,
+              child: SizedBox(
+                height: contentHeight,
+                child: Row(
+                  children: [
+                    if (showBackButton) ...[
+                      const SizedBox(width: 4),
+                      AppTooltip(
+                        message: l10n?.goBack ?? 'Back',
+                        useRootOverlay: true,
+                        child: IconButton(
+                          icon: const Icon(kAppBackIcon, size: 24),
+                          onPressed: () {
+                            final nav = Navigator.of(context);
+                            final rootNav = Navigator.of(context, rootNavigator: true);
+                            final currentRoute = ModalRoute.of(context);
+                            AppLog.log(
+                              '[NavTrace] AppTopNavBar back button pressed! '
+                              'title="${title ?? ''}", '
+                              'route="${currentRoute?.settings.name}", '
+                              'localCanPop=${nav.canPop()}, '
+                              'rootCanPop=${rootNav.canPop()}, '
+                              'hasCustomOnBack=${onBack != null}',
+                              mirrorToConsole: true,
+                            );
+                            if (onBack != null) {
+                              onBack!();
+                            } else {
+                              nav.maybePop();
+                            }
+                          },
+                        ),
+                      ),
+                      SizedBox(width: titleSpacing),
+                    ] else
+                      const SizedBox(width: 16),
+                    Expanded(
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => _handleTitleTap(context),
+                          child: Container(
+                            alignment: Alignment.centerLeft,
+                            height: double.infinity,
+                            child: effectiveTitle,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (actions != null && actions!.isNotEmpty) ...[
+                      ...actions!,
+                      const SizedBox(width: 4),
+                    ] else
+                      const SizedBox(width: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       );
     }
 
-    final Widget effectiveTitle = AnimatedOpacity(
-      opacity: titleOpacity.clamp(0.0, 1.0),
+    return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOutCubic,
-      child: titleWidget ??
-          (title != null
-              ? Text(
-                  title!,
-                  key: titleKey,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                )
-              : const SizedBox.shrink()),
-    );
-
-    return ClipRect(
-      child: BackdropFilter(
-        filter: AppBlur.heavyFilter,
-        child: Container(
-          padding: EdgeInsets.only(top: safeTopPadding),
-          decoration: BoxDecoration(
-            color: AppBlur.heavySurface(context),
-            border: Border(
-              bottom: BorderSide(
-                color: theme.dividerColor.withValues(alpha: 0.12),
-                width: 0.8,
-              ),
-            ),
-          ),
-          child: SizedBox(
-            height: contentHeight,
-            child: Row(
-              children: [
-                if (showBackButton) ...[
-                  const SizedBox(width: 4),
-                  AppTooltip(
-                    message: l10n?.goBack ?? 'Back',
-                    useRootOverlay: true,
-                    child: IconButton(
-                      icon: const Icon(kAppBackIcon, size: 24),
-                      onPressed: () {
-                        final nav = Navigator.of(context);
-                        final rootNav = Navigator.of(context, rootNavigator: true);
-                        final currentRoute = ModalRoute.of(context);
-                        AppLog.log(
-                          '[NavTrace] AppTopNavBar back button pressed! '
-                          'title="${title ?? ''}", '
-                          'route="${currentRoute?.settings.name}", '
-                          'localCanPop=${nav.canPop()}, '
-                          'rootCanPop=${rootNav.canPop()}, '
-                          'hasCustomOnBack=${onBack != null}',
-                          mirrorToConsole: true,
-                        );
-                        if (onBack != null) {
-                          onBack!();
-                        } else {
-                          nav.maybePop();
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(width: titleSpacing),
-                ] else
-                  const SizedBox(width: 16),
-                Expanded(
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => _handleTitleTap(context),
-                      child: Container(
-                        alignment: Alignment.centerLeft,
-                        height: double.infinity,
-                        child: effectiveTitle,
-                      ),
-                    ),
-                  ),
-                ),
-                if (actions != null && actions!.isNotEmpty) ...[
-                  ...actions!,
-                  const SizedBox(width: 4),
-                ] else
-                  const SizedBox(width: 16),
-              ],
-            ),
-          ),
-        ),
-      ),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (currentChild, previousChildren) {
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: <Widget>[
+            ...previousChildren,
+            ?currentChild,
+          ],
+        );
+      },
+      child: currentChild,
     );
   }
 }
