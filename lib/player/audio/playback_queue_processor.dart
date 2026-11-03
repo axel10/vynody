@@ -79,7 +79,6 @@ class PlaybackQueueProcessor {
     required List<MusicFile> playlist,
     required String? currentFilePath,
     required Function(String path, Map<String, dynamic> updates) onUpdate,
-    Function(String path, String artworkPath)? onHdArtworkLoaded,
     bool isBackground = false,
   }) async {
     if (_disposed) return;
@@ -263,42 +262,15 @@ class PlaybackQueueProcessor {
         }
       }
 
-      // Phase 1.5: Load HD artwork for prioritized songs (prev 1, current, next 1)
-      // This ensures that when skipping fast, covers are already in memory.
-      final List<MusicFile> artworkPrioritySongs = [];
-      if (currentFilePath != null && currentIndex != -1) {
-        artworkPrioritySongs.add(playlist[currentIndex]);
-        if (playlist.length > 1) {
-          final idx = (currentIndex + 1) % playlist.length;
-          artworkPrioritySongs.add(playlist[idx]);
-        }
-        if (playlist.length > 2) {
-          final idx = (currentIndex - 1 + playlist.length) % playlist.length;
-          if (!artworkPrioritySongs.any((s) => s.path == playlist[idx].path)) {
-            artworkPrioritySongs.add(playlist[idx]);
-          }
-        }
-      }
-
-      for (final song in artworkPrioritySongs) {
-        if (_disposed || myId != _currentProcessId) return;
-        final isRemote = RemoteMediaResolver.isRemoteUri(song.path);
-        if (song.isMissing ||
-            song.path.isEmpty ||
-            (!isRemote && !File(song.path).existsSync())) {
-          continue;
-        }
-
-        try {
-          final existing = await db.getSongMetadata(song.path);
-          final path = existing?.artworkPath ?? existing?.thumbnailPath;
-          if (path != null && onHdArtworkLoaded != null) {
-            onHdArtworkLoaded(song.path, path);
-          }
-        } catch (e) {
-          debugPrint('Error loading HD artwork in fast pass: $e');
-        }
-      }
+      // 这里曾有一段 Phase 1.5「预热前 1 / 当前 / 后 1 的封面」：它用
+      // `ResizeImage(FileImage, width: 800, height: 800)` 往 ImageCache 里塞，
+      // 而 UI 侧（CoverCarousel / PlaybackPage）走
+      // `Image.file(cacheWidth: W)` → `ResizeImage(FileImage, width: W, height: null)`，
+      // W 来自 `PlaybackArtworkTuning.calculateCoverCacheWidth()`（桌面 800~2048、
+      // 移动端 400~1200，按 400 分桶）。`ResizeImage` 是逐字段比较 key 的，
+      // height 800 与 null 永不相等 → 预热 100% miss，只白占约 2.56MB/张
+      // 并挤掉 ImageCache 里真正的热点条目。CoverCarousel 自身已构建
+      // center / center±1 三张且 key 正确，预热没有存在必要，故整段移除。
 
       // Phase 2: SLOW PASS - Process thumbnails, colors and waveforms
       // Only process songs within dbPriorityPaths (prev 2 to next 3) to save CPU.

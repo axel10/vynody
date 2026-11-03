@@ -105,6 +105,46 @@ class AudioService extends Notifier<AudioSnapshot> {
     );
   }
 
+  /// 队列项的唯一包装入口：队列是会话级生命周期，只允许**当前曲**带二进制列。
+  ///
+  /// 每首在会话里播过的歌都会在队列里留一份封面原图（100KB~3MB，且不走
+  /// `ImageCache`），一晚上几十首就是几十上百 MB；`waveformBlob` 虽然每首
+  /// 只有几百字节，但同样没有任何非当前曲的读者。非当前曲只需要
+  /// `thumbnailPath` 就能出图（`SongThumbnail` 的 `bytes == null` 分支），
+  /// 原图统一走 [_artworkCache]（有界 200 条），波形走 DB + `MusicFile.waveform`
+  /// 的 8 条内存缓存。
+  ///
+  /// 请勿绕过这个函数直接 `replaceTrack(_audioTrackForSong(...))`。
+  AudioTrack _queueTrackForSong(MusicFile song) {
+    final keepPath = _player.playlist.currentTrack?.uri;
+    if (!shouldStripQueueBinaryBlobs(songPath: song.path, keepPath: keepPath)) {
+      return _audioTrackForSong(song);
+    }
+    if (song.artworkBytes == null && song.waveformBlob == null) {
+      return _audioTrackForSong(song);
+    }
+    return _audioTrackForSong(
+      song.copyWith(artworkBytes: null, waveformBlob: null),
+    );
+  }
+
+  /// 队列项是否该剥掉二进制列（`artworkBytes` / `waveformBlob`）。
+  /// 抽成静态纯函数便于回归测试。
+  ///
+  /// `AudioTrack.uri` 存的是 iOS/macOS 沙盒解析后的路径，`MusicFile.path`
+  /// 可能还是旧的容器 UUID，直接字符串比较会把当前曲误判成非当前曲、
+  /// 把它的封面和波形也剥掉。
+  static bool shouldStripQueueBinaryBlobs({
+    required String songPath,
+    required String? keepPath,
+  }) {
+    if (keepPath == null || keepPath.isEmpty) return true;
+    if (songPath == keepPath) return false;
+    if (!Platform.isIOS && !Platform.isMacOS) return true;
+    // 内部带 _resolutionCache，重复调用不会打 IO。
+    return ScannerPathUtils.resolveIosSandboxPath(songPath) != keepPath;
+  }
+
   MusicFile? _musicFileForTrack(AudioTrack? track) {
     if (track == null) return null;
     final cached = track.metadataValue<MusicFile>('musicFile');
@@ -939,7 +979,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   void _updateSongInPlaylist(MusicFile song) {
     for (final track in _player.playlist.items) {
       if (track.id == song.path || track.uri == song.path) {
-        _player.playlist.replaceTrack(_audioTrackForSong(song));
+        _player.playlist.replaceTrack(_queueTrackForSong(song));
       }
     }
   }
@@ -1006,7 +1046,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         final song = _musicFileForTrack(track);
         if (song != null && song.isMissing != isMissing) {
           final updated = song.copyWith(isMissing: isMissing);
-          _player.playlist.replaceTrack(_audioTrackForSong(updated));
+          _player.playlist.replaceTrack(_queueTrackForSong(updated));
           changed = true;
         }
       }
@@ -1137,7 +1177,7 @@ class AudioService extends Notifier<AudioSnapshot> {
               ? (updatedSong.artworkBytes ?? existingSong?.artworkBytes)
               : updatedSong.artworkBytes,
         );
-        _player.playlist.replaceTrack(_audioTrackForSong(mergedSong));
+        _player.playlist.replaceTrack(_queueTrackForSong(mergedSong));
       }
     }
   }
@@ -1234,12 +1274,46 @@ class AudioService extends Notifier<AudioSnapshot> {
     return updatedSong;
   }
 
+  /// 切歌后放掉上一首留在队列里的二进制列（封面原图 + 波形）。
+  ///
+  /// 队列项是会话级常驻，不主动清就会一路累积。只在真正换曲目时扫一遍，
+  /// 正常情况下每轮只有一两首过期，代价可以忽略。
+  ///
+  /// 「保留谁」只由 `playlist.currentTrack` 决定，不吃调用方传进来的路径：
+  /// `_syncCurrentPlaybackSong` 有多个调用点，不能保证入参与当前曲一致，
+  /// 传错就会清掉正在播的那首。
+  void _releaseStaleQueueBlobs() {
+    final keepPath = _player.playlist.currentTrack?.uri;
+    // 没有当前曲时不清：那不是「切歌」，是队列被清空/还没起播。
+    if (keepPath == null || keepPath.isEmpty) return;
+    // 先收集再替换：replaceTrack 会原地改写 _activePlaylistTracks，
+    // 边迭代边替换会读到刚被换进去的新对象。
+    final stale = <MusicFile>[];
+    for (final track in _player.playlist.items) {
+      if (!shouldStripQueueBinaryBlobs(
+        songPath: track.id,
+        keepPath: keepPath,
+      )) {
+        continue;
+      }
+      final song = _musicFileForTrack(track);
+      if (song == null) continue;
+      if (song.artworkBytes == null && song.waveformBlob == null) continue;
+      stale.add(song);
+    }
+    if (stale.isEmpty) return;
+    for (final song in stale) {
+      _player.playlist.replaceTrack(_queueTrackForSong(song));
+    }
+  }
+
   Future<void> _syncCurrentPlaybackSong(MusicFile song) async {
     _logPlaybackTrace(
       '_syncCurrentPlaybackSong start -> ${_debugSongLabel(song)} '
       'currentBefore=${_debugSongLabel(currentMusic)}',
     );
     if (_trackedPlaybackSongPath != song.path) {
+      _releaseStaleQueueBlobs();
       _resetPlaybackTrackingForSong(song);
       _position = Duration.zero;
       _lyricsController.clearState(preserveTaskState: true);
@@ -3947,7 +4021,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       if (updated == null) continue;
       final current = _musicFileForTrack(track);
       if (current != null && _sameQueueMetadata(current, updated)) continue;
-      _player.playlist.replaceTrack(_audioTrackForSong(updated));
+      _player.playlist.replaceTrack(_queueTrackForSong(updated));
       changed = true;
     }
     if (changed) notifyListeners();

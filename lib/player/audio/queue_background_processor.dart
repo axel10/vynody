@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -81,18 +80,12 @@ class QueueBackgroundProcessor {
     );
 
     final String? currentPath = priorityPath ?? currentMusic()?.path;
-    final Set<String> artworkPriorityPaths = <String>{};
     final Set<String> waveformMemoryPaths = <String>{};
     final Set<int> priorityIndices = <int>{};
 
     if (currentPath != null) {
       final int currIdx = queue.indexWhere((s) => s.path == currentPath);
       if (currIdx != -1) {
-        for (int i = -1; i <= 1; i++) {
-          final idx = (currIdx + i) % queue.length;
-          final safeIdx = idx < 0 ? idx + queue.length : idx;
-          artworkPriorityPaths.add(queue[safeIdx].path);
-        }
         for (int i = -1; i <= 1; i++) {
           final idx = (currIdx + i) % queue.length;
           final safeIdx = idx < 0 ? idx + queue.length : idx;
@@ -106,25 +99,15 @@ class QueueBackgroundProcessor {
       }
     }
 
-    bool changed = false;
-    for (int i = 0; i < queue.length; i++) {
-      final song = queue[i];
-      if (!artworkPriorityPaths.contains(song.path) &&
-          song.artworkBytes != null) {
-        queue[i] = queue[i].copyWith(artworkBytes: null);
-        changed = true;
-      }
-      if (!waveformMemoryPaths.contains(song.path) &&
-          song.waveformBlob != null) {
-        queue[i] = queue[i].copyWith(waveformBlob: null);
-        changed = true;
-      }
-    }
-    if (changed) {
-      onChanged();
-    }
+    // 这里曾有一段「清掉非当前曲的 artworkBytes / waveformBlob」，但它改的是
+    // 调用方 `AudioService.queue` getter 每次新建的局部副本，`onChanged` 只发
+    // 通知、从不写回 playlist —— 等于死代码。队列的二进制列现在统一由
+    // AudioService 在写入侧收口（`_queueTrackForSong` 只允许当前曲带
+    // artworkBytes / waveformBlob，`_releaseStaleQueueBlobs` 在切歌时清上一首），
+    // 本文件不再重复处理；下面 `inWaveformMemoryRange` 只是让回写内容更完整，
+    // 是否真正落进队列由那个收口函数最终决定。
 
-    if (priorityIndices.isNotEmpty && (artworkPriorityPaths.isNotEmpty || waveformMemoryPaths.isNotEmpty)) {
+    if (priorityIndices.isNotEmpty && waveformMemoryPaths.isNotEmpty) {
       unawaited(() async {
         bool asyncChanged = false;
         for (final i in priorityIndices) {
@@ -310,58 +293,6 @@ class QueueBackgroundProcessor {
         currentFilePath: priorityPath ?? currentMusic()?.path,
         isBackground: isBackground,
         onUpdate: handleUpdate,
-
-        onHdArtworkLoaded: (path, artworkPath) {
-          logTrace(
-            '_queueProcessor onHdArtworkLoaded path=$path '
-            'artworkPath=$artworkPath '
-            'current=${debugSongLabel(currentMusic())}',
-          );
-          MemoryTrace.snapshot(
-            'audio:queueBackground:artworkLoaded',
-            details: <String, Object?>{
-              'path': path,
-              'artworkPath': artworkPath,
-              'queue': queue.length,
-            },
-          );
-
-          final String? currentPath = currentMusic()?.path;
-          final Set<String> artworkPriority = <String>{};
-          if (currentPath != null) {
-            final int currIdx =
-                queue.indexWhere((s) => s.path == currentPath);
-            if (currIdx != -1) {
-              for (int i = -1; i <= 1; i++) {
-                final idx = (currIdx + i) % queue.length;
-                final safeIdx = idx < 0 ? idx + queue.length : idx;
-                artworkPriority.add(queue[safeIdx].path);
-              }
-            }
-          }
-
-          if (artworkPriority.contains(path)) {
-            for (int i = 0; i < queue.length; i++) {
-              if (queue[i].path == path) {
-                queue[i] = queue[i].copyWith(artworkPath: artworkPath);
-              }
-            }
-
-            if (path == currentMusic()?.path) {
-              onChanged();
-            }
-
-            const int limit = 800;
-
-            final provider = ResizeImage(
-              FileImage(File(artworkPath)),
-              width: limit,
-              height: limit,
-              allowUpscaling: false,
-            );
-            provider.resolve(ImageConfiguration.empty);
-          }
-        },
       ),
     );
   }
