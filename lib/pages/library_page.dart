@@ -24,6 +24,7 @@ import '../widgets/auto_hide_header.dart';
 import '../widgets/app_top_nav_bar.dart';
 import '../utils/layout_constants.dart';
 import '../utils/app_log.dart';
+import '../utils/app_orientation_manager.dart';
 import '../player/platform/right_queue_drawer_controller.dart';
 
 // 媒体库页面：两级嵌套 Navigator 架构。
@@ -125,7 +126,7 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
     }
     if (is3d) {
       AppLog.log('[NavTrace] LibraryPageState: clearing 3D view', mirrorToConsole: true);
-      ref.read(isAlbum3DViewActiveProvider.notifier).set(false);
+      AppOrientationManager.toggleCoverFlow(ref, context, target: false);
       return true;
     }
     if (tabCanPop) {

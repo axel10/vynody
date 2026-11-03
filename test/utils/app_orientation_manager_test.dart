@@ -104,5 +104,40 @@ void main() {
 
       expect(AppOrientationManager.currentMode, AppOrientationMode.unrestricted);
     });
+
+    testWidgets('curtain widget renders with proper colors for dark and light theme', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      // Dark theme test
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: ThemeData.dark(),
+            home: const AppOrientationWatcher(
+              child: SizedBox(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      container.read(appOrientationCurtainProvider.notifier).fadeIn(color: const Color(0xFF000000));
+      await tester.pump();
+
+      expect(container.read(appOrientationCurtainProvider).opacity, 1.0);
+      expect(container.read(appOrientationCurtainProvider).color, const Color(0xFF000000));
+
+      container.read(appOrientationCurtainProvider.notifier).fadeOut();
+      await tester.pump();
+      expect(container.read(appOrientationCurtainProvider).opacity, 0.0);
+
+      // Light theme test
+      container.read(appOrientationCurtainProvider.notifier).fadeIn(color: const Color(0xFFFFFFFF));
+      await tester.pump();
+      expect(container.read(appOrientationCurtainProvider).opacity, 1.0);
+      expect(container.read(appOrientationCurtainProvider).color, const Color(0xFFFFFFFF));
+    });
   });
 }

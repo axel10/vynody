@@ -15,6 +15,7 @@ import 'package:window_manager/window_manager.dart';
 import '../l10n/app_localizations.dart';
 import '../main.dart' show navigatorKey;
 import '../utils/app_log.dart';
+import '../utils/app_orientation_manager.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
@@ -356,7 +357,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         mirrorToConsole: true,
       );
       if (is3d) {
-        ref.read(isAlbum3DViewActiveProvider.notifier).set(false);
+        if (!mounted) return;
+        AppOrientationManager.toggleCoverFlow(ref, context, target: false);
         return;
       }
       final handled = libState?.handleBackPressed() ?? false;

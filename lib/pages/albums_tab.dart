@@ -27,6 +27,7 @@ import '../widgets/draggable_album_item.dart';
 import '../widgets/album_context_menu.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/library_category_header.dart';
+import '../utils/app_orientation_manager.dart';
 
 class AlbumsTab extends ConsumerStatefulWidget {
   const AlbumsTab({
@@ -255,10 +256,11 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                     IconButton(
                       tooltip: _is3DView ? l10n.gridView : l10n.threeDView,
                       onPressed: () {
-                        setState(() {
-                          _is3DView = !_is3DView;
-                        });
-                        ref.read(isAlbum3DViewActiveProvider.notifier).set(_is3DView);
+                        AppOrientationManager.toggleCoverFlow(
+                          ref,
+                          context,
+                          target: !_is3DView,
+                        );
                       },
                       icon: Icon(
                         _is3DView ? Icons.grid_view_rounded : Icons.view_carousel_rounded,
@@ -315,10 +317,11 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                                               onToggleSelection: toggleSelection,
                                               onEnterSelectionMode: enterSelectionMode,
                                               onExit3DView: () {
-                                                setState(() {
-                                                  _is3DView = false;
-                                                });
-                                                ref.read(isAlbum3DViewActiveProvider.notifier).set(false);
+                                                AppOrientationManager.toggleCoverFlow(
+                                                  ref,
+                                                  context,
+                                                  target: false,
+                                                );
                                               },
                                             ),
                                     ),
@@ -349,10 +352,11 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                                           });
                                         },
                                         onViewModeToggled: () {
-                                          setState(() {
-                                            _is3DView = !_is3DView;
-                                          });
-                                          ref.read(isAlbum3DViewActiveProvider.notifier).set(_is3DView);
+                                          AppOrientationManager.toggleCoverFlow(
+                                            ref,
+                                            context,
+                                            target: false,
+                                          );
                                         },
                                         onShufflePressed: () => _onShufflePressed(albums),
                                         onSortChanged: (field, sortAscending) {
@@ -409,10 +413,11 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                                                       onMultiSelect: (id) => enterSelectionMode(id),
                                                     ),
                                                 onExit3DView: () {
-                                                  setState(() {
-                                                    _is3DView = false;
-                                                  });
-                                                  ref.read(isAlbum3DViewActiveProvider.notifier).set(false);
+                                                  AppOrientationManager.toggleCoverFlow(
+                                                    ref,
+                                                    context,
+                                                    target: false,
+                                                  );
                                                 },
                                               ),
                                       ),
