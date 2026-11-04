@@ -271,6 +271,16 @@ class AudioService extends Notifier<AudioSnapshot> {
   StreamSubscription<List<double>>? _currentWaveformSubscription;
   Timer? _waveformReadingLogTimer;
   int _waveformReadingSessionId = 0;
+
+  /// [_refreshCurrentWaveform] 当前正在整首解码的曲目路径。
+  ///
+  /// 队列后台预热（`PlaybackQueueProcessor._processSongHeavyData`）据此跳过同一首，
+  /// 避免起播瞬间两路并发把同一个文件各解一遍：在外接盘上两个整解码互相抢 IO，
+  /// 会把「+1」的预热整整推后一首的时间。
+  String? _waveformReadingPath;
+
+  /// 队列后台处理器用：这条曲目的波形是否已由播放侧在读。
+  bool isWaveformReadingFor(String path) => _waveformReadingPath == path;
   StreamSubscription<String?>? _trackEndedSubscription;
   bool _disposed = false;
   bool _restoringPlaybackSession = false;
@@ -492,6 +502,8 @@ class AudioService extends Notifier<AudioSnapshot> {
       player: _player,
       settingsService: settingsService,
       waveformService: _waveformService,
+      // 播放侧正在整首解码的曲目，后台预热不要再解一遍（同一文件两份解码抢 IO）。
+      isWaveformReading: isWaveformReadingFor,
       remoteMediaResolverGetter: () async {
         final storage = await ref.read(remoteServerStorageProvider.future);
         return RemoteMediaResolver(storage: storage);
@@ -2352,6 +2364,9 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<void> _refreshCurrentWaveform({bool notify = true}) async {
+    // 被切歌打断的旧订阅不会再回调 onDone，这里先清掉上一轮的标记；
+    // 真要继续读会在下面重新赋值，早退分支则保持「没有人正在读」。
+    _waveformReadingPath = null;
     final path = currentMusic?.path;
     if (path == null || !settingsService.isWaveformProgressBarEnabled) {
       if (notify) {
@@ -2370,6 +2385,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     final sessionId = ++_waveformReadingSessionId;
     _waveformReadingLogTimer?.cancel();
     _currentWaveformSubscription?.cancel();
+    _waveformReadingPath = path;
 
     final sw = Stopwatch()..start();
     String currentPhase = 'initiating';
@@ -2440,6 +2456,7 @@ class AudioService extends Notifier<AudioSnapshot> {
           },
           onError: (e, stack) {
             if (_waveformReadingSessionId != sessionId) return;
+            _waveformReadingPath = null;
             _waveformReadingLogTimer?.cancel();
             _waveformReadingLogTimer = null;
             sw.stop();
@@ -2451,6 +2468,8 @@ class AudioService extends Notifier<AudioSnapshot> {
           },
           onDone: () {
             if (_waveformReadingSessionId == sessionId) {
+              // 读完了（或生成器结束）：让队列预热重新接管这首的波形检查。
+              _waveformReadingPath = null;
               _waveformReadingLogTimer?.cancel();
               _waveformReadingLogTimer = null;
             }
@@ -4162,6 +4181,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _sessionManager.dispose();
     _waveformReadingLogTimer?.cancel();
     _currentWaveformSubscription?.cancel();
+    _waveformReadingPath = null;
     _trackEndedSubscription?.cancel();
     _sleepTimer?.cancel();
     _queueMetadataWriteBackTimer?.cancel();

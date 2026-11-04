@@ -25,6 +25,7 @@
 | l10n / 设置项 | l10n：9 个 `app_*.arb` 同步，模板 `app_zh.arb`，改完 `flutter gen-l10n`。设置项：`settings_service.dart` 三段 → 6 处同步（key、`SettingProperty`、getter+setter、`resetXxx()`、`settings_search_registry.dart`、`sections/<组>_section.dart`） |
 | 流派聚合键 | `normalizeGenreKey()`；派生 `queryKey` 与 `matchGenreAssetKey()` 同源；`_acronymDisplays` 吃 `raw.toLowerCase()` 不能跟着改；`_substringAssetRules` 连写 needle 必须留 |
 | FFT 采集门 | 唯一决策点 `AudioService._updateEffectiveVisualizerState()` → `visualizer.setEnabled(_isFftCaptureAllowed)`（Pro 用缓存字段，禁热路径 `ref.read`）；采集与「画不画频谱」解耦，关开关禁 `setEnabled(false)`。Rust 侧 `setFftCaptureEnabled` no-op，靠 `get_latest_fft()` 开 1500ms 窗 |
+| 波形解码去重 | 播放侧 `_refreshCurrentWaveform` 正在解的曲目由 `_waveformReadingPath` 标记，经 `isWaveformReadingFor()` 传给 `PlaybackQueueProcessor(isWaveformReading:)`；`_processSongHeavyData` 两处 `needsWaveform` 都必须过这道门，禁对同一首并发整解码（抢 IO，把 +1 预热推后一整首） |
 
 ## 硬性禁止（全文见 `MEMORY-rules.md`）
 

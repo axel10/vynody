@@ -31,6 +31,12 @@ class PlaybackQueueProcessor {
   final WaveformService waveformService;
   final Future<RemoteMediaResolver?> Function()? remoteMediaResolverGetter;
 
+  /// 这条曲目的波形是否已由播放侧（`AudioService._refreshCurrentWaveform`）在解码。
+  ///
+  /// 起播瞬间两路会同时盯上当前曲：播放侧要立刻出图，这里要补队列。同一文件
+  /// 两份整解码并发会互相抢 IO（外接盘上尤其明显），把后续曲目的预热整体推后。
+  final bool Function(String path)? isWaveformReading;
+
   int _currentProcessId = 0;
   bool _isProcessing = false;
   bool _isPaused = false;
@@ -43,6 +49,7 @@ class PlaybackQueueProcessor {
     required this.player,
     required this.settingsService,
     required this.waveformService,
+    this.isWaveformReading,
     this.remoteMediaResolverGetter,
   });
 
@@ -557,8 +564,14 @@ class PlaybackQueueProcessor {
           existing.metadataImgScanned != null &&
           existing.metadataImgScanned == existing.lastModifiedTime;
 
-      final bool needsWaveform =
-          showWaveform && (existing == null || existing.waveformBlob == null);
+      // 播放侧正在为这首整首解码时（通常就是刚起的当前曲），后台这轮不再重复解：
+      // 结果照样会经 _refreshCurrentWaveform 落库，这里等下一轮再补反而更快。
+      final bool waveformHandledByPlayback =
+          isWaveformReading?.call(song.path) ?? false;
+
+      final bool needsWaveform = !waveformHandledByPlayback &&
+          showWaveform &&
+          (existing == null || existing.waveformBlob == null);
       final bool needsThemeColor =
           !hasScannedImg && (existing == null || existing.themeColorsBlob == null);
       final bool needsArtwork =
@@ -776,8 +789,11 @@ class PlaybackQueueProcessor {
           }
         }
 
-        // Extract waveform if missing or invalid AND enabled in settings (skip in background to save battery)
-        final needsWaveform = !isBackground && showWaveform &&
+        // Extract waveform if missing or invalid AND enabled in settings (skip in background to save battery).
+        // 播放侧仍在解码这首时同样跳过：那一路的结果会落库，这里再解一遍只会抢 IO。
+        final needsWaveform = !isBackground &&
+            showWaveform &&
+            !(isWaveformReading?.call(song.path) ?? false) &&
             (meta.waveformBlob == null ||
                 !WaveformService.isWaveformValid(
                   waveformService.waveformFromBlob(meta.waveformBlob),
