@@ -188,6 +188,75 @@ void main() {
       );
       expect(result, isNull);
     });
+
+    test('媒体库曲目（subsonic / jellyfin）同样参与内嵌探测', () async {
+      final seen = <String>[];
+      final provider = EmbeddedTagProvider(
+        cacheRepository: repository,
+        remoteLyricsReader: (path) async {
+          seen.add(path);
+          return '[00:01.00]tag line';
+        },
+      );
+
+      for (final path in ['subsonic://server/123', 'jellyfin://server/abc']) {
+        final query = _query(path);
+        expect(provider.handles(query), isTrue, reason: path);
+        final result = await provider.load(query, saveToDb: false);
+        expect(result?.source, 'embedded', reason: path);
+      }
+      expect(seen, ['subsonic://server/123', 'jellyfin://server/abc']);
+    });
+  });
+
+  group('媒体库内嵌歌词的取字节地址', () {
+    test('Subsonic 用 stream + format=raw，且不带 maxBitRate', () {
+      final client = SubsonicClient(
+        server: RemoteServer(
+          id: 'server',
+          name: 'server',
+          type: RemoteServerType.subsonic,
+          url: 'http://localhost:4533',
+          username: 'user',
+          maxBitRate: 128,
+          createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+        ),
+        password: 'p',
+      );
+
+      final url = client.buildRawStreamUrl('42');
+      expect(url, contains('rest/stream'));
+      expect(url, contains('id=42'));
+      expect(url, contains('format=raw'));
+      // 带了码率上限就会被服务端转码，转码流不支持 Range。
+      expect(url, isNot(contains('maxBitRate')));
+    });
+
+    test('Jellyfin 用 static=true 并带会话 token', () async {
+      final client = JellyfinClient(
+        server: RemoteServer(
+          id: 'jf-raw',
+          name: 'jf',
+          type: RemoteServerType.jellyfin,
+          url: 'http://localhost:8096',
+          username: 'user',
+          createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+        ),
+        password: 'p',
+        customDio: _jellyfinDio(
+          lyricsBody: null,
+          lyricsStatus: 200,
+        ),
+      );
+      await client.authenticate();
+
+      final url = client.buildRawStreamUrl('abc');
+      expect(url, contains('/Audio/abc/stream'));
+      expect(url, contains('static=true'));
+      expect(url, isNot(contains('static=false')));
+      expect(url, contains('api_key=token'));
+      expect(client.authHeaders['X-Emby-Token'], 'token');
+    });
   });
 
   group('媒体库四态消费', () {

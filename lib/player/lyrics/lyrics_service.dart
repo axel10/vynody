@@ -303,7 +303,17 @@ class LyricsService {
 
     final resultRecords = List<LyricsCacheRecord>.from(records);
     if (!hasExternal) {
-      final local = await _tryLoadFromLocalLrcFile(query, saveToDb: false);
+      // 与内嵌探测同理：远程旁挂 lrc 是一次 HTTP GET，换源菜单不该等它满超时。
+      final local = await _tryLoadFromLocalLrcFile(query, saveToDb: false)
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () {
+              debugPrint(
+                '[Lyrics] sidecar probe timed out for candidates -> "${query.filePath}"',
+              );
+              return null;
+            },
+          );
       if (local != null) {
         resultRecords.add(LyricsCacheRecord(
           cacheKey: query.cacheKey,
@@ -317,7 +327,18 @@ class LyricsService {
       }
     }
     if (!hasEmbedded) {
-      final embedded = await _tryLoadFromMetadata(query, saveToDb: false);
+      // 远程（SMB / WebDAV / 媒体库）的内嵌探测要发网络请求，TagLib 侧超时是 10 秒，
+      // 不能让换源菜单在弹出来之前干等；本地读标签通常远低于这个上限。
+      final embedded = await _tryLoadFromMetadata(query, saveToDb: false)
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () {
+              debugPrint(
+                '[Lyrics] embedded probe timed out for candidates -> "${query.filePath}"',
+              );
+              return null;
+            },
+          );
       if (embedded != null) {
         resultRecords.add(LyricsCacheRecord(
           cacheKey: query.cacheKey,

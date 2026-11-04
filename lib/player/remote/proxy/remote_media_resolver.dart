@@ -657,11 +657,11 @@ class RemoteMediaResolver {
     return null;
   }
 
-  /// 通过 HTTP Range 读取远程音频文件的内嵌歌词（WebDAV / SMB）。
+  /// 通过 HTTP Range 读取远程音频文件的内嵌歌词。
   ///
   /// 复用与远程元数据扫描相同的通道：WebDAV 直接拼完整 URL 并带认证头，
-  /// SMB 经 [LocalStreamProxy] 转成本地 206 代理。TagLib 按需分片读取，
-  /// 不会下载整首音频。
+  /// SMB 经 [LocalStreamProxy] 转成本地 206 代理，媒体库（subsonic / jellyfin）
+  /// 走各自「不转码」的原始字节地址。TagLib 按需分片读取，不会下载整首音频。
   ///
   /// 返回 null 表示「没有内嵌歌词」或「本次没读到」——调用方不应把后者
   /// 当成确认无词而写入空缓存。
@@ -690,8 +690,23 @@ class RemoteMediaResolver {
         share: parts.$1,
         relativePath: parts.$2,
       );
+    } else if (info.type == RemoteServerType.subsonic) {
+      // 媒体库曲目也有内嵌标签：服务端歌词接口没命中时，这里按原始字节
+      // 分片读一次文件标签。format=raw 才保证服务端不转码、可 Range。
+      final client = SubsonicClient(server: server, password: password);
+      url = client.buildRawStreamUrl(info.trackIdOrPath);
+    } else if (info.type == RemoteServerType.jellyfin) {
+      final client = JellyfinClient(server: server, password: password);
+      try {
+        // 同一 server 的会话是静态缓存的，已认证过时这一步不发请求。
+        await client.authenticate();
+      } catch (e) {
+        debugPrint('[Lyrics] jellyfin auth failed before tag read: $e');
+        return null;
+      }
+      url = client.buildRawStreamUrl(info.trackIdOrPath);
+      headers = client.authHeaders;
     } else {
-      // 媒体库曲目走的是服务端歌词接口，内嵌标签不在本方法的职责内。
       return null;
     }
 

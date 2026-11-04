@@ -924,5 +924,17 @@ class SubsonicClient {
   String buildDownloadUrl(String trackId) {
     return buildUrl('download.view', {'id': trackId});
   }
+
+  /// 读取内嵌标签专用的「原始字节」地址。
+  ///
+  /// 必须显式 `format=raw` 且不带 `maxBitRate`：Navidrome 只有在不转码时才用
+  /// `http.ServeContent` 提供服务（支持 Range），转码流会回 `Accept-Ranges: none`，
+  /// TagLib 拿到 200 全量响应后无法分片读取，只会得到一次短读。
+  ///
+  /// 不走 `download.view`：Navidrome 关闭服务端下载时该端点返回错误，
+  /// 而 `stream` 不受这个开关影响。
+  String buildRawStreamUrl(String trackId) {
+    return buildUrl('stream', {'id': trackId, 'format': 'raw'});
+  }
 }
 

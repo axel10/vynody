@@ -17,7 +17,7 @@ import 'package:vynody/utils/lyrics_id_utils.dart';
 
 /// 音频文件内嵌标签里的歌词（TagLib `LYRICS` / `UNSYNCEDLYRICS`）。
 ///
-/// 本地直接由 TagLib 打开路径；WebDAV / SMB 交给注入的 [remoteLyricsReader]
+/// 本地直接由 TagLib 打开路径；页面/媒体库等远程地址交给注入的 [remoteLyricsReader]
 /// （`RemoteMediaResolver.fetchEmbeddedLyrics`），底层是 HTTP Range 分片读取，
 /// 不会下载整首音频。两条路径共用同一套解析与落库逻辑。
 class EmbeddedTagProvider implements LyricsSourceProvider {

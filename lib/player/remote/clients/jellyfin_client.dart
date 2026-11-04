@@ -101,6 +101,9 @@ class JellyfinClient {
 
   JellyfinSession? get currentSession => _sessionCache[server.id];
 
+  /// 当前会话的认证头。供不经 [_dio]、由 TagLib 直连的场景使用。
+  Map<String, String> get authHeaders => _authHeaders();
+
   /// Authenticates with the Jellyfin server and returns session info.
   Future<JellyfinSession> authenticate({bool forceRefresh = false}) async {
     if (!forceRefresh && _sessionCache.containsKey(server.id)) {
@@ -275,6 +278,16 @@ class JellyfinClient {
       return '$baseUrl/Audio/$trackId/stream?static=false&maxStreamingBitrate=$bps&api_key=$token';
     }
     return '$baseUrl/Audio/$trackId/stream?static=true&api_key=$token';
+  }
+
+  /// 读取内嵌标签专用的「原始字节」地址（`static=true`，不转码）。
+  ///
+  /// `static=false` 的转码流不支持 Range，TagLib 无法分片读取。
+  /// 调用前需确保已 [authenticate]，否则 `api_key` 为空会退回匿名请求。
+  String buildRawStreamUrl(String trackId) {
+    final token = _sessionCache[server.id]?.token ?? '';
+    final tokenParam = token.isNotEmpty ? '&api_key=$token' : '';
+    return '$baseUrl/Audio/$trackId/stream?static=true$tokenParam';
   }
 
   /// Builds cover art URL for a given item id.

@@ -59,6 +59,12 @@ class LyricsResolver {
     }
 
     for (final provider in _providers) {
+      // 切歌后不要继续往下跑：媒体库请求、Range 读标签都是网络操作，
+      // 取消后继续只会把已完成的结果写进错误的缓存键。
+      if (cancelToken?.isCancelled ?? false) {
+        debugPrint('[Lyrics] resolve cancelled -> key="$cacheKey"');
+        return null;
+      }
       if (!provider.handles(normalizedQuery)) continue;
       final result = await provider.load(
         normalizedQuery,
