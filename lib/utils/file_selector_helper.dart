@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_selector/file_selector.dart' as file_selector;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
+import 'package:vynody/player/platform/apple_file_access.dart';
 
 export 'package:file_picker/file_picker.dart' show FileType;
 
@@ -37,7 +37,7 @@ class FileSelectorHelper {
 
   /// Picks a directory path.
   ///
-  /// Uses `audio_core.player` method channel on iOS to retain security-scoped permissions and persist bookmarks,
+  /// Uses [AppleFileAccess] on iOS to retain security-scoped permissions and persist bookmarks,
   /// [file_selector] on Windows, Linux, and macOS, and [file_picker] on other platforms.
   static Future<String?> pickDirectory({bool lockParentWindow = true}) async {
     final result = await pickDirectoryDetailed(
@@ -52,24 +52,14 @@ class FileSelectorHelper {
     bool lockParentWindow = true,
   }) async {
     if (Platform.isIOS) {
-      try {
-        final path = await const MethodChannel(
-          'audio_core.player',
-        ).invokeMethod<String>('pickAndAuthorizeDirectory');
-        if (path == null || path.isEmpty) {
-          return const DirectoryPickResult.cancelled();
-        }
-        return DirectoryPickResult.picked(path);
-      } on PlatformException catch (e) {
-        debugPrint('[FileSelectorHelper] pickAndAuthorizeDirectory failed: $e');
-        if (e.code == 'DIRECTORY_ACCESS_DENIED') {
-          return const DirectoryPickResult.denied();
-        }
-        return const DirectoryPickResult.cancelled();
-      } catch (e) {
-        debugPrint('[FileSelectorHelper] pickAndAuthorizeDirectory failed: $e');
+      // 选择器与授权都在 AppleFileAccess 里，这里只做结果映射。
+      final pick = await AppleFileAccess.pickAndAuthorizeDirectory();
+      if (pick.denied) return const DirectoryPickResult.denied();
+      final path = pick.path;
+      if (path == null || path.isEmpty) {
         return const DirectoryPickResult.cancelled();
       }
+      return DirectoryPickResult.picked(path);
     }
 
     String? path;

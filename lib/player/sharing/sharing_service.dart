@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/platform/apple_file_access.dart';
 import 'package:flutter/services.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -451,63 +452,16 @@ class SharingService {
     await _resolveSharingPath();
   }
 
-  static const MethodChannel _appleFileAccessChannel = MethodChannel(
-    'audio_core.player',
-  );
-
-  Future<bool> _beginAppleScopedAccess(String path) async {
-    if (!Platform.isIOS && !Platform.isMacOS) {
-      return true;
-    }
-    try {
-      final bool? result = await _appleFileAccessChannel.invokeMethod<bool>(
-        'beginScopedAccess',
-        <String, Object?>{
-          'path': path,
-          'holder': AppleFileAccessHolder.sharing,
-        },
+  /// 分享目录的常驻占用。
+  ///
+  /// 走 [AppleFileAccess.hold]，同一目录重复申请只会真正 begin 一次 —— 之前
+  /// 初始化、可写性检查、接收请求三处各 begin 一次而只在传输结束时释放一次，
+  /// 计数只会越来越大，目录被删掉之后那份 scope 就一直悬着。
+  Future<AppleFileAccessLease> _holdSharingFolder(String path) =>
+      AppleFileAccess.hold(
+        path: path,
+        holder: AppleFileAccessHolder.sharing,
       );
-      return result ?? false;
-    } catch (e) {
-      debugPrint(
-        '[SharingService] _beginAppleScopedAccess failed for $path: $e',
-      );
-      return false;
-    }
-  }
-
-  Future<void> _endAppleScopedAccess(String path) async {
-    if (!Platform.isIOS && !Platform.isMacOS) {
-      return;
-    }
-    try {
-      await _appleFileAccessChannel.invokeMethod(
-        'endScopedAccess',
-        <String, Object?>{
-          'path': path,
-          'holder': AppleFileAccessHolder.sharing,
-        },
-      );
-    } catch (_) {}
-  }
-
-  Future<bool> _registerApplePersistentAccess(String path) async {
-    if (!Platform.isIOS && !Platform.isMacOS) {
-      return true;
-    }
-    try {
-      final bool? result = await _appleFileAccessChannel.invokeMethod<bool>(
-        'registerPersistentAccess',
-        <String, Object?>{'path': path},
-      );
-      return result ?? false;
-    } catch (e) {
-      debugPrint(
-        '[SharingService] _registerApplePersistentAccess failed for $path: $e',
-      );
-      return false;
-    }
-  }
 
   Future<void> _resolveSharingPath() async {
     String basePath = '';
@@ -540,11 +494,8 @@ class SharingService {
 
     _sharingFolderPath = basePath;
 
-    if (Platform.isIOS || Platform.isMacOS) {
-      if (_sharingFolderPath.isNotEmpty) {
-        await _registerApplePersistentAccess(_sharingFolderPath);
-        await _beginAppleScopedAccess(_sharingFolderPath);
-      }
+    if (_sharingFolderPath.isNotEmpty) {
+      await _holdSharingFolder(_sharingFolderPath);
     }
 
     // Note: We intentionally do NOT create the directory here or register it in scanner upfront.
@@ -579,9 +530,10 @@ class SharingService {
   }
 
   Future<void> updateSharingFolderPath(String newPath) async {
-    if (Platform.isIOS || Platform.isMacOS) {
-      await _registerApplePersistentAccess(newPath);
-      await _beginAppleScopedAccess(newPath);
+    // 先放掉旧目录，再占用新目录：否则旧目录那份 scope 会一直开到这个进程结束。
+    await AppleFileAccess.releaseAll(holder: AppleFileAccessHolder.sharing);
+    if (newPath.isNotEmpty) {
+      await _holdSharingFolder(newPath);
     }
     _ref.read(settingsServiceProvider).lanSharingFolderPath = newPath;
     _sharingFolderPath = newPath;
@@ -591,9 +543,9 @@ class SharingService {
     final target = pathToCheck ?? _sharingFolderPath;
     if (target.isEmpty) return false;
 
-    if (Platform.isIOS || Platform.isMacOS) {
-      await _beginAppleScopedAccess(target);
-    }
+    // 常驻占用已覆盖分享目录时这里是 no-op；换了目录（例如用户刚手输路径）
+    // 才真正 begin 一次并把结果留在这份占用上。
+    await _holdSharingFolder(target);
 
     if (Platform.isAndroid) {
       final mapping = await AndroidSafStorageHelper.findBestMapping(target);
@@ -1189,15 +1141,9 @@ class SharingService {
     final accepted = await completer.future;
 
     if (accepted) {
-      if (Platform.isIOS || Platform.isMacOS) {
-        if (_sharingFolderPath.isNotEmpty) {
-          var scopedAccessBegan =
-              await _beginAppleScopedAccess(_sharingFolderPath);
-          if (!scopedAccessBegan) {
-            await _registerApplePersistentAccess(_sharingFolderPath);
-            await _beginAppleScopedAccess(_sharingFolderPath);
-          }
-        }
+      if (_sharingFolderPath.isNotEmpty) {
+        // 常驻占用（初始化时建立的）已覆盖这次接收；重复申请不会再加计数。
+        await _holdSharingFolder(_sharingFolderPath);
       }
 
       bool useSaf = false;
@@ -1467,22 +1413,12 @@ class SharingService {
           activeFiles: metadata.activeFilesMap.values.toList(),
         );
 
-    // 只记住「真正拿到的那一个路径」。分享目录和落在它下面的 targetPath 会
-    // resolve 到同一个父 scope key，两个都 end 就是 -2：若该目录同时是曲库
-    // root，会把扫描器持有的那份计数一起打掉，scope 提前关闭而扫描器还以为
-    // 握着，之后目录列举直接 EPERM。
-    String? beganScopedPath;
+    // 分享目录的常驻占用通常已经建立，这里拿到的是同一份（去重命中，
+    // `release()` 是 no-op），所以不会出现「分享目录与它下面的 targetPath
+    // resolve 到同一个 scope key、各减一次」把扫描器那份计数打掉的问题。
+    AppleFileAccessLease? transferLease;
     if (Platform.isIOS || Platform.isMacOS) {
-      if (await _beginAppleScopedAccess(_sharingFolderPath)) {
-        beganScopedPath = _sharingFolderPath;
-      } else {
-        await _registerApplePersistentAccess(_sharingFolderPath);
-        if (await _beginAppleScopedAccess(_sharingFolderPath)) {
-          beganScopedPath = _sharingFolderPath;
-        } else if (await _beginAppleScopedAccess(targetPath)) {
-          beganScopedPath = targetPath;
-        }
-      }
+      transferLease = await _holdSharingFolder(_sharingFolderPath);
     }
 
     bool useSaf = false;
@@ -1951,9 +1887,7 @@ class SharingService {
         }),
       );
     } finally {
-      if (beganScopedPath != null) {
-        await _endAppleScopedAccess(beganScopedPath);
-      }
+      await transferLease?.release();
       if (_currentReceiverRequests[sessionId] != null) {
         _currentReceiverRequests[sessionId]!.remove(request);
         if (_currentReceiverRequests[sessionId]!.isEmpty) {
