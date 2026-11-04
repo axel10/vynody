@@ -89,6 +89,7 @@ enum LyricsCacheSource {
   static LyricsCacheSource fromExternalSourceTag(String? value) {
     switch (value?.trim().toLowerCase() ?? '') {
       case 'local_lrc':
+      case 'remote_lrc':
       case 'remote_server':
       case 'external':
         return LyricsCacheSource.external;

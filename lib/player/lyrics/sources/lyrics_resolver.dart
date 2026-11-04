@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
@@ -35,6 +36,7 @@ class LyricsResolver {
   Future<LyricSelectionResult?> resolve({
     required LyricsQuery rawQuery,
     required LyricsQuery normalizedQuery,
+    CancelToken? cancelToken,
     Future<LyricSelectionResult?> Function()? onlineFallback,
   }) async {
     final cacheKey = normalizedQuery.cacheKey;
@@ -58,7 +60,10 @@ class LyricsResolver {
 
     for (final provider in _providers) {
       if (!provider.handles(normalizedQuery)) continue;
-      final result = await provider.load(normalizedQuery);
+      final result = await provider.load(
+        normalizedQuery,
+        cancelToken: cancelToken,
+      );
       if (result == null) continue;
       debugPrint(
         '[Lyrics] provider hit -> key="$cacheKey" provider=${provider.id}',

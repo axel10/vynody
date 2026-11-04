@@ -365,6 +365,7 @@ class LyricsFetchCoordinator {
         final description = switch (result.source) {
           'embedded' => 'Embedded',
           'local_lrc' => 'Local LRC',
+          'remote_lrc' => 'Remote LRC',
           'remote_server' => 'Remote Media Server',
           _ => 'Online',
         };

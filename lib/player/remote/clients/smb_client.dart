@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dart_smb2/dart_smb2.dart';
 import 'package:flutter/foundation.dart';
@@ -268,6 +269,26 @@ class SmbClient implements RemoteDirectoryClient {
     var cleanPath = relativePath.trim();
     if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
     return await pool.readFileRange(cleanPath, offset: offset, length: length);
+  }
+
+  /// Reads a whole small text file (e.g. a sidecar `.lrc`).
+  ///
+  /// Returns null when the file is missing, empty or unreadable —— 调用方据此
+  /// 判断「没有旁挂歌词」，不需要区分具体失败原因。
+  Future<String?> readTextFile(String share, String relativePath) async {
+    try {
+      final pool = await getPool(share);
+      var cleanPath = relativePath.trim();
+      if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+      final bytes = await pool.readFile(cleanPath);
+      if (bytes.isEmpty) return null;
+      // 与本地 lrc 的 `File.readAsString()` 保持一致：按 UTF-8 解析，
+      // 非法字节用替换字符兜底，不让一首坏编码的歌词把整条链路打断。
+      return utf8.decode(bytes, allowMalformed: true);
+    } catch (e) {
+      debugPrint('[SMB] Failed to read text file "$relativePath": $e');
+      return null;
+    }
   }
 
   /// Streams chunks of a file.

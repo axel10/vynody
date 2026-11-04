@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
@@ -9,6 +8,9 @@ import '../../../models/music_file.dart';
 
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter_taglib/flutter_taglib.dart' show
+    TagLibFile,
+    TagLibAudioPropertiesStyle;
 import 'package:path_provider/path_provider.dart';
 
 import 'package:audio_core/audio_core.dart';
@@ -19,6 +21,7 @@ import '../clients/webdav_client.dart';
 import '../clients/smb_client.dart';
 import '../clients/jellyfin_client.dart';
 import '../services/remote_payload_guard.dart';
+import '../../lyrics/sources/media_server_lyrics_result.dart';
 import 'local_stream_proxy.dart';
 import '../../metadata/metadata_database.dart';
 
@@ -621,9 +624,12 @@ class RemoteMediaResolver {
     return null;
   }
 
-  /// Fetches lyrics for the given remote song.
-  Future<String?> fetchLyrics(MusicFile song) async {
-    final info = parseUri(song.path);
+  /// 读取与音频同目录、同名的 `.lrc` 旁挂文件（WebDAV / SMB）。
+  ///
+  /// 语义与本地文件系统的「同目录同名 lrc」完全一致，只是数据源换成了远端。
+  /// 媒体库自带的歌词接口仍走 [fetchLyrics]，两者不再混在同一个方法里。
+  Future<String?> fetchSidecarLrc(String songPath) async {
+    final info = parseUri(songPath);
     if (info == null) return null;
 
     final servers = storage.loadServers();
@@ -633,24 +639,133 @@ class RemoteMediaResolver {
     );
     final password = await storage.getPassword(server.id) ?? '';
 
+    final lrcPath = '${p.withoutExtension(info.trackIdOrPath)}.lrc';
+
+    if (info.type == RemoteServerType.webdav) {
+      final client = WebDavClient(server: server, password: password);
+      return client.getFileContent(lrcPath);
+    }
+    if (info.type == RemoteServerType.smb) {
+      final parts = parseSmbParts(info.trackIdOrPath);
+      final client = SmbClient(server: server, password: password);
+      return client.readTextFile(
+        parts.$1,
+        '${p.withoutExtension(parts.$2)}.lrc',
+      );
+    }
+    // 媒体库（subsonic / jellyfin）的曲目 id 不是路径，取不到旁挂文件。
+    return null;
+  }
+
+  /// 通过 HTTP Range 读取远程音频文件的内嵌歌词（WebDAV / SMB）。
+  ///
+  /// 复用与远程元数据扫描相同的通道：WebDAV 直接拼完整 URL 并带认证头，
+  /// SMB 经 [LocalStreamProxy] 转成本地 206 代理。TagLib 按需分片读取，
+  /// 不会下载整首音频。
+  ///
+  /// 返回 null 表示「没有内嵌歌词」或「本次没读到」——调用方不应把后者
+  /// 当成确认无词而写入空缓存。
+  Future<String?> fetchEmbeddedLyrics(String songPath) async {
+    final info = parseUri(songPath);
+    if (info == null) return null;
+
+    final servers = storage.loadServers();
+    final server = servers.firstWhere(
+      (s) => s.id == info.serverId,
+      orElse: () => throw StateError('Server not found'),
+    );
+    final password = await storage.getPassword(server.id) ?? '';
+
+    final String url;
+    Map<String, String>? headers;
+
+    if (info.type == RemoteServerType.webdav) {
+      final client = WebDavClient(server: server, password: password);
+      url = client.buildFullUrl(info.trackIdOrPath);
+      headers = client.authHeaders;
+    } else if (info.type == RemoteServerType.smb) {
+      final parts = parseSmbParts(info.trackIdOrPath);
+      url = await LocalStreamProxy.instance.buildSmbStreamUrl(
+        serverId: server.id,
+        share: parts.$1,
+        relativePath: parts.$2,
+      );
+    } else {
+      // 媒体库曲目走的是服务端歌词接口，内嵌标签不在本方法的职责内。
+      return null;
+    }
+
+    final tagData = await TagLibFile.readMetadataAsync(
+      url,
+      headers: headers,
+      audioPropertiesStyle: TagLibAudioPropertiesStyle.fast,
+      readCover: false,
+      timeout: const Duration(seconds: 10),
+    );
+
+    if (tagData == null) return null;
+
+    final lyrics = tagData.lyrics.trim();
+    if (lyrics.isEmpty) {
+      if (tagData.readError) {
+        // 短读导致的空不能当作「文件没有歌词」，交给上层继续下一层，
+        // 也不写任何缓存。
+        debugPrint(
+          '[Lyrics] remote embedded lyrics not fully read -> "$songPath"',
+        );
+      }
+      return null;
+    }
+    return lyrics;
+  }
+
+  /// 拉取媒体库自带的歌词（Subsonic / Navidrome、Jellyfin），返回四态结论。
+  ///
+  /// 与 [fetchSidecarLrc] 的分工：这里只问服务端要歌词，不碰文件系统；
+  /// WebDAV 没有服务端歌词接口，SMB 同理，两者都返回 absent。
+  Future<MediaServerLyricsResult> fetchLyrics(
+    MusicFile song, {
+    CancelToken? cancelToken,
+  }) async {
+    final info = parseUri(song.path);
+    if (info == null) {
+      return const MediaServerLyricsResult.miss(
+        MediaServerLyricsStatus.absent,
+        diagnostic: 'not a remote uri',
+      );
+    }
+
+    final servers = storage.loadServers();
+    final server = servers.where((s) => s.id == info.serverId).firstOrNull;
+    if (server == null) {
+      return const MediaServerLyricsResult.miss(
+        MediaServerLyricsStatus.failed,
+        diagnostic: 'server not found',
+      );
+    }
+    final password = await storage.getPassword(server.id) ?? '';
+
     if (info.type == RemoteServerType.subsonic) {
       final client = SubsonicClient(server: server, password: password);
-      return client.getLyrics(
+      return client.fetchLyricsResult(
         id: info.trackIdOrPath,
         artist: song.artist,
         title: song.title ?? song.name,
+        cancelToken: cancelToken,
       );
-    } else if (info.type == RemoteServerType.jellyfin) {
-      final client = JellyfinClient(server: server, password: password);
-      return client.getLyrics(info.trackIdOrPath);
-    } else if (info.type == RemoteServerType.webdav) {
-      final client = WebDavClient(server: server, password: password);
-      // Attempt to find companion .lrc file in the same directory
-      final audioPath = info.trackIdOrPath;
-      final lrcPath = '${p.withoutExtension(audioPath)}.lrc';
-      return client.getFileContent(lrcPath);
     }
-    return null;
+    if (info.type == RemoteServerType.jellyfin) {
+      final client = JellyfinClient(server: server, password: password);
+      return client.fetchLyricsResult(
+        info.trackIdOrPath,
+        cancelToken: cancelToken,
+      );
+    }
+    // WebDAV 的同目录 `.lrc` 由 fetchSidecarLrc 统一处理（与本地文件同一层）。
+    return const MediaServerLyricsResult.miss(
+      MediaServerLyricsStatus.absent,
+      diagnostic: 'no server lyrics api',
+    );
   }
 
   /// Downloads or copies a cached remote track to a temporary file for local operations (e.g. transcoding).

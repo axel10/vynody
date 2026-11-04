@@ -8,24 +8,32 @@ import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:vynody/player/lyrics/sources/lyrics_source_provider.dart';
+import 'package:vynody/player/lyrics/sources/media_server_lyrics_result.dart';
 import 'package:vynody/utils/lrc_utils.dart';
 import 'package:vynody/utils/lyrics_id_utils.dart';
 
-/// 媒体库服务端歌词（Subsonic / Navidrome、Jellyfin，当前实现里 WebDAV 的
-/// 旁挂 `.lrc` 也临时走这条路）。
+/// 媒体库服务端歌词（Subsonic / Navidrome、Jellyfin）。
 ///
-/// 阶段一保持既有行为不变：只做一次 `fetcher` 调用，取不到就交给下一层。
-/// 阶段二会把它拆成「旁挂 lrc」与「服务端 API」两条，并引入四态结果
-/// （hit / absent / unsupported / failed）与能力探测缓存。
+/// 服务端返回四态结论（见 [MediaServerLyricsStatus]），本类只关心 `hit`：
+/// 其余三种都视作「这一层没有」，继续交给下一个 provider。
+/// 能力探测缓存由客户端在遇到「接口不存在」时写入，这里不重复判断。
 class MediaServerLyricsProvider implements LyricsSourceProvider {
   MediaServerLyricsProvider({
     required LyricsCacheRepository cacheRepository,
-    required Future<String?> Function(LyricsQuery query)? remoteLyricsFetcher,
+    required Future<MediaServerLyricsResult> Function(
+      LyricsQuery query, {
+      CancelToken? cancelToken,
+    })?
+    remoteLyricsFetcher,
   }) : _cacheRepository = cacheRepository,
        _remoteLyricsFetcher = remoteLyricsFetcher;
 
   final LyricsCacheRepository _cacheRepository;
-  final Future<String?> Function(LyricsQuery query)? _remoteLyricsFetcher;
+  final Future<MediaServerLyricsResult> Function(
+    LyricsQuery query, {
+    CancelToken? cancelToken,
+  })?
+  _remoteLyricsFetcher;
 
   @override
   String get id => 'media_server';
@@ -34,9 +42,9 @@ class MediaServerLyricsProvider implements LyricsSourceProvider {
   bool handles(LyricsQuery query) {
     if (_remoteLyricsFetcher == null) return false;
     final path = query.filePath;
-    return path.startsWith('subsonic://') ||
-        path.startsWith('webdav://') ||
-        path.startsWith('jellyfin://');
+    // WebDAV 的同目录 `.lrc` 由 SidecarLrcProvider 处理（与本地文件同一层），
+    // 媒体库这里只负责 subsonic / jellyfin 的歌词接口。
+    return path.startsWith('subsonic://') || path.startsWith('jellyfin://');
   }
 
   @override
@@ -48,69 +56,79 @@ class MediaServerLyricsProvider implements LyricsSourceProvider {
     final fetcher = _remoteLyricsFetcher;
     if (fetcher == null) return null;
 
+    final MediaServerLyricsResult remote;
     try {
-      // 传入规范化后的完整查询（含 title / artist / album），
-      // 这样即使服务端不支持 getLyricsBySongId，也能用 artist+title 兜底命中。
-      final remoteLrc = await fetcher(query);
-      if (remoteLrc == null || remoteLrc.trim().isEmpty) {
-        debugPrint('[Lyrics] fetch remote server lyrics miss -> key="${query.cacheKey}"');
-        return null;
-      }
-
-      final syncedLines = LrcUtils.parseTimedLyrics(remoteLrc);
-      final isSynced = syncedLines.any((line) => line.isTimed);
-      final lyricsId = LyricsIdUtils.fromLyricsText(remoteLrc);
-      final track = LyricTrack(
-        lyricsId: lyricsId,
-        name: query.title,
-        trackName: query.title,
-        artistName: query.artist,
-        albumName: query.album,
-        duration: query.duration?.inSeconds.toDouble(),
-        instrumental: false,
-        plainLyrics: isSynced ? null : remoteLrc,
-        syncedLyrics: isSynced ? remoteLrc : null,
-      );
-
-      final result = LyricSelectionResult(
-        track: track,
-        fromGetApi: false,
-        source: 'remote_server',
-        score: 100.0,
-        breakdown: LyricScoreBreakdown(
-          title: 0,
-          artist: 0,
-          album: 0,
-          duration: 0,
-          lyricsQuality: isSynced ? 5 : 3,
-          instrumentalPenalty: 0,
-        ),
-        durationDiffSeconds: 0,
-        syncedLines: syncedLines.isNotEmpty
-            ? syncedLines
-            : remoteLrc
-                  .split('\n')
-                  .map((l) => LyricLine(timestamp: Duration.zero, text: l))
-                  .toList(),
-        lyricsText: remoteLrc,
-      );
-      debugPrint('[Lyrics] fetch remote server lyrics hit -> key="${query.cacheKey}"');
-
-      if (saveToDb) {
-        unawaited(
-          _cacheRemoteServerLyrics(
-            query: query,
-            rawText: remoteLrc,
-            isSynced: isSynced,
-            syncedLines: syncedLines,
-          ),
-        );
-      }
-      return result;
+      remote = await fetcher(query, cancelToken: cancelToken);
     } catch (e) {
       debugPrint('[Lyrics] fetch remote server lyrics error: $e');
       return null;
     }
+
+    if (!remote.isHit) {
+      debugPrint(
+        '[Lyrics] fetch remote server lyrics rejected -> key="${query.cacheKey}" '
+        '${remote.status.name}${remote.diagnostic == null ? '' : ' (${remote.diagnostic})'}',
+      );
+      return null;
+    }
+
+    final remoteLrc = remote.text?.trim() ?? '';
+    if (remoteLrc.isEmpty) return null;
+
+    debugPrint(
+      '[Lyrics] fetch remote server lyrics hit -> key="${query.cacheKey}" '
+      'variant=${remote.variant} synced=${remote.synced}',
+    );
+
+    final syncedLines = LrcUtils.parseTimedLyrics(remoteLrc);
+    final isSynced = syncedLines.any((line) => line.isTimed);
+    final lyricsId = LyricsIdUtils.fromLyricsText(remoteLrc);
+    final track = LyricTrack(
+      lyricsId: lyricsId,
+      name: query.title,
+      trackName: query.title,
+      artistName: query.artist,
+      albumName: query.album,
+      duration: query.duration?.inSeconds.toDouble(),
+      instrumental: false,
+      plainLyrics: isSynced ? null : remoteLrc,
+      syncedLyrics: isSynced ? remoteLrc : null,
+    );
+
+    final result = LyricSelectionResult(
+      track: track,
+      fromGetApi: false,
+      source: 'remote_server',
+      score: 100.0,
+      breakdown: LyricScoreBreakdown(
+        title: 0,
+        artist: 0,
+        album: 0,
+        duration: 0,
+        lyricsQuality: isSynced ? 5 : 3,
+        instrumentalPenalty: 0,
+      ),
+      durationDiffSeconds: 0,
+      syncedLines: syncedLines.isNotEmpty
+          ? syncedLines
+          : remoteLrc
+                .split('\n')
+                .map((l) => LyricLine(timestamp: Duration.zero, text: l))
+                .toList(),
+      lyricsText: remoteLrc,
+    );
+
+    if (saveToDb) {
+      unawaited(
+        _cacheRemoteServerLyrics(
+          query: query,
+          rawText: remoteLrc,
+          isSynced: isSynced,
+          syncedLines: syncedLines,
+        ),
+      );
+    }
+    return result;
   }
 
   /// 把远程服务端返回的歌词写入 SQLite 缓存。

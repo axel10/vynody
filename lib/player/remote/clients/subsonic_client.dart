@@ -1,18 +1,39 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart';
 import '../remote_server_models.dart';
+import '../../lyrics/sources/media_server_capability_cache.dart';
+import '../../lyrics/sources/media_server_lyrics_result.dart';
 
 class SubsonicException implements Exception {
   final String message;
   final int? code;
-  const SubsonicException(this.message, {this.code});
+
+  /// HTTP 状态码（若有）。Subsonic 的业务错误走 `code`，但「接口不存在」
+  /// 这类情况是由反向代理或框架直接回 404，只能从这里看出来。
+  final int? httpStatus;
+
+  const SubsonicException(this.message, {this.code, this.httpStatus});
 
   /// 服务端拒绝下载（Navidrome 关闭下载时返回该码）。
   bool get isDownloadsDisabled => code == SubsonicClient.errorDownloadsDisabled;
+
+  /// 服务端不认识该接口。
+  ///
+  /// OpenSubsonic 扩展端点（如 `getLyricsBySongId.view`）在未实现的实现上，
+  /// 要么被框架直接回 404，要么回 code 0 + "Unknown method"。
+  bool get isUnknownMethod {
+    if (httpStatus == 404) return true;
+    if (code != 0 && code != 30) return false;
+    final lower = message.toLowerCase();
+    return lower.contains('method') || lower.contains('not implemented');
+  }
+
+  /// 请求的资源不存在（Subsonic 错误码 70）。
+  bool get isNotFound => code == SubsonicClient.errorNotFound;
 
   @override
   String toString() => message;
@@ -25,6 +46,9 @@ class SubsonicClient {
   /// Subsonic 错误码：当前用户无权执行该操作。Navidrome 关闭服务端下载时，
   /// `download.view` 返回的就是这个码（message 为 "downloads are disabled"）。
   static const int errorDownloadsDisabled = 50;
+
+  /// Subsonic 错误码：请求的资源不存在。
+  static const int errorNotFound = 70;
 
   final RemoteServer server;
   final String password;
@@ -216,10 +240,11 @@ class SubsonicClient {
   Future<Map<String, dynamic>> _getSubsonicData(
     String endpoint, [
     Map<String, dynamic>? params,
+    CancelToken? cancelToken,
   ]) async {
     try {
       final url = buildUrl(endpoint, params);
-      final response = await _dio.get<dynamic>(url);
+      final response = await _dio.get<dynamic>(url, cancelToken: cancelToken);
       final data = response.data;
       if (data == null) {
         throw const SubsonicException('Empty response from server');
@@ -271,11 +296,15 @@ class SubsonicClient {
         if (e.response!.statusCode == 401) {
           throw const SubsonicException(
             '401 Unauthorized: Invalid username or password',
+            httpStatus: 401,
           );
         }
         final status = e.response!.statusCode;
         final statusText = e.response!.statusMessage ?? '';
-        throw SubsonicException('HTTP $status $statusText'.trim());
+        throw SubsonicException(
+          'HTTP $status $statusText'.trim(),
+          httpStatus: status,
+        );
       }
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.sendTimeout ||
@@ -312,6 +341,8 @@ class SubsonicClient {
         }
       } catch (_) {}
 
+      // 连接已经通了：之前因网络抖动而误判的能力项不再成立，清掉重试一次。
+      MediaServerCapabilityCache.instance.clear(server.id);
       return ConnectionTestResult.success(
         message: 'Connected successfully',
         serverVersion: displayVer,
@@ -621,83 +652,181 @@ class SubsonicClient {
     return const [];
   }
 
-  /// Fetches lyrics for a song (by artist & title or id).
-  Future<String?> getLyrics({String? artist, String? title, String? id}) async {
-    try {
-      // 1. Try OpenSubsonic getLyricsBySongId if ID is provided
-      if (id != null && id.isNotEmpty) {
-        try {
-          final subsonic =
-              await _getSubsonicData('getLyricsBySongId.view', {'id': id});
-          final lyricsList =
-              subsonic['lyricsList']?['structuredLyrics'] as List?;
-          if (lyricsList != null && lyricsList.isNotEmpty) {
-            // 服务端可能返回多条（不同语言/不同来源），优先取第一条有内容的，
-            // 并优先选择逐行的（synced）那一版。
-            Map<String, dynamic>? picked;
-            List? pickedLines;
-            for (final entry in lyricsList) {
-              if (entry is! Map<String, dynamic>) continue;
-              final lineList = entry['line'] as List?;
-              if (lineList == null || lineList.isEmpty) continue;
-              final isSyncedEntry = entry['synced'] == true;
-              if (picked == null || (isSyncedEntry && picked['synced'] != true)) {
-                picked = entry;
-                pickedLines = lineList;
-              }
-            }
-            if (pickedLines != null && pickedLines.isNotEmpty) {
-              // Navidrome 对无时间轴的歌词省略 start 字段，此时必须输出纯文本，
-              // 否则会把整首歌拼成一堆 [00:00.00] 的“假逐行歌词”。
-              final starts = pickedLines
-                  .whereType<Map<String, dynamic>>()
-                  .map((line) => line['start'] as int?)
-                  .toList();
-              final hasAnyStart = starts.any((start) => start != null);
-              final buffer = StringBuffer();
-              for (final line in pickedLines) {
-                if (line is! Map<String, dynamic>) continue;
-                final text = line['value'] as String? ?? '';
-                if (!hasAnyStart) {
-                  buffer.writeln(text);
-                  continue;
-                }
-                final start = line['start'] as int? ?? 0;
-                final minutes = (start ~/ 60000).toString().padLeft(2, '0');
-                final seconds =
-                    ((start % 60000) ~/ 1000).toString().padLeft(2, '0');
-                final millis =
-                    ((start % 1000) ~/ 10).toString().padLeft(2, '0');
-                buffer.writeln('[$minutes:$seconds.$millis]$text');
-              }
-              final content = buffer.toString();
-              if (content.trim().isNotEmpty) {
-                return content;
-              }
-            }
-          }
-        } catch (_) {}
-      }
+  /// 拉取歌词，返回四态结论（hit / absent / unsupported / failed）。
+  ///
+  /// 两级策略：
+  /// 1. OpenSubsonic `getLyricsBySongId`（结构化，优先带时间轴的条目）
+  /// 2. 标准 `getLyrics.view`（artist + title，纯文本为主）
+  ///
+  /// 服务端不支持扩展接口时记入能力缓存，之后不再重复尝试；
+  /// 网络 / 认证失败不记缓存，直接返回 failed 交给上层继续下一层。
+  Future<MediaServerLyricsResult> fetchLyricsResult({
+    String? artist,
+    String? title,
+    String? id,
+    CancelToken? cancelToken,
+  }) async {
+    final capabilities = MediaServerCapabilityCache.instance;
+    const capability = MediaServerCapabilityCache.subsonicLyricsBySongId;
 
-      // 2. Standard Subsonic getLyrics.view with artist and title
-      if (artist != null || title != null) {
+    // 扩展端点是否因「不存在」而跳过。legacy 也查不到时要靠它区分
+    // 「服务端不支持」与「服务端确实没有这首歌的歌词」。
+    var extensionUnsupported = false;
+
+    // 1. OpenSubsonic getLyricsBySongId
+    if (id != null &&
+        id.isNotEmpty &&
+        !capabilities.isUnsupported(server.id, capability)) {
+      try {
+        final subsonic = await _getSubsonicData(
+          'getLyricsBySongId.view',
+          {'id': id},
+          cancelToken,
+        );
+        final parsed = _parseStructuredLyrics(subsonic);
+        if (parsed != null) {
+          return MediaServerLyricsResult.hit(
+            parsed.text,
+            variant: parsed.synced ? 'structured-synced' : 'structured-plain',
+            synced: parsed.synced,
+          );
+        }
+        // 接口通了但没有内容：继续走 legacy 兜底，部分服务端只在旧接口返回。
+      } on SubsonicException catch (e) {
+        if (e.isUnknownMethod) {
+          extensionUnsupported = true;
+          capabilities.markUnsupported(server.id, capability);
+          debugPrint(
+            '[Subsonic] getLyricsBySongId unsupported on "${server.id}": '
+            '${e.message}',
+          );
+        } else if (e.isNotFound) {
+          return const MediaServerLyricsResult.miss(
+            MediaServerLyricsStatus.absent,
+            diagnostic: 'getLyricsBySongId code 70',
+          );
+        } else if (_isCancelled(cancelToken)) {
+          return const MediaServerLyricsResult.miss(
+            MediaServerLyricsStatus.failed,
+            diagnostic: 'cancelled',
+          );
+        } else {
+          // 网络 / 认证失败：不记能力缓存，也不继续发第二个请求（会双倍超时）。
+          return MediaServerLyricsResult.miss(
+            MediaServerLyricsStatus.failed,
+            diagnostic: e.toString(),
+          );
+        }
+      }
+    }
+
+    // 2. Standard Subsonic getLyrics.view with artist and title
+    if ((artist != null && artist.isNotEmpty) ||
+        (title != null && title.isNotEmpty)) {
+      try {
         final params = <String, dynamic>{};
         if (artist != null) params['artist'] = artist;
         if (title != null) params['title'] = title;
-        final subsonic = await _getSubsonicData('getLyrics.view', params);
+        final subsonic = await _getSubsonicData(
+          'getLyrics.view',
+          params,
+          cancelToken,
+        );
         final lyrics = subsonic['lyrics'];
         if (lyrics is Map<String, dynamic>) {
           // Navidrome 的 responses.Lyrics 序列化出来是 {artist, title, value}；
           // 'content' 是部分其他 Subsonic 实现的写法，这里两者都兼容。
-          final content = (lyrics['value'] as String?) ??
-              (lyrics['content'] as String?);
+          final content =
+              (lyrics['value'] as String?) ?? (lyrics['content'] as String?);
           if (content != null && content.trim().isNotEmpty) {
-            return content.trim();
+            return MediaServerLyricsResult.hit(
+              content.trim(),
+              variant: 'legacy',
+            );
           }
         }
+        return const MediaServerLyricsResult.miss(
+          MediaServerLyricsStatus.absent,
+          diagnostic: 'getLyrics empty',
+        );
+      } on SubsonicException catch (e) {
+        if (e.isNotFound) {
+          return const MediaServerLyricsResult.miss(
+            MediaServerLyricsStatus.absent,
+            diagnostic: 'getLyrics code 70',
+          );
+        }
+        if (_isCancelled(cancelToken)) {
+          return const MediaServerLyricsResult.miss(
+            MediaServerLyricsStatus.failed,
+            diagnostic: 'cancelled',
+          );
+        }
+        return MediaServerLyricsResult.miss(
+          MediaServerLyricsStatus.failed,
+          diagnostic: e.toString(),
+        );
       }
-    } catch (_) {}
-    return null;
+    }
+
+    if (extensionUnsupported) {
+      return const MediaServerLyricsResult.miss(
+        MediaServerLyricsStatus.unsupported,
+        diagnostic: 'getLyricsBySongId unsupported',
+      );
+    }
+    return const MediaServerLyricsResult.miss(MediaServerLyricsStatus.absent);
+  }
+
+  bool _isCancelled(CancelToken? token) {
+    return token?.isCancelled ?? false;
+  }
+
+  /// 解析 structuredLyrics：优先挑带 `synced` 标记的条目。
+  ({String text, bool synced})? _parseStructuredLyrics(
+    Map<String, dynamic> subsonic,
+  ) {
+    final lyricsList = subsonic['lyricsList']?['structuredLyrics'] as List?;
+    if (lyricsList == null || lyricsList.isEmpty) return null;
+
+    Map<String, dynamic>? picked;
+    List? pickedLines;
+    for (final entry in lyricsList) {
+      if (entry is! Map<String, dynamic>) continue;
+      final lineList = entry['line'] as List?;
+      if (lineList == null || lineList.isEmpty) continue;
+      final isSyncedEntry = entry['synced'] == true;
+      if (picked == null || (isSyncedEntry && picked['synced'] != true)) {
+        picked = entry;
+        pickedLines = lineList;
+      }
+    }
+    if (pickedLines == null || pickedLines.isEmpty) return null;
+
+    // Navidrome 对无时间轴的歌词省略 start 字段，此时必须输出纯文本，
+    // 否则会把整首歌拼成一堆 [00:00.00] 的「假逐行歌词」。
+    final starts = pickedLines
+        .whereType<Map<String, dynamic>>()
+        .map((line) => line['start'] as int?)
+        .toList();
+    final hasAnyStart = starts.any((start) => start != null);
+    final buffer = StringBuffer();
+    for (final line in pickedLines) {
+      if (line is! Map<String, dynamic>) continue;
+      final text = line['value'] as String? ?? '';
+      if (!hasAnyStart) {
+        buffer.writeln(text);
+        continue;
+      }
+      final start = line['start'] as int? ?? 0;
+      final minutes = (start ~/ 60000).toString().padLeft(2, '0');
+      final seconds = ((start % 60000) ~/ 1000).toString().padLeft(2, '0');
+      final millis = ((start % 1000) ~/ 10).toString().padLeft(2, '0');
+      buffer.writeln('[$minutes:$seconds.$millis]$text');
+    }
+    final content = buffer.toString();
+    if (content.trim().isEmpty) return null;
+    return (text: content, synced: hasAnyStart);
   }
 
   /// Creates a new playlist on the Subsonic server.

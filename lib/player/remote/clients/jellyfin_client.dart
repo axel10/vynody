@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import '../remote_server_models.dart';
+import '../../lyrics/sources/media_server_capability_cache.dart';
+import '../../lyrics/sources/media_server_lyrics_result.dart';
 
 class JellyfinException implements Exception {
   final String message;
@@ -249,6 +251,8 @@ class JellyfinClient {
         albumCount = albumsRes['TotalRecordCount'] as int?;
       } catch (_) {}
 
+      // 连接已经通了：之前因网络抖动而误判的能力项不再成立，清掉重试一次。
+      MediaServerCapabilityCache.instance.clear(server.id);
       return ConnectionTestResult.success(
         message: 'Connected successfully',
         serverVersion: serverVer,
@@ -1108,44 +1112,131 @@ class JellyfinClient {
     };
   }
 
-  /// Fetches lyrics for a given track id (supports Jellyfin 10.9+ /Audio/{id}/Lyrics).
-  Future<String?> getLyrics(String trackId) async {
-    final session = await authenticate();
+  /// 拉取歌词，返回四态结论（hit / absent / unsupported / failed）。
+  ///
+  /// 支持 Jellyfin 10.9+ 的 `/Audio/{id}/Lyrics`；更早版本该端点不存在，
+  /// 返回 404 时记入能力缓存，后续曲目不再重复请求。
+  Future<MediaServerLyricsResult> fetchLyricsResult(
+    String trackId, {
+    CancelToken? cancelToken,
+  }) async {
+    final capabilities = MediaServerCapabilityCache.instance;
+    const capability = MediaServerCapabilityCache.jellyfinLyricsEndpoint;
+
+    if (capabilities.isUnsupported(server.id, capability)) {
+      return const MediaServerLyricsResult.miss(
+        MediaServerLyricsStatus.unsupported,
+        diagnostic: 'cached',
+      );
+    }
+
     try {
+      // authenticate 也可能失败，必须放进 try 里：原来它在 try 外，
+      // 认证异常会绕过 catch 一路抛给调用方，日志里连原因都不留。
+      final session = await authenticate();
       final res = await _dio.get<dynamic>(
         '$baseUrl/Audio/$trackId/Lyrics',
-        options: Options(
-          headers: _authHeaders(session.token),
-        ),
+        options: Options(headers: _authHeaders(session.token)),
+        cancelToken: cancelToken,
       );
       final data = res.data;
       if (data is String && data.trim().isNotEmpty) {
-        return data;
+        return MediaServerLyricsResult.hit(
+          data,
+          variant: 'jellyfin-text',
+        );
       } else if (data is Map<String, dynamic>) {
         // Jellyfin lyrics structure (Lyrics / Lyrics.Lyrics / Lyrics.Lines)
         final lyricsObj = data['Lyrics'];
         if (lyricsObj is String && lyricsObj.trim().isNotEmpty) {
-          return lyricsObj;
+          return MediaServerLyricsResult.hit(
+            lyricsObj,
+            variant: 'jellyfin-text',
+          );
         }
-        final lines = (data['Lyrics'] is Map ? data['Lyrics']['Lines'] : data['Lines']) as List?;
-        if (lines != null && lines.isNotEmpty) {
-          final sb = StringBuffer();
-          for (final line in lines) {
-            if (line is Map<String, dynamic>) {
-              final startTicks = line['Start'] as num? ?? 0;
-              final text = line['Text'] as String? ?? '';
-              final totalMillis = (startTicks / 10000).round();
-              final minutes = (totalMillis ~/ 60000).toString().padLeft(2, '0');
-              final seconds = ((totalMillis % 60000) ~/ 1000).toString().padLeft(2, '0');
-              final millis = ((totalMillis % 1000) ~/ 10).toString().padLeft(2, '0');
-              sb.writeln('[$minutes:$seconds.$millis]$text');
-            }
-          }
-          final lrc = sb.toString().trim();
-          if (lrc.isNotEmpty) return lrc;
+        final lines =
+            (data['Lyrics'] is Map ? data['Lyrics']['Lines'] : data['Lines'])
+                as List?;
+        final parsed = _parseLyricsLines(lines);
+        if (parsed != null) {
+          return MediaServerLyricsResult.hit(
+            parsed.text,
+            variant: 'jellyfin-lines',
+            synced: parsed.synced,
+          );
         }
       }
-    } catch (_) {}
-    return null;
+      return const MediaServerLyricsResult.miss(
+        MediaServerLyricsStatus.absent,
+        diagnostic: 'empty',
+      );
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        return const MediaServerLyricsResult.miss(
+          MediaServerLyricsStatus.failed,
+          diagnostic: 'cancelled',
+        );
+      }
+      final statusCode = e.response?.statusCode;
+      if (statusCode == 404) {
+        capabilities.markUnsupported(server.id, capability);
+        debugPrint(
+          '[Jellyfin] lyrics endpoint unsupported on "${server.id}" (HTTP 404)',
+        );
+        return MediaServerLyricsResult.miss(
+          MediaServerLyricsStatus.unsupported,
+          diagnostic: 'HTTP 404',
+        );
+      }
+      if (statusCode == 401 || statusCode == 403) {
+        return MediaServerLyricsResult.miss(
+          MediaServerLyricsStatus.failed,
+          diagnostic: 'HTTP $statusCode',
+        );
+      }
+      return MediaServerLyricsResult.miss(
+        MediaServerLyricsStatus.failed,
+        diagnostic: e.message ?? e.toString(),
+      );
+    } catch (e) {
+      return MediaServerLyricsResult.miss(
+        MediaServerLyricsStatus.failed,
+        diagnostic: e.toString(),
+      );
+    }
+  }
+
+  /// Jellyfin 的 `Lines` 数组转 LRC 或纯文本。
+  ///
+  /// `Start` 全为 0（服务端没有时间轴）时必须输出纯文本，否则会拼出一堆
+  /// `[00:00.00]` 的假逐行歌词 —— 与 Subsonic 侧同一处理方式。
+  ({String text, bool synced})? _parseLyricsLines(List? lines) {
+    if (lines == null || lines.isEmpty) return null;
+
+    final entries = lines.whereType<Map<String, dynamic>>().toList();
+    if (entries.isEmpty) return null;
+
+    final hasAnyStart = entries.any((line) {
+      final start = line['Start'] as num?;
+      return start != null && start > 0;
+    });
+
+    final buffer = StringBuffer();
+    for (final line in entries) {
+      final text = line['Text'] as String? ?? '';
+      if (!hasAnyStart) {
+        buffer.writeln(text);
+        continue;
+      }
+      final startTicks = line['Start'] as num? ?? 0;
+      final totalMillis = (startTicks / 10000).round();
+      final minutes = (totalMillis ~/ 60000).toString().padLeft(2, '0');
+      final seconds = ((totalMillis % 60000) ~/ 1000).toString().padLeft(2, '0');
+      final millis = ((totalMillis % 1000) ~/ 10).toString().padLeft(2, '0');
+      buffer.writeln('[$minutes:$seconds.$millis]$text');
+    }
+    final content = buffer.toString().trim();
+    if (content.isEmpty) return null;
+    return (text: content, synced: hasAnyStart);
   }
 }

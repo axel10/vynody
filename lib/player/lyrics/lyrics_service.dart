@@ -15,9 +15,9 @@ import 'package:vynody/player/lyrics/sources/embedded_tag_provider.dart';
 import 'package:vynody/player/lyrics/sources/lyrics_resolver.dart';
 import 'package:vynody/player/lyrics/sources/lyrics_source_provider.dart';
 import 'package:vynody/player/lyrics/sources/media_server_lyrics_provider.dart';
+import 'package:vynody/player/lyrics/sources/media_server_lyrics_result.dart';
 import 'package:vynody/player/lyrics/sources/sidecar_lrc_provider.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
-import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
 part 'lyrics_service.freezed.dart';
@@ -153,12 +153,24 @@ class LyricsService {
     NetworkClient? client,
     MetadataDatabase? db,
     LyricsCacheRepository? cacheRepository,
-    Future<String?> Function(LyricsQuery query)? remoteLyricsFetcher,
+    Future<MediaServerLyricsResult> Function(
+      LyricsQuery query, {
+      CancelToken? cancelToken,
+    })?
+    remoteLyricsFetcher,
+    Future<String?> Function(String songPath)? remoteSidecarReader,
+    Future<String?> Function(String songPath)? remoteEmbeddedLyricsReader,
     List<LyricsSourceProvider>? providers,
   })  : _client = client ?? NetworkClient.instance,
         _cacheRepository = cacheRepository ?? LyricsCacheRepository(db: db) {
-    _sidecarProvider = SidecarLrcProvider(cacheRepository: _cacheRepository);
-    _embeddedProvider = EmbeddedTagProvider(cacheRepository: _cacheRepository);
+    _sidecarProvider = SidecarLrcProvider(
+      cacheRepository: _cacheRepository,
+      remoteSidecarReader: remoteSidecarReader,
+    );
+    _embeddedProvider = EmbeddedTagProvider(
+      cacheRepository: _cacheRepository,
+      remoteLyricsReader: remoteEmbeddedLyricsReader,
+    );
     _mediaServerProvider = MediaServerLyricsProvider(
       cacheRepository: _cacheRepository,
       remoteLyricsFetcher: remoteLyricsFetcher,
@@ -279,10 +291,8 @@ class LyricsService {
       ignoreNone: true,
     );
 
-    // 如果是远程流媒体协议（如 subsonic / webdav / jellyfin），直接返回已有缓存
-    if (RemoteMediaResolver.isRemoteUri(query.filePath)) {
-      return records;
-    }
+    // 远程不再提前返回：旁挂 lrc 与内嵌标签对 SMB / WebDAV 同样存在，
+    // 统一交给 provider 探测（saveToDb: false，只取回候选，不覆盖当前缓存）。
 
     final hasExternal = records.any(
       (r) => r.source == LyricsCacheSource.external,
@@ -358,6 +368,7 @@ class LyricsService {
     final result = await _resolver.resolve(
       rawQuery: query,
       normalizedQuery: normalizedQuery,
+      cancelToken: cancelToken,
       onlineFallback: () => _resolveOnline(normalizedQuery, cancelToken),
     );
 

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:vynody/player/lyrics/desktop_lyrics_manager.dart';
@@ -53,7 +54,7 @@ final lyricsAiServiceProvider = Provider<LyricsAiService>((ref) {
 
 final lyricsServiceProvider = Provider<LyricsService>((ref) {
   return LyricsService(
-    remoteLyricsFetcher: (query) async {
+    remoteLyricsFetcher: (query, {CancelToken? cancelToken}) async {
       final resolver = await ref.read(remoteMediaResolverProvider.future);
       // 必须带上真实元数据：服务端若不支持 getLyricsBySongId，
       // 会退回到按 artist+title 查询，缺了元数据就必然查空。
@@ -65,7 +66,18 @@ final lyricsServiceProvider = Provider<LyricsService>((ref) {
           artist: query.artist,
           album: query.album,
         ),
+        cancelToken: cancelToken,
       );
+    },
+    // 同目录同名 lrc：本地走文件系统，WebDAV / SMB 由此读取远端旁挂文件。
+    remoteSidecarReader: (songPath) async {
+      final resolver = await ref.read(remoteMediaResolverProvider.future);
+      return resolver.fetchSidecarLrc(songPath);
+    },
+    // 内嵌歌词：远程走 HTTP Range 分片读取，不下载整首。
+    remoteEmbeddedLyricsReader: (songPath) async {
+      final resolver = await ref.read(remoteMediaResolverProvider.future);
+      return resolver.fetchEmbeddedLyrics(songPath);
     },
   );
 });
