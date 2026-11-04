@@ -101,7 +101,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     if (_pathExistsCache.length >= 512) {
       _pathExistsCache.clear();
     }
-    final exists = File(path).existsSync();
+    // 不能只 stat：沙盒里「存在但打不开」的路径交给 Image.file 会抛
+    // PathAccessException（例如外部拖入歌曲的同目录封面、未授权的自定义背景图）。
+    final exists = MetadataHelper.isFileReadable(path);
     _pathExistsCache[path] = exists;
     return exists;
   }

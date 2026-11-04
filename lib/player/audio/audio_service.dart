@@ -429,6 +429,19 @@ class AudioService extends Notifier<AudioSnapshot> {
       _lifecycleListener?.dispose();
     });
 
+    // 授权状态变化（新增曲库根、外部拖入登记）之后，当前曲目可能才第一次读得到
+    // 同目录封面，主题色不会自己刷新，这里补一次重算。
+    void handleArtworkAccessRevision() {
+      final path = currentMusic?.path;
+      if (path == null || RemoteMediaResolver.isRemoteUri(path)) return;
+      unawaited(recomputeThemeColorsWithMaster(songPath: path));
+    }
+
+    MetadataHelper.accessRevision.addListener(handleArtworkAccessRevision);
+    ref.onDispose(() {
+      MetadataHelper.accessRevision.removeListener(handleArtworkAccessRevision);
+    });
+
     ref.listen<bool>(isWindowMinimizedProvider, (previous, next) {
       _isWindowMinimized = next;
       _updateEffectiveVisualizerState();
@@ -1114,6 +1127,8 @@ class AudioService extends Notifier<AudioSnapshot> {
         );
       }
     }
+    // 拖入的可能是目录，也可能只是文件；授权状态变了就清一次目录封面负缓存。
+    MetadataHelper.invalidateDirectoryCoverCache();
   }
 
   Future<bool> _songExists(String path) async {

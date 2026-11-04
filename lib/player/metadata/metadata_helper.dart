@@ -598,6 +598,37 @@ class MetadataHelper {
 
   static final Map<String, String?> _globalDirCoverCache = {};
 
+  /// 授权状态变化的信号（新增曲库根、外部拖入登记授权）。
+  ///
+  /// 授权变化后，同一个路径的封面/主题色才第一次读得到。上层（当前播放主题色）
+  /// 需要据此重算一次，否则会一直是「无封面 / 无主题色」直到切歌。
+  static final ValueNotifier<int> accessRevision = ValueNotifier<int>(0);
+
+  /// 清空目录封面缓存。
+  ///
+  /// 该表会记住「这个目录没有可用封面」的负结果，而负结果有时只是因为当时没有
+  /// 权限（沙盒外、或只有文件级授权）。一旦用户后来把这个目录加入曲库、或重新
+  /// 授权，必须清掉，否则整个进程生命周期都读不到封面。
+  static void invalidateDirectoryCoverCache() {
+    _globalDirCoverCache.clear();
+    accessRevision.value++;
+  }
+
+  /// 真打开一次再判定「可用」。
+  ///
+  /// `existsSync()` 只能证明 stat 通过。沙盒里「路径存在但 open 被拒」是常态：
+  /// 例如拖入单个外部歌曲后，它的 security scope 只覆盖那个文件，同目录的
+  /// `cover.jpeg` 依然 stat 得到、open 报 EPERM，直接交给 `Image.file` 就是红叉。
+  static bool isFileReadable(String path) {
+    try {
+      final handle = File(path).openSync(mode: FileMode.read);
+      handle.closeSync();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Searches for cover.xxx (case-insensitive) in the same directory as songPath
   static String? findDirectoryCover(
     String songPath, {
@@ -629,7 +660,7 @@ class MetadataHelper {
       ];
       for (final name in candidateNames) {
         final file = File(p.join(dirPath, name));
-        if (file.existsSync()) {
+        if (isFileReadable(file.path)) {
           result = file.path;
           break;
         }
@@ -646,7 +677,8 @@ class MetadataHelper {
                   p.basenameWithoutExtension(entry.path).toLowerCase();
               final ext = p.extension(entry.path).toLowerCase();
               if ((baseName == 'cover' || baseName == 'folder') &&
-                  validCoverExtensions.contains(ext)) {
+                  validCoverExtensions.contains(ext) &&
+                  isFileReadable(entry.path)) {
                 result = entry.path;
                 break;
               }

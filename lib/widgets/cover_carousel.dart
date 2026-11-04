@@ -10,6 +10,7 @@ import 'package:audio_core/audio_core.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/metadata/artwork_resolver.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/utils/memory_trace.dart';
@@ -875,7 +876,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
           : null;
       if (imagePath != null) {
         final file = File(imagePath);
-        if (file.existsSync()) {
+        if (MetadataHelper.isFileReadable(imagePath)) {
           return Image.file(
             file,
             fit: BoxFit.contain,
@@ -884,6 +885,8 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
             gaplessPlayback: true,
             cacheWidth: finalCacheWidth,
             filterQuality: FilterQuality.low,
+            // 路径存在但沙盒拒绝时不要露出红叉，回落默认图标。
+            errorBuilder: (_, __, ___) => _buildFallbackNote(),
           );
         }
       }
@@ -894,7 +897,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
           : null;
       if (thumbPath != null) {
         final file = File(thumbPath);
-        if (file.existsSync()) {
+        if (MetadataHelper.isFileReadable(thumbPath)) {
           return Image.file(
             file,
             fit: BoxFit.contain,
@@ -903,6 +906,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
             gaplessPlayback: true,
             cacheWidth: finalCacheWidth,
             filterQuality: FilterQuality.low,
+            errorBuilder: (_, __, ___) => _buildFallbackNote(),
           );
         }
       }

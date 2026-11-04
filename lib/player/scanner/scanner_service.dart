@@ -1572,6 +1572,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         );
       }
 
+      // 目录刚拿到授权：清掉先前可能缓存的「无可用封面」负结果，
+      // 否则本次进程内这个目录的 cover.jpg 永远读不到。
+      MetadataHelper.invalidateDirectoryCoverCache();
+
       // The scope flags are advisory: a path can be readable without a
       // security scope (e.g. ~/Music on macOS). Only the filesystem decides.
       // Without this probe an unreadable root is added silently and then shows

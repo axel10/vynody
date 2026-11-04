@@ -119,7 +119,8 @@ class ArtworkResolver {
       final resolvedArtPath =
           ScannerPathUtils.resolveIosSandboxPath(artworkPath);
       final artFile = File(resolvedArtPath);
-      if (artFile.existsSync()) {
+      // 只 stat 不够：沙盒里「存在但打不开」的路径交给 Image.file 就是红叉。
+      if (MetadataHelper.isFileReadable(resolvedArtPath)) {
         Uint8List? fileBytes;
         if (readBytesForFile) {
           try {
@@ -154,7 +155,7 @@ class ArtworkResolver {
             MetadataHelper.findDirectoryCover(resolvedSongPath);
         if (dirCoverPath != null) {
           final dirFile = File(dirCoverPath);
-          if (dirFile.existsSync()) {
+          if (MetadataHelper.isFileReadable(dirCoverPath)) {
             Uint8List? fileBytes;
             if (readBytesForFile) {
               try {
