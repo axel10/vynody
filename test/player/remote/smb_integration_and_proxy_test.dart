@@ -60,7 +60,6 @@ void main() {
       );
       expect(audioFile.isAudio, isTrue);
       expect(audioFile.isImage, isFalse);
-      expect(audioFile.isLyric, isFalse);
 
       const coverFile = SmbFile(
         share: 'music',
@@ -71,15 +70,6 @@ void main() {
       );
       expect(coverFile.isAudio, isFalse);
       expect(coverFile.isImage, isTrue);
-
-      const lrcFile = SmbFile(
-        share: 'music',
-        path: 'test.lrc',
-        name: 'test.lrc',
-        isDirectory: false,
-        contentLength: 128,
-      );
-      expect(lrcFile.isLyric, isTrue);
 
       const dir = SmbFile(
         share: 'music',

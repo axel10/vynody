@@ -6,6 +6,7 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
+import 'package:vynody/player/lyrics/sources/lyrics_source_preference.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/utils/lrc_utils.dart';
@@ -83,15 +84,74 @@ void main() {
           .where((source) => source != LyricsCacheSource.none)
           .toSet();
 
-      expect(kLyricsSourcePreferenceOrder.toSet(), expected);
-      expect(kLyricsSourcePreferenceOrder.length, expected.length);
+      expect(lyricsSourceDisplayOrder.toSet(), expected);
+      expect(lyricsSourceDisplayOrder.length, expected.length);
     });
 
     test('用户手工调整过的歌词排在最前', () {
       expect(
-        kLyricsSourcePreferenceOrder.first,
+        lyricsSourceDisplayOrder.first,
         LyricsCacheSource.manualAdjust,
       );
+    });
+
+    test('优先级由枚举自身的 displayPriority 决定，不重复', () {
+      final priorities = LyricsCacheSource.values
+          .where((source) => source != LyricsCacheSource.none)
+          .map((source) => source.displayPriority)
+          .toList();
+      expect(priorities.toSet().length, priorities.length);
+    });
+  });
+
+  group('默认展示哪一条来源', () {
+    LyricsCacheRecord record(LyricsCacheSource source, {String lang = ''}) {
+      return LyricsCacheRecord(
+        cacheKey: 'k',
+        source: source,
+        languageCode: lang,
+        isSynced: true,
+        syncedLyrics: '[00:01.00]x',
+        syncedLines: const [],
+        timelineOffsetMillis: 0,
+        updatedAtMillis: 0,
+      );
+    }
+
+    test('无偏好时取优先级最高的那条', () {
+      final picked = pickPreferredLyricsRecord([
+        record(LyricsCacheSource.lrclib),
+        record(LyricsCacheSource.embedded),
+        record(LyricsCacheSource.manualAdjust),
+      ]);
+      expect(picked?.source, LyricsCacheSource.manualAdjust);
+    });
+
+    test('偏好精确命中来源与语言', () {
+      final picked = pickPreferredLyricsRecord(
+        [
+          record(LyricsCacheSource.embedded),
+          record(LyricsCacheSource.ai, lang: 'zh'),
+          record(LyricsCacheSource.ai, lang: 'en'),
+        ],
+        preference: (source: LyricsCacheSource.ai, languageCode: 'en'),
+      );
+      expect(picked?.source, LyricsCacheSource.ai);
+      expect(picked?.languageCode, 'en');
+    });
+
+    test('偏好指向的来源已不在候选里时回退到优先级，而不是空选', () {
+      // 换源后又重新查询、缓存被覆盖成别的来源：旧实现在这里会让弹窗
+      // 一项都不打勾，实际却显示了 lrclib。
+      final picked = pickPreferredLyricsRecord(
+        [record(LyricsCacheSource.lrclib)],
+        preference: (source: LyricsCacheSource.embedded, languageCode: ''),
+      );
+      expect(picked?.source, LyricsCacheSource.lrclib);
+    });
+
+    test('空候选返回 null', () {
+      expect(pickPreferredLyricsRecord(const []), isNull);
     });
   });
 

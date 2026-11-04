@@ -135,6 +135,26 @@ enum LyricsCacheSource {
         this == LyricsCacheSource.ai;
   }
 
+  /// 展示优先级：数字越小越「贴近用户」，默认展示时越靠前。
+  ///
+  /// 用 exhaustive switch 而不是一张手写 List —— 新增枚举值时编译器强制
+  /// 在这里补一个值，不会再出现「新来源漏进优先级表、弹窗高亮错位」的情况。
+  /// （`aiKaraoke` 当初就是这样被漏掉的。）
+  int get displayPriority {
+    return switch (this) {
+      LyricsCacheSource.manualAdjust => 0,
+      LyricsCacheSource.external => 1,
+      LyricsCacheSource.embedded => 2,
+      LyricsCacheSource.aiTimeline => 3,
+      LyricsCacheSource.aiKaraoke => 4,
+      LyricsCacheSource.aiGenerate => 5,
+      LyricsCacheSource.ai => 6,
+      LyricsCacheSource.lrclib => 7,
+      // `none` 是「确认无词」的占位，永远不参与挑选，排在最后。
+      LyricsCacheSource.none => 99,
+    };
+  }
+
   @Deprecated('Use isAiSource')
   bool get isGeminiSource => isAiSource;
 }
@@ -290,18 +310,18 @@ List<LyricLine> _decodeSyncedLines(Object? rawValue) {
   return LrcUtils.refineWordDurations(lines);
 }
 
-/// 缓存来源的展示优先级：越靠前越「贴近用户」，越优先展示。
+/// 缓存来源的展示顺序：越靠前越「贴近用户」，默认展示时越优先。
 ///
-/// 这一份表是唯一来源 —— `_syncLyricsCacheWatch` 的实际选源与「换源」弹窗的
-/// 当前来源高亮都从这里派生。此前两处各自维护、顺序不同且漏了 aiKaraoke，
-/// 会出现「弹窗高亮 A、实际显示 B」。
-const List<LyricsCacheSource> kLyricsSourcePreferenceOrder = <LyricsCacheSource>[
-  LyricsCacheSource.manualAdjust,
-  LyricsCacheSource.external,
-  LyricsCacheSource.embedded,
-  LyricsCacheSource.aiTimeline,
-  LyricsCacheSource.aiKaraoke,
-  LyricsCacheSource.aiGenerate,
-  LyricsCacheSource.ai,
-  LyricsCacheSource.lrclib,
-];
+/// **派生值，不要手工维护**。唯一事实来源是 [LyricsCacheSource.displayPriority]
+/// 这个 exhaustive switch；这里只在首次访问时按它排一次序，`none` 不参与挑选。
+/// 这样新增来源时改一处（枚举分支）即可，不会再出现两份表顺序不一致、
+/// 或者新值漏进表里导致「弹窗高亮 A、实际显示 B」。
+final List<LyricsCacheSource> lyricsSourceDisplayOrder = _buildDisplayOrder();
+
+List<LyricsCacheSource> _buildDisplayOrder() {
+  final order = LyricsCacheSource.values
+      .where((source) => source != LyricsCacheSource.none)
+      .toList()
+    ..sort((a, b) => a.displayPriority.compareTo(b.displayPriority));
+  return List<LyricsCacheSource>.unmodifiable(order);
+}

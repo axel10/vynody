@@ -32,12 +32,6 @@ class SmbFile {
     final ext = p.extension(name).toLowerCase();
     return const {'.jpg', '.jpeg', '.png', '.webp'}.contains(ext);
   }
-
-  bool get isLyric {
-    if (isDirectory) return false;
-    final ext = p.extension(name).toLowerCase();
-    return ext == '.lrc';
-  }
 }
 
 /// Client helper for interacting with SMB servers using `dart_smb2`.

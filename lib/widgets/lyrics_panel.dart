@@ -31,6 +31,7 @@ import 'package:vynody/player/lyrics/lyrics_controller.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_song_task_state.dart';
+import 'package:vynody/player/lyrics/sources/lyrics_source_preference.dart';
 import 'package:vynody/player/lyrics/timeline/lyrics_timeline.dart';
 import 'package:vynody/utils/lrc_utils.dart';
 import 'lyrics_panel_views.dart';
@@ -2342,25 +2343,19 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final cacheKey = query?.cacheKey.trim() ?? '';
     if (cacheKey.isEmpty) return;
 
-    final activePreference = await _lyricsControllerActions.getSelectedLyricSource(cacheKey);
+    final activePreference =
+        await _lyricsControllerActions.getSelectedLyricSource(cacheKey);
 
-    LyricsCacheSource activeSource = LyricsCacheSource.none;
-    String activeLang = '';
-    
-    if (activePreference != null) {
-      activeSource = activePreference.source;
-      activeLang = activePreference.languageCode;
-    } else {
-      for (final src in kLyricsSourcePreferenceOrder) {
-        if (sources.any((r) => r.source == src)) {
-          activeSource = src;
-          if (src.isAiSource) {
-            activeLang = sources.firstWhere((r) => r.source == src).languageCode;
-          }
-          break;
-        }
-      }
-    }
+    // 与 `_syncLyricsCacheWatch` 共用同一个挑选函数：面板实际显示哪条，
+    // 弹窗就打勾哪条。此前这里自己遍历一遍顺序表，preference 指向的来源
+    // 已不在候选里时会一项都不打勾。
+    final activeRecord = pickPreferredLyricsRecord(
+      sources,
+      preference: activePreference,
+    );
+    final LyricsCacheSource activeSource =
+        activeRecord?.source ?? LyricsCacheSource.none;
+    final String activeLang = activeRecord?.languageCode ?? '';
 
     if (!mounted) return;
 

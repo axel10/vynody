@@ -14,6 +14,7 @@ import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_context.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
+import 'package:vynody/player/lyrics/sources/lyrics_source_preference.dart';
 import 'package:vynody/player/lyrics/timeline/lyrics_timeline.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
@@ -183,32 +184,13 @@ class LyricsControllerSupport {
 
   /// 从候选记录里挑出应当展示的一条。
   ///
-  /// 优先尊重用户手工选择过的来源（[preference]），否则按
-  /// [kLyricsSourcePreferenceOrder] 取最贴近用户的那条。
+  /// 唯一实现是 [pickPreferredLyricsRecord]，「换源」弹窗的当前项高亮也走它，
+  /// 保证「实际显示」与「弹窗打勾」永远一致。
   LyricsCacheRecord? pickPreferredCacheRecord(
     List<LyricsCacheRecord> records, {
     ({LyricsCacheSource source, String languageCode})? preference,
   }) {
-    if (records.isEmpty) return null;
-
-    if (preference != null) {
-      for (final record in records) {
-        if (record.source == preference.source &&
-            record.languageCode == preference.languageCode) {
-          return record;
-        }
-      }
-      for (final record in records) {
-        if (record.source == preference.source) return record;
-      }
-    }
-
-    for (final source in kLyricsSourcePreferenceOrder) {
-      for (final record in records) {
-        if (record.source == source) return record;
-      }
-    }
-    return records.first;
+    return pickPreferredLyricsRecord(records, preference: preference);
   }
 
   /// 把一条缓存记录合成为当前展示状态并写回队列。
