@@ -84,7 +84,15 @@ class LrcUtils {
 
       if (blockLines.isEmpty) continue;
 
-      allParsedLines.addAll(_groupWordPerLineIfNeeded(blockLines));
+      // 只有 `<mm:ss.xxx>` 这类逐字时间戳写法才按 word-per-line 逐字歌词合并。
+      // 普通 `[mm:ss.xx]` 行级时间戳的相邻短句（例如日文的
+      // 「[01:16.09]生きて」「[01:17.03]息をして」）本来就是两句歌词，
+      // 合并会把它们揉成一行并错误地渲染成逐字。
+      allParsedLines.addAll(
+        _isWordPerLineBlock(block)
+            ? _groupWordPerLineIfNeeded(blockLines)
+            : blockLines,
+      );
     }
 
     if (allParsedLines.isEmpty) {
@@ -512,6 +520,28 @@ class LrcUtils {
         }
       }
     }
+  }
+
+  /// 判断一个 block 是否为「每行一个字/词 + 尖括号时间戳」的逐字歌词写法。
+  ///
+  /// Apple Music 等来源把逐字时间轴拆成每行一个词并配 `<mm:ss.xxx>` 标签，
+  /// 这种写法必须按行合并回一整句（见 [_groupWordPerLineIfNeeded]）。
+  /// 而普通 LRC 的 `[mm:ss.xx]` 是行级时间戳，相邻两句即使只隔几百毫秒
+  /// 也是两行独立的歌词，不得合并。块内一旦出现带文本的 `[ ]` 行即判定为
+  /// 常规逐行同步歌词；不带文本的占位/间奏行不参与判定。
+  static bool _isWordPerLineBlock(List<String> block) {
+    var hasAngleTag = false;
+    for (final line in block) {
+      final match = _timestampLinePattern.firstMatch(line);
+      if (match == null) continue;
+      if (match.group(0)!.startsWith('<')) {
+        hasAngleTag = true;
+        continue;
+      }
+      if (line.substring(match.end).trim().isEmpty) continue;
+      return false;
+    }
+    return hasAngleTag;
   }
 
   static List<LyricLine> _groupWordPerLineIfNeeded(List<LyricLine> initialLines) {

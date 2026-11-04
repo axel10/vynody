@@ -186,6 +186,43 @@ void main() {
       expect(line.words![1].text, 'gonna ');
       expect(line.words![2].text, 'give');
     });
+
+    test(
+        'keeps adjacent short line-synced lyrics as separate lines (no word-by-word merge)',
+        () {
+      // 回归：日文短句相邻且间隔 < 1.2s，命中 word-per-line 合并阈值，
+      // 曾被合成「生きて息をして」一行并渲染成逐字歌词
+      const lrc = '[01:14.67] 生きて\n'
+          '[01:16.09] 生きて\n'
+          '[01:17.03] 息をして\n'
+          '[01:18.53] 伝えたいから';
+      final parsed = LrcUtils.parseTimedLyrics(lrc);
+
+      expect(parsed.length, 4);
+      expect(parsed.map((line) => line.text).toList(), [
+        '生きて',
+        '生きて',
+        '息をして',
+        '伝えたいから',
+      ]);
+      expect(parsed.map((line) => line.timestamp).toList(), [
+        const Duration(minutes: 1, seconds: 14, milliseconds: 670),
+        const Duration(minutes: 1, seconds: 16, milliseconds: 90),
+        const Duration(minutes: 1, seconds: 17, milliseconds: 30),
+        const Duration(minutes: 1, seconds: 18, milliseconds: 530),
+      ]);
+      expect(parsed.every((line) => line.words == null), isTrue);
+    });
+
+    test('does not merge blocks mixing line timestamps with angle tags', () {
+      const lrc = '[01:16.09] 生きて\n<01:17.03> 息をして';
+      final parsed = LrcUtils.parseTimedLyrics(lrc);
+
+      expect(parsed.length, 2);
+      expect(parsed[0].text, '生きて');
+      expect(parsed[1].text, '息をして');
+      expect(parsed.every((line) => line.words == null), isTrue);
+    });
   });
 
   group('LrcUtils.restoreKaraokeLineBreaks', () {
