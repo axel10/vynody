@@ -1819,7 +1819,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
                       event.type == MobileStorageEventType.eject ||
                       event.type == MobileStorageEventType.badRemoval) {
                     try {
-                      unawaited(controller.endScopedAccess(path: normalized));
+                      unawaited(
+                        controller.endScopedAccess(
+                          path: normalized,
+                          holder: AppleFileAccessHolder.scanner,
+                        ),
+                      );
                     } catch (e) {
                       debugPrint(
                         '[ScannerService] endScopedAccess failed for $normalized: $e',
@@ -2100,7 +2105,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     try {
-      final started = await controller.beginScopedAccess(path: normalizedPath);
+      final started = await controller.beginScopedAccess(
+        path: normalizedPath,
+        holder: AppleFileAccessHolder.scanner,
+      );
       if (started) {
         _activeScopedRootPaths.add(normalizedPath);
       }
@@ -2130,7 +2138,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         .toList(growable: false);
     for (final path in staleRoots) {
       try {
-        await controller.endScopedAccess(path: path);
+        await controller.endScopedAccess(
+          path: path,
+          holder: AppleFileAccessHolder.scanner,
+        );
       } catch (e) {
         debugPrint('[ScannerService] endScopedAccess failed for $path: $e');
       } finally {
@@ -4740,7 +4751,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     _scanCoordinator.dispose();
     if (_supportsPersistentAccess && _playerController != null) {
       for (final path in _activeScopedRootPaths.toList(growable: false)) {
-        unawaited(_playerController!.endScopedAccess(path: path));
+        unawaited(
+          _playerController!.endScopedAccess(
+            path: path,
+            holder: AppleFileAccessHolder.scanner,
+          ),
+        );
       }
       _activeScopedRootPaths.clear();
     }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:audio_core/audio_core.dart' show AppleFileAccessHolder;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -461,7 +462,10 @@ class SharingService {
     try {
       final bool? result = await _appleFileAccessChannel.invokeMethod<bool>(
         'beginScopedAccess',
-        <String, Object?>{'path': path},
+        <String, Object?>{
+          'path': path,
+          'holder': AppleFileAccessHolder.sharing,
+        },
       );
       return result ?? false;
     } catch (e) {
@@ -479,7 +483,10 @@ class SharingService {
     try {
       await _appleFileAccessChannel.invokeMethod(
         'endScopedAccess',
-        <String, Object?>{'path': path},
+        <String, Object?>{
+          'path': path,
+          'holder': AppleFileAccessHolder.sharing,
+        },
       );
     } catch (_) {}
   }
@@ -1460,15 +1467,21 @@ class SharingService {
           activeFiles: metadata.activeFilesMap.values.toList(),
         );
 
-    bool scopedAccessBegan = false;
+    // 只记住「真正拿到的那一个路径」。分享目录和落在它下面的 targetPath 会
+    // resolve 到同一个父 scope key，两个都 end 就是 -2：若该目录同时是曲库
+    // root，会把扫描器持有的那份计数一起打掉，scope 提前关闭而扫描器还以为
+    // 握着，之后目录列举直接 EPERM。
+    String? beganScopedPath;
     if (Platform.isIOS || Platform.isMacOS) {
-      scopedAccessBegan = await _beginAppleScopedAccess(_sharingFolderPath);
-      if (!scopedAccessBegan) {
+      if (await _beginAppleScopedAccess(_sharingFolderPath)) {
+        beganScopedPath = _sharingFolderPath;
+      } else {
         await _registerApplePersistentAccess(_sharingFolderPath);
-        scopedAccessBegan = await _beginAppleScopedAccess(_sharingFolderPath);
-      }
-      if (!scopedAccessBegan) {
-        scopedAccessBegan = await _beginAppleScopedAccess(targetPath);
+        if (await _beginAppleScopedAccess(_sharingFolderPath)) {
+          beganScopedPath = _sharingFolderPath;
+        } else if (await _beginAppleScopedAccess(targetPath)) {
+          beganScopedPath = targetPath;
+        }
       }
     }
 
@@ -1938,9 +1951,8 @@ class SharingService {
         }),
       );
     } finally {
-      if (scopedAccessBegan) {
-        await _endAppleScopedAccess(_sharingFolderPath);
-        await _endAppleScopedAccess(targetPath);
+      if (beganScopedPath != null) {
+        await _endAppleScopedAccess(beganScopedPath);
       }
       if (_currentReceiverRequests[sessionId] != null) {
         _currentReceiverRequests[sessionId]!.remove(request);

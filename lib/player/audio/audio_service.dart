@@ -771,7 +771,10 @@ class AudioService extends Notifier<AudioSnapshot> {
         if ((Platform.isIOS || Platform.isMacOS) &&
             !RemoteMediaResolver.isRemoteUri(currentSong.path)) {
           await _player.registerPersistentAccess(path: currentSong.path);
-          await _player.beginScopedAccess(path: currentSong.path);
+          await _player.beginScopedAccess(
+            path: currentSong.path,
+            holder: AppleFileAccessHolder.playback,
+          );
         }
         try {
           await _player.playlist.replaceActiveTracksAndSelect(
@@ -1096,7 +1099,10 @@ class AudioService extends Notifier<AudioSnapshot> {
     if ((Platform.isIOS || Platform.isMacOS) && !RemoteMediaResolver.isRemoteUri(path)) {
       try {
         await _player.registerPersistentAccess(path: path);
-        await _player.beginScopedAccess(path: path);
+        await _player.beginScopedAccess(
+          path: path,
+          holder: AppleFileAccessHolder.playback,
+        );
       } catch (_) {}
     }
     return PlaybackSessionManager.songExists(path);
@@ -3078,7 +3084,10 @@ class AudioService extends Notifier<AudioSnapshot> {
       if (Platform.isIOS || Platform.isMacOS) {
         if (!RemoteMediaResolver.isRemoteUri(current.path)) {
           await _player.registerPersistentAccess(path: current.path);
-          await _player.beginScopedAccess(path: current.path);
+          await _player.beginScopedAccess(
+            path: current.path,
+            holder: AppleFileAccessHolder.playback,
+          );
         }
       }
       await _syncCurrentPlaybackSong(current);

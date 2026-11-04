@@ -1,56 +1,34 @@
 # 长期项目笔记
 
 > 只留「会反复咬人的不变量」：名字 + 唯一入口。逐条全文与失败现象见
-> `MEMORY-archive-2026-11-01.md`（含 10-21 / 10-23 前身与本文件精简前快照）；过程见同日 `YYYY-MM-DD.md`。
+> `MEMORY-archive-2026-11-01.md`；过程见同日 `YYYY-MM-DD.md`。
+> **UI / 渲染类不变量（缩放、歌词行、封面、详情页、导航）见 `MEMORY-ui.md`。**
 
 ## 单一数据源（唯一入口 / 唯一开关）
 
 | 主题 | 规则 |
 |---|---|
 | Rail 宽度 | `sidebarRailWidthFor()`（`layout_constants.dart`），禁 `80.0` |
-| 队列抽屉窗口宽 | `minWindowWidthForDrawer()`：窗口 ≥ 抽屉宽 + `kMinMainContentWidth`(400)。WindowOptions、退出小窗、拖拽/双击复位、最小窗口尺寸同源派生 |
+| 队列抽屉窗口宽 | `minWindowWidthForDrawer()`：窗口 ≥ 抽屉宽 + `kMinMainContentWidth`(400)，WindowOptions/退出小窗/拖拽复位/最小窗口尺寸同源派生 |
 | FFmpeg 版本 | `audio_core/ffmpeg_version.env`，禁脚本硬编码；flatpak 清单与 `build-ffmpeg.yml` tag 靠手同步 |
-| Android 插件构建目录 | `android/build.gradle.kts:48` 钉死 `$TMPDIR/vynody_build/${project.name}`（**无 pub 版本**）→ 升级任何插件后该模块 Kotlin 增量缓存会串味，表现为「类能解析、顶层 const val 全 Unresolved」。判据：该模块 `--rerun-tasks` 即过。修：`rm -rf $TMPDIR/vynody_build/<name>`，`flutter clean` 清不到（自定义 clean 只删根 buildDir） |
-| 远程下载落盘 | `buildLocalTrackPath()` + `RemoteDownloadRequest.batches`。层级由**页面/栏目**定（`.album` 一层 / `.artist` 目录+专辑 / `.playlist` 无专辑层 / WebDAV·SMB 照抄远端），禁按单曲或是否多选区分。唯一入队口 `enqueue(RemoteDownloadRequest)`；多选 `fetchSelectedBatches`；单曲走 `downloadLayout`/`downloadCollectionFolder` |
+| Android 插件构建目录 | `android/build.gradle.kts:48` 钉死 `$TMPDIR/vynody_build/${project.name}`（无 pub 版本）。升级插件后该模块 Kotlin 增量缓存串味 → 「类能解析、顶层 const val 全 Unresolved」，`--rerun-tasks` 即过。修：`rm -rf $TMPDIR/vynody_build/<name>`（`flutter clean` 清不到，自定义 clean 只删根 buildDir） |
+| 远程下载落盘 | `buildLocalTrackPath()` + `RemoteDownloadRequest.batches`。层级由**页面/栏目**定（`.album` 一层 / `.artist` 目录+专辑 / `.playlist` 无专辑层 / WebDAV·SMB 照抄远端），禁按单曲或多选区分。唯一入队口 `enqueue()`；多选 `fetchSelectedBatches`；单曲走 `downloadLayout`/`downloadCollectionFolder` |
 | 载荷校验 | `RemotePayloadGuard.inspect()` 必须在「有字节就算成功」之前；只读头 2048B，禁按大小阈值。`_downloadTask` 与 `downloadRemoteTrackToTempFile` 共用 |
-| 拒绝下载 / 临时下载 | Subsonic 禁用 `download.view` 回 200+失败 JSON(50) → `isDownloadsDisabled`；Jellyfin 走 `buildStreamUrl`，401/403/404 经 `_describeHttpFailure()`。临时下载先查 `AudioStreamCacheManager`，再按 server 分派（subsonic / jellyfin / smb / 其余 WebDav），**禁只判 subsonic、其余全落 WebDavClient** |
+| 拒绝下载 / 临时下载 | Subsonic 禁用 `download.view` 回 200+失败 JSON(50) → `isDownloadsDisabled`；Jellyfin 走 `buildStreamUrl`，401/403/404 经 `_describeHttpFailure()`。临时下载先查 `AudioStreamCacheManager`，再按 server 分派（subsonic / jellyfin / smb / 其余 WebDav），**禁只判 subsonic** |
+| Apple 安全作用域 | 唯一入口 `AppleFileAccessHolder`（scanner/playback/sharing/converter/fallback）。原生唯一协调器 `SecurityScopedFileAccessCoordinator` 按 `(scope key, holder)` 分账：`end` 只减自己那份、跨 holder 是 no-op、全 holder 归零才 `stopAccessing`，`forgetPersistentAccess` 才强制清零。begin/end 必须同 holder，禁裸 `beginScopedAccess(path)`。Dart 侧**未统一**：类型化 API（engine/controller）+ 裸 `audio_core.player` 通道（sharing / converter / file_selector）四门并存；playback holder 只 begin 不 end（2026-11-04 审计）。`sharing` 的 finally 只 end 真正 begin 成功的那条路径（分享目录与子文件同 scope key，两个都 end 会打掉 scanner 那份） |
 | 曲库数据 | `libraryCatalogProvider` 是唯一订阅 `db.watchAllSongMetadata()` 处；新视图用 `catalogDerived(ref, ...)`。`songs` 排除 external/deletedAt，`visibleSongs` 再加根目录/来源 |
-| 歌词进面板入口 | 唯一 `LyricsFetchCoordinator.ensureLyricsForSong`（队列内存 → SQLite 缓存 → 分层查询；同曲 `lyricsFetchInFlightPath` 在途即忽略，禁 cancel 重来）。缓存键/查询**禁依赖 duration**（`lyricsCacheKeyForPath` / `readCachedLyricsRecordByPath`，键只由 filePath 定）。来源优先级唯一 `kLyricsSourcePreferenceOrder`；fetch 落地与 watch 同步共用 `applyLyricsRecordToCurrent`，禁再写第二套合成；`result == null` 禁写空 lyrics |
-| 翻译缓存写入 | `insertOrUpdateLyricsTranslationCache` **必须一条原子 upsert**（`DoUpdate(target: [cacheKey, languageCode])`），禁「先 delete 再 insert」：两条语句之间 `watchLyricsTranslationCaches` 会吐一份空快照，订阅方据此把内存里流式产出的译文整份覆盖成空 → 每来一行所有已生成译文行重播淡入。`insertOnConflictUpdate()` 的冲突目标是主键 `id`，命中不了 `UNIQUE(cacheKey, languageCode)`，并发写直接抛 UNIQUE。回归 `test/player/lyrics_translation_cache_watch_test.dart` |
-| 译文快照不倒退 | 内存译文是流式期间的唯一真相：`applyLyricsRecordToCurrent` 的 `_mergeTranslationsWithoutRegression`（DB 快照非空行更少就沿用内存，翻译进行中空快照也沿用）+ `_syncTranslatedLyricsToSong` 流式阶段 `_mergeStreamingTranslatedLines`（同长度行网格里新空补旧值）；收尾那次 `bumpLayoutRevision: true` 仍整份覆盖 |
+| 歌词进面板入口 | 唯一 `LyricsFetchCoordinator.ensureLyricsForSong`（队列内存 → SQLite → 分层查询；同曲 `lyricsFetchInFlightPath` 在途即忽略）。缓存键/查询**禁依赖 duration**（`lyricsCacheKeyForPath` / `readCachedLyricsRecordByPath` 只由 filePath 定）。来源优先级唯一 `kLyricsSourcePreferenceOrder`；fetch 落地与 watch 同步共用 `applyLyricsRecordToCurrent`；`result == null` 禁写空 lyrics |
+| 翻译缓存写入 | `insertOrUpdateLyricsTranslationCache` **必须一条原子 upsert**（`DoUpdate(target: [cacheKey, languageCode])`），禁先 delete 再 insert：中间空快照会被订阅方当成真相，把内存流式译文整份覆盖成空（每行重播淡入）。`insertOnConflictUpdate()` 冲突目标是主键 `id`，命中不了 UNIQUE，并发写抛错。回归 `test/player/lyrics_translation_cache_watch_test.dart` |
+| 译文快照不倒退 | 内存译文是流式期间唯一真相：`_mergeTranslationsWithoutRegression`（DB 非空行更少就沿用内存，翻译中空快照也沿用）+ `_mergeStreamingTranslatedLines`（同长度行网格新空补旧值）；收尾 `bumpLayoutRevision: true` 那次仍整份覆盖 |
 | 返回键 | `MainLayout._handleBackPressed()`：Modal → 播放抽屉 → index 2 → index 0 回上级 → index 4 传输中拦 → `SystemNavigator.pop()` |
-| 返回图标 | 全局唯一 `kAppBackIcon`（`lib/utils/app_icons.dart` = `chevron_left_rounded`），禁再写 `Icons.arrow_back*`；折角只有带杆箭头约 40% 宽，尺寸须比原值抬一档（导航栏/胶囊/面包屑 22、圆钮 20、工具栏 20、AppBar leading 24） |
 | 队列整体替换 | `PlaylistController.replaceActiveTracksAndSelect`（冷启动恢复同理），禁拆 `updatePlaylistTracks`+`playByIndex` |
-| 浮动 Dock 收起 | `floatingDockCollapsed(Progress)Provider`；切页面/子分类**禁** `setCollapsed`，只 `helper.reset(ref)`；顶部缓冲展开必须边沿触发且只对同一 Scrollable 成立，底部无条件展开 |
 | l10n / 设置项 | l10n：9 个 `app_*.arb` 同步，模板 `app_zh.arb`，改完 `flutter gen-l10n`。设置项：`settings_service.dart` 三段 → 6 处同步（key、`SettingProperty`、getter+setter、`resetXxx()`、`settings_search_registry.dart`、`sections/<组>_section.dart`） |
 | 流派聚合键 | `normalizeGenreKey()`；派生 `queryKey` 与 `matchGenreAssetKey()` 同源；`_acronymDisplays` 吃 `raw.toLowerCase()` 不能跟着改；`_substringAssetRules` 连写 needle 必须留 |
-| 详情三页 | `album_sections.dart`、`collection_detail_content.dart`、`collection_detail_header.dart`、`detail_page_shell.dart`；分组宽 ≥600 走「左封面右列表」 |
-| 主从视图搜索 | 输入框唯一实现 `LibrarySearchField`；横屏左栏顶部唯一实现 `LibraryMasterPaneHeader`（搜索 + 排序同排），排序**禁**留在横跨两栏的页头（`showSortActionInWide: false`）；详情内统一 `filterAlbumSections()`，**过滤后必须重算 `startIndex`**；复位按 `source.id`/`artist.queryKey`；开关固定操作区行尾最右 |
-| 洞察页 | 视图状态 `LibraryInsightFilterNotifier`（复位点唯一 `_LibrarySubHostPageState.dispose`）；列表唯一 `library_insight_list.dart`，行内边距唯一 `_insightRowPadding` + `kInsightListHorizontalInset` |
-| 子分类导航域 | `library_tab_navigator.dart`（每分类一条 `Navigator` + `HeroController`）挂宿主 `IndexedStack`；切分类只改 provider/索引，**禁 popUntil** |
-| 远程封面组件 | `remote_artwork_widget.dart`：落盘后**禁** `setState` 切 `Image.file`；`gaplessPlayback = _renderedImageUrl == imageUrl`；`coverArtId` 变必须 `_localDiskPath = null` |
-| 远程目录封面 | 唯一实现 `remote_folder_cover_service.dart`：`folder_entries` → `songs` 表（`getFirstSongWithArtworkUnderPath`，**禁** `getRepresentativeSongUnderPath`）→ 目录 `cover.jpg` → 首曲内嵌标签。**只有查到才写 `folder_entries`**（负结果留进程内 `_negativeCache`），`FolderCoverSnapshot.songPath` 可空；`failed` 禁写跳过标记。页面侧 `_folderCoverSongs` 用 `ValueNotifier`，并发固定 2 |
-| 远程播放写回缓存 | `StreamCacheWriter`：0 起连续前缀且 `written == expectedTotal` 才 rename，否则 `abort()`；同 key 单写入者靠 `_pendingStreamWriteKeys` 同步占位。`writer.complete()`（rename + `onTrackCached`）**必须在 `response.close()` 之前**，否则波形/音频信息整首不显示、只有 seek 才出。`unawaited` prefetch 必须带 `onError` |
-| FFT 采集门 | 唯一决策点 `AudioService._updateEffectiveVisualizerState()` → `visualizer.setEnabled(_isFftCaptureAllowed)`（Pro 用缓存字段，禁热路径 `ref.read`）；采集与「画不画频谱」解耦，关开关**禁** `setEnabled(false)`。Rust 侧 `setFftCaptureEnabled` no-op，靠 `get_latest_fft()` 开 1500ms 窗 |
-| 缩放内容侧 | 网格↔列表只渲染一份：`_resolveContentHandoff()`，滞回 0.55/0.45 → `renderAsGrid` + `contentReveal`；禁退回 `gridMorph >= 0.99` 分点 |
-| 缩放几何/视口 | 格子位置只在确定档位布局间加权，禁插值列数（`_effectiveGeometryLayers()`/`_collapseGeometry()`）。上界唯一 `FolderZoomViewportTracker.maxViewportTopFor()`，禁拿 `maxScrollOffsetFor()` 直接夹；判「贴底」不得要求内容比视口高 |
-| 缩放实现来源 | 引擎/脚手架/捏合/档位图标唯一实现在 path 包 `zoomable_sliver_grid/`；`lib/widgets/folder_layout_utils.dart` 只是薄壳，**禁**写第二份引擎。`hoverable_card.dart`、`cover_play_button.dart` 均为 `export`；档位图标名 `ZoomTierIcon` |
-| 缩放档位范围 | 锁档位只在 `Extension LibraryZoomScopeRange.zoomTierRange`（`settings_service.dart`）**加一行 record**：`album` 锁网格三档（4/6~1.0）、`queue` 锁列表四档（0~3/6），其余走默认全七档。设置读写/弹窗滑杆与预设按钮/滚轮步进与捏合全部派生自它（`clampZoomScale()`、`allowedZoomTiers`、`min/maxZoomTier`），**禁**在别处写 `scope == queue` 式判断 |
-| 缩放修饰键 | 提示标签 `zoomModifierKeyLabel` 与判定 `isZoomModifierPressed` 同处 `folder_layout_utils.dart`（macOS `⌘`/也认 Ctrl，其余 `Ctrl`）；弹窗文案 `zoomTierShortcutHint({modifier})` 只吃这个标签，**禁**在手势层或页面另写平台判断 |
-| 播放页流变背景 | `playbackBackgroundType`：`1` = 动态流变（`mesh_gradient` → `DynamicMeshBackground`）、`4` = 动态流变 v2（`mesh_flow` → `MeshFlowBackground`），两者同文件、共用 `_PlaybackMeshPaletteMixin`；流速各用各的项（`playbackMeshGradientSpeed` 0.05 / `playbackMeshBackgroundSpeed` 0.4），禁合并。新增背景类型的同步点：弹窗下拉 + `effectivePlaybackBackgroundTypeProvider` + `_buildBackgroundWidget` + `_buildBackgroundScrim` |
-| **缩放网格宽度** | `width` / `crossAxisExtent:` 只认外层 `LayoutBuilder` 的 `maxWidth`，禁退回 `MediaQuery`（会算出负原点，条目压到 rail 底下） |
-| 一页多段缩放 | 一个滚动视图**只能有一个** `FolderZoomSliverBuilder`（`FolderZoomGestureLayer` 与 `ScrollView` 之间）；各段用 `section` 区分 + `ZoomSectionHost`（`width` 仍要传）。**禁**加 `metrics` 字段、**禁**段内自建 builder。**按状态切换 ScrollView 祖先结构（loading/error 裸 view、有内容套 `RefreshIndicator`）的页面禁传 `controller`**：切分支那帧断言炸在 sliver 布局里 = 整页空白 |
-| 缩放段间距 | 网格外层 `SliverPadding` 必须与档位无关，禁 `lerp(0→8, gridMorph)`；回归 `zoom_section_gap_test.dart` |
-| 条目包装层常驻 | `ZoomItemScaffold` 的 `Opacity`/`Transform.scale`/`ZoomItemEffectiveMetrics` 三层**必须常驻**，禁按 `isFadeScale` 增删：根类型一变整条子树重建 → `SongThumbnail` 丢 State |
-| 歌词行动画层常驻 | `StaggeredAppleLyricsScrollWrapper` **必须每行常驻**，错峰窗口只作为 `enabled` 传（窗口边界跟 `firstVisibleIndex` 走，按条件增删包裹层 → 根类型变 → 整行重建 → 译文 `AppleLyricTranslationFadeIn` 重播）。组件内 controller 惰性创建、禁用时释放，mixin 用 `TickerProviderStateMixin`；build 结构恒定为 `ExcludeSemantics > AnimatedBuilder > Transform > child`（未启用用 `AlwaysStoppedAnimation` 占位，禁省 Transform 层）。回归 `lyrics_staggered_wrapper_test.dart` |
-| 歌词行滤镜层恒定 | 焦点模式逐行模糊的 `TweenAnimationBuilder` builder **必须恒定返回 `ImageFiltered`**（sigma 0 也保留该层），禁 `blurSigma <= 0` 时 `return child`：跳行时新当前行 blur 从正数动画到 0、上一行 0→正数，跨过这一步即换父级类型 → 整行子树重建 → 译文淡入重播。判据日志：`trans-init idx=N active=N` 却没有对应 `slot ∅->有`。回归 `lyrics_line_blur_stability_test.dart` |
-| 缩略图淡入时钟 | 只有「就位的是封面」才套 `kArtworkFadeInDuration`；落定为**默认图标**（null/异常）必须 `_needsFadeIn = false`。`artworkPath`/`thumbnailPath` 是 UI 懒生成，为空 ≠ 没封面 |
-| **目录页 banner 分支** | `isWideOrSquare`（阈值 `_kAspectRatioWideOrSquareThreshold`）同时决定「背景模糊层」与「前景内联封面块」，两条路径高度差一整个内联封面 → 比例**必须首帧定**：`_aspectRatioFromMetadata()` 读 `metadataMap[path].artworkWidth/Height`（原始封面宽高，缩略图只是等比缩放）。异步解码只走 `_applyAspectRatio()`（含 `_kAspectRatioTolerance` 容差），禁直接 `setState` 覆盖。内联封面块定高 `_kPortraitInlineCoverHeight`，**禁**靠 image intrinsic size（解码前为 0 → 顶动列表） |
-| **封面同步缓存** | `ArtworkResolver.peekCachedThumbnail()` 是「已解析过」的同步入口（`resolveForThumbnail` 命中缓存也要隔一个微任务，首帧仍空白）。`SongThumbnail._checkOrQueryArtwork` 必须在置待解析之前探一次：命中即 `_artworkFilePath` + `_isGenerating=false` + `fromInitState` 时 `_needsFadeIn=false`。否则任何重建/行回收都会让远程封面「空白 + 280ms 淡入」= 闪。回归 `song_thumbnail_fade_in_test.dart` 末条 |
+| FFT 采集门 | 唯一决策点 `AudioService._updateEffectiveVisualizerState()` → `visualizer.setEnabled(_isFftCaptureAllowed)`（Pro 用缓存字段，禁热路径 `ref.read`）；采集与「画不画频谱」解耦，关开关禁 `setEnabled(false)`。Rust 侧 `setFftCaptureEnabled` no-op，靠 `get_latest_fft()` 开 1500ms 窗 |
 
 ## 硬性禁止（全文见 `MEMORY-rules.md`）
 
-iOS security scope 禁标准化后再 start（判据是可读性探测）；宿主顶栏让位走 `onHasChildRouteChanged` → `hideTopNavBar`；嵌套 `AutoHideHeaderScope` 各管自己的滚动；禁持二进制、禁按字节/identity 做 key；`IndexedStack` 常驻子页禁挂 `PopScope`；多选状态禁条件切换 root；`SongSelectionMixin` 必须串联书写；禁裸 `ref.watch(scannerServiceProvider)`；`MainLayout` 是 rebuild 放大器；Riverpod 3 禁在 `initState`/`dispose`/`build` 改 provider；Android 转场必须 `allowSnapshotting: false`；逐字歌词时钟禁直接对齐 `audioPositionProvider`；曲库派生页禁把 reload 当首次加载；长列表禁 `SliverToBoxAdapter > ListView(shrinkWrap: true)`；背景模糊 key 必须含封面内容指纹；`vsync: this` 的 controller 禁声明处 `late final`；视图切换禁换根 Widget 类型；写 `songs` 表只能基于 DB 记录 `copyWith`；`TagLibMetadata` 新增列要三处同步；排序写入走 `_markSortOrderChanged()`；`Slider.onChanged` 必须回流 `value`；`mesh_flow.time` 已含 speed。
+iOS security scope 禁标准化后再 start（判据是可读性探测）；宿主顶栏让位走 `onHasChildRouteChanged` → `hideTopNavBar`；嵌套 `AutoHideHeaderScope` 各管各自滚动；禁持二进制、禁按字节/identity 做 key；`IndexedStack` 常驻子页禁挂 `PopScope`；多选状态禁条件切换 root；`SongSelectionMixin` 必须串联书写；禁裸 `ref.watch(scannerServiceProvider)`；`MainLayout` 是 rebuild 放大器；Riverpod 3 禁在 `initState`/`dispose`/`build` 改 provider；Android 转场必须 `allowSnapshotting: false`；逐字歌词时钟禁直接对齐 `audioPositionProvider`；曲库派生页禁把 reload 当首次加载；长列表禁 `SliverToBoxAdapter > ListView(shrinkWrap: true)`；背景模糊 key 必须含封面内容指纹；`vsync: this` 的 controller 禁声明处 `late final`；视图切换禁换根 Widget 类型；写 `songs` 表只能基于 DB 记录 `copyWith`；`TagLibMetadata` 新增列要三处同步；排序写入走 `_markSortOrderChanged()`；`Slider.onChanged` 必须回流 `value`；`mesh_flow.time` 已含 speed。
 
 ## 其它约定 / 环境
 
