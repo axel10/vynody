@@ -718,6 +718,14 @@ const double _kAspectRatioTolerance = 0.005;
 /// 解码后跳到 180，把下方列表在两帧之内顶两次。
 const double _kPortraitInlineCoverHeight = 180.0;
 
+/// 竖屏行动区（播放全部 / 随机 / 搜索 / 关闭）的固定行高。
+///
+/// 常态那排圆钮只有 32（窄屏）/ 38（≥1000px），而搜索展开态里的搜索框约 40、
+/// 关闭按钮是原生 [IconButton] 的 48 —— 不锁死行高的话，一点搜索按钮 banner
+/// 就凭空向下长十几像素，下面的列表跟着被顶一下。这里把两种状态都放进同一个
+/// 定高盒子里，按钮/输入框在行内居中，切换时高度不变。
+const double _kPortraitActionRowHeight = 44.0;
+
 /// 目录页 banner 背景模糊层的 sigma（单位为逻辑像素）。
 ///
 /// 取 `AppBlur.heavy`(16) 的原始观感：这一层要的是「均匀的色雾」，不是「隐约
@@ -1098,63 +1106,66 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                           _FolderBannerActionScope(
                             isLandscape: false,
                             hasImage: hasImage,
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 200),
-                              child: isSearching
-                                  ? Row(
-                                      key: const ValueKey('wide-search-active'),
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        SizedBox(
-                                          width: 260,
-                                          child: _BannerSearchTextField(
-                                            controller: searchController,
-                                            hintText: searchHintText,
-                                            query: searchQuery,
-                                            onChanged: onSearchQueryChanged,
-                                            compact: true,
-                                            focusNode: searchFocusNode,
-                                            autofocus: searchAutofocus,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        IconButton(
-                                          icon: Icon(
-                                            Icons.close_rounded,
-                                            size: 20,
-                                            color: (hasImage && isDark) ? Colors.white : theme.colorScheme.onSurface,
-                                          ),
-                                          onPressed: () {
-                                            searchController.clear();
-                                            onSearchQueryChanged('');
-                                            onToggleSearch(false);
-                                          },
-                                        ),
-                                      ],
-                                    )
-                                  : Row(
-                                      key: const ValueKey('wide-actions-normal'),
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (actionButtonsScrollable)
-                                          Flexible(
-                                            child: SingleChildScrollView(
-                                              scrollDirection: Axis.horizontal,
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: actionButtons,
-                                              ),
+                            child: SizedBox(
+                              height: _kPortraitActionRowHeight,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                child: isSearching
+                                    ? Row(
+                                        key: const ValueKey('wide-search-active'),
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(
+                                            width: 260,
+                                            child: _BannerSearchTextField(
+                                              controller: searchController,
+                                              hintText: searchHintText,
+                                              query: searchQuery,
+                                              onChanged: onSearchQueryChanged,
+                                              compact: true,
+                                              focusNode: searchFocusNode,
+                                              autofocus: searchAutofocus,
                                             ),
-                                          )
-                                        else
-                                          ...actionButtons,
-                                        const SizedBox(width: 8),
-                                        _BannerSearchIconButton(
-                                          onPressed: () => onToggleSearch(true),
-                                          tooltip: l10n.search,
-                                        ),
-                                      ],
-                                    ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.close_rounded,
+                                              size: 20,
+                                              color: (hasImage && isDark) ? Colors.white : theme.colorScheme.onSurface,
+                                            ),
+                                            onPressed: () {
+                                              searchController.clear();
+                                              onSearchQueryChanged('');
+                                              onToggleSearch(false);
+                                            },
+                                          ),
+                                        ],
+                                      )
+                                    : Row(
+                                        key: const ValueKey('wide-actions-normal'),
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (actionButtonsScrollable)
+                                            Flexible(
+                                              child: SingleChildScrollView(
+                                                scrollDirection: Axis.horizontal,
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: actionButtons,
+                                                ),
+                                              ),
+                                            )
+                                          else
+                                            ...actionButtons,
+                                          const SizedBox(width: 8),
+                                          _BannerSearchIconButton(
+                                            onPressed: () => onToggleSearch(true),
+                                            tooltip: l10n.search,
+                                          ),
+                                        ],
+                                      ),
+                              ),
                             ),
                           ),
                         ],
@@ -1210,64 +1221,67 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                       _FolderBannerActionScope(
                         isLandscape: false,
                         hasImage: hasImage,
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: isSearching
-                              ? Row(
-                                  key: const ValueKey('search-active-row'),
-                                  children: [
-                                    Expanded(
-                                      child: _BannerSearchTextField(
-                                        controller: searchController,
-                                        hintText: searchHintText,
-                                        query: searchQuery,
-                                        onChanged: onSearchQueryChanged,
-                                        focusNode: searchFocusNode,
-                                        autofocus: searchAutofocus,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.close_rounded,
-                                        color: (hasImage && isDark) ? Colors.white : theme.colorScheme.onSurface,
-                                        shadows: (hasImage && isDark)
-                                            ? const [
-                                                Shadow(offset: Offset(0, 1), blurRadius: 4, color: Colors.black87),
-                                              ]
-                                            : null,
-                                      ),
-                                      onPressed: () {
-                                        searchController.clear();
-                                        onSearchQueryChanged('');
-                                        onToggleSearch(false);
-                                      },
-                                    ),
-                                  ],
-                                )
-                              : Row(
-                                  key: const ValueKey('actions-normal-row'),
-                                  children: [
-                                    if (actionButtonsScrollable)
+                        child: SizedBox(
+                          height: _kPortraitActionRowHeight,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: isSearching
+                                ? Row(
+                                    key: const ValueKey('search-active-row'),
+                                    children: [
                                       Expanded(
-                                        child: SingleChildScrollView(
-                                          scrollDirection: Axis.horizontal,
-                                          child: Row(
-                                            children: actionButtons,
-                                          ),
+                                        child: _BannerSearchTextField(
+                                          controller: searchController,
+                                          hintText: searchHintText,
+                                          query: searchQuery,
+                                          onChanged: onSearchQueryChanged,
+                                          focusNode: searchFocusNode,
+                                          autofocus: searchAutofocus,
                                         ),
-                                      )
-                                    else ...[
-                                      ...actionButtons,
-                                      const Spacer(),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.close_rounded,
+                                          color: (hasImage && isDark) ? Colors.white : theme.colorScheme.onSurface,
+                                          shadows: (hasImage && isDark)
+                                              ? const [
+                                                  Shadow(offset: Offset(0, 1), blurRadius: 4, color: Colors.black87),
+                                                ]
+                                              : null,
+                                        ),
+                                        onPressed: () {
+                                          searchController.clear();
+                                          onSearchQueryChanged('');
+                                          onToggleSearch(false);
+                                        },
+                                      ),
                                     ],
-                                    const SizedBox(width: 8),
-                                    _BannerSearchIconButton(
-                                      onPressed: () => onToggleSearch(true),
-                                      tooltip: l10n.search,
-                                    ),
-                                  ],
-                                ),
+                                  )
+                                : Row(
+                                    key: const ValueKey('actions-normal-row'),
+                                    children: [
+                                      if (actionButtonsScrollable)
+                                        Expanded(
+                                          child: SingleChildScrollView(
+                                            scrollDirection: Axis.horizontal,
+                                            child: Row(
+                                              children: actionButtons,
+                                            ),
+                                          ),
+                                        )
+                                      else ...[
+                                        ...actionButtons,
+                                        const Spacer(),
+                                      ],
+                                      const SizedBox(width: 8),
+                                      _BannerSearchIconButton(
+                                        onPressed: () => onToggleSearch(true),
+                                        tooltip: l10n.search,
+                                      ),
+                                    ],
+                                  ),
+                          ),
                         ),
                       ),
                     ],
