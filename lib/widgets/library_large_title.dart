@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/utils/app_icons.dart';
+import 'app_tooltip.dart';
 
 /// 媒体库二级分类宿主环境上下文。
 ///
@@ -135,13 +136,19 @@ class LibraryLargeTitle extends StatelessWidget {
     final backButton = showBackButton
         ? Padding(
             padding: EdgeInsets.only(right: buttonSpacing),
-            child: IconButton(
-              icon: const Icon(kAppBackIcon, size: 28),
-              tooltip: l10n?.goBack ?? 'Back',
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              padding: EdgeInsets.zero,
-              onPressed: () => _handleBack(context),
+            // 横屏下本按钮紧贴 Rail 栏右侧，而 Rail 在 MainLayout 的 Stack 里画在页面之后。
+            // 默认 Tooltip 会插进页面自己那层 Overlay（二级宿主内还嵌了两级 Navigator），
+            // 于是气泡左半边被 Rail 盖住；改走根 Overlay，让提示浮在整页之上。
+            child: AppTooltip(
+              message: l10n?.goBack ?? 'Back',
+              useRootOverlay: true,
+              child: IconButton(
+                icon: const Icon(kAppBackIcon, size: 28),
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                padding: EdgeInsets.zero,
+                onPressed: () => _handleBack(context),
+              ),
             ),
           )
         : null;

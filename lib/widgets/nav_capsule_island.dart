@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:vynody/utils/app_icons.dart';
 import 'package:vynody/utils/blur_constants.dart';
+import 'app_tooltip.dart';
 
 /// 浮动导航胶囊统一配置尺寸与圆角
 ///
@@ -89,8 +90,14 @@ class NavCapsuleIsland extends StatelessWidget {
           ),
         ),
       );
+      // 胶囊常贴着 Rail 栏右侧显示，Rail 又在 MainLayout 的 Stack 里后画；
+      // 默认 Tooltip 走页面内部 Overlay，气泡左半边会被 Rail 盖住，这里改走根 Overlay。
       backArea = effectiveTooltip != null
-          ? Tooltip(message: effectiveTooltip, child: btn)
+          ? AppTooltip(
+              message: effectiveTooltip,
+              useRootOverlay: true,
+              child: btn,
+            )
           : btn;
     }
 
