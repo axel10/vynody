@@ -1938,13 +1938,30 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
               final thumbnailPath = rawThumbnailPath != null
                   ? ScannerPathUtils.resolveIosSandboxPath(rawThumbnailPath)
                   : null;
-              final Uint8List? cachedBytes = songPath != null
+              final audioService = ref.read(audioServiceProvider);
+              final Uint8List? cachedArtworkBytes = songPath != null
+                  ? audioService.getCachedArtwork(songPath)
+                  : null;
+
+              // 封面被清除后，`_pendingArtworkBytes` / `_fileArtworkBytesCache`
+              // 里还留着旧字节（这两份缓存只在切歌 / 轮播回调时刷新，不感知
+              // 「封面被删」）。曲库记录明确说这首歌没有封面、队列与封面缓存里
+              // 也都没有字节时，这几层兜底必须让位——否则背景会一直贴着那张
+              // 已经被删掉的图。只要还有任何一份字节可用，就维持原有优先级
+              // （冷启动未水合、远程曲目都靠它）。
+              final bool artworkGone = isCurrentSong &&
+                  metadata != null &&
+                  metadata.artworkPath == null &&
+                  metadata.thumbnailPath == null &&
+                  (currentMusic?.artworkBytes?.isEmpty ?? true) &&
+                  cachedArtworkBytes == null;
+              final Uint8List? cachedBytes = (songPath != null && !artworkGone)
                   ? (((isCurrentSong ? currentMusic?.artworkBytes : null) ??
                       (isPendingSong ? _pendingArtworkBytes : null) ??
                       _fileArtworkBytesCache[songPath] ??
                       (decodedSongPath != null ? _fileArtworkBytesCache[decodedSongPath] : null)) ??
-                      ref.read(audioServiceProvider).getCachedArtwork(songPath) ??
-                      ref.read(audioServiceProvider).getCachedArtwork(ScannerPathUtils.resolveIosSandboxPath(songPath)))
+                      cachedArtworkBytes ??
+                      audioService.getCachedArtwork(ScannerPathUtils.resolveIosSandboxPath(songPath)))
                   : null;
 
               // [BgFlash] 输入快照：只在真正变化时打一条，用于定位背景闪烁来自

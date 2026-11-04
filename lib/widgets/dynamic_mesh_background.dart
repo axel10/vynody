@@ -11,6 +11,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/settings/theme_color_helper.dart';
+import 'package:vynody/utils/artwork_signature.dart';
 
 /// 播放页「动态流变」背景族。
 ///
@@ -205,6 +206,13 @@ class _MeshFlowBackgroundState extends ConsumerState<MeshFlowBackground>
   Uint8List? _coverBytes;
   ImageProvider? _coverImage;
 
+  /// 当前已生效封面内容的签名（见 [artworkBytesSignature] / [artworkFileSignature]）。
+  ///
+  /// 只按 `path` 判断是不够的：标签补全 / 手动改标签会把**同一首歌**的封面换成
+  /// 另一张，path 不变而内容变了。少了这一层判定，网格纹理（以及 [MeshFlow]
+  /// 的 `coverKey`）会一直停在旧封面上，而同页的轮播封面早已换新。
+  String? _coverSignature;
+
   /// 应用是否处于前台。退到后台 / 最小化时停掉网格形变，避免空转耗电。
   bool _isFlowActive = true;
 
@@ -240,49 +248,67 @@ class _MeshFlowBackgroundState extends ConsumerState<MeshFlowBackground>
 
   /// 解析当前曲目的封面纹理来源（内存字节优先，其次本地封面文件）。
   ///
-  /// 只在尚无纹理时尝试，成功解析一次后即固定，避免重复解码与过渡重启。
+  /// 每帧 build 都会调用，但只有「内容签名变了」才会换纹理——签名相同就直接
+  /// 返回，避免每次 rebuild 都重启 [MeshFlow] 的过渡动画。内存字节优先，
+  /// 其次是 `AudioService` 的封面缓存（远程曲目 / 尚未水合的场景），最后才是
+  /// 封面文件。
   void _syncCoverSource(MusicFile? music) {
     final String? path = music?.path;
     if (path != _coverSourcePath) {
       _coverSourcePath = path;
       _coverBytes = null;
       _coverImage = null;
+      _coverSignature = null;
     }
-
-    if (_coverBytes != null || _coverImage != null) return;
     if (path == null || path.isEmpty) return;
 
-    final Uint8List? direct = music?.artworkBytes;
-    if (direct != null && direct.isNotEmpty) {
-      _coverBytes = direct;
+    final Uint8List? bytes = _resolveCoverBytes(music, path);
+    final String? rawArtworkPath = music?.artworkPath;
+    final String? artworkPath = (rawArtworkPath != null && rawArtworkPath.isNotEmpty)
+        ? ScannerPathUtils.resolveIosSandboxPath(rawArtworkPath)
+        : null;
+
+    final String? signature = artworkSignatureOf(
+      bytes: bytes,
+      filePath: artworkPath,
+    );
+    if (signature == _coverSignature) return;
+
+    if (signature == null) {
+      // 既没有字节也没有文件：封面被清除了。必须丢掉上一张纹理，
+      // 否则背景会继续贴着已经被删掉的那张封面，直到下次换曲。
+      _coverSignature = null;
+      _coverBytes = null;
+      _coverImage = null;
       return;
     }
+
+    _coverSignature = signature;
+    if (bytes != null && bytes.isNotEmpty) {
+      _coverBytes = bytes;
+      _coverImage = null;
+    } else {
+      _coverBytes = null;
+      _coverImage = FileImage(File(artworkPath!));
+    }
+  }
+
+  Uint8List? _resolveCoverBytes(MusicFile? music, String path) {
+    final Uint8List? direct = music?.artworkBytes;
+    if (direct != null && direct.isNotEmpty) return direct;
 
     final audio = ref.read(audioServiceProvider);
     final Uint8List? cached = audio.getCachedArtwork(path);
-    if (cached != null && cached.isNotEmpty) {
-      _coverBytes = cached;
-      return;
-    }
+    if (cached != null && cached.isNotEmpty) return cached;
 
     final String resolvedPath = ScannerPathUtils.resolveIosSandboxPath(path);
     if (resolvedPath != path) {
       final Uint8List? resolvedCached = audio.getCachedArtwork(resolvedPath);
       if (resolvedCached != null && resolvedCached.isNotEmpty) {
-        _coverBytes = resolvedCached;
-        return;
+        return resolvedCached;
       }
     }
-
-    final String? rawArtworkPath = music?.artworkPath;
-    if (rawArtworkPath != null && rawArtworkPath.isNotEmpty) {
-      final File artworkFile = File(
-        ScannerPathUtils.resolveIosSandboxPath(rawArtworkPath),
-      );
-      if (artworkFile.existsSync()) {
-        _coverImage = FileImage(artworkFile);
-      }
-    }
+    return null;
   }
 
   @override
@@ -332,7 +358,10 @@ class _MeshFlowBackgroundState extends ConsumerState<MeshFlowBackground>
           ),
           MeshFlow(
             key: const ValueKey('playback_mesh_flow'),
-            coverKey: _coverSourcePath,
+            // 带上内容签名：同一首歌换封面时 [FileImage] 的 `==` 仍相等
+            // （路径 + scale），只靠 `coverKey` 里的路径判等会让 MeshFlow
+            // 认为封面没变、纹理停在旧图上。
+            coverKey: '${_coverSourcePath}_${_coverSignature ?? 'none'}',
             coverBytes: _coverBytes,
             image: _coverImage,
             // 有真实封面时不再传调色盘：主题色会随播放异步刷新，

@@ -54,6 +54,22 @@ Future<Map<String, dynamic>?> _buildArtworkFiles({
   }
 }
 
+/// 决定写入曲目的主题色 blob。
+///
+/// 主题色是「当前这张封面」的衍生数据，必须跟着封面一起换：
+/// - 封面被清除 → 一并清空，否则背景调色盘还留着已删封面的颜色；
+/// - 本次调用带来了新封面的配色（[incoming]）→ 用新的；
+/// - 都没发生（纯文本编辑 / 只改曲目信息）→ 沿用库里原有的，避免播放页
+///   白白重算一次调色盘。
+Uint8List? selectThemeColorsBlob({
+  required Uint8List? incoming,
+  required Uint8List? existing,
+  required bool artworkCleared,
+}) {
+  if (artworkCleared) return null;
+  return incoming ?? existing;
+}
+
 /// Supported file extensions for writing metadata
 const Set<String> writableMetadataExtensions = {
   '.mp3',
@@ -341,6 +357,13 @@ class MetadataHelper {
     String? thumbnailPath,
     int? artworkWidth,
     int? artworkHeight,
+
+    /// 本次封面字节对应的主题色（调用方已经把封面落盘时由它带进来）。
+    ///
+    /// MusicBrainz 补全走的是「先 `saveArtworkAndThumbnail` 落盘，再把产物路径
+    /// 传进来」的分支，`needsArtworkSave` 为 false，本方法没有机会重新提取配色；
+    /// 不传这一项就会沿用库里旧封面的 blob，表现为「封面换了，背景调色盘不变」。
+    Uint8List? artworkThemeColors,
     SongMetadata? existingMetadata,
     bool writeToFile = true,
     String? fallbackMediaUri,
@@ -355,9 +378,13 @@ class MetadataHelper {
       var resolvedThumbnailPath = thumbnailPath ?? existing?.thumbnailPath;
       var resolvedArtworkWidth = artworkWidth ?? existing?.artworkWidth;
       var resolvedArtworkHeight = artworkHeight ?? existing?.artworkHeight;
-      Uint8List? themeColorsBlob = existing?.themeColorsBlob;
 
       final isArtworkCleared = artworkBytes != null && artworkBytes.isEmpty;
+      Uint8List? themeColorsBlob = selectThemeColorsBlob(
+        incoming: artworkThemeColors,
+        existing: existing?.themeColorsBlob,
+        artworkCleared: isArtworkCleared,
+      );
 
       if (isArtworkCleared) {
         if (existing?.artworkPath != null && existing!.artworkPath!.isNotEmpty) {
@@ -384,7 +411,7 @@ class MetadataHelper {
         resolvedThumbnailPath = null;
         resolvedArtworkWidth = null;
         resolvedArtworkHeight = null;
-        themeColorsBlob = null;
+        // themeColorsBlob 已在上面由 selectThemeColorsBlob 置空，这里不再重复。
       }
 
       final needsArtworkSave =

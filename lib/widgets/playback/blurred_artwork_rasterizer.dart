@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:vynody/utils/artwork_signature.dart';
 
 /// 负责离屏将封面图光栅化渲染为模糊好的 [ui.Image] 静态位图，并进行 LRU 缓存管理。
 ///
@@ -214,38 +215,9 @@ class BlurredArtworkRasterizer {
 
   /// 计算封面内容的轻量指纹，用于让缓存 key 感知「同一首歌换了封面」。
   ///
-  /// 不能用 `Uint8List.hashCode`：它是 identity hash，而 `_prepareCurrentPlaybackArtwork()`
-  /// 每次播放都会新建一份 bytes，内容没变也会判成不同，导致每次切歌都重新光栅化。
-  ///
-  /// 这里取样「长度 + 头部 32KB + 尾部 32KB」做 FNV-1a：封面被重新编码后，
-  /// 头部的容器头与早期熵编码数据必然变化，误命中旧 key 的概率可以忽略；
-  /// 同时开销与文件大小解耦（几 MB 的大封面也只扫 64KB）。
-  static String fingerprintOf(Uint8List bytes) {
-    const int sampleSize = 32 * 1024;
-    const int fnvPrime = 0x01000193;
-    int hash = 0x811c9dc5;
-
-    void mix(int value) {
-      hash ^= value & 0xFF;
-      hash = (hash * fnvPrime) & 0xFFFFFFFF;
-    }
-
-    final int length = bytes.length;
-    final int headEnd = length < sampleSize ? length : sampleSize;
-    for (int i = 0; i < headEnd; i++) {
-      mix(bytes[i]);
-    }
-    if (length > sampleSize * 2) {
-      for (int i = length - sampleSize; i < length; i++) {
-        mix(bytes[i]);
-      }
-    }
-    mix(length);
-    mix(length >> 8);
-    mix(length >> 16);
-    mix(length >> 24);
-    return '${length.toRadixString(16)}_${hash.toRadixString(16)}';
-  }
+  /// 实现收到 [artworkBytesSignature]（网格背景的封面纹理判定也用它），
+  /// 保证两处缓存对「内容是否变了」的判断完全一致。
+  static String fingerprintOf(Uint8List bytes) => artworkBytesSignature(bytes);
 
   /// 清理所有缓存资源
   void clear() {
@@ -367,21 +339,9 @@ class _StaticBlurredArtworkState extends State<StaticBlurredArtwork>
     } else {
       // 冷启动尚未预载 bytes 时只能拿文件兜底：长度 + 最后修改时间，
       // 原地覆盖封面文件同样能换 key。
-      signature = _fileSignature(widget.artworkPath) ?? 'no_bytes';
+      signature = artworkFileSignature(widget.artworkPath) ?? 'no_bytes';
     }
     return '${widget.songKey}_sigma_${sigma}_$signature';
-  }
-
-  static String? _fileSignature(String? path) {
-    if (path == null || path.isEmpty) return null;
-    try {
-      final file = File(path);
-      if (!file.existsSync()) return null;
-      final stat = file.statSync();
-      return 'f${stat.size}_${stat.modified.millisecondsSinceEpoch}';
-    } catch (_) {
-      return null;
-    }
   }
 
   void _loadBlurredImage() {
@@ -411,8 +371,23 @@ class _StaticBlurredArtworkState extends State<StaticBlurredArtwork>
         _trace('discard stale result key=$key');
         return;
       }
+      if (image == null) {
+        // 光栅化拿不到任何封面字节（最典型的是「清除封面」）：必须撤掉上一张
+        // 位图，否则 `_applyImage(null)` 会直接返回，界面永远停在那张已经
+        // 被删掉的封面上。
+        _clearImage();
+        return;
+      }
       _trace('apply key=$key image=${identityHashCode(image)}');
       _applyImage(image);
+    });
+  }
+
+  void _clearImage() {
+    if (_blurredImage == null && _outgoingImage == null) return;
+    setState(() {
+      _blurredImage = null;
+      _outgoingImage = null;
     });
   }
 

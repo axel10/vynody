@@ -1217,25 +1217,56 @@ class AudioService extends Notifier<AudioSnapshot> {
     String path,
     MusicFile updatedSong, {
     bool preserveExistingBlobs = true,
+    bool clearArtwork = false,
   }) {
     for (final track in _player.playlist.items) {
       if (track.id == path) {
-        final existingSong = _musicFileForTrack(track);
-        final mergedSong = updatedSong.copyWith(
-          lyrics: updatedSong.lyrics ?? existingSong?.lyrics,
-          waveformBlob: preserveExistingBlobs
-              ? (updatedSong.waveformBlob ?? existingSong?.waveformBlob)
-              : updatedSong.waveformBlob,
-          themeColorsBlob: preserveExistingBlobs
-              ? (updatedSong.themeColorsBlob ?? existingSong?.themeColorsBlob)
-              : updatedSong.themeColorsBlob,
-          artworkBytes: preserveExistingBlobs
-              ? (updatedSong.artworkBytes ?? existingSong?.artworkBytes)
-              : updatedSong.artworkBytes,
+        _player.playlist.replaceTrack(
+          _queueTrackForSong(
+            mergeQueueSongUpdate(
+              updatedSong,
+              _musicFileForTrack(track),
+              preserveExistingBlobs: preserveExistingBlobs,
+              clearArtwork: clearArtwork,
+            ),
+          ),
         );
-        _player.playlist.replaceTrack(_queueTrackForSong(mergedSong));
       }
     }
+  }
+
+  /// 把一次曲目元数据更新合并进队列项。
+  ///
+  /// 抽成静态纯函数是为了能单测——`AudioService` 依赖 Rust 内核与播放器实例，
+  /// 测试里起不来。两条容易踩的规则都集中在这里：
+  /// - 「新值为 null 就沿用旧值」是默认合并规则，这样局部元数据更新不会把
+  ///   歌词 / 波形顶掉；
+  /// - 但**封面被清除**时（[clearArtwork]）不能走这条规则：旧字节会被整份
+  ///   搬回队列，播放页背景与轮播就会一直显示那张已经删掉的封面。清除时连
+  ///   主题色一起丢——它是封面的衍生数据，留着就是旧封面的颜色。
+  static MusicFile mergeQueueSongUpdate(
+    MusicFile updatedSong,
+    MusicFile? existingSong, {
+    bool preserveExistingBlobs = true,
+    bool clearArtwork = false,
+  }) {
+    return updatedSong.copyWith(
+      lyrics: updatedSong.lyrics ?? existingSong?.lyrics,
+      waveformBlob: preserveExistingBlobs
+          ? (updatedSong.waveformBlob ?? existingSong?.waveformBlob)
+          : updatedSong.waveformBlob,
+      themeColorsBlob: clearArtwork
+          ? null
+          : (preserveExistingBlobs
+                ? (updatedSong.themeColorsBlob ??
+                      existingSong?.themeColorsBlob)
+                : updatedSong.themeColorsBlob),
+      artworkBytes: clearArtwork
+          ? null
+          : (preserveExistingBlobs
+                ? (updatedSong.artworkBytes ?? existingSong?.artworkBytes)
+                : updatedSong.artworkBytes),
+    );
   }
 
   bool _hasMeaningfulTrackText(String? value) {
@@ -2200,6 +2231,53 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
   }
 
+  /// 曲目封面被替换后，把内存封面缓存同步成新字节（或直接丢弃旧字节）。
+  ///
+  /// 磁盘上的封面文件按**封面内容的 md5** 命名（Rust `generate_track_artwork`），
+  /// 换封面天然换路径，所以列表里的 `SongThumbnail` 会跟着刷新；但 [_artworkCache]
+  /// 是按**曲目路径**做 key 的，不主动失效就会一直命中旧字节 —— 而播放页
+  /// （`CoverCarousel._buildCoverImage`）的第一优先级正是这份缓存。表现为
+  /// 「队列页/列表封面更新了，播放页还是旧图」。
+  ///
+  /// 注意不能指望 [getCachedArtwork] 里的「字节更大者更清晰」兜底：那条只在
+  /// 权威值**更大**时替换，而 MusicBrainz / 手动换的封面通常比播放时解码出的
+  /// 内嵌原图更小，正好落进替换不了的区间。
+  ///
+  /// 抽成静态纯函数是为了可回归测试（`AudioService` 依赖 Rust 内核，单测里
+  /// 起不了实例）。凡是改写曲目封面的路径都必须过这里。
+  static void syncArtworkCacheAfterReplace(
+    Map<String, Uint8List> cache, {
+    required String path,
+    required Uint8List? artworkBytes,
+    int maxEntries = 200,
+  }) {
+    cache.remove(path);
+    // 队列/库里可能一份是百分号编码、一份是解码后的路径，两个槽位都得清，
+    // 否则播放页换个入口查就又能读到旧图。
+    final decoded = safeDecodeUri(path);
+    if (decoded != path) {
+      cache.remove(decoded);
+    }
+
+    if (artworkBytes == null || artworkBytes.isEmpty) {
+      return;
+    }
+
+    if (cache.length >= maxEntries) {
+      cache.remove(cache.keys.first);
+    }
+    cache[path] = artworkBytes;
+    if (decoded != path) {
+      cache[decoded] = artworkBytes;
+    }
+  }
+
+  /// 丢弃某曲目在内存里的封面字节（封面被替换或被清除时）。
+  void invalidateCachedArtwork(String? path) {
+    if (path == null || path.isEmpty) return;
+    syncArtworkCacheAfterReplace(_artworkCache, path: path, artworkBytes: null);
+  }
+
   Uint8List? getCachedArtwork(String? path) {
     if (path == null) return null;
     final cached = _artworkCache[path];
@@ -2339,9 +2417,35 @@ class AudioService extends Notifier<AudioSnapshot> {
     clearAudioDetailsCache(metadata.path);
     final existingSong = _queue.firstWhereOrNull((s) => s.path == metadata.path);
     final queueChanged = existingSong != null;
+    // 空字节代表「用户把封面删了」，和「本次没有改封面（null）」是两回事。
+    final bool artworkCleared = artworkBytes != null && artworkBytes.isEmpty;
     if (existingSong != null) {
-      final updated = _songFromMetadata(existingSong, metadata, artworkBytes: artworkBytes);
-      _replaceQueueSongsByPath(metadata.path, updated);
+      final updated = _songFromMetadata(
+        existingSong,
+        metadata,
+        artworkBytes: artworkBytes,
+      );
+      _replaceQueueSongsByPath(
+        metadata.path,
+        updated,
+        clearArtwork: artworkCleared,
+      );
+    }
+
+    // 只有真的动了封面才需要处理这份缓存：
+    // - `null`：纯文本编辑，封面没换，缓存保留（否则播放页会白重解析一次）；
+    // - 空字节：封面被清除，旧图必须消失；
+    // - 非空：新封面，旧字节一律丢弃。
+    //
+    // 必须排在队列替换之后：队列替换会把 `currentMusic.artworkBytes` 换成新值，
+    // 而 `getCachedArtwork` 的「字节更大者更清晰」是拿当前曲目的字节去覆盖缓存的，
+    // 先同步缓存再换队列，正好留出一个「旧大图盖掉新封面」的窗口。
+    if (artworkBytes != null) {
+      syncArtworkCacheAfterReplace(
+        _artworkCache,
+        path: metadata.path,
+        artworkBytes: artworkBytes,
+      );
     }
 
     final isCurrentTrack = currentMusic?.path == metadata.path;

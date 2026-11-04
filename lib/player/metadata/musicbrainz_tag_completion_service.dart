@@ -382,6 +382,10 @@ class MusicBrainzTagCompletionService {
       thumbnailPath: cover?.thumbnailPath,
       artworkWidth: cover?.width,
       artworkHeight: cover?.height,
+      // 封面文件是上面 `saveArtworkAndThumbnail` 先落盘的，本方法拿不到
+      // 「重新提取配色」的入口，必须把那份产物自带的主题色一起传下去，
+      // 否则库里会保留旧封面的调色盘（背景动画、歌词高亮全都不换）。
+      artworkThemeColors: cover?.themeColorsBlob,
       existingMetadata: existingMetadata,
       writeToFile: writeToFile,
     );
@@ -544,6 +548,7 @@ class MusicBrainzTagCompletionService {
         bytes: bytes,
         width: artworkInfo['width'] as int? ?? 1200,
         height: artworkInfo['height'] as int? ?? 1200,
+        themeColorsBlob: artworkInfo['themeColorsBlob'] as Uint8List?,
       );
     } catch (e) {
       debugPrint('MusicBrainz cover download failed: $e');
@@ -571,12 +576,17 @@ class _CoverArtResult {
   final int width;
   final int height;
 
+  /// 与 [bytes] 对应的主题色，由 `saveArtworkAndThumbnail` 在落盘时一并算出。
+  /// 供 `saveSelectedSongMetadata` 写库使用，见 `artworkThemeColors` 参数。
+  final Uint8List? themeColorsBlob;
+
   const _CoverArtResult({
     required this.path,
     required this.thumbnailPath,
     required this.bytes,
     required this.width,
     required this.height,
+    this.themeColorsBlob,
   });
 }
 

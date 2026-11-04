@@ -518,7 +518,19 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
       widget.animation.addListener(_handleAnimationUpdate);
     }
     // If the path changed, we must reset everything
-    if (oldWidget.musicFile.path != widget.musicFile.path) {
+    //
+    // 换封面 / 清封面时 `artworkPath`、`thumbnailPath` 也一定会变：磁盘上的封面
+    // 文件按内容 md5 命名（见 Rust `generate_track_artwork`），换图必然换文件名。
+    // 这里必须跟着重置本地状态 —— 否则 `_hasLoadedHighRes` 会拦住重新解析，
+    // `_artworkBytes` 里那张旧图就再也换不掉了（播放页表现为「换完封面还是旧图」）。
+    // 只认路径类字段的变化，不认 `artworkBytes`：同一张图会有缩略图/原图两种规格，
+    // 播放预热写入原图不该触发重置，否则每次起播封面都闪一下。
+    final bool artworkIdentityChanged =
+        widget.musicFile.artworkPath != oldWidget.musicFile.artworkPath ||
+        widget.musicFile.thumbnailPath != oldWidget.musicFile.thumbnailPath;
+
+    if (oldWidget.musicFile.path != widget.musicFile.path ||
+        artworkIdentityChanged) {
       _artworkBytes = null;
       _artworkFilePath = null;
       _remoteArtworkUrl = null;
@@ -528,8 +540,6 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
     }
     // If the path is the same but artwork appeared or is currently missing, try loading again
     else if (widget.musicFile.artworkBytes != oldWidget.musicFile.artworkBytes ||
-        widget.musicFile.artworkPath != oldWidget.musicFile.artworkPath ||
-        widget.musicFile.thumbnailPath != oldWidget.musicFile.thumbnailPath ||
         _artworkBytes == null) {
       _loadArtwork();
     }
