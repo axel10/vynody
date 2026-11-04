@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
-import 'package:path/path.dart' as p;
 
 import 'package:dio/dio.dart';
 import 'package:vynody/utils/network_client.dart';
@@ -14,7 +11,11 @@ import 'package:vynody/utils/lyrics_id_utils.dart';
 import 'package:vynody/utils/lrc_utils.dart';
 import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
-import 'package:vynody/player/lyrics/timeline/lyrics_timeline_service.dart';
+import 'package:vynody/player/lyrics/sources/embedded_tag_provider.dart';
+import 'package:vynody/player/lyrics/sources/lyrics_resolver.dart';
+import 'package:vynody/player/lyrics/sources/lyrics_source_provider.dart';
+import 'package:vynody/player/lyrics/sources/media_server_lyrics_provider.dart';
+import 'package:vynody/player/lyrics/sources/sidecar_lrc_provider.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
@@ -153,14 +154,39 @@ class LyricsService {
     MetadataDatabase? db,
     LyricsCacheRepository? cacheRepository,
     Future<String?> Function(LyricsQuery query)? remoteLyricsFetcher,
+    List<LyricsSourceProvider>? providers,
   })  : _client = client ?? NetworkClient.instance,
-        _cacheRepository = cacheRepository ?? LyricsCacheRepository(db: db),
-        _remoteLyricsFetcher = remoteLyricsFetcher;
+        _cacheRepository = cacheRepository ?? LyricsCacheRepository(db: db) {
+    _sidecarProvider = SidecarLrcProvider(cacheRepository: _cacheRepository);
+    _embeddedProvider = EmbeddedTagProvider(cacheRepository: _cacheRepository);
+    _mediaServerProvider = MediaServerLyricsProvider(
+      cacheRepository: _cacheRepository,
+      remoteLyricsFetcher: remoteLyricsFetcher,
+    );
+    _resolver = LyricsResolver(
+      cacheRepository: _cacheRepository,
+      // 顺序即优先级，与改造前的 fetchBestLyrics 判定次序逐条对应：
+      // 服务端歌词 → 旁挂 lrc → 内嵌标签 → 在线兜底（见 _resolveOnline）。
+      providers: providers ??
+          <LyricsSourceProvider>[
+            _mediaServerProvider,
+            _sidecarProvider,
+            _embeddedProvider,
+          ],
+    );
+  }
 
   final NetworkClient _client;
   final LyricsCacheRepository _cacheRepository;
-  final Future<String?> Function(LyricsQuery query)? _remoteLyricsFetcher;
   final Map<String, Future<LyricSelectionResult?>> _inFlight = {};
+
+  late final SidecarLrcProvider _sidecarProvider;
+  late final EmbeddedTagProvider _embeddedProvider;
+  late final MediaServerLyricsProvider _mediaServerProvider;
+  late final LyricsResolver _resolver;
+
+  /// 有序来源列表，顺序即优先级。换源与偏好逻辑后续从这里派生。
+  List<LyricsSourceProvider> get lyricsSourceProviders => _resolver.providers;
 
   static const double _acceptThreshold = 65.0;
 
@@ -327,140 +353,38 @@ class LyricsService {
       'cancelToken=${cancelToken == null ? 'none' : identityHashCode(cancelToken)}',
     );
 
-    // 先尝试原始查询键，兼容 AI 生成结果按“当前曲目原始元数据”写入的缓存。
-    // 再回退到规范化后的查询键，保持既有 LRCLib 缓存命中逻辑不变。
-    final cachedFromDb = await _loadFromDatabase(query, ignoreEmptyCache: true);
-    if (cachedFromDb != null && cachedFromDb.track.hasLyrics) {
-      _logDebug('fetch cache hit -> key="$cacheKey" source=raw-db');
-      if (debugLog) {
-        debugPrintSelection(query, cachedFromDb, source: 'sqlite');
-      }
-      return cachedFromDb;
-    }
-
-    // 不再使用内存层缓存，而是依赖 MusicFile 自身的持有和数据库持久化。
-    // 这里只保留数据库层的查找逻辑。
-    final normalizedCachedFromDb = await _loadFromDatabase(
-      normalizedQuery,
-      ignoreEmptyCache: true,
+    // 缓存命中与来源顺序统一交给 LyricsResolver：
+    // 原始键 → 规范化键 → providers（服务端歌词 / 旁挂 lrc / 内嵌标签）→ 在线兜底。
+    final result = await _resolver.resolve(
+      rawQuery: query,
+      normalizedQuery: normalizedQuery,
+      onlineFallback: () => _resolveOnline(normalizedQuery, cancelToken),
     );
-    if (normalizedCachedFromDb != null && normalizedCachedFromDb.track.hasLyrics) {
-      _logDebug('fetch cache hit -> key="$cacheKey" source=normalized-db');
-      if (debugLog) {
-        debugPrintSelection(
-          normalizedQuery,
-          normalizedCachedFromDb,
-          source: 'sqlite',
-        );
-      }
-      return normalizedCachedFromDb;
+
+    if (debugLog) {
+      debugPrintSelection(normalizedQuery, result);
     }
 
-    // 尝试拉取远程服务器专属歌词（Subsonic / WebDAV / Jellyfin）
-    if (_remoteLyricsFetcher != null &&
-        (normalizedQuery.filePath.startsWith('subsonic://') ||
-            normalizedQuery.filePath.startsWith('webdav://') ||
-            normalizedQuery.filePath.startsWith('jellyfin://'))) {
-      try {
-        // 传入规范化后的完整查询（含 title / artist / album），
-        // 这样即使服务端不支持 getLyricsBySongId，也能用 artist+title 兜底命中。
-        final remoteLrc = await _remoteLyricsFetcher(normalizedQuery);
-        if (remoteLrc != null && remoteLrc.trim().isNotEmpty) {
-          final syncedLines = _parseSyncedLyrics(remoteLrc);
-          final isSynced = syncedLines.any((line) => line.isTimed);
-          final lyricsId = LyricsIdUtils.fromLyricsText(remoteLrc);
-          final track = LyricTrack(
-            lyricsId: lyricsId,
-            name: normalizedQuery.title,
-            trackName: normalizedQuery.title,
-            artistName: normalizedQuery.artist,
-            albumName: normalizedQuery.album,
-            duration: normalizedQuery.duration?.inSeconds.toDouble(),
-            instrumental: false,
-            plainLyrics: isSynced ? null : remoteLrc,
-            syncedLyrics: isSynced ? remoteLrc : null,
-          );
-          final res = LyricSelectionResult(
-            track: track,
-            fromGetApi: false,
-            source: 'remote_server',
-            score: 100.0,
-            breakdown: LyricScoreBreakdown(
-              title: 0,
-              artist: 0,
-              album: 0,
-              duration: 0,
-              lyricsQuality: isSynced ? 5 : 3,
-              instrumentalPenalty: 0,
-            ),
-            durationDiffSeconds: 0,
-            syncedLines: syncedLines.isNotEmpty
-                ? syncedLines
-                : remoteLrc
-                    .split('\n')
-                    .map((l) => LyricLine(timestamp: Duration.zero, text: l))
-                    .toList(),
-            lyricsText: remoteLrc,
-          );
-          _logDebug('fetch remote server lyrics hit -> key="$cacheKey"');
-          unawaited(
-            _cacheRemoteServerLyrics(
-              query: normalizedQuery,
-              rawText: remoteLrc,
-              isSynced: isSynced,
-              syncedLines: syncedLines,
-            ),
-          );
-          return res;
-        }
-        _logDebug('fetch remote server lyrics miss -> key="$cacheKey"');
-      } catch (e) {
-        _logDebug('fetch remote server lyrics error: $e');
-      }
-    }
+    return result;
+  }
 
-    // 尝试从同目录下和歌曲同名的lrc歌词文件解析
-    final localLrcLyrics = await _tryLoadFromLocalLrcFile(normalizedQuery);
-
-    if (localLrcLyrics != null) {
-      _logDebug('fetch local lrc hit -> key="$cacheKey"');
-      if (debugLog) {
-        debugPrintSelection(
-          normalizedQuery,
-          localLrcLyrics,
-          source: 'local_lrc',
-        );
-      }
-      return localLrcLyrics;
-    }
-
-    // 尝试从文件元数据中加载歌词
-    final metadataLyrics = await _tryLoadFromMetadata(normalizedQuery);
-    if (metadataLyrics != null) {
-      _logDebug('fetch metadata hit -> key="$cacheKey"');
-      if (debugLog) {
-        debugPrintSelection(
-          normalizedQuery,
-          metadataLyrics,
-          source: 'metadata',
-        );
-      }
-      return metadataLyrics;
-    }
+  /// 在线兜底：合并同一首歌的并发请求，再发起 lrclib 检索。
+  ///
+  /// 仍留在本类而没有拆成 provider，是因为检索与评分逻辑复用 `_client`
+  /// 及一组私有方法，拆分统一放到阶段三处理。
+  Future<LyricSelectionResult?> _resolveOnline(
+    LyricsQuery normalizedQuery,
+    CancelToken? cancelToken,
+  ) {
+    final cacheKey = normalizedQuery.cacheKey;
 
     // 忽略数据库中的空缓存（none），直接向下走网络流程，避免偶发网络失败导致永久判定为暂无歌词
-    // 3. 合并正在进行的相同请求：防止同一首歌短时间内多次发起网络搜索请求
     final existing = _inFlight[cacheKey];
     if (existing != null) {
       _logDebug('fetch joined in-flight request -> key="$cacheKey"');
-      final result = await existing;
-      if (debugLog) {
-        debugPrintSelection(query, result, source: 'in-flight');
-      }
-      return result;
+      return existing;
     }
 
-    // 4. 发起异步网络搜索任务
     final future =
         _fetchBestLyricsInternal(
           normalizedQuery,
@@ -471,294 +395,25 @@ class LyricsService {
     _inFlight[cacheKey] = future;
 
     _logDebug('fetch queued network pipeline -> key="$cacheKey"');
-
-    final result = await future;
-
-    if (debugLog) {
-      debugPrintSelection(normalizedQuery, result);
-    }
-
-    return result;
-  }
-
-  /// 把远程服务端返回的歌词写入 SQLite 缓存。
-  /// 这样下次播放同一首歌时会在最前面的缓存层命中，避免每次都向服务器重新请求，
-  /// 也避免后续的 LRCLIB 结果被缓存后反而抢在服务端口歌词前面。
-  Future<void> _cacheRemoteServerLyrics({
-    required LyricsQuery query,
-    required String rawText,
-    required bool isSynced,
-    required List<LyricLine> syncedLines,
-  }) async {
-    try {
-      final effectiveLines = syncedLines.isNotEmpty
-          ? syncedLines
-          : rawText
-              .split('\n')
-              .map(
-                (line) => LyricLine(
-                  timestamp: Duration.zero,
-                  text: line,
-                  isTimed: false,
-                ),
-              )
-              .toList();
-      final record = LyricsCacheRecord(
-        cacheKey: query.cacheKey,
-        source: LyricsCacheSource.external,
-        isSynced: isSynced,
-        syncedLyrics: rawText,
-        syncedLines: effectiveLines,
-        timelineOffsetMillis: 0,
-        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-      );
-      await _cacheRepository.saveLyricsCache(record);
-    } catch (e) {
-      debugPrint('[Lyrics] Failed to cache remote server lyrics: $e');
-    }
+    return future;
   }
 
   /// 尝试从同目录下和歌曲同名的lrc歌词文件解析
+  /// 旁挂同名 lrc。实现已下沉到 [SidecarLrcProvider]，
+  /// 这里保留方法签名只为「换源」候选探测复用同一份读取逻辑。
   Future<LyricSelectionResult?> _tryLoadFromLocalLrcFile(
     LyricsQuery query, {
     bool saveToDb = true,
-  }) async {
-    try {
-      final songPath = query.filePath;
-      if (songPath.isEmpty) return null;
-
-      final directory = p.dirname(songPath);
-      final baseName = p.basenameWithoutExtension(songPath);
-      final lrcPath = p.join(directory, '$baseName.lrc');
-
-      var lrcFile = File(lrcPath);
-      if (!await lrcFile.exists()) {
-        final lrcPathUpper = p.join(directory, '$baseName.LRC');
-        final lrcFileUpper = File(lrcPathUpper);
-        if (!await lrcFileUpper.exists()) {
-          return null;
-        }
-        lrcFile = lrcFileUpper;
-      }
-
-      final rawLyrics = await lrcFile.readAsString();
-      if (rawLyrics.trim().isEmpty) {
-        return null;
-      }
-
-      // 解析歌词
-      final syncedLines = _parseSyncedLyrics(rawLyrics);
-      final isSynced = syncedLines.any((line) => line.isTimed);
-
-      final lyricsId = LyricsIdUtils.fromLyricsText(rawLyrics);
-      final track = LyricTrack(
-        id: null,
-        lyricsId: lyricsId,
-        name: query.title,
-        trackName: query.title,
-        artistName: query.artist,
-        albumName: query.album,
-        duration: query.duration?.inSeconds.toDouble(),
-        instrumental: false,
-        plainLyrics: isSynced ? null : rawLyrics,
-        syncedLyrics: isSynced ? rawLyrics : null,
-      );
-
-      final result = LyricSelectionResult(
-        track: track,
-        fromGetApi: false,
-        source: 'local_lrc',
-        score: 100.0,
-        breakdown: LyricScoreBreakdown(
-          title: 0,
-          artist: 0,
-          album: 0,
-          duration: 0,
-          lyricsQuality: isSynced ? 5 : 3,
-          instrumentalPenalty: 0,
-        ),
-        durationDiffSeconds: 0,
-        syncedLines: syncedLines.isNotEmpty
-            ? syncedLines
-            : rawLyrics
-                .split('\n')
-                .map(
-                  (line) => LyricLine(
-                    timestamp: Duration.zero,
-                    text: line,
-                    isTimed: false,
-                  ),
-                )
-                .toList(),
-        lyricsText: rawLyrics,
-        timelineOffset: Duration.zero,
-      );
-
-      // 缓存到数据库
-      if (saveToDb) {
-        try {
-          final record = LyricsCacheRecord(
-            cacheKey: query.cacheKey,
-            source: LyricsCacheSource.external,
-            isSynced: isSynced,
-            syncedLyrics: rawLyrics,
-            syncedLines: result.syncedLines,
-            timelineOffsetMillis: 0,
-            updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-          );
-          await _cacheRepository.saveLyricsCache(record);
-          if (query.filePath.isNotEmpty) {
-            unawaited(
-              LyricsTimelineService.instance.ensureInitialSnapshot(
-                cacheKey: query.cacheKey,
-                lyrics: rawLyrics,
-                timelineOffsetMillis: 0,
-                description: 'Local LRC',
-              ),
-            );
-          }
-        } catch (e) {
-          debugPrint('[Lyrics] Failed to cache local LRC lyrics: $e');
-        }
-      }
-
-      return result;
-    } catch (e) {
-      debugPrint('[Lyrics] Error reading local lrc file: $e');
-      return null;
-    }
+  }) {
+    return _sidecarProvider.load(query, saveToDb: saveToDb);
   }
 
-  /// 尝试从音频文件物理元数据读取歌词
+  /// 内嵌标签。实现已下沉到 [EmbeddedTagProvider]，理由同上。
   Future<LyricSelectionResult?> _tryLoadFromMetadata(
     LyricsQuery query, {
     bool saveToDb = true,
-  }) async {
-    if (RemoteMediaResolver.isRemoteUri(query.filePath)) {
-      return null;
-    }
-    try {
-      if (!taglib.TagLibFile.isSupported) {
-        return null;
-      }
-      final file = File(query.filePath);
-      if (!await file.exists()) {
-        return null;
-      }
-
-      final tagFile = await taglib.TagLibFile.openAsync(query.filePath);
-      if (tagFile == null) {
-        return null;
-      }
-
-      try {
-        final lyricsList = tagFile.properties[taglib.TagProperties.lyrics];
-        if (lyricsList == null || lyricsList.isEmpty) {
-          debugPrint(
-            '[Lyrics] TagLib metadata check: TagProperties.lyrics is null/empty for "${query.filePath}"',
-          );
-          return null;
-        }
-
-        final rawLyrics = lyricsList.first.trim();
-        if (rawLyrics.isEmpty) {
-          debugPrint(
-            '[Lyrics] TagLib metadata check: TagProperties.lyrics content is empty string for "${query.filePath}"',
-          );
-          return null;
-        }
-
-        // 解析歌词
-        final syncedLines = _parseSyncedLyrics(rawLyrics);
-        final isSynced = syncedLines.any((line) => line.isTimed);
-
-        final lyricsId = LyricsIdUtils.fromLyricsText(rawLyrics);
-        final track = LyricTrack(
-          id: null,
-          lyricsId: lyricsId,
-          name: query.title,
-          trackName: query.title,
-          artistName: query.artist,
-          albumName: query.album,
-          duration: query.duration?.inSeconds.toDouble(),
-          instrumental: false,
-          plainLyrics: isSynced ? null : rawLyrics,
-          syncedLyrics: isSynced ? rawLyrics : null,
-        );
-
-        final result = LyricSelectionResult(
-          track: track,
-          fromGetApi: false,
-          source: 'embedded',
-          score: 100.0,
-          breakdown: LyricScoreBreakdown(
-            title: 0,
-            artist: 0,
-            album: 0,
-            duration: 0,
-            lyricsQuality: isSynced ? 5 : 3,
-            instrumentalPenalty: 0,
-          ),
-          durationDiffSeconds: 0,
-          syncedLines: syncedLines.isNotEmpty
-              ? syncedLines
-              : rawLyrics
-                  .split('\n')
-                  .map(
-                    (line) => LyricLine(
-                      timestamp: Duration.zero,
-                      text: line,
-                      isTimed: false,
-                    ),
-                  )
-                  .toList(),
-          lyricsText: rawLyrics,
-          timelineOffset: Duration.zero,
-        );
-
-        debugPrint(
-          '[Lyrics] Embedded lyrics hit! file="${query.filePath}" length=${rawLyrics.length} lines=${result.syncedLines.length} isSynced=$isSynced key="${query.cacheKey}"',
-        );
-
-        // 缓存到数据库
-        if (saveToDb) {
-          try {
-            final record = LyricsCacheRecord(
-              cacheKey: query.cacheKey,
-              source: LyricsCacheSource.embedded,
-              isSynced: isSynced,
-              syncedLyrics: rawLyrics,
-              syncedLines: result.syncedLines,
-              timelineOffsetMillis: 0,
-              updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-            );
-            await _cacheRepository.saveLyricsCache(record);
-            debugPrint(
-              '[Lyrics] Saved embedded lyrics cache to DB -> key="${query.cacheKey}"',
-            );
-            if (query.filePath.isNotEmpty) {
-              unawaited(
-                LyricsTimelineService.instance.ensureInitialSnapshot(
-                  cacheKey: query.cacheKey,
-                  lyrics: rawLyrics,
-                  timelineOffsetMillis: 0,
-                  description: 'Embedded',
-                ),
-              );
-            }
-          } catch (e) {
-            debugPrint('[Lyrics] Failed to cache embedded lyrics: $e');
-          }
-        }
-
-        return result;
-      } finally {
-        tagFile.close();
-      }
-    } catch (e, st) {
-      debugPrint('[Lyrics] Error reading embedded lyrics from "${query.filePath}": $e\n$st');
-      return null;
-    }
+  }) {
+    return _embeddedProvider.load(query, saveToDb: saveToDb);
   }
 
   /// 在线搜索逻辑：基于标题+艺术家/专辑的单次全文检索与客户端加权评分。
@@ -920,29 +575,6 @@ class LyricsService {
     return bestCandidate;
   }
 
-  Future<LyricSelectionResult?> _loadFromDatabase(
-    LyricsQuery query, {
-    bool ignoreEmptyCache = true,
-  }) async {
-    try {
-      final record = await _cacheRepository.getLyricsCacheTolerant(
-        query,
-        ignoreNone: true,
-      );
-      if (record == null) {
-        debugPrint('[Lyrics] Cache miss -> key="${query.cacheKey}"');
-        return null;
-      }
-      debugPrint(
-        '[Lyrics] Cache loaded from DB -> matchedKey="${record.cacheKey}" source=${record.source.dbValue} isSynced=${record.isSynced}',
-      );
-      return _selectionFromRecord(query, record);
-    } catch (e) {
-      debugPrint('[Lyrics] Failed to load cache for "${query.cacheKey}": $e');
-      return null;
-    }
-  }
-
   Future<List<LyricTrack>> _searchByQuery(
     String title, {
     String? artist,
@@ -1059,48 +691,6 @@ class LyricsService {
     }
   }
 
-  LyricSelectionResult _selectionFromRecord(
-    LyricsQuery query,
-    LyricsCacheRecord record,
-  ) {
-    final lyricsText = _lyricsTextFromRecord(record);
-    final lyricsId = LyricsIdUtils.fromLyricsText(lyricsText);
-    final track = LyricTrack(
-      id: null,
-      lyricsId: lyricsId,
-      name: query.title,
-      trackName: query.title,
-      artistName: query.artist,
-      albumName: query.album,
-      duration: query.duration?.inSeconds.toDouble(),
-      instrumental: false,
-      plainLyrics: lyricsText,
-      syncedLyrics: record.syncedLyrics,
-    );
-
-    final syncedLines = record.syncedLines;
-
-    return LyricSelectionResult(
-      track: track,
-      fromGetApi: false,
-      source: _sourceFromCacheRecord(record.source),
-      score: 100.0,
-      breakdown: LyricScoreBreakdown(
-        title: 0,
-        artist: 0,
-        album: 0,
-        duration: 0,
-        lyricsQuality: record.isSynced ? 5 : 3,
-        instrumentalPenalty: 0,
-      ),
-      durationDiffSeconds: 0,
-      syncedLines: syncedLines,
-      lyricsText: lyricsText,
-      timelineOffset: Duration(milliseconds: record.timelineOffsetMillis),
-    );
-  }
-
-
   String _buildSearchText({
     required String title,
     String? artist,
@@ -1116,21 +706,6 @@ class LyricsService {
       return '$cleanTitle $cleanAlbum'.trim();
     }
     return cleanTitle;
-  }
-
-  String _lyricsTextFromRecord(LyricsCacheRecord record) {
-    final syncedLyrics = record.syncedLyrics?.trim();
-    if (syncedLyrics != null && syncedLyrics.isNotEmpty) {
-      return syncedLyrics;
-    }
-
-    if (record.syncedLines.isEmpty) return '';
-
-    return record.syncedLines
-        .map((line) => line.text)
-        .where((line) => line.trim().isNotEmpty)
-        .join('\n')
-        .trim();
   }
 
   LyricSelectionResult? _scoreCandidate(
@@ -1233,10 +808,6 @@ class LyricsService {
       lyricsText: lyricsText,
       timelineOffset: Duration.zero,
     );
-  }
-
-  String _sourceFromCacheRecord(LyricsCacheSource source) {
-    return source.musicLyricSource;
   }
 
   int _compareSelectionResults(LyricSelectionResult a, LyricSelectionResult b) {
