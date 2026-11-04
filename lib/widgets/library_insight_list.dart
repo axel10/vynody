@@ -350,8 +350,7 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
 
         final zoomButton = LibraryZoomButton(scope: currentScope);
 
-        final headerSliver = SliverToBoxAdapter(
-          child: Container(
+        final headerWidget = Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               border: Border(
@@ -362,7 +361,7 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
             ),
             child: LayoutBuilder(
               builder: (context, headerConstraints) {
-                final isWide = headerConstraints.maxWidth >= 600;
+                final isWide = !isPortrait || headerConstraints.maxWidth >= 600;
 
                 return Container(
                   padding: EdgeInsets.fromLTRB(16, 8, 16, isWide ? 8 : 10),
@@ -505,7 +504,22 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                 );
               },
             ),
-          ),
+          );
+
+        final bodySlivers = _buildBodySlivers(
+          context: context,
+          theme: theme,
+          l10n: l10n,
+          audio: audio,
+          currentMusic: currentMusic,
+          visibleSongs: visibleSongs,
+          visibleAlbums: visibleAlbums,
+          visibleKeys: visibleKeys,
+          selectionMode: selectionMode,
+          sourceEmpty: sourceEmpty,
+          zoomScale: zoomScale,
+          contentWidth: contentWidth,
+          isPortrait: isPortrait,
         );
 
         final mainContent = Padding(
@@ -515,31 +529,31 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
               constraints: const BoxConstraints(maxWidth: kFolderPageMaxWidth),
               child: FolderZoomGestureLayer(
                 scope: currentScope,
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  slivers: [
-                    if (widget.contentTopPadding > 0)
-                      SliverToBoxAdapter(
-                        child: SizedBox(height: widget.contentTopPadding),
+                child: isPortrait
+                    ? CustomScrollView(
+                        controller: _scrollController,
+                        slivers: [
+                          if (widget.contentTopPadding > 0)
+                            SliverToBoxAdapter(
+                              child: SizedBox(height: widget.contentTopPadding),
+                            ),
+                          SliverToBoxAdapter(child: headerWidget),
+                          ...bodySlivers,
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          if (widget.contentTopPadding > 0)
+                            SizedBox(height: widget.contentTopPadding),
+                          headerWidget,
+                          Expanded(
+                            child: CustomScrollView(
+                              controller: _scrollController,
+                              slivers: bodySlivers,
+                            ),
+                          ),
+                        ],
                       ),
-                    headerSliver,
-                    ..._buildBodySlivers(
-                      context: context,
-                      theme: theme,
-                      l10n: l10n,
-                      audio: audio,
-                      currentMusic: currentMusic,
-                      visibleSongs: visibleSongs,
-                      visibleAlbums: visibleAlbums,
-                      visibleKeys: visibleKeys,
-                      selectionMode: selectionMode,
-                      sourceEmpty: sourceEmpty,
-                      zoomScale: zoomScale,
-                      contentWidth: contentWidth,
-                      isPortrait: isPortrait,
-                    ),
-                  ],
-                ),
               ),
             ),
           ),

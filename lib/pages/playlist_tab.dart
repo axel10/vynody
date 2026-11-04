@@ -343,15 +343,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
-                return CustomScrollView(
-                  controller: _scrollController,
-                  slivers: [
-                    if (widget.contentTopPadding > 0)
-                      SliverToBoxAdapter(
-                        child: SizedBox(height: widget.contentTopPadding),
-                      ),
-                    SliverToBoxAdapter(
-                      child: LibraryCategoryHeader(
+                final header = LibraryCategoryHeader(
                         onBack: widget.onBack,
                         title: l10n.playlist,
                         countLabel: l10n.playlistCount(playlists.length),
@@ -383,9 +375,10 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                             onPressed: () => _importM3uPlaylist(context),
                           ),
                         ],
-                      ),
-                    ),
-                    if (playlists.isEmpty)
+                      );
+
+                final playlistSlivers = <Widget>[
+                  if (playlists.isEmpty)
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 64.0),
@@ -512,8 +505,33 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                           );
                         },
                       ),
-                  ],
-                );
+                ];
+
+                return isPortrait
+                    ? CustomScrollView(
+                        controller: _scrollController,
+                        slivers: [
+                          if (widget.contentTopPadding > 0)
+                            SliverToBoxAdapter(
+                              child: SizedBox(height: widget.contentTopPadding),
+                            ),
+                          SliverToBoxAdapter(child: header),
+                          ...playlistSlivers,
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          if (widget.contentTopPadding > 0)
+                            SizedBox(height: widget.contentTopPadding),
+                          header,
+                          Expanded(
+                            child: CustomScrollView(
+                              controller: _scrollController,
+                              slivers: playlistSlivers,
+                            ),
+                          ),
+                        ],
+                      );
               },
             ),
           ),

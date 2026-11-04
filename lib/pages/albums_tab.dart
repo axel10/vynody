@@ -203,12 +203,12 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 780;
+            final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+            final isWide = isLandscape || constraints.maxWidth >= 780;
             final availableWidth = math.max(0.0, constraints.maxWidth - widget.contentLeftPadding);
             final contentWidth = math.min(availableWidth, kFolderPageMaxWidth);
 
             final bool isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-            final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
             final bool isCoverFlowImmersive = isLandscape && _is3DView;
 
                 // 多选面板高度：3D cover flow 用单行精简版，普通网格列表用完整版
@@ -437,63 +437,87 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                           child: Center(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: kFolderPageMaxWidth),
-                              child: FolderZoomGestureLayer(
-                                scope: LibraryZoomScope.album,
-                                child: CustomScrollView(
-                                  key: const ValueKey('album_grid_view'),
-                                  controller: _scrollController,
-                                  // 预构建范围只留约半屏：更大的 cacheExtent 会让
-                                  // 几十张卡片在滚动中成批 initState（同步 stat +
-                                  // 缩略图解析排队），收益只是少一点占位图，不值。
-                                  scrollCacheExtent:
-                                      const ScrollCacheExtent.viewport(0.4),
-                                  slivers: [
-                                      if (widget.contentTopPadding > 0)
-                                        SliverToBoxAdapter(
-                                          child: SizedBox(
-                                            height: widget.contentTopPadding,
+                              child: Builder(
+                                builder: (context) {
+                                  final albumSlivers = <Widget>[
+                                    if (visibleAlbums.isEmpty)
+                                      SliverFillRemaining(
+                                        hasScrollBody: false,
+                                        child: Center(
+                                          child: Text(
+                                            l10n.noAlbums,
+                                            style: Theme.of(context).textTheme.titleMedium,
                                           ),
                                         ),
-                                      SliverToBoxAdapter(child: toolbar),
-                                      if (visibleAlbums.isEmpty)
-                                        SliverFillRemaining(
-                                          hasScrollBody: false,
-                                          child: Center(
-                                            child: Text(
-                                              l10n.noAlbums,
-                                              style: Theme.of(context).textTheme.titleMedium,
-                                            ),
-                                          ),
-                                        )
-                                      else ...[
-                                        if (knownAlbums.isNotEmpty) ...[
-                                          const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                                          ..._albumSectionSlivers(
-                                            albums: knownAlbums,
-                                            zoomScale: albumZoomScale,
-                                            width: contentWidth,
-                                            isSelectionMode: isSelectionMode,
-                                            isHeroEnabled: !_is3DView,
-                                          ),
-                                        ],
-                                        if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
-                                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                                        if (unknownAlbums.isNotEmpty)
-                                          ..._albumSectionSlivers(
-                                            albums: unknownAlbums,
-                                            zoomScale: albumZoomScale,
-                                            width: contentWidth,
-                                            isSelectionMode: isSelectionMode,
-                                            isHeroEnabled: !_is3DView,
-                                          ),
-                                        SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
+                                      )
+                                    else ...[
+                                      if (knownAlbums.isNotEmpty) ...[
+                                        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                                        ..._albumSectionSlivers(
+                                          albums: knownAlbums,
+                                          zoomScale: albumZoomScale,
+                                          width: contentWidth,
+                                          isSelectionMode: isSelectionMode,
+                                          isHeroEnabled: !_is3DView,
+                                        ),
                                       ],
+                                      if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
+                                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                                      if (unknownAlbums.isNotEmpty)
+                                        ..._albumSectionSlivers(
+                                          albums: unknownAlbums,
+                                          zoomScale: albumZoomScale,
+                                          width: contentWidth,
+                                          isSelectionMode: isSelectionMode,
+                                          isHeroEnabled: !_is3DView,
+                                        ),
+                                      SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
                                     ],
-                                  ),
-                              ),
+                                  ];
+
+                                  return FolderZoomGestureLayer(
+                                    scope: LibraryZoomScope.album,
+                                    child: isLandscape
+                                        ? Column(
+                                            children: [
+                                              if (widget.contentTopPadding > 0)
+                                                SizedBox(
+                                                  height: widget.contentTopPadding,
+                                                ),
+                                              toolbar,
+                                              Expanded(
+                                                child: CustomScrollView(
+                                                  key: const ValueKey('album_grid_view'),
+                                                  controller: _scrollController,
+                                                  scrollCacheExtent:
+                                                      const ScrollCacheExtent.viewport(0.4),
+                                                  slivers: albumSlivers,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : CustomScrollView(
+                                            key: const ValueKey('album_grid_view'),
+                                            controller: _scrollController,
+                                            scrollCacheExtent:
+                                                const ScrollCacheExtent.viewport(0.4),
+                                            slivers: [
+                                              if (widget.contentTopPadding > 0)
+                                                SliverToBoxAdapter(
+                                                  child: SizedBox(
+                                                    height: widget.contentTopPadding,
+                                                  ),
+                                                ),
+                                              SliverToBoxAdapter(child: toolbar),
+                                              ...albumSlivers,
+                                            ],
+                                          ),
+                                  );
+                                },
                               ),
                             ),
                           ),
+                        ),
                   );
 
                 return Stack(
