@@ -170,7 +170,7 @@ abstract final class AppleFileAccess {
 
   /// 瞬态读租约：只覆盖 [body] 执行期间。
   static Future<T> withRead<T>(String path, Future<T> Function() body) =>
-      _withTransient(<String>[path], AppleFileAccessHolder.fallback, body);
+      _withTransient(<String>[path], AppleFileAccessHolder.reader, body);
 
   /// 瞬态写租约：覆盖若干路径的写入过程（写标签、转码输出等）。
   ///
@@ -178,7 +178,7 @@ abstract final class AppleFileAccess {
   static Future<T> withWrite<T>(
     Iterable<String> paths,
     Future<T> Function() body,
-  ) => _withTransient(paths, AppleFileAccessHolder.fallback, body);
+  ) => _withTransient(paths, AppleFileAccessHolder.writer, body);
 
   static Future<T> _withTransient<T>(
     Iterable<String> paths,

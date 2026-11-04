@@ -10,6 +10,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import 'package:vynody/player/platform/apple_file_access.dart';
 import 'package:vynody/player/metadata/artwork_constants.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
 import 'package:vynody/player/library/music_file_utils.dart';
@@ -297,19 +298,24 @@ class MetadataHelper {
     );
 
     try {
-      final results = await controller.updateMetadataBatch([
-        TrackMetadataWriteRequest(
-          path: filePath,
-          metadata: update,
-          fallbackMediaUri: fallbackMediaUri,
-        ),
-      ]);
-      final success = results.isNotEmpty && results.first;
-      if (!success) {
-        lastWriteError = taglib.TagLibFile.lastError ?? 'Native updateMetadataBatch operation returned false';
-        debugPrint('[MetadataHelper] Save failed: $lastWriteError');
-      }
-      return success;
+      // 写标签显式申请一次写租约：目录页改标签时没有任何 root 覆盖到这首歌
+      // （外部曲目、或 root 授权尚未握上），内核那边的 prepareForFileWrite
+      // 只在「写的正是当前播放曲目」时才伸手要授权。租约随写过程成对释放。
+      return await AppleFileAccess.withWrite(<String>[filePath], () async {
+        final results = await controller.updateMetadataBatch([
+          TrackMetadataWriteRequest(
+            path: filePath,
+            metadata: update,
+            fallbackMediaUri: fallbackMediaUri,
+          ),
+        ]);
+        final success = results.isNotEmpty && results.first;
+        if (!success) {
+          lastWriteError = taglib.TagLibFile.lastError ?? 'Native updateMetadataBatch operation returned false';
+          debugPrint('[MetadataHelper] Save failed: $lastWriteError');
+        }
+        return success;
+      });
     } catch (e) {
       debugPrint('Failed to write selection metadata to file $filePath: $e');
       lastWriteError = e.toString();

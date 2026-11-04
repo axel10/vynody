@@ -18,6 +18,7 @@ import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/platform/apple_file_access.dart';
 import 'package:vynody/player/metadata/artwork_constants.dart';
 
 import 'package:vynody/player/settings/settings_service.dart';
@@ -1135,9 +1136,10 @@ class AudioService extends Notifier<AudioSnapshot> {
     if ((Platform.isIOS || Platform.isMacOS) && !RemoteMediaResolver.isRemoteUri(path)) {
       try {
         await _player.registerPersistentAccess(path: path);
-        await _player.beginScopedAccess(
-          path: path,
-          holder: AppleFileAccessHolder.playback,
+        // 只判存在性，用瞬态读租约：不需要长期占着播放名下的一份授权。
+        return await AppleFileAccess.withRead(
+          path,
+          () => PlaybackSessionManager.songExists(path),
         );
       } catch (_) {}
     }
@@ -3480,6 +3482,13 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     await _player.playlist.clear();
     await _player.clearPlayback();
+    // 队列清空后没有任何曲目在播，播放名下累积的 scope 一并归还，
+    // 否则一整个会话里听过的每首歌都会一直占着一份系统授权。
+    if (Platform.isIOS || Platform.isMacOS) {
+      await _player.releaseScopedAccessHolder(
+        AppleFileAccessHolder.playback,
+      );
+    }
     _duration = Duration.zero;
     _position = Duration.zero;
     _isPlaying = false;
