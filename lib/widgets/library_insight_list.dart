@@ -372,6 +372,19 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                         Row(
                           children: [
                             largeTitleBlock,
+                            // 横屏下「单曲 / 专辑」切换紧贴标题右侧，与标题同一行，
+                            // 不再单独占一行把列表往下压。
+                            //
+                            // 只能进 Row 的判据是「真横屏」（!isPortrait），不能用
+                            // isWide：竖屏但窗口够宽时 isWide 也为 true，而竖屏下
+                            // SectionTypeToggle 是 fullWidth（内部 width: double.infinity），
+                            // Row 传给子项的是无界宽约束，会抛
+                            // 「BoxConstraints forces an infinite width」并让整棵
+                            // viewport 连带 layout/paint 全挂。
+                            if (!isPortrait && widget.centerAction != null) ...[
+                              const SizedBox(width: 16),
+                              widget.centerAction!,
+                            ],
                             const SizedBox(width: 16),
                             Expanded(
                               child: Align(
@@ -402,7 +415,8 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                             ),
                           ],
                         ),
-                        if (widget.centerAction != null) ...[
+                        // 竖屏但窗口较宽仍走 isWide 时，切换保持在标题下方整行铺开。
+                        if (isPortrait && widget.centerAction != null) ...[
                           const SizedBox(height: 8),
                           Align(
                             alignment: Alignment.centerLeft,
