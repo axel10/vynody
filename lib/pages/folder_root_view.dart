@@ -77,6 +77,7 @@ class FolderRootView extends ConsumerStatefulWidget {
 class _FolderRootViewState extends ConsumerState<FolderRootView> {
   late final ScrollController _localScrollController;
   late final TextEditingController _searchController;
+  final FocusNode _searchFocusNode = FocusNode();
   bool _isSearching = false;
   bool _isSearchLoading = false;
   String _searchQuery = '';
@@ -162,6 +163,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
   void dispose() {
     _searchDebounce?.cancel();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _localScrollController.removeListener(_onScroll);
     _localScrollController.dispose();
     _scrollProgress.dispose();
@@ -420,32 +422,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               const SizedBox(width: 8),
               FolderPlayActionButtons(
                 totalSongsCount: totalSongsCount,
-                onPlayAll: () async {
-                  final songs = await scanner.getAllRootSongs();
-                  if (songs.isNotEmpty) {
-                    await audio.playPlaylist(
-                      songs,
-                      source: PlaybackSource(
-                        type: PlaybackSourceType.folder,
-                        id: 'root',
-                        name: l10n.scanDirectory,
-                      ),
-                    );
-                  }
-                },
-                onShufflePlay: () async {
-                  final songs = await scanner.getAllRootSongs();
-                  if (songs.isNotEmpty) {
-                    await audio.playPlaylist(
-                      List.of(songs)..shuffle(),
-                      source: PlaybackSource(
-                        type: PlaybackSourceType.folder,
-                        id: 'root',
-                        name: l10n.scanDirectory,
-                      ),
-                    );
-                  }
-                },
+                onPlayAll: () => _handlePlayAll(l10n),
+                onShufflePlay: () => _handleShufflePlay(l10n),
               ),
             ],
             actionButtonsScrollable: true,
@@ -453,6 +431,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             searchController: _searchController,
             searchQuery: _searchQuery,
             searchHintText: '${l10n.search}...',
+            searchFocusNode: _searchFocusNode,
+            searchAutofocus: false,
             onSearchQueryChanged: (val) {
               setState(() {
                 _searchQuery = val.trim();
@@ -467,8 +447,16 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                   _matchedSongs = [];
                   _matchedFolders = [];
                   _isSearchLoading = false;
+                  _searchFocusNode.unfocus();
                 }
               });
+              if (val) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && !_searchFocusNode.hasFocus) {
+                    _searchFocusNode.requestFocus();
+                  }
+                });
+              }
             },
             heroTag: 'folder-cover-root',
             isHeroModeEnabled: true,
@@ -619,7 +607,13 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               right: 0,
               child: AutoHideHeader(
                 isVisible: isHeaderVisible,
-                child: _buildRootTopHeader(context, isOverlay: true),
+                child: _buildRootTopHeader(
+                  context,
+                  isOverlay: true,
+                  totalSongsCount: totalSongsCount,
+                  onPlayAll: () => _handlePlayAll(l10n),
+                  onShufflePlay: () => _handleShufflePlay(l10n),
+                ),
               ),
             ),
             Positioned(
@@ -760,7 +754,73 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     );
   }
 
-  Widget _buildRootTopHeader(BuildContext context, {bool isOverlay = true}) {
+  Future<void> _handlePlayAll(AppLocalizations l10n) async {
+    final scanner = ref.read(scannerServiceProvider);
+    final audio = ref.read(audioServiceProvider);
+    final songs = await scanner.getAllRootSongs();
+    if (songs.isNotEmpty) {
+      await audio.playPlaylist(
+        songs,
+        source: PlaybackSource(
+          type: PlaybackSourceType.folder,
+          id: 'root',
+          name: l10n.scanDirectory,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleShufflePlay(AppLocalizations l10n) async {
+    final scanner = ref.read(scannerServiceProvider);
+    final audio = ref.read(audioServiceProvider);
+    final songs = await scanner.getAllRootSongs();
+    if (songs.isNotEmpty) {
+      await audio.playPlaylist(
+        List.of(songs)..shuffle(),
+        source: PlaybackSource(
+          type: PlaybackSourceType.folder,
+          id: 'root',
+          name: l10n.scanDirectory,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleSearchAction() async {
+    // 1. 如果不在最顶部，先完全滚回最顶端并等待动画结束与静止
+    if (_localScrollController.hasClients &&
+        _localScrollController.offset > 0) {
+      await _localScrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+      );
+      await WidgetsBinding.instance.endOfFrame;
+    }
+
+    if (!mounted) return;
+
+    // 2. 页面完全停止在最顶端后，再展开搜索框
+    if (!_isSearching) {
+      setState(() {
+        _isSearching = true;
+      });
+      await WidgetsBinding.instance.endOfFrame;
+    }
+
+    // 3. 展开后再获取焦点，避免滚动过程中提前介入
+    if (mounted && !_searchFocusNode.hasFocus) {
+      _searchFocusNode.requestFocus();
+    }
+  }
+
+  Widget _buildRootTopHeader(
+    BuildContext context, {
+    bool isOverlay = true,
+    int totalSongsCount = 0,
+    VoidCallback? onPlayAll,
+    VoidCallback? onShufflePlay,
+  }) {
     final isPortrait =
         MediaQuery.orientationOf(context) == Orientation.portrait;
     return Material(
@@ -774,6 +834,11 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         onRefresh: _handleRefresh,
         // 竖屏面包屑在 Banner 里；横屏仍由顶栏承载
         hideBreadcrumbs: isPortrait,
+        onPlayAll: onPlayAll,
+        onShufflePlay: onShufflePlay,
+        onSearch: _handleSearchAction,
+        totalSongsCount: totalSongsCount,
+        isSearching: _isSearching,
       ),
     );
   }

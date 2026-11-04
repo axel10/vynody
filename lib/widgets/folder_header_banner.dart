@@ -42,6 +42,8 @@ class FolderHeaderBanner extends ConsumerStatefulWidget {
     this.isHeroModeEnabled = true,
     this.isLowEndDevice,
     this.thumbnailSize = kZoomItemThumbnailSize,
+    this.searchFocusNode,
+    this.searchAutofocus = true,
   });
 
   final String title;
@@ -66,6 +68,8 @@ class FolderHeaderBanner extends ConsumerStatefulWidget {
   final String? heroTag;
   final bool isHeroModeEnabled;
   final bool? isLowEndDevice;
+  final FocusNode? searchFocusNode;
+  final bool searchAutofocus;
 
   /// 网格条目那张 [SongThumbnail] 的解码尺寸（dp）。
   ///
@@ -349,6 +353,8 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
               heroTag: widget.heroTag,
               isHeroModeEnabled: widget.isHeroModeEnabled,
               overscroll: overscroll,
+              searchFocusNode: widget.searchFocusNode,
+              searchAutofocus: widget.searchAutofocus,
             ),
           );
         }
@@ -381,6 +387,8 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
             totalDuration: widget.totalDuration,
             isLowEndDevice: isLowEndDevice,
             overscroll: overscroll,
+            searchFocusNode: widget.searchFocusNode,
+            searchAutofocus: widget.searchAutofocus,
           ),
         );
       },
@@ -461,6 +469,8 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
     required this.heroTag,
     required this.isHeroModeEnabled,
     this.overscroll = 0.0,
+    this.searchFocusNode,
+    this.searchAutofocus = true,
   });
 
   final String title;
@@ -479,6 +489,8 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
   final String? heroTag;
   final bool isHeroModeEnabled;
   final double overscroll;
+  final FocusNode? searchFocusNode;
+  final bool searchAutofocus;
 
   @override
   Widget build(BuildContext context) {
@@ -527,6 +539,8 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
                                     query: searchQuery,
                                     onChanged: onSearchQueryChanged,
                                     compact: true,
+                                    focusNode: searchFocusNode,
+                                    autofocus: searchAutofocus,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -766,6 +780,8 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
     required this.totalDuration,
     required this.isLowEndDevice,
     this.overscroll = 0.0,
+    this.searchFocusNode,
+    this.searchAutofocus = true,
   });
 
   final String title;
@@ -796,6 +812,8 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
   final Duration totalDuration;
   final bool isLowEndDevice;
   final double overscroll;
+  final FocusNode? searchFocusNode;
+  final bool searchAutofocus;
 
   /// 高清封面源（标签内嵌原图 / 已落盘原图 / 远程 URL）。
   ImageProvider<Object>? _highResProvider({int? cacheWidth, int? cacheHeight}) {
@@ -1095,6 +1113,8 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                                             query: searchQuery,
                                             onChanged: onSearchQueryChanged,
                                             compact: true,
+                                            focusNode: searchFocusNode,
+                                            autofocus: searchAutofocus,
                                           ),
                                         ),
                                         const SizedBox(width: 8),
@@ -1202,6 +1222,8 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                                         hintText: searchHintText,
                                         query: searchQuery,
                                         onChanged: onSearchQueryChanged,
+                                        focusNode: searchFocusNode,
+                                        autofocus: searchAutofocus,
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -1361,6 +1383,8 @@ class _BannerSearchTextField extends StatelessWidget {
     required this.query,
     required this.onChanged,
     this.compact = false,
+    this.focusNode,
+    this.autofocus = true,
   });
 
   final TextEditingController controller;
@@ -1368,13 +1392,17 @@ class _BannerSearchTextField extends StatelessWidget {
   final String query;
   final ValueChanged<String> onChanged;
   final bool compact;
+  final FocusNode? focusNode;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return TextField(
       controller: controller,
-      autofocus: true,
+      focusNode: focusNode,
+      autofocus: autofocus,
+      scrollPadding: EdgeInsets.zero,
       style: theme.textTheme.bodyMedium,
       decoration: InputDecoration(
         hintText: hintText,

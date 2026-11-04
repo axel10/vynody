@@ -81,6 +81,7 @@ class FolderDetailView extends ConsumerStatefulWidget {
 class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   late final ScrollController _localScrollController;
   late final TextEditingController _searchController;
+  final FocusNode _searchFocusNode = FocusNode();
   final ScrollController _breadcrumbsScrollController = ScrollController();
 
   /// `LayoutBuilder` 给的列表内容宽度（已扣除 rail / 最大宽度约束）。
@@ -227,6 +228,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   void dispose() {
     _searchDebounce?.cancel();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _localScrollController.removeListener(_onScroll);
     _localScrollController.dispose();
     _breadcrumbsScrollController.dispose();
@@ -479,22 +481,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   actionButtons: [
                     FolderPlayActionButtons(
                       totalSongsCount: folder.allSongs.length,
-                      onPlayAll: () => audio.playPlaylist(
-                        folder.allSongs,
-                        source: PlaybackSource(
-                          type: PlaybackSourceType.folder,
-                          id: folder.path,
-                          name: folder.name,
-                        ),
-                      ),
-                      onShufflePlay: () => audio.playPlaylist(
-                        List.of(folder.allSongs)..shuffle(),
-                        source: PlaybackSource(
-                          type: PlaybackSourceType.folder,
-                          id: folder.path,
-                          name: folder.name,
-                        ),
-                      ),
+                      onPlayAll: () => _handlePlayAll(folder),
+                      onShufflePlay: () => _handleShufflePlay(folder),
                     ),
                   ],
                   actionButtonsScrollable: false,
@@ -502,6 +490,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   searchController: _searchController,
                   searchQuery: _searchQuery,
                   searchHintText: l10n.searchInFolderAndSubfolders,
+                  searchFocusNode: _searchFocusNode,
+                  searchAutofocus: false,
                   onSearchQueryChanged: (val) {
                     setState(() {
                       _searchQuery = val.trim();
@@ -515,8 +505,16 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                         _searchQuery = '';
                         _matchedSongs = [];
                         _isSearchLoading = false;
+                        _searchFocusNode.unfocus();
                       }
                     });
+                    if (val) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted && !_searchFocusNode.hasFocus) {
+                          _searchFocusNode.requestFocus();
+                        }
+                      });
+                    }
                   },
                   heroTag: 'folder-cover-${folder.path}',
                   isHeroModeEnabled: isCoverVisible &&
@@ -857,6 +855,58 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     return '';
   }
 
+  void _handlePlayAll(MusicFolder folder) {
+    if (folder.allSongs.isEmpty) return;
+    ref.read(audioServiceProvider).playPlaylist(
+      folder.allSongs,
+      source: PlaybackSource(
+        type: PlaybackSourceType.folder,
+        id: folder.path,
+        name: folder.name,
+      ),
+    );
+  }
+
+  void _handleShufflePlay(MusicFolder folder) {
+    if (folder.allSongs.isEmpty) return;
+    ref.read(audioServiceProvider).playPlaylist(
+      List.of(folder.allSongs)..shuffle(),
+      source: PlaybackSource(
+        type: PlaybackSourceType.folder,
+        id: folder.path,
+        name: folder.name,
+      ),
+    );
+  }
+
+  Future<void> _handleSearchAction() async {
+    // 1. 如果不在最顶部，先完全滚回最顶端并等待动画结束与静止
+    if (_localScrollController.hasClients &&
+        _localScrollController.offset > 0) {
+      await _localScrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+      );
+      await WidgetsBinding.instance.endOfFrame;
+    }
+
+    if (!mounted) return;
+
+    // 2. 页面完全停止在最顶端后，再展开搜索框
+    if (!_isSearching) {
+      setState(() {
+        _isSearching = true;
+      });
+      await WidgetsBinding.instance.endOfFrame;
+    }
+
+    // 3. 展开后再获取焦点，避免滚动过程中提前介入
+    if (mounted && !_searchFocusNode.hasFocus) {
+      _searchFocusNode.requestFocus();
+    }
+  }
+
   Widget _buildBreadcrumbs(MusicFolder current, ScannerService scanner, {bool isOverlay = false}) {
     return Material(
       type: MaterialType.transparency,
@@ -873,6 +923,11 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         onClearAllSelection: widget.onClearAllSelection,
         scrollController: _breadcrumbsScrollController,
         onRefresh: _handleRefresh,
+        onPlayAll: () => _handlePlayAll(current),
+        onShufflePlay: () => _handleShufflePlay(current),
+        onSearch: _handleSearchAction,
+        totalSongsCount: current.allSongs.length,
+        isSearching: _isSearching,
       ),
     );
   }

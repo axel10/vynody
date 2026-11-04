@@ -70,6 +70,11 @@ class FolderHeaderNavBar extends ConsumerWidget {
     this.scrollController,
     this.onRefresh,
     this.hideBreadcrumbs = false,
+    this.onPlayAll,
+    this.onShufflePlay,
+    this.onSearch,
+    this.totalSongsCount = 0,
+    this.isSearching = false,
   });
 
   final bool isOverlay;
@@ -91,6 +96,21 @@ class FolderHeaderNavBar extends ConsumerWidget {
 
   /// 顶栏不渲染面包屑（面包屑由页面嵌进 Banner，随内容一起滚动）
   final bool hideBreadcrumbs;
+
+  /// 滚动展开的快捷操作：播放全部
+  final VoidCallback? onPlayAll;
+
+  /// 滚动展开的快捷操作：随机播放
+  final VoidCallback? onShufflePlay;
+
+  /// 滚动展开的快捷操作：搜索
+  final VoidCallback? onSearch;
+
+  /// 当前目录（或根目录）下的歌曲总数
+  final int totalSongsCount;
+
+  /// 是否正处于搜索状态
+  final bool isSearching;
 
   bool get _sortHighlighted => isSortActive || isSortHighlighted;
 
@@ -180,6 +200,11 @@ class FolderHeaderNavBar extends ConsumerWidget {
       settingsServiceProvider.select((s) => s.folderZoomScale),
     );
 
+    final bool showQuickActions = style.progress > 0.15;
+    final bool hasPlayableSongs = totalSongsCount > 0 && onPlayAll != null;
+    final bool canSearch = onSearch != null;
+    final bool hasAnyQuickAction = hasPlayableSongs || canSearch;
+
     if (style.isPortrait) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -188,7 +213,13 @@ class FolderHeaderNavBar extends ConsumerWidget {
           FolderNavActionMenu<String>(
             style: style,
             onSelected: (value) {
-              if (value == 'locate') {
+              if (value == 'play_all') {
+                onPlayAll?.call();
+              } else if (value == 'shuffle_play') {
+                onShufflePlay?.call();
+              } else if (value == 'search') {
+                onSearch?.call();
+              } else if (value == 'locate') {
                 _handleLocate(ref, context);
               } else if (value == 'refresh') {
                 onRefresh?.call();
@@ -199,6 +230,70 @@ class FolderHeaderNavBar extends ConsumerWidget {
               }
             },
             itemBuilder: (context) => [
+              if (showQuickActions && hasAnyQuickAction) ...[
+                if (onPlayAll != null)
+                  PopupMenuItem(
+                    value: 'play_all',
+                    enabled: hasPlayableSongs,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.play_arrow_rounded,
+                          size: 20,
+                          color: hasPlayableSongs
+                              ? null
+                              : Theme.of(context).disabledColor,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          l10n.playAll,
+                          style: hasPlayableSongs
+                              ? null
+                              : TextStyle(
+                                  color: Theme.of(context).disabledColor,
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (onShufflePlay != null)
+                  PopupMenuItem(
+                    value: 'shuffle_play',
+                    enabled: hasPlayableSongs,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.shuffle_rounded,
+                          size: 20,
+                          color: hasPlayableSongs
+                              ? null
+                              : Theme.of(context).disabledColor,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          l10n.shufflePlay,
+                          style: hasPlayableSongs
+                              ? null
+                              : TextStyle(
+                                  color: Theme.of(context).disabledColor,
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (canSearch)
+                  PopupMenuItem(
+                    value: 'search',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.search_rounded, size: 20),
+                        const SizedBox(width: 12),
+                        Text(l10n.search),
+                      ],
+                    ),
+                  ),
+                const PopupMenuDivider(),
+              ],
               if (currentMusic != null)
                 PopupMenuItem(
                   value: 'locate',
@@ -267,6 +362,71 @@ class FolderHeaderNavBar extends ConsumerWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          ClipRect(
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.centerRight,
+              child: (showQuickActions && hasAnyQuickAction)
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (onPlayAll != null)
+                          FolderNavIconButton(
+                            style: style,
+                            tooltip: l10n.playAll,
+                            icon: Icon(
+                              Icons.play_arrow_rounded,
+                              size: 20,
+                              color: hasPlayableSongs
+                                  ? style.iconColor
+                                  : style.iconColor.withValues(alpha: 0.35),
+                              shadows: hasPlayableSongs ? style.shadows : null,
+                            ),
+                            onPressed: hasPlayableSongs ? onPlayAll : null,
+                          ),
+                        if (onShufflePlay != null)
+                          FolderNavIconButton(
+                            style: style,
+                            tooltip: l10n.shufflePlay,
+                            icon: Icon(
+                              Icons.shuffle_rounded,
+                              size: 18,
+                              color: hasPlayableSongs
+                                  ? style.iconColor
+                                  : style.iconColor.withValues(alpha: 0.35),
+                              shadows: hasPlayableSongs ? style.shadows : null,
+                            ),
+                            onPressed: hasPlayableSongs ? onShufflePlay : null,
+                          ),
+                        if (canSearch)
+                          FolderNavIconButton(
+                            style: style,
+                            tooltip: l10n.search,
+                            isSelected: isSearching,
+                            icon: Icon(
+                              Icons.search_rounded,
+                              size: 19,
+                              color: isSearching
+                                  ? Theme.of(context).colorScheme.primary
+                                  : style.iconColor,
+                              shadows: isSearching ? null : style.shadows,
+                            ),
+                            onPressed: onSearch,
+                          ),
+                        Container(
+                          width: 1,
+                          height: 16,
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          color: Theme.of(context)
+                              .dividerColor
+                              .withValues(alpha: 0.2),
+                        ),
+                      ],
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
           FolderScanSpinner(style: style),
           if (currentMusic != null) ...[
             LocateSongNavButton(
