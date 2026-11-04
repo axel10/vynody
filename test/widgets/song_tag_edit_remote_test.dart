@@ -6,7 +6,7 @@ import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 
 void main() {
-  testWidgets('SongTagEditSheet disables both save buttons for remote song', (
+  testWidgets('SongTagEditSheet disables save button for remote song', (
     WidgetTester tester,
   ) async {
     const remoteSong = MusicFile(
@@ -38,13 +38,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
 
     final filledButtons = tester.widgetList<FilledButton>(find.byType(FilledButton)).toList();
-    expect(filledButtons.length, 2);
-
-    expect(filledButtons[0].onPressed, isNull);
-    expect(filledButtons[1].onPressed, isNull);
+    // 只有一个保存按钮：写不写回由格式决定，不再让用户选。
+    expect(filledButtons.length, 1);
+    expect(filledButtons.single.onPressed, isNull);
   });
 
-  testWidgets('SongTagEditSheet enables save to app button for local song', (
+  testWidgets('SongTagEditSheet enables save button for local song', (
     WidgetTester tester,
   ) async {
     const localSong = MusicFile(
@@ -76,9 +75,56 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
 
     final filledButtons = tester.widgetList<FilledButton>(find.byType(FilledButton)).toList();
-    expect(filledButtons.length, 2);
+    expect(filledButtons.length, 1);
+    expect(filledButtons.single.onPressed, isNotNull);
+  });
 
-    expect(filledButtons[0].onPressed, isNotNull);
+  testWidgets('写不了的文件同样只有一个可用按钮，并说明只能保存到 App', (
+    WidgetTester tester,
+  ) async {
+    // TagLib 没有 ADTS 解析器，写不了；以前这条只能点「保存到 App」，
+    // 现在按钮收敛成一个，格式判断交给 isMetadataWritable。
+    const rawAacSong = MusicFile(
+      path: '/local/music/test.aac',
+      name: 'test.aac',
+      title: 'Raw AAC',
+      artist: 'Local Artist',
+      album: 'Local Album',
+      durationMillis: 180000,
+    );
+
+    // 提示位于表单底部，弹窗内容是懒构建的，视口不够高就根本不会建出来。
+    tester.view.physicalSize = const Size(800, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const OKToast(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: Locale('zh'),
+          home: Scaffold(
+            body: SizedBox(
+              height: 1600,
+              width: 600,
+              child: SongTagEditSheet(song: rawAacSong),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final filledButtons = tester.widgetList<FilledButton>(find.byType(FilledButton)).toList();
+    expect(filledButtons.length, 1);
+    expect(filledButtons.single.onPressed, isNotNull);
+    expect(
+      find.text('当前文件格式不支持写回源文件，只能保存到 App。'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('SongTagEditSheet displays and populates album artist field', (

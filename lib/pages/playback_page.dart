@@ -649,9 +649,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       audio: audio,
       metadata: result.metadata,
       artworkBytes: result.artworkBytes,
-      successMessage: result.savedToSourceFile
-          ? l10n.songTagsSavedToSourceFileAndApp
-          : l10n.songTagsSavedToApp,
+      successMessage: songTagEditResultMessage(l10n, result),
     );
   }
 

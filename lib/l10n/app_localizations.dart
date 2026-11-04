@@ -1818,13 +1818,13 @@ abstract class AppLocalizations {
   /// No description provided for @unsupportedFormat.
   ///
   /// In zh, this message translates to:
-  /// **'{count} 首歌曲格式不支持保存标签 (OGG/Opus)'**
+  /// **'{count} 首歌曲的格式不支持写入标签'**
   String unsupportedFormat(Object count);
 
   /// No description provided for @unsupportedFormatSingle.
   ///
   /// In zh, this message translates to:
-  /// **'此格式 (OGG/Opus) 不支持保存标签'**
+  /// **'此格式不支持写入标签'**
   String get unsupportedFormatSingle;
 
   /// No description provided for @savingTags.
@@ -2748,7 +2748,7 @@ abstract class AppLocalizations {
   /// No description provided for @editSongTagsDescription.
   ///
   /// In zh, this message translates to:
-  /// **'修改后可以只保存到 App，也可以同步写回源文件。'**
+  /// **'修改后会写回源文件；当前格式无法写入时自动保存到 App。'**
   String get editSongTagsDescription;
 
   /// No description provided for @artistLabel.
@@ -2862,7 +2862,7 @@ abstract class AppLocalizations {
   /// No description provided for @batchEditSongTagsDescription.
   ///
   /// In zh, this message translates to:
-  /// **'修改后可以只保存到 App，也可以同步写回源文件。值为 <keep> 的字段将保持原值。'**
+  /// **'修改后会写回源文件；当前格式无法写入时自动保存到 App。值为 <keep> 的字段将保持原值。'**
   String get batchEditSongTagsDescription;
 
   /// No description provided for @keepFieldHint.
@@ -2876,6 +2876,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'保留各歌曲原封面'**
   String get multipleArtworkKeep;
+
+  /// No description provided for @tagSavePartiallyWritten.
+  ///
+  /// In zh, this message translates to:
+  /// **'已将 {written} 首写回源文件，{appOnly} 首仅保存到 App'**
+  String tagSavePartiallyWritten(int written, int appOnly);
 
   /// No description provided for @batchSongTagsSavedToApp.
   ///

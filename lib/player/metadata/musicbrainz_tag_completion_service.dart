@@ -394,7 +394,7 @@ class MusicBrainzTagCompletionService {
       throw StateError('Failed to save selected MusicBrainz metadata.');
     }
 
-    final updated = saved.$1;
+    final updated = saved.metadata;
 
     return MusicBrainzTagSelectionResult(
       metadata: updated,

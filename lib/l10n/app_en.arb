@@ -305,8 +305,8 @@
   "tagsSavedCount": "Tags saved ({count} songs)",
   "tagsSaveFailed": "Failed to save tags",
   "tagsSaveFailedCount": "Failed to save {count} songs",
-  "unsupportedFormat": "{count} songs have unsupported formats (OGG/Opus cannot be saved)",
-  "unsupportedFormatSingle": "This format (OGG/Opus) does not support saving tags",
+  "unsupportedFormat": "{count} songs have formats that do not support writing tags",
+  "unsupportedFormatSingle": "This format does not support writing tags",
   "savingTags": "Saving tags...",
   "noModifiedTagsToSave": "No modified tags to save",
   "clearPlaylist": "Clear List",
@@ -525,7 +525,7 @@
   "exportArtwork": "Export Cover",
   "exportArtworkSuccess": "Cover exported successfully",
   "exportArtworkFailed": "Failed to export cover",
-  "editSongTagsDescription": "You can save changes only in the app, or write them back to the source file as well.",
+  "editSongTagsDescription": "Changes are written back to the source file; if the format cannot be written, they are saved in the app only.",
   "artistLabel": "Artist",
   "albumArtistLabel": "Album Artist",
   "albumLabel": "Album",
@@ -544,9 +544,20 @@
   "fileOccupiedByOtherApp": "The file is occupied by another app and cannot be written",
   "saveFailed": "Save failed. Please try again later.",
   "batchEditSongTagsTitle": "Batch Edit Song Tags",
-  "batchEditSongTagsDescription": "You can save changes only in the app, or write them back to source files. Fields with <keep> will retain their original values.",
+  "batchEditSongTagsDescription": "Changes are written back to source files; if a format cannot be written, they are saved in the app only. Fields with <keep> retain their original values.",
   "keepFieldHint": "Tip: fields with <keep> will retain their original values.",
   "multipleArtworkKeep": "Keep individual covers",
+  "tagSavePartiallyWritten": "Wrote {written} to source files, saved {appOnly} in the app only",
+  "@tagSavePartiallyWritten": {
+    "placeholders": {
+      "written": {
+        "type": "int"
+      },
+      "appOnly": {
+        "type": "int"
+      }
+    }
+  },
   "batchSongTagsSavedToApp": "Saved tags for {count} songs to App",
   "@batchSongTagsSavedToApp": {
     "placeholders": {

@@ -926,12 +926,12 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String unsupportedFormat(Object count) {
-    return '$count şarkı etiket kaydetmeyi desteklemiyor (OGG/Opus)';
+    return '$count şarkının formatı etiket yazmayı desteklemiyor';
   }
 
   @override
   String get unsupportedFormatSingle =>
-      'Bu ses formatı etiket kaydetmeyi desteklemiyor (OGG/Opus)';
+      'Bu format etiket yazmayı desteklemiyor';
 
   @override
   String get savingTags => 'Etiketler kaydediliyor...';
@@ -1428,7 +1428,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get editSongTagsDescription =>
-      'Değişiklikleri yalnızca uygulamaya kaydedebilir veya kaynak ses dosyasına da yazabilirsiniz.';
+      'Değişiklikler kaynak dosyaya yazılır; format yazılamıyorsa yalnızca uygulamaya kaydedilir.';
 
   @override
   String get artistLabel => 'Sanatçı';
@@ -1493,7 +1493,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get batchEditSongTagsDescription =>
-      'Değişiklikleri yalnızca uygulamaya kaydedebilir veya kaynak dosyalara yazabilirsiniz. <keep> içeren alanlar orijinal değerlerini korur.';
+      'Değişiklikler kaynak dosyalara yazılır; format yazılamıyorsa yalnızca uygulamaya kaydedilir. <keep> içeren alanlar orijinal değerlerini korur.';
 
   @override
   String get keepFieldHint =>
@@ -1501,6 +1501,11 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get multipleArtworkKeep => 'Ayrı kapakları koru';
+
+  @override
+  String tagSavePartiallyWritten(int written, int appOnly) {
+    return '$written tanesi kaynak dosyaya yazıldı, $appOnly tanesi yalnızca uygulamaya kaydedildi';
+  }
 
   @override
   String batchSongTagsSavedToApp(int count) {

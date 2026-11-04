@@ -297,8 +297,8 @@
   "tagsSavedCount": "Tags gespeichert ({count} Songs)",
   "tagsSaveFailed": "Fehler beim Speichern der Tags",
   "tagsSaveFailedCount": "Fehler beim Speichern von {count} Songs",
-  "unsupportedFormat": "{count} Songs haben ein nicht unterstütztes Format (OGG/Opus)",
-  "unsupportedFormatSingle": "Dieses Format (OGG/Opus) unterstützt das Speichern von Tags nicht",
+  "unsupportedFormat": "{count} Titel haben ein Format, das keine Tags schreiben kann",
+  "unsupportedFormatSingle": "Dieses Format unterstützt das Schreiben von Tags nicht",
   "savingTags": "Speichere Tags...",
   "noModifiedTagsToSave": "Keine geänderten Tags zu speichern",
   "clearPlaylist": "Liste leeren",
@@ -509,7 +509,7 @@
   "exportArtwork": "Cover exportieren",
   "exportArtworkSuccess": "Cover erfolgreich exportiert",
   "exportArtworkFailed": "Cover-Export fehlgeschlagen",
-  "editSongTagsDescription": "Änderungen können nur in der App oder auch in der Quelldatei gespeichert werden.",
+  "editSongTagsDescription": "Änderungen werden in die Quelldatei geschrieben; kann das Format nicht geschrieben werden, werden sie nur in der App gespeichert.",
   "artistLabel": "Künstler",
   "albumArtistLabel": "Album-Künstler",
   "albumLabel": "Album",
@@ -1952,8 +1952,19 @@
   "proxyHostPortInvalid": "Bitte geben Sie eine gültige Proxy-Adresse und einen gültigen Port ein",
   "addToMediaLibrary": "Zur Medienbibliothek hinzufügen",
   "addedToMediaLibrary": "Zur Medienbibliothek hinzugefügt, Scan läuft im Hintergrund...",
-  "batchEditSongTagsDescription": "Änderungen können nur in der App gespeichert oder in die Quelldateien geschrieben werden. Felder mit <keep> behalten ihren ursprünglichen Wert.",
+  "batchEditSongTagsDescription": "Änderungen werden in die Quelldateien geschrieben; kann ein Format nicht geschrieben werden, werden sie nur in der App gespeichert. Felder mit <keep> behalten ihren ursprünglichen Wert.",
   "batchEditSongTagsTitle": "Song-Tags stapelweise bearbeiten",
+  "tagSavePartiallyWritten": "{written} in Quelldateien geschrieben, {appOnly} nur in der App gespeichert",
+  "@tagSavePartiallyWritten": {
+    "placeholders": {
+      "written": {
+        "type": "int"
+      },
+      "appOnly": {
+        "type": "int"
+      }
+    }
+  },
   "batchSongTagsSavedToApp": "Tags für {count} Titel in App gespeichert",
   "batchSongTagsSavedToSourceFileAndApp": "Tags für {count} Titel in Quelldateien und App gespeichert",
   "copyPath": "Pfad kopieren",

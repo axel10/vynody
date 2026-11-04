@@ -923,12 +923,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String unsupportedFormat(Object count) {
-    return '$count songs have unsupported formats (OGG/Opus cannot be saved)';
+    return '$count songs have formats that do not support writing tags';
   }
 
   @override
   String get unsupportedFormatSingle =>
-      'This format (OGG/Opus) does not support saving tags';
+      'This format does not support writing tags';
 
   @override
   String get savingTags => 'Saving tags...';
@@ -1426,7 +1426,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editSongTagsDescription =>
-      'You can save changes only in the app, or write them back to the source file as well.';
+      'Changes are written back to the source file; if the format cannot be written, they are saved in the app only.';
 
   @override
   String get artistLabel => 'Artist';
@@ -1488,7 +1488,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get batchEditSongTagsDescription =>
-      'You can save changes only in the app, or write them back to source files. Fields with <keep> will retain their original values.';
+      'Changes are written back to source files; if a format cannot be written, they are saved in the app only. Fields with <keep> retain their original values.';
 
   @override
   String get keepFieldHint =>
@@ -1496,6 +1496,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get multipleArtworkKeep => 'Keep individual covers';
+
+  @override
+  String tagSavePartiallyWritten(int written, int appOnly) {
+    return 'Wrote $written to source files, saved $appOnly in the app only';
+  }
 
   @override
   String batchSongTagsSavedToApp(int count) {

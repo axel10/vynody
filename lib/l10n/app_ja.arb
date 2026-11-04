@@ -297,8 +297,8 @@
   "tagsSavedCount": "タグを保存しました（{count}曲）",
   "tagsSaveFailed": "タグの保存に失敗しました",
   "tagsSaveFailedCount": "{count}曲の保存に失敗しました",
-  "unsupportedFormat": "{count}曲は未対応フォーマットです（OGG/Opusは保存不可）",
-  "unsupportedFormatSingle": "このフォーマット（OGG/Opus）はタグの保存に対応していません",
+  "unsupportedFormat": "{count} 曲はタグを書き込めない形式です",
+  "unsupportedFormatSingle": "このフォーマットはタグの書き込みに対応していません",
   "savingTags": "タグを保存中...",
   "noModifiedTagsToSave": "保存する変更済みタグはありません",
   "clearPlaylist": "リストをクリア",
@@ -509,7 +509,7 @@
   "exportArtwork": "カバーをエクスポート",
   "exportArtworkSuccess": "カバーをエクスポートしました",
   "exportArtworkFailed": "カバーのエクスポートに失敗しました",
-  "editSongTagsDescription": "変更内容はアプリ内のみに保存するか、ソースファイルにも書き戻すことができます。",
+  "editSongTagsDescription": "変更内容はソースファイルに書き戻されます。書き込めない形式の場合はアプリ内にのみ保存されます。",
   "artistLabel": "アーティスト",
   "albumArtistLabel": "アルバムアーティスト",
   "albumLabel": "アルバム",
@@ -2051,8 +2051,19 @@
   "proxyHostPortInvalid": "有効なプロキシアドレスとポートを入力してください",
   "addToMediaLibrary": "メディアライブラリに追加",
   "addedToMediaLibrary": "メディアライブラリに追加しました。バックグラウンドでスキャン中...",
-  "batchEditSongTagsDescription": "変更はアプリ内のみに保存するか、元ファイルに書き戻すことができます。<keep> のフィールドは元の値を保持します。",
+  "batchEditSongTagsDescription": "変更内容はソースファイルに書き戻されます。書き込めない形式の場合はアプリ内にのみ保存されます。<keep> のフィールドは元の値を保持します。",
   "batchEditSongTagsTitle": "楽曲タグの一括編集",
+  "tagSavePartiallyWritten": "{written} 曲をソースファイルに書き戻し、{appOnly} 曲はアプリ内にのみ保存しました",
+  "@tagSavePartiallyWritten": {
+    "placeholders": {
+      "written": {
+        "type": "int"
+      },
+      "appOnly": {
+        "type": "int"
+      }
+    }
+  },
   "batchSongTagsSavedToApp": "{count} 曲のタグをアプリに保存しました",
   "batchSongTagsSavedToSourceFileAndApp": "{count} 曲のタグを元ファイルとアプリに保存しました",
   "copyPath": "パスをコピー",

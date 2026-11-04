@@ -297,8 +297,8 @@
   "tagsSavedCount": "Etiquetas guardadas ({count} canciones)",
   "tagsSaveFailed": "Error al guardar etiquetas",
   "tagsSaveFailedCount": "Error al guardar {count} canciones",
-  "unsupportedFormat": "{count} canciones tienen formato no compatible (OGG/Opus no permite guardar etiquetas)",
-  "unsupportedFormatSingle": "Este formato (OGG/Opus) no admite guardar etiquetas",
+  "unsupportedFormat": "{count} canciones tienen un formato que no admite escribir etiquetas",
+  "unsupportedFormatSingle": "Este formato no admite escribir etiquetas",
   "savingTags": "Guardando etiquetas...",
   "noModifiedTagsToSave": "No hay etiquetas modificadas para guardar",
   "clearPlaylist": "Vaciar lista",
@@ -509,7 +509,7 @@
   "exportArtwork": "Exportar carátula",
   "exportArtworkSuccess": "Carátula exportada correctamente",
   "exportArtworkFailed": "Error al exportar carátula",
-  "editSongTagsDescription": "Puedes guardar los cambios solo en la app o también escribirlos en el archivo fuente.",
+  "editSongTagsDescription": "Los cambios se escriben en el archivo de origen; si el formato no se puede escribir, se guardan solo en la app.",
   "artistLabel": "Artista",
   "albumArtistLabel": "Artista del álbum",
   "albumLabel": "Álbum",
@@ -1952,8 +1952,19 @@
   "proxyHostPortInvalid": "Ingresa una dirección de proxy y un puerto válidos",
   "addToMediaLibrary": "Añadir a la biblioteca multimedia",
   "addedToMediaLibrary": "Añadido a la biblioteca multimedia, escaneando en segundo plano...",
-  "batchEditSongTagsDescription": "Puede guardar cambios solo en la app o escribirlos en los archivos de origen. Los campos con <keep> conservarán sus valores originales.",
+  "batchEditSongTagsDescription": "Los cambios se escriben en los archivos de origen; si un formato no se puede escribir, se guardan solo en la app. Los campos con <keep> conservan sus valores originales.",
   "batchEditSongTagsTitle": "Edición por lotes de etiquetas",
+  "tagSavePartiallyWritten": "{written} escritas en los archivos de origen, {appOnly} guardadas solo en la app",
+  "@tagSavePartiallyWritten": {
+    "placeholders": {
+      "written": {
+        "type": "int"
+      },
+      "appOnly": {
+        "type": "int"
+      }
+    }
+  },
   "batchSongTagsSavedToApp": "Etiquetas guardadas para {count} canciones en la app",
   "batchSongTagsSavedToSourceFileAndApp": "Etiquetas guardadas para {count} canciones en archivos de origen y app",
   "copyPath": "Copiar ruta",

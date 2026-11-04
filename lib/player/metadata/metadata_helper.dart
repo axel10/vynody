@@ -70,22 +70,74 @@ Uint8List? selectThemeColorsBlob({
   return incoming ?? existing;
 }
 
-/// Supported file extensions for writing metadata
+/// 能写回的扩展名：只列 flutter_taglib（TagLib 2.x）真正有 `save()` 的容器。
+///
+/// 判据是 `audio_core/flutter_taglib/src/taglib_config.h` 打开的模块，不是
+/// 「以前手写过几个」。清单窄了会把本来能写的格式挡在门外：界面上的
+/// 「保存到源文件和 App」直接置灰，右键「保存到文件」也点不动。
+///
+/// 有意不在清单里的（TagLib 连解析器都没有，读写都不行）：
+/// `.aac`（裸 ADTS 流）、`.caf`、`.dff`（DSF 才有扩展支持）、`.mid` / `.midi`
+/// （MOD 模块是只读属性）、`.m4p`（DRM 保护）。
 const Set<String> writableMetadataExtensions = {
-  '.mp3',
-  '.m4a',
+  '.mp3', // MPEG (ID3v2 / APE)
+  '.m4a', // MP4
+  '.m4b',
   '.mp4',
+  '.alac', // 实际是 MP4 容器，靠内容嗅探识别
   '.flac',
-  '.wav',
+  '.ogg', // Ogg Vorbis / FLAC / Speex
+  '.opus',
+  '.wav', // RIFF
+  '.aif', // RIFF::AIFF
+  '.aiff',
+  '.ape', // Monkey's Audio
+  '.dsf', // DSD Stream File
+  '.webm', // Matroska
 };
-
-/// Unsupported file extensions (OGG, Opus, etc.)
-const Set<String> unsupportedMetadataExtensions = {'.ogg', '.opus'};
 
 /// Checks if a file extension supports writing metadata
 bool isMetadataWritable(String filePath) {
   final ext = p.extension(filePath).toLowerCase();
   return writableMetadataExtensions.contains(ext);
+}
+
+/// 写回源文件失败时降级为「仅保存到 App」的原因。界面据此给出不同提示。
+enum TagWriteFallback {
+  /// 写回成功，或调用方本来就只要 App 内保存。
+  none,
+
+  /// 当前格式 TagLib 没有写入能力，一开始就没尝试写文件。
+  unsupportedFormat,
+
+  /// 文件被其他 App 占用（Android 上常见：媒体扫描器 / 播放器持有写锁）。
+  fileOccupied,
+
+  /// 其它写入错误：只读挂载、权限不足、磁盘满等。
+  writeFailed,
+}
+
+/// `saveSelectedSongMetadata` 的结果。
+///
+/// 为什么不是 `(SongMetadata, Uint8List?)` 元组：界面必须知道这一条到底
+/// **写进文件了没有**。只回元组时，调用方只能拿「我请求了写文件」当结论，
+/// 批量编辑里混着不可写的格式就会误报「已保存到源文件和 App」。
+class SelectedMetadataSaveResult {
+  const SelectedMetadataSaveResult({
+    required this.metadata,
+    required this.artworkBytes,
+    required this.wroteToFile,
+    this.fallback = TagWriteFallback.none,
+  });
+
+  final SongMetadata metadata;
+  final Uint8List? artworkBytes;
+
+  /// 本次是否真的把标签写进了音频文件。
+  final bool wroteToFile;
+
+  /// 请求写文件但失败时，降级为 App 内保存的原因。
+  final TagWriteFallback fallback;
 }
 
 /// Result of saving metadata to file
@@ -339,7 +391,7 @@ class MetadataHelper {
     }
   }
 
-  static Future<(SongMetadata, Uint8List?)?> saveSelectedSongMetadata({
+  static Future<SelectedMetadataSaveResult?> saveSelectedSongMetadata({
     required String filePath,
     required String title,
     required String artist,
@@ -366,6 +418,12 @@ class MetadataHelper {
     Uint8List? artworkThemeColors,
     SongMetadata? existingMetadata,
     bool writeToFile = true,
+
+    /// 写回源文件失败时是否退而求其次、只把修改存进数据库。
+    ///
+    /// 编辑标签弹窗把它置 true：格式不被 TagLib 支持、文件被别的 App 占着、
+    /// 只读挂载这些情况下，用户至少不会「点了保存什么都没发生」。
+    bool fallbackToAppOnWriteFailure = false,
     String? fallbackMediaUri,
   }) async {
     try {
@@ -439,7 +497,11 @@ class MetadataHelper {
           songPath: filePath,
           data: artworkBytes,
           supportDirPath: supportDir.path,
-          saveLarge: !writeToFile,
+          // 写回源文件时大图已经进了音频文件，App 目录只需要缩略图。
+          // 但允许降级的调用方（编辑弹窗）可能在最后一步写失败，那种情况下
+          // 文件里没有新封面，只留缩略图会让播放页大封面变成一张糊图——
+          // 所以这条路径统一留大图，代价是每首改过封面的歌多一份本地副本。
+          saveLarge: !writeToFile || fallbackToAppOnWriteFailure,
         );
 
         if (artworkInfo != null) {
@@ -524,6 +586,9 @@ class MetadataHelper {
       final yearChanged =
           clearYear || (year != null && year != base.year);
 
+      var wroteToFile = false;
+      var fallback = TagWriteFallback.none;
+
       if (writeToFile) {
         final fileUpdated = await _writeSelectionMetadataToFile(
           filePath: filePath,
@@ -536,20 +601,35 @@ class MetadataHelper {
           clearGenres: clearGenres,
         );
 
-        if (!fileUpdated) {
+        if (fileUpdated) {
+          wroteToFile = true;
+          final mtime = File(filePath).lastModifiedSync().millisecondsSinceEpoch;
+          updated = updated.copyWith(
+            lastModifiedTime: mtime,
+            createdAt: mtime,
+            isAppModified: false,
+          );
+        } else if (fallbackToAppOnWriteFailure) {
+          // 写不进文件也要让修改活下来：降级成「仅保存到 App」，原因交给界面讲。
+          // 这里特意不把 `isAppModified` 清掉——库里和文件确实不一致，
+          // 之后「保存到文件」还应该能重试。
+          fallback = !isMetadataWritable(filePath)
+              ? TagWriteFallback.unsupportedFormat
+              : (lastWriteError == 'file_occupied'
+                    ? TagWriteFallback.fileOccupied
+                    : TagWriteFallback.writeFailed);
+        } else {
           return null;
         }
-
-        final mtime = File(filePath).lastModifiedSync().millisecondsSinceEpoch;
-        updated = updated.copyWith(
-          lastModifiedTime: mtime,
-          createdAt: mtime,
-          isAppModified: false,
-        );
       }
 
       await db.insertOrUpdateSong(updated);
-      return (updated, artworkBytes);
+      return SelectedMetadataSaveResult(
+        metadata: updated,
+        artworkBytes: artworkBytes,
+        wroteToFile: wroteToFile,
+        fallback: fallback,
+      );
     } catch (e) {
       debugPrint('Error saving selected metadata for $filePath: $e');
       return null;

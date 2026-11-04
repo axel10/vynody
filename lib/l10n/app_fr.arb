@@ -297,8 +297,8 @@
   "tagsSavedCount": "Étiquettes sauvegardées ({count} chansons)",
   "tagsSaveFailed": "Échec de la sauvegarde des étiquettes",
   "tagsSaveFailedCount": "Échec de la sauvegarde de {count} chansons",
-  "unsupportedFormat": "{count} chansons ont un format non pris en charge (OGG/Opus)",
-  "unsupportedFormatSingle": "Ce format (OGG/Opus) ne prend pas en charge la sauvegarde des étiquettes",
+  "unsupportedFormat": "{count} morceaux ont un format qui ne permet pas d'écrire les étiquettes",
+  "unsupportedFormatSingle": "Ce format ne prend pas en charge l'écriture des étiquettes",
   "savingTags": "Sauvegarde des étiquettes...",
   "noModifiedTagsToSave": "Aucune étiquette modifiée à sauvegarder",
   "clearPlaylist": "Vider la liste",
@@ -509,7 +509,7 @@
   "exportArtwork": "Exporter la pochette",
   "exportArtworkSuccess": "Pochette exportée avec succès",
   "exportArtworkFailed": "Échec de l'exportation de la pochette",
-  "editSongTagsDescription": "Vous pouvez sauvegarder les modifications uniquement dans l'application ou les écrire dans le fichier source.",
+  "editSongTagsDescription": "Les modifications sont écrites dans le fichier source ; si le format ne le permet pas, elles sont enregistrées uniquement dans l'application.",
   "artistLabel": "Artiste",
   "albumArtistLabel": "Artiste de l'album",
   "albumLabel": "Album",
@@ -1952,8 +1952,19 @@
   "proxyHostPortInvalid": "Veuillez entrer une adresse et un port de proxy valides",
   "addToMediaLibrary": "Ajouter à la bibliothèque multimédia",
   "addedToMediaLibrary": "Ajouté à la bibliothèque multimédia, analyse en arrière-plan...",
-  "batchEditSongTagsDescription": "Vous pouvez enregistrer les modifications uniquement dans l'application ou les réécrire dans les fichiers source. Les champs avec <keep> conservent leurs valeurs.",
+  "batchEditSongTagsDescription": "Les modifications sont écrites dans les fichiers source ; si un format ne le permet pas, elles sont enregistrées uniquement dans l'application. Les champs avec <keep> conservent leurs valeurs.",
   "batchEditSongTagsTitle": "Modifier les balises par lot",
+  "tagSavePartiallyWritten": "{written} écrites dans les fichiers source, {appOnly} enregistrées dans l'application uniquement",
+  "@tagSavePartiallyWritten": {
+    "placeholders": {
+      "written": {
+        "type": "int"
+      },
+      "appOnly": {
+        "type": "int"
+      }
+    }
+  },
   "batchSongTagsSavedToApp": "Balises enregistrées pour {count} morceaux dans l'application",
   "batchSongTagsSavedToSourceFileAndApp": "Balises enregistrées pour {count} morceaux dans les fichiers source et l'application",
   "copyPath": "Copier le chemin",

@@ -934,12 +934,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String unsupportedFormat(Object count) {
-    return '$count chansons ont un format non pris en charge (OGG/Opus)';
+    return '$count morceaux ont un format qui ne permet pas d\'écrire les étiquettes';
   }
 
   @override
   String get unsupportedFormatSingle =>
-      'Ce format (OGG/Opus) ne prend pas en charge la sauvegarde des étiquettes';
+      'Ce format ne prend pas en charge l\'écriture des étiquettes';
 
   @override
   String get savingTags => 'Sauvegarde des étiquettes...';
@@ -1444,7 +1444,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get editSongTagsDescription =>
-      'Vous pouvez sauvegarder les modifications uniquement dans l\'application ou les écrire dans le fichier source.';
+      'Les modifications sont écrites dans le fichier source ; si le format ne le permet pas, elles sont enregistrées uniquement dans l\'application.';
 
   @override
   String get artistLabel => 'Artiste';
@@ -1510,7 +1510,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get batchEditSongTagsDescription =>
-      'Vous pouvez enregistrer les modifications uniquement dans l\'application ou les réécrire dans les fichiers source. Les champs avec <keep> conservent leurs valeurs.';
+      'Les modifications sont écrites dans les fichiers source ; si un format ne le permet pas, elles sont enregistrées uniquement dans l\'application. Les champs avec <keep> conservent leurs valeurs.';
 
   @override
   String get keepFieldHint =>
@@ -1518,6 +1518,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get multipleArtworkKeep => 'Conserver les pochettes individuelles';
+
+  @override
+  String tagSavePartiallyWritten(int written, int appOnly) {
+    return '$written écrites dans les fichiers source, $appOnly enregistrées dans l\'application uniquement';
+  }
 
   @override
   String batchSongTagsSavedToApp(int count) {

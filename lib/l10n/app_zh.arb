@@ -865,8 +865,8 @@
   "tagsSavedCount": "标签已保存 ({count} 首)",
   "tagsSaveFailed": "保存标签失败",
   "tagsSaveFailedCount": "{count} 首保存失败",
-  "unsupportedFormat": "{count} 首歌曲格式不支持保存标签 (OGG/Opus)",
-  "unsupportedFormatSingle": "此格式 (OGG/Opus) 不支持保存标签",
+  "unsupportedFormat": "{count} 首歌曲的格式不支持写入标签",
+  "unsupportedFormatSingle": "此格式不支持写入标签",
   "savingTags": "正在保存标签...",
   "noModifiedTagsToSave": "没有需要保存的已修改标签",
   "clearPlaylist": "清空列表",
@@ -1085,7 +1085,7 @@
   "exportArtwork": "导出封面",
   "exportArtworkSuccess": "封面已成功导出",
   "exportArtworkFailed": "导出封面失败",
-  "editSongTagsDescription": "修改后可以只保存到 App，也可以同步写回源文件。",
+  "editSongTagsDescription": "修改后会写回源文件；当前格式无法写入时自动保存到 App。",
   "artistLabel": "艺术家",
   "albumArtistLabel": "专辑艺术家",
   "albumLabel": "专辑",
@@ -1116,9 +1116,20 @@
   "fileOccupiedByOtherApp": "文件被其他 App 占用，无法写入",
   "saveFailed": "保存失败，请稍后重试",
   "batchEditSongTagsTitle": "批量编辑歌曲标签",
-  "batchEditSongTagsDescription": "修改后可以只保存到 App，也可以同步写回源文件。值为 <keep> 的字段将保持原值。",
+  "batchEditSongTagsDescription": "修改后会写回源文件；当前格式无法写入时自动保存到 App。值为 <keep> 的字段将保持原值。",
   "keepFieldHint": "提示：值为 <keep> 的属性将保留每首歌曲的原值",
   "multipleArtworkKeep": "保留各歌曲原封面",
+  "tagSavePartiallyWritten": "已将 {written} 首写回源文件，{appOnly} 首仅保存到 App",
+  "@tagSavePartiallyWritten": {
+    "placeholders": {
+      "written": {
+        "type": "int"
+      },
+      "appOnly": {
+        "type": "int"
+      }
+    }
+  },
   "batchSongTagsSavedToApp": "已将 {count} 首歌曲标签保存到 App",
   "@batchSongTagsSavedToApp": {
     "placeholders": {

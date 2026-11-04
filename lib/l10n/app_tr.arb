@@ -369,8 +369,8 @@
   "tagsSavedCount": "Etiketler kaydedildi ({count} şarkı)",
   "tagsSaveFailed": "Etiketler kaydedilemedi",
   "tagsSaveFailedCount": "{count} şarkı kaydedilemedi",
-  "unsupportedFormat": "{count} şarkı etiket kaydetmeyi desteklemiyor (OGG/Opus)",
-  "unsupportedFormatSingle": "Bu ses formatı etiket kaydetmeyi desteklemiyor (OGG/Opus)",
+  "unsupportedFormat": "{count} şarkının formatı etiket yazmayı desteklemiyor",
+  "unsupportedFormatSingle": "Bu format etiket yazmayı desteklemiyor",
   "savingTags": "Etiketler kaydediliyor...",
   "noModifiedTagsToSave": "Kaydedilecek değiştirilmiş etiket yok",
   "clearPlaylist": "Çalma Listesini Temizle",
@@ -581,7 +581,7 @@
   "exportArtwork": "Kapağı Dışa Aktar",
   "exportArtworkSuccess": "Kapak başarıyla dışa aktarıldı",
   "exportArtworkFailed": "Kapak dışa aktarılamadı",
-  "editSongTagsDescription": "Değişiklikleri yalnızca uygulamaya kaydedebilir veya kaynak ses dosyasına da yazabilirsiniz.",
+  "editSongTagsDescription": "Değişiklikler kaynak dosyaya yazılır; format yazılamıyorsa yalnızca uygulamaya kaydedilir.",
   "artistLabel": "Sanatçı",
   "albumArtistLabel": "Albüm Sanatçısı",
   "albumLabel": "Albüm",
@@ -2084,8 +2084,19 @@
   "proxyHostPortInvalid": "Lütfen geçerli bir proxy adresi ve bağlantı noktası girin",
   "addToMediaLibrary": "Medya Kitaplığına Ekle",
   "addedToMediaLibrary": "Medya kitaplığına eklendi, arka planda taranıyor...",
-  "batchEditSongTagsDescription": "Değişiklikleri yalnızca uygulamaya kaydedebilir veya kaynak dosyalara yazabilirsiniz. <keep> içeren alanlar orijinal değerlerini korur.",
+  "batchEditSongTagsDescription": "Değişiklikler kaynak dosyalara yazılır; format yazılamıyorsa yalnızca uygulamaya kaydedilir. <keep> içeren alanlar orijinal değerlerini korur.",
   "batchEditSongTagsTitle": "Şarkı Etiketlerini Toplu Düzenle",
+  "tagSavePartiallyWritten": "{written} tanesi kaynak dosyaya yazıldı, {appOnly} tanesi yalnızca uygulamaya kaydedildi",
+  "@tagSavePartiallyWritten": {
+    "placeholders": {
+      "written": {
+        "type": "int"
+      },
+      "appOnly": {
+        "type": "int"
+      }
+    }
+  },
   "batchSongTagsSavedToApp": "{count} şarkının etiketi uygulamaya kaydedildi",
   "batchSongTagsSavedToSourceFileAndApp": "{count} şarkının etiketi kaynak dosyalara ve uygulamaya kaydedildi",
   "copyPath": "Yolu Kopyala",

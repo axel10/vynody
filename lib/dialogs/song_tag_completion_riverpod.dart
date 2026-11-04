@@ -194,7 +194,7 @@ class SongTagCompletionController extends ChangeNotifier {
         throw StateError(_l10n().writeTagDatabaseFailed);
       }
 
-      final updated = saved.$1;
+      final updated = saved.metadata;
       final resolvedCover = coverLargeUrl != null || coverThumbnailUrl != null
           ? ResolvedCover(
               endpoint: releaseId != null ? 'release' : 'release-group',

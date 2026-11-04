@@ -1130,18 +1130,7 @@ Future<void> handleSongAction({
             );
           }
 
-          final count = items.length;
-          final String message;
-          if (count > 1) {
-            message = result.savedToSourceFile
-                ? l10n.batchSongTagsSavedToSourceFileAndApp(count)
-                : l10n.batchSongTagsSavedToApp(count);
-          } else {
-            message = result.savedToSourceFile
-                ? l10n.songTagsSavedToSourceFileAndApp
-                : l10n.songTagsSavedToApp;
-          }
-          showToast(message);
+          showToast(songTagEditResultMessage(l10n, result));
         }
       }
       break;

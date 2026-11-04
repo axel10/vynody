@@ -907,11 +907,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String unsupportedFormat(Object count) {
-    return '$count曲は未対応フォーマットです（OGG/Opusは保存不可）';
+    return '$count 曲はタグを書き込めない形式です';
   }
 
   @override
-  String get unsupportedFormatSingle => 'このフォーマット（OGG/Opus）はタグの保存に対応していません';
+  String get unsupportedFormatSingle => 'このフォーマットはタグの書き込みに対応していません';
 
   @override
   String get savingTags => 'タグを保存中...';
@@ -1395,7 +1395,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get editSongTagsDescription =>
-      '変更内容はアプリ内のみに保存するか、ソースファイルにも書き戻すことができます。';
+      '変更内容はソースファイルに書き戻されます。書き込めない形式の場合はアプリ内にのみ保存されます。';
 
   @override
   String get artistLabel => 'アーティスト';
@@ -1456,13 +1456,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get batchEditSongTagsDescription =>
-      '変更はアプリ内のみに保存するか、元ファイルに書き戻すことができます。<keep> のフィールドは元の値を保持します。';
+      '変更内容はソースファイルに書き戻されます。書き込めない形式の場合はアプリ内にのみ保存されます。<keep> のフィールドは元の値を保持します。';
 
   @override
   String get keepFieldHint => 'ヒント: <keep> の属性は各曲の元の値を保持します';
 
   @override
   String get multipleArtworkKeep => '各曲の元のカバーを保持';
+
+  @override
+  String tagSavePartiallyWritten(int written, int appOnly) {
+    return '$written 曲をソースファイルに書き戻し、$appOnly 曲はアプリ内にのみ保存しました';
+  }
 
   @override
   String batchSongTagsSavedToApp(int count) {

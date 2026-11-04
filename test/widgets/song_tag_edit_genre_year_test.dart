@@ -75,7 +75,7 @@ void main() {
     await tester.enterText(yearField, '20x9');
     await tester.pump();
 
-    await tester.tap(find.text('保存到 App'));
+    await tester.tap(find.widgetWithText(FilledButton, '保存'));
     await tester.pump();
 
     expect(find.text('年份必须是整数'), findsOneWidget);

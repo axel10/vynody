@@ -23,15 +23,66 @@ const String keepTagPlaceholder = '<keep>';
 class SongTagEditResult {
   const SongTagEditResult({
     required this.metadata,
-    required this.savedToSourceFile,
     this.artworkBytes,
     this.allUpdatedMetadata = const [],
+    this.writtenToFileCount = 0,
+    this.appOnlyCount = 0,
+    this.fallback = TagWriteFallback.none,
   });
 
   final SongMetadata metadata;
-  final bool savedToSourceFile;
   final Uint8List? artworkBytes;
   final List<(SongMetadata, Uint8List?)> allUpdatedMetadata;
+
+  /// 真正写回源文件的条数。
+  final int writtenToFileCount;
+
+  /// 只保存到 App 的条数：格式不支持、文件被占用、或写回失败后降级。
+  final int appOnlyCount;
+
+  /// 降级原因，只记第一条，用于提示文案。
+  final TagWriteFallback fallback;
+
+  int get totalCount => writtenToFileCount + appOnlyCount;
+
+  /// 全部写回成功。批量里混着不可写的格式时为 false，不能再报「已保存到源文件」。
+  bool get savedToSourceFile => appOnlyCount == 0;
+}
+
+/// 保存结果 → 提示文案。
+///
+/// 播放页、右键菜单、批量编辑共用这一处：以前三处各自拿
+/// 「我请求了写文件」当结论，批量里混着 `.mid`/`.aac` 这种写不了的格式时
+/// 会一律提示「已保存到源文件和 App」，与实际不符。
+String songTagEditResultMessage(
+  AppLocalizations l10n,
+  SongTagEditResult result,
+) {
+  final int written = result.writtenToFileCount;
+  final int appOnly = result.appOnlyCount;
+  final int total = result.totalCount;
+
+  final String base;
+  if (appOnly == 0) {
+    return total > 1
+        ? l10n.batchSongTagsSavedToSourceFileAndApp(total)
+        : l10n.songTagsSavedToSourceFileAndApp;
+  }
+  if (written == 0) {
+    base = total > 1
+        ? l10n.batchSongTagsSavedToApp(total)
+        : l10n.songTagsSavedToApp;
+  } else {
+    base = l10n.tagSavePartiallyWritten(written, appOnly);
+  }
+
+  final String? reason = switch (result.fallback) {
+    TagWriteFallback.none => null,
+    TagWriteFallback.unsupportedFormat => l10n.currentFileFormatCannotWriteBack,
+    TagWriteFallback.fileOccupied => l10n.fileOccupiedByOtherApp,
+    TagWriteFallback.writeFailed => l10n.saveToSourceFileFailed,
+  };
+  return reason == null ? base : '$base\n$reason';
 }
 
 Future<SongTagEditResult?> showSongTagEditSheet(
@@ -79,17 +130,7 @@ Future<void> applySongTagEditResult(
     );
   }
 
-  final count = items.length;
-  final String message;
-  if (count > 1) {
-    message = result.savedToSourceFile
-        ? l10n.batchSongTagsSavedToSourceFileAndApp(count)
-        : l10n.batchSongTagsSavedToApp(count);
-  } else {
-    message = result.savedToSourceFile
-        ? l10n.songTagsSavedToSourceFileAndApp
-        : l10n.songTagsSavedToApp;
-  }
+  final message = songTagEditResultMessage(l10n, result);
   if (!context.mounted) return;
   AppSnackBar.show(context, ref, SnackBar(content: Text(message)));
 }
@@ -572,7 +613,13 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     super.dispose();
   }
 
-  Future<void> _save({required bool writeToFile}) async {
+  /// 单一保存入口。
+  ///
+  /// 以前是两个按钮（「保存到 App」/「保存到源文件和 App」），让用户自己判断
+  /// 当前格式能不能写。既然 flutter_taglib 已经覆盖绝大多数容器，判断交给
+  /// `isMetadataWritable` 就够了：能写就写回，写不了（格式不支持、文件被占用、
+  /// 只读挂载）自动降级成「仅保存到 App」，再用提示说清是哪一种。
+  Future<void> _save() async {
     if (_isSaving || widget.effectiveSongs.isEmpty) return;
     final l10n = AppLocalizations.of(context)!;
 
@@ -630,6 +677,9 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     final isAlbumKeep = albumText == keepTagPlaceholder;
 
     final updatedResults = <(SongMetadata, Uint8List?)>[];
+    var writtenCount = 0;
+    var appOnlyCount = 0;
+    var fallback = TagWriteFallback.none;
     String? firstFailureReason;
     bool hasOccupiedError = false;
 
@@ -653,7 +703,9 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       final resolvedAlbum =
           isAlbumKeep ? (song.album?.trim() ?? '') : albumText;
 
-      final canWriteThisFile = writeToFile && isMetadataWritable(song.path);
+      // 只管「能写就写」：写不进去由 saveSelectedSongMetadata 降级，
+      // 这里不需要再分出一个「只保存到 App」的入口。
+      final canWriteThisFile = isMetadataWritable(song.path);
 
       final result = await MetadataHelper.saveSelectedSongMetadata(
         filePath: song.path,
@@ -670,15 +722,26 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
         artworkBytes: _isArtworkModified ? _artworkBytes : null,
         existingMetadata: null,
         writeToFile: canWriteThisFile,
+        fallbackToAppOnWriteFailure: true,
         fallbackMediaUri: song.mediaUri,
       );
 
       if (result != null) {
         updatedResults.add((
-          result.$1,
-          result.$2 ??
+          result.metadata,
+          result.artworkBytes ??
               (_isArtworkModified ? _artworkBytes : song.artworkBytes),
         ));
+        if (result.wroteToFile) {
+          writtenCount++;
+        } else {
+          appOnlyCount++;
+          if (fallback == TagWriteFallback.none) {
+            fallback = canWriteThisFile
+                ? result.fallback
+                : TagWriteFallback.unsupportedFormat;
+          }
+        }
       } else {
         final reason = MetadataHelper.lastWriteError;
         if (reason == 'file_occupied') {
@@ -694,12 +757,9 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       }
       setState(() {
         _isSaving = false;
-        _errorMessage = writeToFile
-            ? (hasOccupiedError
-                ? l10n.fileOccupiedByOtherApp
-                : (firstFailureReason != null
-                    ? '${l10n.saveToSourceFileFailed}\n($firstFailureReason)'
-                    : l10n.saveToSourceFileFailed))
+        // 能走到这里说明连数据库都没写进去（写文件失败已经降级成 App 内保存了）。
+        _errorMessage = hasOccupiedError
+            ? l10n.fileOccupiedByOtherApp
             : (firstFailureReason != null
                 ? '${l10n.saveFailed}\n($firstFailureReason)'
                 : l10n.saveFailed);
@@ -712,8 +772,10 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       SongTagEditResult(
         metadata: updatedResults.first.$1,
         artworkBytes: updatedResults.first.$2,
-        savedToSourceFile: writeToFile,
         allUpdatedMetadata: updatedResults,
+        writtenToFileCount: writtenCount,
+        appOnlyCount: appOnlyCount,
+        fallback: fallback,
       ),
     );
   }
@@ -1057,19 +1119,8 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        FilledButton.tonal(
-                          onPressed: _isSaving || hasRemote
-                              ? null
-                              : () => _save(writeToFile: false),
-                          child: Text(l10n.saveToApp),
-                        ),
-                        const SizedBox(height: 10),
                         FilledButton(
-                          onPressed: _isSaving ||
-                                  !canWriteToSourceFile ||
-                                  hasRemote
-                              ? null
-                              : () => _save(writeToFile: true),
+                          onPressed: _isSaving || hasRemote ? null : _save,
                           child: _isSaving
                               ? const SizedBox(
                                   width: 18,
@@ -1078,7 +1129,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : Text(l10n.saveToSourceFileAndApp),
+                              : Text(l10n.save),
                         ),
                       ],
                     ),

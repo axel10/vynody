@@ -280,8 +280,8 @@
   "tagsSavedCount": "標籤已儲存（{count} 首）",
   "tagsSaveFailed": "儲存標籤失敗",
   "tagsSaveFailedCount": "{count} 首儲存失敗",
-  "unsupportedFormat": "{count} 首歌曲格式不支援儲存標籤（OGG/Opus）",
-  "unsupportedFormatSingle": "此格式（OGG/Opus）不支援儲存標籤",
+  "unsupportedFormat": "{count} 首歌曲的格式不支援寫入標籤",
+  "unsupportedFormatSingle": "此格式不支援寫入標籤",
   "savingTags": "正在儲存標籤...",
   "noModifiedTagsToSave": "沒有需要儲存的已修改標籤",
   "clearPlaylist": "清空清單",
@@ -435,7 +435,7 @@
   "exportArtwork": "匯出封面",
   "exportArtworkSuccess": "封面已成功匯出",
   "exportArtworkFailed": "匯出封面失敗",
-  "editSongTagsDescription": "修改後可以只儲存到 App，也可以同步寫回來源檔案。",
+  "editSongTagsDescription": "修改後會寫回來源檔案；目前格式無法寫入時自動儲存到 App。",
   "artistLabel": "藝術家",
   "albumArtistLabel": "專輯藝術家",
   "albumLabel": "專輯",
@@ -451,9 +451,20 @@
   "saveToApp": "儲存到 App",
   "saveFailed": "儲存失敗，請稍後重試",
   "batchEditSongTagsTitle": "批量編輯歌曲標籤",
-  "batchEditSongTagsDescription": "修改後可以只儲存到 App，也可以同步寫回來源檔案。值為 <keep> 的欄位將保持原值。",
+  "batchEditSongTagsDescription": "修改後會寫回來源檔案；目前格式無法寫入時自動儲存到 App。值為 <keep> 的欄位將保持原值。",
   "keepFieldHint": "提示：值為 <keep> 的屬性將保留每首歌曲的原值",
   "multipleArtworkKeep": "保留各歌曲原封面",
+  "tagSavePartiallyWritten": "已將 {written} 首寫回來源檔案，{appOnly} 首僅儲存到 App",
+  "@tagSavePartiallyWritten": {
+    "placeholders": {
+      "written": {
+        "type": "int"
+      },
+      "appOnly": {
+        "type": "int"
+      }
+    }
+  },
   "batchSongTagsSavedToApp": "已將 {count} 首歌曲標籤儲存到 App",
   "@batchSongTagsSavedToApp": {
     "placeholders": {

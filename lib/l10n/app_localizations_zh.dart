@@ -898,11 +898,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String unsupportedFormat(Object count) {
-    return '$count 首歌曲格式不支持保存标签 (OGG/Opus)';
+    return '$count 首歌曲的格式不支持写入标签';
   }
 
   @override
-  String get unsupportedFormatSingle => '此格式 (OGG/Opus) 不支持保存标签';
+  String get unsupportedFormatSingle => '此格式不支持写入标签';
 
   @override
   String get savingTags => '正在保存标签...';
@@ -1383,7 +1383,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportArtworkFailed => '导出封面失败';
 
   @override
-  String get editSongTagsDescription => '修改后可以只保存到 App，也可以同步写回源文件。';
+  String get editSongTagsDescription => '修改后会写回源文件；当前格式无法写入时自动保存到 App。';
 
   @override
   String get artistLabel => '艺术家';
@@ -1441,13 +1441,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get batchEditSongTagsDescription =>
-      '修改后可以只保存到 App，也可以同步写回源文件。值为 <keep> 的字段将保持原值。';
+      '修改后会写回源文件；当前格式无法写入时自动保存到 App。值为 <keep> 的字段将保持原值。';
 
   @override
   String get keepFieldHint => '提示：值为 <keep> 的属性将保留每首歌曲的原值';
 
   @override
   String get multipleArtworkKeep => '保留各歌曲原封面';
+
+  @override
+  String tagSavePartiallyWritten(int written, int appOnly) {
+    return '已将 $written 首写回源文件，$appOnly 首仅保存到 App';
+  }
 
   @override
   String batchSongTagsSavedToApp(int count) {
@@ -6437,11 +6442,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String unsupportedFormat(Object count) {
-    return '$count 首歌曲格式不支援儲存標籤（OGG/Opus）';
+    return '$count 首歌曲的格式不支援寫入標籤';
   }
 
   @override
-  String get unsupportedFormatSingle => '此格式（OGG/Opus）不支援儲存標籤';
+  String get unsupportedFormatSingle => '此格式不支援寫入標籤';
 
   @override
   String get savingTags => '正在儲存標籤...';
@@ -6922,7 +6927,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get exportArtworkFailed => '匯出封面失敗';
 
   @override
-  String get editSongTagsDescription => '修改後可以只儲存到 App，也可以同步寫回來源檔案。';
+  String get editSongTagsDescription => '修改後會寫回來源檔案；目前格式無法寫入時自動儲存到 App。';
 
   @override
   String get artistLabel => '藝術家';
@@ -6980,13 +6985,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get batchEditSongTagsDescription =>
-      '修改後可以只儲存到 App，也可以同步寫回來源檔案。值為 <keep> 的欄位將保持原值。';
+      '修改後會寫回來源檔案；目前格式無法寫入時自動儲存到 App。值為 <keep> 的欄位將保持原值。';
 
   @override
   String get keepFieldHint => '提示：值為 <keep> 的屬性將保留每首歌曲的原值';
 
   @override
   String get multipleArtworkKeep => '保留各歌曲原封面';
+
+  @override
+  String tagSavePartiallyWritten(int written, int appOnly) {
+    return '已將 $written 首寫回來源檔案，$appOnly 首僅儲存到 App';
+  }
 
   @override
   String batchSongTagsSavedToApp(int count) {

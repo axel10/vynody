@@ -908,11 +908,11 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String unsupportedFormat(Object count) {
-    return '$count곡이 지원되지 않는 형식입니다 (OGG/Opus는 저장할 수 없음)';
+    return '$count곡은 태그를 쓸 수 없는 형식입니다';
   }
 
   @override
-  String get unsupportedFormatSingle => '이 형식(OGG/Opus)은 태그 저장을 지원하지 않습니다';
+  String get unsupportedFormatSingle => '이 형식은 태그 쓰기를 지원하지 않습니다';
 
   @override
   String get savingTags => '태그 저장 중...';
@@ -1399,7 +1399,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportArtworkFailed => '커버 내보내기 실패';
 
   @override
-  String get editSongTagsDescription => '앱에만 변경사항을 저장하거나 소스 파일에도 다시 쓸 수 있습니다.';
+  String get editSongTagsDescription =>
+      '변경 사항은 원본 파일에 다시 기록되며, 기록할 수 없는 형식이면 앱에만 저장됩니다.';
 
   @override
   String get artistLabel => '아티스트';
@@ -1459,13 +1460,18 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get batchEditSongTagsDescription =>
-      '변경 사항을 앱에만 저장하거나 원본 파일에 다시 쓸 수 있습니다. <keep>으로 표시된 필드는 원래 값을 유지합니다.';
+      '변경 사항은 원본 파일에 다시 기록되며, 기록할 수 없는 형식이면 앱에만 저장됩니다. <keep>으로 표시된 필드는 원래 값을 유지합니다.';
 
   @override
   String get keepFieldHint => '팁: <keep> 값의 속성은 각 곡의 원래 값을 유지합니다.';
 
   @override
   String get multipleArtworkKeep => '각 곡의 원래 커버 유지';
+
+  @override
+  String tagSavePartiallyWritten(int written, int appOnly) {
+    return '$written곡은 원본 파일에 기록하고, $appOnly곡은 앱에만 저장했습니다';
+  }
 
   @override
   String batchSongTagsSavedToApp(int count) {

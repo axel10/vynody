@@ -297,8 +297,8 @@
   "tagsSavedCount": "태그 저장됨 ({count}곡)",
   "tagsSaveFailed": "태그 저장 실패",
   "tagsSaveFailedCount": "{count}곡 저장 실패",
-  "unsupportedFormat": "{count}곡이 지원되지 않는 형식입니다 (OGG/Opus는 저장할 수 없음)",
-  "unsupportedFormatSingle": "이 형식(OGG/Opus)은 태그 저장을 지원하지 않습니다",
+  "unsupportedFormat": "{count}곡은 태그를 쓸 수 없는 형식입니다",
+  "unsupportedFormatSingle": "이 형식은 태그 쓰기를 지원하지 않습니다",
   "savingTags": "태그 저장 중...",
   "noModifiedTagsToSave": "저장할 수정된 태그가 없습니다",
   "clearPlaylist": "목록 비우기",
@@ -509,7 +509,7 @@
   "exportArtwork": "커버 내보내기",
   "exportArtworkSuccess": "커버를 성공적으로 내보냈습니다",
   "exportArtworkFailed": "커버 내보내기 실패",
-  "editSongTagsDescription": "앱에만 변경사항을 저장하거나 소스 파일에도 다시 쓸 수 있습니다.",
+  "editSongTagsDescription": "변경 사항은 원본 파일에 다시 기록되며, 기록할 수 없는 형식이면 앱에만 저장됩니다.",
   "artistLabel": "아티스트",
   "albumArtistLabel": "앨범 아티스트",
   "albumLabel": "앨범",
@@ -1952,8 +1952,19 @@
   "proxyHostPortInvalid": "유효한 프록시 주소와 포트를 입력하세요",
   "addToMediaLibrary": "미디어 라이브러리에 추가",
   "addedToMediaLibrary": "미디어 라이브러리에 추가됨, 백그라운드에서 스캔 중...",
-  "batchEditSongTagsDescription": "변경 사항을 앱에만 저장하거나 원본 파일에 다시 쓸 수 있습니다. <keep>으로 표시된 필드는 원래 값을 유지합니다.",
+  "batchEditSongTagsDescription": "변경 사항은 원본 파일에 다시 기록되며, 기록할 수 없는 형식이면 앱에만 저장됩니다. <keep>으로 표시된 필드는 원래 값을 유지합니다.",
   "batchEditSongTagsTitle": "곡 태그 일괄 편집",
+  "tagSavePartiallyWritten": "{written}곡은 원본 파일에 기록하고, {appOnly}곡은 앱에만 저장했습니다",
+  "@tagSavePartiallyWritten": {
+    "placeholders": {
+      "written": {
+        "type": "int"
+      },
+      "appOnly": {
+        "type": "int"
+      }
+    }
+  },
   "batchSongTagsSavedToApp": "{count}개 곡 태그를 앱에 저장했습니다",
   "batchSongTagsSavedToSourceFileAndApp": "{count}개 곡 태그를 원본 파일 및 앱에 저장했습니다",
   "copyPath": "경로 복사",
