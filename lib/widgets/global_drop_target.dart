@@ -70,6 +70,9 @@ class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
     if (!mounted || droppedPaths.isEmpty) return;
 
     final audio = ref.read(audioServiceProvider);
+    // 落盘前先登记授权：下面要递归列目录，iOS 上跨沙盒没有 scope 会读不到内容。
+    await audio.registerPersistentAccessForPaths(droppedPaths);
+
     final l10n = AppLocalizations.of(context)!;
     final List<MusicFile> allFiles = [];
 

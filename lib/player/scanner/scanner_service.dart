@@ -2111,8 +2111,21 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       );
       if (started) {
         _activeScopedRootPaths.add(normalizedPath);
+        return true;
       }
-      return started;
+      // `beginScopedAccess` 只有在「真的 start 了系统作用域」时才返回 true。
+      // 路径本来就可用（沙盒容器内、LaunchServices 已授予扩展、或作用域由别的
+      // 持有者打开着）时它也会返回 false，此时不能判定授权失败——否则这个 root
+      // 不会进 _activeScopedRootPaths，既不会被释放，也不会再重试。
+      if (await _isDirectoryReadable(normalizedPath)) {
+        _activeScopedRootPaths.add(normalizedPath);
+        debugPrint(
+          '[ScannerService] beginScopedAccess returned false but '
+          '$normalizedPath is readable; treating as authorized',
+        );
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint(
         '[ScannerService] beginScopedAccess failed for $normalizedPath: $e',

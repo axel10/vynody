@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter/services.dart';
+import 'package:audio_core/audio_core.dart' show AppleOpenedFiles;
 import 'dialogs/close_window_action_dialog.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/main_layout.dart';
@@ -281,6 +282,25 @@ void main(List<String> args) async {
         queueFileOpen(argsList);
       }
     });
+  }
+
+  if (Platform.isIOS) {
+    // 「文件 app → 用 Vynody 打开」走 UIScene 生命周期，原生在 scene 回调里
+    // 完成 security scope 与 bookmark 登记后把路径回推到这里。
+    AppLog.log('[external-open] attaching iOS opened-files relay');
+    AppleOpenedFiles.events.listen(queueFileOpen);
+    try {
+      final pending = await AppleOpenedFiles.attach();
+      if (pending.isNotEmpty) {
+        AppLog.log(
+          '[external-open] iOS pending paths=$pending',
+          mirrorToConsole: true,
+        );
+        queueFileOpen(pending);
+      }
+    } catch (e) {
+      AppLog.log('[external-open] iOS relay attach failed: $e');
+    }
   }
 
   if (Platform.isMacOS || Platform.isAndroid) {

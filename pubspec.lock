@@ -673,11 +673,9 @@ packages:
   flutter_taglib:
     dependency: "direct main"
     description:
-      path: "."
-      ref: master
-      resolved-ref: "96f9f39059107e627ca6a5f708ec4ec483a56709"
-      url: "https://github.com/axel10/flutter_taglib"
-    source: git
+      path: "audio_core/flutter_taglib"
+      relative: true
+    source: path
     version: "1.6.0"
   flutter_test:
     dependency: "direct dev"

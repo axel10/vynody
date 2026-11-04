@@ -150,6 +150,11 @@ class MediaDropImportService {
     int? insertIndex,
     bool playNow = false,
   }) async {
+    // 先登记常驻授权再解析：解析过程要列目录、读标签，iOS 上跨沙盒没有 scope
+    // 会直接失败；只入队不播放的路径也不会再由播放链路补登记。
+    final audio = ref.read(audioServiceProvider);
+    await audio.registerPersistentAccessForPaths(paths);
+
     final hasRemoteCollection = _containsRemoteCollection(paths);
     final songs = await resolvePathsToMusicFiles(paths);
     if (songs.isEmpty) {
@@ -157,7 +162,6 @@ class MediaDropImportService {
       return const [];
     }
 
-    final audio = ref.read(audioServiceProvider);
     if (insertIndex != null && insertIndex >= 0) {
       await audio.insertIntoQueueAt(insertIndex, songs);
     } else {

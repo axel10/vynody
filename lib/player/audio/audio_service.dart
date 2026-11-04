@@ -1095,6 +1095,27 @@ class AudioService extends Notifier<AudioSnapshot> {
     _remotePlaybackErrorHandler?.call(message);
   }
 
+  /// 为外部拖入 / 传入的路径登记常驻授权（Apple 平台）。
+  ///
+  /// 只写 bookmark，不占播放持有者：真正的 begin 留到引擎加载该曲目时再做。
+  /// 拖拽这类入口原本没有登记动作，重启后就失去访问权限，只能靠「恰好播一次」
+  /// 顺带补上，这里显式补掉。
+  Future<void> registerPersistentAccessForPaths(
+    Iterable<String> paths,
+  ) async {
+    if (!Platform.isIOS && !Platform.isMacOS) return;
+    for (final path in paths) {
+      if (path.isEmpty || RemoteMediaResolver.isRemoteUri(path)) continue;
+      try {
+        await _player.registerPersistentAccess(path: path);
+      } catch (e) {
+        debugPrint(
+          '[AudioService] registerPersistentAccess failed for $path: $e',
+        );
+      }
+    }
+  }
+
   Future<bool> _songExists(String path) async {
     if ((Platform.isIOS || Platform.isMacOS) && !RemoteMediaResolver.isRemoteUri(path)) {
       try {
