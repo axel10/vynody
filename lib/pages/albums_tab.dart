@@ -27,6 +27,7 @@ import '../widgets/draggable_album_item.dart';
 import '../widgets/album_context_menu.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/library_category_header.dart';
+import '../widgets/library_toolbar_buttons.dart';
 import '../utils/app_orientation_manager.dart';
 
 class AlbumsTab extends ConsumerStatefulWidget {
@@ -250,13 +251,13 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                   onSortPressed: () => _openSortDialog(context, l10n),
                   extraActions: [
                     if (_is3DView)
-                      IconButton(
+                      libraryToolbarIconButton(
                         tooltip: l10n.shuffleAlbumOrder,
                         onPressed: () => _onShufflePressed(albums),
-                        icon: const Icon(Icons.shuffle_rounded),
+                        icon: Icons.shuffle_rounded,
                       ),
                     if (!_is3DView) const LibraryZoomButton(scope: LibraryZoomScope.album),
-                    IconButton(
+                    libraryToolbarIconButton(
                       tooltip: _is3DView ? l10n.gridView : l10n.threeDView,
                       onPressed: () {
                         AppOrientationManager.toggleCoverFlow(
@@ -265,9 +266,9 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                           target: !_is3DView,
                         );
                       },
-                      icon: Icon(
-                        _is3DView ? Icons.grid_view_rounded : Icons.view_carousel_rounded,
-                      ),
+                      icon: _is3DView
+                          ? Icons.grid_view_rounded
+                          : Icons.view_carousel_rounded,
                     ),
                   ],
                   backgroundColor: _is3DView ? Colors.transparent : null,

@@ -16,6 +16,7 @@ import '../widgets/folder_zoom_gesture_layer.dart';
 import '../widgets/library_category_header.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
+import '../widgets/library_toolbar_buttons.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/playlist_context_menu.dart';
 import '../widgets/playlist_zoom_item.dart';
@@ -364,14 +365,14 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                         onSortPressed: () => _showSortDialog(context),
                         showSourceFilter: false,
                         extraActions: [
-                          IconButton(
+                          libraryToolbarIconButton(
                             tooltip: l10n.createPlaylist,
-                            icon: const Icon(Icons.add_rounded),
+                            icon: Icons.add_rounded,
                             onPressed: () => _showCreatePlaylistDialog(context),
                           ),
-                          IconButton(
+                          libraryToolbarIconButton(
                             tooltip: l10n.importPlaylist,
-                            icon: const Icon(Icons.file_download_outlined),
+                            icon: Icons.file_download_outlined,
                             onPressed: () => _importM3uPlaylist(context),
                           ),
                         ],

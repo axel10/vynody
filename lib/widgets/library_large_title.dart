@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/utils/app_icons.dart';
 import 'app_tooltip.dart';
+import 'library_toolbar_buttons.dart';
 
 /// 媒体库二级分类宿主环境上下文。
 ///
@@ -56,7 +57,7 @@ class LibraryLargeTitle extends StatelessWidget {
     this.onBack,
     this.titleStyle,
     this.countStyle,
-    this.buttonSpacing = 6.0,
+    this.buttonSpacing = LibraryToolbarMetrics.backTitleSpacing,
   });
 
   /// 分类主标题文字（例如“专辑”、“艺术家”、“已评分”）。
@@ -78,7 +79,8 @@ class LibraryLargeTitle extends StatelessWidget {
   /// 计数副标题文字样式，缺省使用 [TextTheme.bodyMedium]。
   final TextStyle? countStyle;
 
-  /// 返回按钮与大标题文字之间的横向间距，默认为 6.0。
+  /// 返回按钮与大标题文字之间的横向间距，缺省取
+  /// [LibraryToolbarMetrics.backTitleSpacing]。
   final double buttonSpacing;
 
   void _handleBack(BuildContext context) {
@@ -142,11 +144,11 @@ class LibraryLargeTitle extends StatelessWidget {
             child: AppTooltip(
               message: l10n?.goBack ?? 'Back',
               useRootOverlay: true,
-              child: IconButton(
-                icon: const Icon(kAppBackIcon, size: 28),
-                visualDensity: VisualDensity.compact,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                padding: EdgeInsets.zero,
+              // 尺寸与命中区统一走 LibraryToolbarMetrics：图标 28 补偿 chevron
+              // 细笔画的视觉失重，按钮盒 48 与右侧「播放全部」等动作按钮同高。
+              child: libraryToolbarIconButton(
+                icon: kAppBackIcon,
+                iconSize: LibraryToolbarMetrics.backIconSize,
                 onPressed: () => _handleBack(context),
               ),
             ),

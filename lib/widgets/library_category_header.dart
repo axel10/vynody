@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 import 'library_large_title.dart';
 import 'library_search_field.dart';
+import 'library_toolbar_buttons.dart';
 
 /// 本地媒体库二级分类列表（专辑、艺术家、流派、年份等）的轻量统一工具栏。
 ///
@@ -118,16 +119,15 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
     final isFiltered = currentFilter.type != LibrarySourceType.all;
 
     final filterButton = widget.showSourceFilter
-        ? IconButton(
+        ? libraryToolbarIconButton(
             tooltip: isZh ? '渠道与来源筛选' : 'Filter by Source',
             onPressed: () => showLibrarySourceFilterDialog(context),
-            icon: Badge(
+            icon: Icons.tune_rounded,
+            color: isFiltered ? theme.colorScheme.primary : null,
+            wrapIcon: (icon) => Badge(
               isLabelVisible: isFiltered,
               smallSize: 8,
-              child: Icon(
-                Icons.tune_rounded,
-                color: isFiltered ? theme.colorScheme.primary : null,
-              ),
+              child: icon,
             ),
           )
         : null;
@@ -154,26 +154,26 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
         : null;
 
     final sortButton = widget.onSortPressed != null
-        ? IconButton(
+        ? libraryToolbarIconButton(
             tooltip: l10n.sort,
             onPressed: widget.onSortPressed,
-            icon: const Icon(Icons.sort_rounded),
+            icon: Icons.sort_rounded,
           )
         : null;
 
     final playAllButton = widget.onPlayAll != null
-        ? IconButton(
+        ? libraryToolbarIconButton(
             tooltip: l10n.playAll,
             onPressed: widget.onPlayAll,
-            icon: const Icon(Icons.play_arrow_rounded),
+            icon: Icons.play_arrow_rounded,
           )
         : null;
 
     final shufflePlayButton = widget.onShufflePlay != null
-        ? IconButton(
+        ? libraryToolbarIconButton(
             tooltip: l10n.shufflePlay,
             onPressed: widget.onShufflePlay,
-            icon: const Icon(Icons.shuffle_rounded),
+            icon: Icons.shuffle_rounded,
           )
         : null;
 

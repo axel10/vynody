@@ -22,6 +22,7 @@ import 'folder_layout_utils.dart';
 import 'folder_zoom_gesture_layer.dart';
 import 'library_selection_panel.dart';
 import 'library_selection_scope.dart';
+import 'library_toolbar_buttons.dart';
 import 'library_zoom_popover.dart';
 import 'playback_ui_tuning.dart';
 import 'section_type_toggle.dart';
@@ -332,17 +333,17 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
           onBack: widget.onBack,
         );
 
-        final playAllButton = IconButton(
+        final playAllButton = libraryToolbarIconButton(
           tooltip: l10n.playAll,
-          icon: const Icon(Icons.play_arrow_rounded),
+          icon: Icons.play_arrow_rounded,
           onPressed: visibleCount > 0
               ? () => _playAll(visibleSongs, visibleAlbums)
               : null,
         );
 
-        final shufflePlayButton = IconButton(
+        final shufflePlayButton = libraryToolbarIconButton(
           tooltip: l10n.shufflePlay,
-          icon: const Icon(Icons.shuffle_rounded),
+          icon: Icons.shuffle_rounded,
           onPressed: visibleCount > 0
               ? () => _playAll(visibleSongs, visibleAlbums, shuffle: true)
               : null,
