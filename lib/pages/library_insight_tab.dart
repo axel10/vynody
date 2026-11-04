@@ -30,6 +30,7 @@ class LibraryInsightTab extends ConsumerWidget {
     this.hideTrailingOnPhone = false,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
+    this.onBack,
   });
 
   final NotifierProvider<LibraryInsightFilterNotifier, LibraryInsightFilterState> filter;
@@ -57,6 +58,7 @@ class LibraryInsightTab extends ConsumerWidget {
   final bool hideTrailingOnPhone;
   final double contentTopPadding;
   final double contentLeftPadding;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -107,6 +109,7 @@ class LibraryInsightTab extends ConsumerWidget {
       ),
       contentTopPadding: contentTopPadding,
       contentLeftPadding: contentLeftPadding,
+      onBack: onBack,
     );
   }
 }

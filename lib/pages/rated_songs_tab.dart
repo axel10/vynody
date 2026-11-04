@@ -14,11 +14,13 @@ import '../widgets/section_type_toggle.dart';
 class RatedSongsTab extends ConsumerStatefulWidget {
   final double contentTopPadding;
   final double contentLeftPadding;
+  final VoidCallback? onBack;
 
   const RatedSongsTab({
     super.key,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
+    this.onBack,
   });
 
   @override
@@ -168,6 +170,7 @@ class _RatedSongsTabState extends ConsumerState<RatedSongsTab> {
           selectionScope: LibrarySelectionScope.library,
           contentTopPadding: widget.contentTopPadding,
           contentLeftPadding: widget.contentLeftPadding,
+          onBack: widget.onBack,
           title: l10n.ratedSongs,
           songs: processedItems,
           showTimeRange: false,

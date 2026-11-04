@@ -20,11 +20,13 @@ import 'main_layout_riverpod.dart';
 class GenresTab extends ConsumerStatefulWidget {
   final double contentTopPadding;
   final double contentLeftPadding;
+  final VoidCallback? onBack;
 
   const GenresTab({
     super.key,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
+    this.onBack,
   });
 
   @override
@@ -290,6 +292,7 @@ class _GenresTabState extends ConsumerState<GenresTab>
             onSortPressed: () => _openSortDialog(headerContext, l10n),
           ),
           masterToolbarBuilder: (context, isWide) => LibraryCategoryHeader(
+            onBack: widget.onBack,
             title: genresLabel,
             countLabel: '${visibleGenres.length} $genresLabel',
             isWide: isWide,

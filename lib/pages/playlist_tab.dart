@@ -32,10 +32,12 @@ class PlaylistTab extends ConsumerStatefulWidget {
     super.key,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
+    this.onBack,
   });
 
   final double contentTopPadding;
   final double contentLeftPadding;
+  final VoidCallback? onBack;
 
   @override
   ConsumerState<PlaylistTab> createState() => _PlaylistTabState();
@@ -350,6 +352,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                       ),
                     SliverToBoxAdapter(
                       child: LibraryCategoryHeader(
+                        onBack: widget.onBack,
                         title: l10n.playlist,
                         countLabel: l10n.playlistCount(playlists.length),
                         isWide: !isPortrait,

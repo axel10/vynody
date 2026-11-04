@@ -10,11 +10,13 @@ import 'library_insight_tab.dart';
 class RecentlyAddedTab extends StatelessWidget {
   final double contentTopPadding;
   final double contentLeftPadding;
+  final VoidCallback? onBack;
 
   const RecentlyAddedTab({
     super.key,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
+    this.onBack,
   });
 
   @override
@@ -41,6 +43,7 @@ class RecentlyAddedTab extends StatelessWidget {
       ),
       contentTopPadding: contentTopPadding,
       contentLeftPadding: contentLeftPadding,
+      onBack: onBack,
     );
   }
 }

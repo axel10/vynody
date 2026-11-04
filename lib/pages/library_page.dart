@@ -391,6 +391,10 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
   ///
   /// 只在真正变化时 setState，且只可能由 push / pop 手势触发（初始根路由的
   /// didPush 会被 observer 过滤掉），所以不会落到 build 阶段。
+  void _handleSubHostBack() {
+    Navigator.of(context).maybePop();
+  }
+
   void _handleTabChildRouteChanged(int index, bool hasChild) {
     if (!mounted) return;
     final bool changed = hasChild
@@ -434,19 +438,20 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     final is3DViewActive =
         (clampedIndex == 4) && ref.watch(isAlbum3DViewActiveProvider);
 
+    final bool isPastTop =
+        is3DViewActive || (_tabScrolledPastTop[clampedIndex] ?? false);
+
     // 当前分类压着三级页面时宿主顶栏必须让位：
     // 详情页自带同位置的 AppTopNavBar，而宿主这条在 Stack 里后画，会整个盖住它。
     final bool tabHasChildRoute = _tabsWithChildRoutes.contains(clampedIndex);
-    final bool hideTopNavBar = tabHasChildRoute || (isLandscape && is3DViewActive);
+    final bool hideTopNavBar =
+        tabHasChildRoute || (isLandscape && is3DViewActive) || !isPastTop;
 
     // 让位给详情页时必须是瞬时的：详情页顶栏本来就在同一位置，
     // 播一段淡出只会让两个标题交叠闪一下。3D 视图收起仍走 250ms 过渡。
     final Duration headerDuration = tabHasChildRoute
         ? Duration.zero
         : const Duration(milliseconds: 250);
-
-    final bool isPastTop =
-        is3DViewActive || (_tabScrolledPastTop[clampedIndex] ?? false);
 
     final scaffold = NotificationListener<ScrollNotification>(
       onNotification: (notification) {
@@ -505,8 +510,8 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
                             key: const ValueKey('library_subhost_top_bar'),
                             title: title,
                             parentTitle: l10n.list,
-                            titleOpacity: isPastTop ? 1.0 : 0.0,
-                            isFloatingCapsule: isPastTop,
+                            titleOpacity: 1.0,
+                            isFloatingCapsule: true,
                             onBack: () {
                               Navigator.of(context).maybePop();
                             },
@@ -546,12 +551,18 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
       builder: (tabContext) {
         final bool isLandscape =
             MediaQuery.of(tabContext).orientation == Orientation.landscape;
+        final double safeTop = getTitleBarTopPadding(
+          tabContext,
+          defaultWindowPadding: isLandscape ? 32.0 : 36.0,
+        );
+        final double topPadding = isLandscape ? (safeTop + 8.0) : safeTop;
         return _buildSubTab(
           index,
-          topPadding: AppTopNavBar.getBarHeight(tabContext),
+          topPadding: topPadding,
           leftPadding: isLandscape
               ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(tabContext).size.width))
               : 0.0,
+          onBack: _handleSubHostBack,
         );
       },
     );
@@ -561,27 +572,32 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     int index, {
     required double topPadding,
     required double leftPadding,
+    VoidCallback? onBack,
   }) {
     switch (index) {
       case 0:
         return PlaylistTab(
           contentTopPadding: topPadding,
           contentLeftPadding: leftPadding,
+          onBack: onBack,
         );
       case 1:
         return RecentlyPlayedTab(
           contentTopPadding: topPadding,
           contentLeftPadding: leftPadding,
+          onBack: onBack,
         );
       case 2:
         return MostPlayedTab(
           contentTopPadding: topPadding,
           contentLeftPadding: leftPadding,
+          onBack: onBack,
         );
       case 3:
         return RecentlyAddedTab(
           contentTopPadding: topPadding,
           contentLeftPadding: leftPadding,
+          onBack: onBack,
         );
       case 4:
         return AlbumsTab(
@@ -589,26 +605,31 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
           initial3DIndex: widget.initialAlbums3DIndex,
           contentTopPadding: topPadding,
           contentLeftPadding: leftPadding,
+          onBack: onBack,
         );
       case 5:
         return ArtistsTab(
           contentTopPadding: topPadding,
           contentLeftPadding: leftPadding,
+          onBack: onBack,
         );
       case 6:
         return RatedSongsTab(
           contentTopPadding: topPadding,
           contentLeftPadding: leftPadding,
+          onBack: onBack,
         );
       case 7:
         return GenresTab(
           contentTopPadding: topPadding,
           contentLeftPadding: leftPadding,
+          onBack: onBack,
         );
       case 8:
         return YearsTab(
           contentTopPadding: topPadding,
           contentLeftPadding: leftPadding,
+          onBack: onBack,
         );
       default:
         return const SizedBox.shrink();

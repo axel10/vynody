@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
+import 'package:vynody/utils/app_icons.dart';
 import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/pages/album_detail_page.dart';
@@ -60,6 +61,8 @@ class LibraryInsightList extends ConsumerStatefulWidget {
     this.songTrailingWidth = 140.0,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
+    this.showBackButton = true,
+    this.onBack,
   });
 
   /// 当前展示单曲还是专辑。只影响 body 与计数文案，不影响 Widget 类型。
@@ -107,6 +110,8 @@ class LibraryInsightList extends ConsumerStatefulWidget {
 
   final double contentTopPadding;
   final double contentLeftPadding;
+  final bool showBackButton;
+  final VoidCallback? onBack;
 
   @override
   ConsumerState<LibraryInsightList> createState() => _LibraryInsightListState();
@@ -320,7 +325,7 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
         final subtitleText =
             _searchQuery.isNotEmpty ? countLabel : widget.subtitle;
 
-        final largeTitleBlock = Row(
+        final titleWithCount = Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           mainAxisSize: MainAxisSize.min,
@@ -345,6 +350,31 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                 ),
               ),
             ],
+          ],
+        );
+
+        final backButton = widget.showBackButton
+            ? Padding(
+                padding: const EdgeInsets.only(right: 6.0),
+                child: IconButton(
+                  icon: const Icon(kAppBackIcon, size: 28),
+                  tooltip: l10n.goBack,
+                  visualDensity: VisualDensity.compact,
+                  constraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
+                  padding: EdgeInsets.zero,
+                  onPressed:
+                      widget.onBack ?? () => Navigator.of(context).maybePop(),
+                ),
+              )
+            : null;
+
+        final largeTitleBlock = Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ?backButton,
+            Flexible(child: titleWithCount),
           ],
         );
 

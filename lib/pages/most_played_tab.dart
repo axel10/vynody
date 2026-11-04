@@ -10,11 +10,13 @@ import 'library_insight_tab.dart';
 class MostPlayedTab extends StatelessWidget {
   final double contentTopPadding;
   final double contentLeftPadding;
+  final VoidCallback? onBack;
 
   const MostPlayedTab({
     super.key,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
+    this.onBack,
   });
 
   @override
@@ -38,6 +40,7 @@ class MostPlayedTab extends StatelessWidget {
       ),
       contentTopPadding: contentTopPadding,
       contentLeftPadding: contentLeftPadding,
+      onBack: onBack,
     );
   }
 }

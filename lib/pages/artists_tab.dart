@@ -43,11 +43,13 @@ const double kArtistsGridTopInset = 16.0;
 class ArtistsTab extends ConsumerStatefulWidget {
   final double contentTopPadding;
   final double contentLeftPadding;
+  final VoidCallback? onBack;
 
   const ArtistsTab({
     super.key,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
+    this.onBack,
   });
 
   @override
@@ -352,6 +354,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
             ];
           },
           masterToolbarBuilder: (context, isWide) => LibraryCategoryHeader(
+            onBack: widget.onBack,
             title: artistsLabel,
             countLabel: '${visibleArtists.length} $artistsLabel',
             isWide: isWide,

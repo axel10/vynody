@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../dialogs/library_source_filter_dialog.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
+import 'package:vynody/utils/app_icons.dart';
 import 'library_search_field.dart';
 
 /// 本地媒体库二级分类列表（专辑、艺术家、流派、年份等）的轻量统一工具栏。
@@ -32,6 +33,8 @@ class LibraryCategoryHeader extends ConsumerStatefulWidget {
     this.hasBorder = true,
     this.showSearch = true,
     this.showSortActionInWide = true,
+    this.showBackButton = true,
+    this.onBack,
   });
 
   final String? title;
@@ -63,6 +66,8 @@ class LibraryCategoryHeader extends ConsumerStatefulWidget {
   /// 左栏列表，会随搜索框一起收进左栏顶部（见 `LibraryMasterPaneHeader`），
   /// 这里置 false 把这格腾出来。
   final bool showSortActionInWide;
+  final bool showBackButton;
+  final VoidCallback? onBack;
 
   @override
   ConsumerState<LibraryCategoryHeader> createState() => _LibraryCategoryHeaderState();
@@ -129,7 +134,7 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
 
     final hasTitle = widget.title != null && widget.title!.isNotEmpty;
 
-    final largeTitleBlock = hasTitle
+    final titleWithCount = hasTitle
         ? Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
@@ -155,6 +160,31 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
                   ),
                 ),
               ],
+            ],
+          )
+        : null;
+
+    final backButton = widget.showBackButton
+        ? Padding(
+            padding: const EdgeInsets.only(right: 6.0),
+            child: IconButton(
+              icon: const Icon(kAppBackIcon, size: 28),
+              tooltip: l10n.goBack,
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              padding: EdgeInsets.zero,
+              onPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
+            ),
+          )
+        : null;
+
+    final largeTitleBlock = hasTitle
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ?backButton,
+              Flexible(child: titleWithCount!),
             ],
           )
         : null;

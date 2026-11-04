@@ -36,12 +36,14 @@ class AlbumsTab extends ConsumerStatefulWidget {
     this.initial3DIndex = 0,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
+    this.onBack,
   });
 
   final bool initial3DView;
   final int initial3DIndex;
   final double contentTopPadding;
   final double contentLeftPadding;
+  final VoidCallback? onBack;
 
   @override
   ConsumerState<AlbumsTab> createState() => _AlbumsTabState();
@@ -225,6 +227,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                       );
 
                 final toolbar = LibraryCategoryHeader(
+                  onBack: widget.onBack,
                   title: l10n.albums,
                   countLabel: l10n.albumCount(visibleAlbums.length),
                   isWide: isWide,

@@ -20,11 +20,13 @@ import 'main_layout_riverpod.dart';
 class YearsTab extends ConsumerStatefulWidget {
   final double contentTopPadding;
   final double contentLeftPadding;
+  final VoidCallback? onBack;
 
   const YearsTab({
     super.key,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
+    this.onBack,
   });
 
   @override
@@ -305,6 +307,7 @@ class _YearsTabState extends ConsumerState<YearsTab>
             onSortPressed: () => _openSortDialog(headerContext, l10n),
           ),
           masterToolbarBuilder: (context, isWide) => LibraryCategoryHeader(
+            onBack: widget.onBack,
             title: yearsLabel,
             countLabel: '${visibleYears.length} $yearsLabel',
             isWide: isWide,
