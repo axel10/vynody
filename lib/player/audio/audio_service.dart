@@ -2256,13 +2256,15 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (decoded != path) {
       _artworkCache[decoded] = artworkBytes;
     }
-    bool modified = false;
     for (final track in _player.playlist.items) {
       final qPath = track.id;
       if (qPath == path || qPath == decoded || (qPath.contains('%') && safeDecodeUri(qPath) == decoded)) {
         final existing = _musicFileForTrack(track);
         if (existing != null && (existing.artworkBytes == null ||
             (existing.thumbnailPath == null && thumbnailPath != null))) {
+          // `replaceTrack` 会让 PlaylistController 发一次通知，进而经
+          // `_handlePlaylistChanges` 触发 AudioService 的状态更新，
+          // 这里再补一次 notifyListeners 就是同一次写入推两遍快照。
           _replaceQueueSongsByPath(
             qPath,
             existing.copyWith(
@@ -2270,12 +2272,8 @@ class AudioService extends Notifier<AudioSnapshot> {
               thumbnailPath: existing.thumbnailPath ?? thumbnailPath,
             ),
           );
-          modified = true;
         }
       }
-    }
-    if (modified) {
-      notifyListeners();
     }
   }
 

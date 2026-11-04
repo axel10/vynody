@@ -488,6 +488,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
   String? _remoteArtworkUrl;
   bool _isLoaded = false;
   bool _hasLoadedHighRes = false;
+  bool _isLoadScheduled = false;
   Timer? _loadTimer;
 
   bool get _isSettled {
@@ -558,13 +559,32 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
     final isNearby = (widget.animation.value - widget.itemIndex).abs() <= 1.05;
 
     if (cachedBytes != null || hasPriorityBytes || isNearby) {
-      _loadArtworkAsync();
+      _scheduleArtworkLoad();
     } else {
       _loadTimer = Timer(const Duration(milliseconds: 150), () {
         if (!mounted) return;
         _loadArtworkAsync();
       });
     }
+  }
+
+  /// 把「立即加载」推到帧后再跑。
+  ///
+  /// [_loadArtwork] 的调用点是 `initState` / `didUpdateWidget`，都处在构建期；
+  /// 而 [_loadArtworkAsync] 命中缓存时没有 await，会同步走完 `setState` 并回调
+  /// `onArtworkLoaded` —— 后者最终进到 `AudioService.setCachedArtwork`，
+  /// 在队列里 `replaceTrack` 触发 AudioService 的 `notifyListeners()`。
+  /// 构建期改 provider 会被 Riverpod 拒绝，AudioService 只能把这次更新推到帧后，
+  /// 表现为一整批 `notifyListeners queued in persistentCallbacks phase` 日志。
+  /// 这里提前挪到帧后，源头就不再踩线。
+  void _scheduleArtworkLoad() {
+    if (_isLoadScheduled) return;
+    _isLoadScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _isLoadScheduled = false;
+      if (!mounted) return;
+      _loadArtworkAsync();
+    });
   }
 
   Future<void> _loadArtworkAsync() async {
