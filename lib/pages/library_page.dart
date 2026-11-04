@@ -22,6 +22,7 @@ import '../widgets/library_selection_scope.dart';
 import '../widgets/library_tab_navigator.dart';
 import '../widgets/auto_hide_header.dart';
 import '../widgets/app_top_nav_bar.dart';
+import '../widgets/library_large_title.dart';
 import '../utils/layout_constants.dart';
 import '../utils/app_log.dart';
 import '../utils/app_orientation_manager.dart';
@@ -556,13 +557,19 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
           defaultWindowPadding: isLandscape ? 32.0 : 36.0,
         );
         final double topPadding = isLandscape ? (safeTop + 8.0) : safeTop;
-        return _buildSubTab(
-          index,
-          topPadding: topPadding,
-          leftPadding: isLandscape
-              ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(tabContext).size.width))
-              : 0.0,
+        final double leftPadding = isLandscape
+            ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(tabContext).size.width))
+            : 0.0;
+        return LibrarySubHostScope(
           onBack: _handleSubHostBack,
+          topPadding: topPadding,
+          leftPadding: leftPadding,
+          child: _buildSubTab(
+            index,
+            topPadding: topPadding,
+            leftPadding: leftPadding,
+            onBack: _handleSubHostBack,
+          ),
         );
       },
     );

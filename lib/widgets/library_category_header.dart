@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../dialogs/library_source_filter_dialog.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
-import 'package:vynody/utils/app_icons.dart';
+import 'library_large_title.dart';
 import 'library_search_field.dart';
 
 /// 本地媒体库二级分类列表（专辑、艺术家、流派、年份等）的轻量统一工具栏。
@@ -134,58 +134,12 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
 
     final hasTitle = widget.title != null && widget.title!.isNotEmpty;
 
-    final titleWithCount = hasTitle
-        ? Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                widget.title!,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              if (widget.countLabel != null) ...[
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    widget.countLabel!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ],
-          )
-        : null;
-
-    final backButton = widget.showBackButton
-        ? Padding(
-            padding: const EdgeInsets.only(right: 6.0),
-            child: IconButton(
-              icon: const Icon(kAppBackIcon, size: 28),
-              tooltip: l10n.goBack,
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              padding: EdgeInsets.zero,
-              onPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
-            ),
-          )
-        : null;
-
     final largeTitleBlock = hasTitle
-        ? Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ?backButton,
-              Flexible(child: titleWithCount!),
-            ],
+        ? LibraryLargeTitle(
+            title: widget.title!,
+            countLabel: widget.countLabel,
+            showBackButton: widget.showBackButton,
+            onBack: widget.onBack,
           )
         : null;
 
