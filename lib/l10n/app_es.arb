@@ -479,6 +479,7 @@
     }
   },
   "timelineOffsetCurrent": "Desplazamiento actual: 0.0 s",
+  "timelineMaxRangeLabel": "Rango máx. (s)",
   "enterAcoustidApiKeyTitle": "Ingresar clave API de AcoustID",
   "acoustidApiKeyDescription": "Se usa para identificación por huella de audio. Si se deja vacío, se restaurará la clave integrada.",
   "acoustidApiKeyHint": "Pega tu clave API de AcoustID",

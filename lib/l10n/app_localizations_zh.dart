@@ -1292,6 +1292,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get timelineOffsetCurrent => '当前偏移：0.0 秒';
 
   @override
+  String get timelineMaxRangeLabel => '最大范围（秒）';
+
+  @override
   String get enterAcoustidApiKeyTitle => '填写 AcoustID API Key';
 
   @override
@@ -6826,6 +6829,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get timelineOffsetCurrent => '目前偏移：0.0 秒';
+
+  @override
+  String get timelineMaxRangeLabel => '最大範圍（秒）';
 
   @override
   String get enterAcoustidApiKeyTitle => '填寫 AcoustID API Key';

@@ -1347,6 +1347,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get timelineOffsetCurrent => 'Desplazamiento actual: 0.0 s';
 
   @override
+  String get timelineMaxRangeLabel => 'Rango máx. (s)';
+
+  @override
   String get enterAcoustidApiKeyTitle => 'Ingresar clave API de AcoustID';
 
   @override

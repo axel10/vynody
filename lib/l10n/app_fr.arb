@@ -479,6 +479,7 @@
     }
   },
   "timelineOffsetCurrent": "Décalage actuel : 0,0 s",
+  "timelineMaxRangeLabel": "Plage max. (s)",
   "enterAcoustidApiKeyTitle": "Saisir la clé API AcoustID",
   "acoustidApiKeyDescription": "Utilisé pour l'empreinte audio. Laisser vide pour restaurer la clé intégrée.",
   "acoustidApiKeyHint": "Collez votre clé API AcoustID",

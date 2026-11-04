@@ -405,6 +405,7 @@
   "timelineOffsetEarlier": "提前 {seconds} 秒",
   "timelineOffsetLater": "延後 {seconds} 秒",
   "timelineOffsetCurrent": "目前偏移：0.0 秒",
+  "timelineMaxRangeLabel": "最大範圍（秒）",
   "enterAcoustidApiKeyTitle": "填寫 AcoustID API Key",
   "acoustidApiKeyDescription": "用於音訊指紋辨識。留空後會恢復使用應用程式內建的預設 key。",
   "acoustidApiKeyHint": "貼上你的 AcoustID API Key",

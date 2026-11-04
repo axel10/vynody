@@ -29,3 +29,4 @@
 | 一页多段缩放 | 一个滚动视图只能有一个 `FolderZoomSliverBuilder`（`FolderZoomGestureLayer` 与 `ScrollView` 之间）；各段用 `section` 区分 + `ZoomSectionHost`（`width` 仍要传）。禁加 `metrics` 字段、禁段内自建。**按状态切换 ScrollView 祖先结构（loading/error 裸 view、有内容套 `RefreshIndicator`）的页面禁传 `controller`**：切分支那帧断言炸在 sliver 布局里 = 整页空白 |
 | 缩放段间距 | 网格外层 `SliverPadding` 必须与档位无关，禁 `lerp(0→8, gridMorph)`；回归 `zoom_section_gap_test.dart` |
 | 条目包装层常驻 | `ZoomItemScaffold` 的 `Opacity`/`Transform.scale`/`ZoomItemEffectiveMetrics` 三层必须常驻，禁按 `isFadeScale` 增删：根类型一变整条子树重建 → `SongThumbnail` 丢 State |
+| 时间轴调整弹窗 | 偏移精度/兜底钳制唯一 `normalizeTimelineOffsetSeconds()`（`lib/dialogs/timeline_adjustment_dialog.dart`，硬上限 ±3600s）；滑块范围由弹窗内「最大范围」输入框决定（默认 20s、1~600s、失焦或回车生效），`lyrics_panel` 禁再自己钳 ±10。弹窗是 StatefulWidget，控制器/焦点归 State 持有、`State.dispose` 释放；禁在 `showDialog` 的 finally 里 dispose（路由退出转场里 TextField 还在用 → A FocusNode was used after being disposed）。回归 `test/dialogs/timeline_adjustment_dialog_test.dart` |

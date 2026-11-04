@@ -479,6 +479,7 @@
     }
   },
   "timelineOffsetCurrent": "現在のオフセット: 0.0秒",
+  "timelineMaxRangeLabel": "最大範囲（秒）",
   "enterAcoustidApiKeyTitle": "AcoustID APIキーを入力",
   "acoustidApiKeyDescription": "音声フィンガープリントに使用されます。空白のままにすると内蔵のデフォルトキーが復元されます。",
   "acoustidApiKeyHint": "AcoustID APIキーを貼り付け",

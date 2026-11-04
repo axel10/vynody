@@ -1331,6 +1331,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timelineOffsetCurrent => 'Current offset: 0.0s';
 
   @override
+  String get timelineMaxRangeLabel => 'Max range (s)';
+
+  @override
   String get enterAcoustidApiKeyTitle => 'Enter AcoustID API Key';
 
   @override

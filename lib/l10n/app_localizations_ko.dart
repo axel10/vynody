@@ -1306,6 +1306,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get timelineOffsetCurrent => '현재 오프셋: 0.0초';
 
   @override
+  String get timelineMaxRangeLabel => '최대 범위(초)';
+
+  @override
   String get enterAcoustidApiKeyTitle => 'AcoustID API 키 입력';
 
   @override

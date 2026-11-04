@@ -1331,6 +1331,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get timelineOffsetCurrent => 'Mevcut kayma: 0.0s';
 
   @override
+  String get timelineMaxRangeLabel => 'Maks. aralık (sn)';
+
+  @override
   String get enterAcoustidApiKeyTitle => 'AcoustID API Anahtarını Girin';
 
   @override

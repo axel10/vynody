@@ -102,8 +102,6 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
 }
 
 class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
-  static const double _timelineOffsetMinSeconds = -10.0;
-  static const double _timelineOffsetMaxSeconds = 10.0;
   final ScrollController _scrollController = ScrollController();
   int _lastActiveIndex = -1;
   double _timelineOffsetSeconds = 0.0;
@@ -1699,16 +1697,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
   double _timelineOffsetToSeconds(Duration? offset) {
     final seconds = (offset?.inMilliseconds ?? 0) / 1000.0;
-    return _normalizeTimelineOffsetSeconds(seconds);
+    return normalizeTimelineOffsetSeconds(seconds);
   }
 
-  double _normalizeTimelineOffsetSeconds(double value) {
-    final clamped = value.clamp(
-      _timelineOffsetMinSeconds,
-      _timelineOffsetMaxSeconds,
-    );
-    return (clamped * 10).roundToDouble() / 10.0;
-  }
 
   Future<void> _showTimelineAdjustmentPanel(
     List<LyricLine> displayLines,
@@ -1716,7 +1707,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (!_hasTimedLyrics(displayLines)) return;
 
     Future<void> commitOffset(double value) async {
-      final normalized = _normalizeTimelineOffsetSeconds(value);
+      final normalized = normalizeTimelineOffsetSeconds(value);
       if (!mounted) return;
       if (_timelineOffsetSeconds != normalized) {
         setState(() {

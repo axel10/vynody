@@ -551,6 +551,7 @@
     }
   },
   "timelineOffsetCurrent": "Mevcut kayma: 0.0s",
+  "timelineMaxRangeLabel": "Maks. aralık (sn)",
   "enterAcoustidApiKeyTitle": "AcoustID API Anahtarını Girin",
   "acoustidApiKeyDescription": "Ses parmak izi alma için kullanılır. Boş bırakırsanız yerleşik varsayılan anahtar kullanılır.",
   "acoustidApiKeyHint": "AcoustID API Anahtarınızı yapıştırın",

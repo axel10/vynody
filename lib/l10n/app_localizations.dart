@@ -2565,6 +2565,12 @@ abstract class AppLocalizations {
   /// **'当前偏移：0.0 秒'**
   String get timelineOffsetCurrent;
 
+  /// No description provided for @timelineMaxRangeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'最大范围（秒）'**
+  String get timelineMaxRangeLabel;
+
   /// No description provided for @enterAcoustidApiKeyTitle.
   ///
   /// In zh, this message translates to:

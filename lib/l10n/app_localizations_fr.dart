@@ -1347,6 +1347,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timelineOffsetCurrent => 'Décalage actuel : 0,0 s';
 
   @override
+  String get timelineMaxRangeLabel => 'Plage max. (s)';
+
+  @override
   String get enterAcoustidApiKeyTitle => 'Saisir la clé API AcoustID';
 
   @override

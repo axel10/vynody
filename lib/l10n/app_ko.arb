@@ -479,6 +479,7 @@
     }
   },
   "timelineOffsetCurrent": "현재 오프셋: 0.0초",
+  "timelineMaxRangeLabel": "최대 범위(초)",
   "enterAcoustidApiKeyTitle": "AcoustID API 키 입력",
   "acoustidApiKeyDescription": "오디오 핑거프린팅에 사용됩니다. 비워두면 기본 내장 키가 복원됩니다.",
   "acoustidApiKeyHint": "AcoustID API 키 붙여넣기",

@@ -479,6 +479,7 @@
     }
   },
   "timelineOffsetCurrent": "Aktuelle Verschiebung: 0,0 s",
+  "timelineMaxRangeLabel": "Max. Bereich (s)",
   "enterAcoustidApiKeyTitle": "AcoustID-API-Schlüssel eingeben",
   "acoustidApiKeyDescription": "Für Audio-Fingerprinting. Bei Leerung wird der integrierte Schlüssel wiederhergestellt.",
   "acoustidApiKeyHint": "AcoustID-API-Schlüssel einfügen",

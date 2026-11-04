@@ -495,6 +495,7 @@
     }
   },
   "timelineOffsetCurrent": "Current offset: 0.0s",
+  "timelineMaxRangeLabel": "Max range (s)",
   "enterAcoustidApiKeyTitle": "Enter AcoustID API Key",
   "acoustidApiKeyDescription": "Used for audio fingerprinting. Leaving it blank will restore the built-in default key.",
   "acoustidApiKeyHint": "Paste your AcoustID API Key",
