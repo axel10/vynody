@@ -323,6 +323,10 @@ class LibrarySubHostPage extends ConsumerStatefulWidget {
 }
 
 class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
+  /// 采用横屏主从分栏布局的子分类索引（5: 艺术家, 7: 流派, 8: 年份）。
+  /// 这些页面在横屏下顶栏（包含大标题与返回键）固定常驻，无需外层滚动浮动胶囊。
+  static const Set<int> _masterDetailTabIndices = {5, 7, 8};
+
   final Set<int> _builtSubTabs = {};
 
   /// 栈里压了三级页面的子分类索引。
@@ -445,8 +449,12 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     // 当前分类压着三级页面时宿主顶栏必须让位：
     // 详情页自带同位置的 AppTopNavBar，而宿主这条在 Stack 里后画，会整个盖住它。
     final bool tabHasChildRoute = _tabsWithChildRoutes.contains(clampedIndex);
-    final bool hideTopNavBar =
-        tabHasChildRoute || (isLandscape && is3DViewActive) || !isPastTop;
+    final bool isMasterDetailInLandscape =
+        isLandscape && _masterDetailTabIndices.contains(clampedIndex);
+    final bool hideTopNavBar = tabHasChildRoute ||
+        (isLandscape && is3DViewActive) ||
+        isMasterDetailInLandscape ||
+        !isPastTop;
 
     // 让位给详情页时必须是瞬时的：详情页顶栏本来就在同一位置，
     // 播一段淡出只会让两个标题交叠闪一下。3D 视图收起仍走 250ms 过渡。
@@ -458,6 +466,9 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
       onNotification: (notification) {
         if (notification.metrics.axis != Axis.vertical) return false;
         if (_tabsWithChildRoutes.contains(clampedIndex)) return false;
+        if (isLandscape && _masterDetailTabIndices.contains(clampedIndex)) {
+          return false;
+        }
         final past = notification.metrics.pixels > 36.0;
         if ((_tabScrolledPastTop[clampedIndex] ?? false) != past) {
           setState(() {
