@@ -244,7 +244,7 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isPortrait =
-              MediaQuery.of(context).orientation == Orientation.portrait;
+              MediaQuery.orientationOf(context) == Orientation.portrait;
           final contentWidth = math.min(
             constraints.maxWidth,
             kFolderPageMaxWidth,

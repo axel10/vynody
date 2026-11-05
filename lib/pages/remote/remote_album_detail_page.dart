@@ -341,8 +341,13 @@ class _RemoteAlbumDetailPageState
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
-    final currentMusic = ref.watch(audioCurrentMusicProvider);
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+    // 只订阅当前曲目路径；播放状态在 build 顶部订阅一次，不再让
+    // itemBuilder 为每个可见行重复 watch 同一个 provider。
+    final currentPath = ref.watch(
+      audioCurrentMusicProvider.select((music) => music?.path),
+    );
+    final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final coverId = widget.coverArtId ?? _albumData?['coverArt'] as String?;
     final artist = widget.artistName ??
         _albumData?['artist'] as String? ??
@@ -352,7 +357,7 @@ class _RemoteAlbumDetailPageState
 
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
       context,
-      hasPlayingMusic: currentMusic != null,
+      hasPlayingMusic: currentPath != null,
       isSelectionMode: isSelectionMode,
       selectionPanelHeight: 220.0,
     );
@@ -533,14 +538,6 @@ class _RemoteAlbumDetailPageState
                     tagLabel: l10n.albumLabel.toUpperCase(),
                     metadata: metadataWidget,
                     actionButtons: actionButtons,
-                    coverBackground: RemoteArtworkWidget(
-                      server: widget.server,
-                      password: widget.password,
-                      coverArtId: coverId,
-                      size: 400,
-                      fit: BoxFit.cover,
-                      borderRadius: BorderRadius.zero,
-                    ),
                     coverWidget: RemoteArtworkWidget(
                       server: widget.server,
                       password: widget.password,
@@ -573,9 +570,8 @@ class _RemoteAlbumDetailPageState
                             itemCount: _tracks.length,
                             itemBuilder: (context, index) {
                               final song = _tracks[index];
-                              final isPlaying = currentMusic?.path == song.path;
+                              final isPlaying = currentPath == song.path;
                               final isHighlighted = _highlightedSongPath == song.path;
-                              final isAudioPlaying = ref.watch(audioIsPlayingProvider);
                               final isSelected = isSongSelected(song.path);
                               final trackNum = song.trackNumber ?? (index + 1);
                               final trackLabel = '$trackNum'.padLeft(2, '0');

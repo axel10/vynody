@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,7 +6,6 @@ import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
-import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/album_cover.dart';
 import '../widgets/album_detail_widgets.dart';
@@ -18,7 +15,6 @@ import '../widgets/mini_player_wrapper.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/draggable_song_item.dart';
-import '../widgets/song_thumbnail.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import '../player/platform/right_queue_drawer_controller.dart';
 import '../widgets/auto_hide_header.dart';
@@ -360,7 +356,6 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                   subtitle: widget.album.artist,
                   metadata: metadataWidget,
                   actionButtons: actionButtons,
-                  coverBackground: _AlbumCoverBackground(album: widget.album),
                   coverWidget: AlbumCover(
                     album: widget.album,
                     size: 260,
@@ -624,54 +619,6 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
   );
   return page;
 }
-}
-
-/// Helper to render the album artwork across memory, file, and remote sources.
-class _AlbumCoverBackground extends StatelessWidget {
-  const _AlbumCoverBackground({required this.album});
-
-  final AlbumSummary album;
-
-  @override
-  Widget build(BuildContext context) {
-    final rep = album.representativeSong;
-    final rawPath = rep.thumbnailPath ?? rep.artworkPath;
-    final resolvedPath = rawPath != null
-        ? ScannerPathUtils.resolveIosSandboxPath(rawPath)
-        : null;
-
-    if (rep.artworkBytes != null && rep.artworkBytes!.isNotEmpty) {
-      return Image.memory(
-        rep.artworkBytes!,
-        fit: BoxFit.cover,
-        alignment: Alignment.center,
-        width: double.infinity,
-        height: double.infinity,
-        errorBuilder: (_, _, _) => const SizedBox.shrink(),
-      );
-    }
-
-    if (resolvedPath != null &&
-        resolvedPath.isNotEmpty &&
-        File(resolvedPath).existsSync()) {
-      return Image.file(
-        File(resolvedPath),
-        fit: BoxFit.cover,
-        alignment: Alignment.center,
-        width: double.infinity,
-        height: double.infinity,
-        errorBuilder: (_, _, _) => const SizedBox.shrink(),
-      );
-    }
-
-    return SongThumbnail.fromAlbum(
-      album,
-      size: 400,
-      width: double.infinity,
-      height: double.infinity,
-      borderRadius: BorderRadius.zero,
-    );
-  }
 }
 
 String? _formatDuration(int? durationMs) {

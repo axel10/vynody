@@ -162,7 +162,6 @@ void main() {
             tagLabel: 'ALBUM',
             metadata: const Text('10 songs'),
             actionButtons: const [Icon(Icons.play_arrow)],
-            coverBackground: const SizedBox(width: 400, height: 400),
             coverWidget: const SizedBox(width: 160, height: 160),
             barHeight: 80,
           ),

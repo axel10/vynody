@@ -412,7 +412,10 @@ class _RemoteLibrarySongsViewState
     super.build(context);
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    // 只订阅当前曲目路径：MusicFile 的其它字段被补齐时不该重建整个 sliver。
+    final currentPath = ref.watch(
+      audioCurrentMusicProvider.select((music) => music?.path),
+    );
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final highlightedPath = ref.watch(songHighlightProvider);
 
@@ -470,7 +473,7 @@ class _RemoteLibrarySongsViewState
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isPortrait =
-              MediaQuery.of(context).orientation == Orientation.portrait;
+              MediaQuery.orientationOf(context) == Orientation.portrait;
           final contentWidth = math.min(
             constraints.maxWidth,
             kFolderPageMaxWidth,
@@ -517,8 +520,7 @@ class _RemoteLibrarySongsViewState
                               delegate: SliverChildBuilderDelegate(
                                 (context, songIndex) {
                                   final song = widget.songs[songIndex];
-                                  final isCurrent =
-                                      currentMusic?.path == song.path;
+                                  final isCurrent = currentPath == song.path;
                                   final isHighlighted =
                                       highlightedPath == song.path;
                                   final isSelected = widget.selectedSongPaths

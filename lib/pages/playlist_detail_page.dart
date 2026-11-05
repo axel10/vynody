@@ -518,9 +518,6 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                                 title: plName,
                                 metadata: metadataWidget,
                                 actionButtons: actionButtons,
-                                coverBackground: _PlaylistCoverBackground(
-                                  playlist: activePlaylist,
-                                ),
                                 coverWidget: PlaylistCover(
                                   playlist: activePlaylist,
                                   size: 260,
@@ -648,19 +645,3 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
 }
 }
 
-class _PlaylistCoverBackground extends StatelessWidget {
-  const _PlaylistCoverBackground({required this.playlist});
-
-  final Playlist playlist;
-
-  @override
-  Widget build(BuildContext context) {
-    return PlaylistCover(
-      playlist: playlist,
-      size: double.infinity,
-      width: double.infinity,
-      height: double.infinity,
-      borderRadius: 0,
-    );
-  }
-}

@@ -190,7 +190,6 @@ class AlbumPortraitHeaderBanner extends StatelessWidget {
     this.tagLabel,
     this.metadata,
     required this.actionButtons,
-    required this.coverBackground,
     this.coverWidget,
     required this.barHeight,
     this.backgroundOpacityDark = 0.38,
@@ -202,7 +201,6 @@ class AlbumPortraitHeaderBanner extends StatelessWidget {
   final String? tagLabel;
   final Widget? metadata;
   final List<Widget> actionButtons;
-  final Widget coverBackground;
   final Widget? coverWidget;
   final double barHeight;
   final double backgroundOpacityDark;

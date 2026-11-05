@@ -121,6 +121,19 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   String? _connectionError;
   bool _isRetrying = false;
 
+  // Filtered 缓存（B-1）：每次 build 都会给六个 tab 传参，旧实现六份全表
+  // 过滤 + 排序无条件重跑。这里用「源列表 identity + 长度 + 过滤/排序参数」
+  // 组成签名，签名不变直接复用上次结果；源列表被整体替换（forceRefresh /
+  // session 同步 / 加载更多）或原地 addAll（长度变）都会自动失效。
+  List<MusicFile>? _cachedFilteredSongs;
+  int _cachedFilteredSongsSig = 0;
+  List<Map<String, dynamic>>? _cachedFilteredAlbums;
+  int _cachedFilteredAlbumsSig = 0;
+  List<Map<String, dynamic>>? _cachedFilteredArtists;
+  int _cachedFilteredArtistsSig = 0;
+  List<Map<String, dynamic>>? _cachedFilteredPlaylists;
+  int _cachedFilteredPlaylistsSig = 0;
+
   /// 排序 / 筛选条件变更触发的再次请求：叠加轻量加载态提示
   bool _isReloadingContent = false;
 
@@ -400,6 +413,23 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   }
 
   List<MusicFile> _getFilteredSongs() {
+    final sig = Object.hash(
+      identityHashCode(_songs),
+      _songs.length,
+      _songSearchQuery,
+      _songSortField,
+      _songSortAsc,
+      _songStarredOnly,
+      _songStarredOnly ? Object.hashAll(_starredSongIds) : 0,
+    );
+    final cached = _cachedFilteredSongs;
+    if (cached != null && sig == _cachedFilteredSongsSig) return cached;
+    final result = _computeFilteredSongs();
+    _cachedFilteredSongsSig = sig;
+    return _cachedFilteredSongs = result;
+  }
+
+  List<MusicFile> _computeFilteredSongs() {
     var result = _songs.where((song) {
       if (_songSearchQuery.isEmpty) return true;
       final q = _songSearchQuery.toLowerCase();
@@ -447,6 +477,21 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   }
 
   List<Map<String, dynamic>> _getFilteredAlbums() {
+    final sig = Object.hash(
+      identityHashCode(_albums),
+      _albums.length,
+      _albumSearchQuery,
+      _albumStarredOnly,
+      _albumStarredOnly ? Object.hashAll(_starredAlbumIds) : 0,
+    );
+    final cached = _cachedFilteredAlbums;
+    if (cached != null && sig == _cachedFilteredAlbumsSig) return cached;
+    final result = _computeFilteredAlbums();
+    _cachedFilteredAlbumsSig = sig;
+    return _cachedFilteredAlbums = result;
+  }
+
+  List<Map<String, dynamic>> _computeFilteredAlbums() {
     var result = _albums.where((album) {
       if (_albumSearchQuery.isEmpty) return true;
       final q = _albumSearchQuery.toLowerCase();
@@ -486,6 +531,23 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       (artist['name'] as String? ?? '').toLowerCase();
 
   List<Map<String, dynamic>> _getFilteredArtists() {
+    final sig = Object.hash(
+      identityHashCode(_artists),
+      _artists.length,
+      _artistSearchQuery,
+      _artistSortField,
+      _artistSortAsc,
+      _artistStarredOnly,
+      _artistStarredOnly ? Object.hashAll(_starredArtistIds) : 0,
+    );
+    final cached = _cachedFilteredArtists;
+    if (cached != null && sig == _cachedFilteredArtistsSig) return cached;
+    final result = _computeFilteredArtists();
+    _cachedFilteredArtistsSig = sig;
+    return _cachedFilteredArtists = result;
+  }
+
+  List<Map<String, dynamic>> _computeFilteredArtists() {
     var result = _artists.where((artist) {
       if (_artistSearchQuery.isEmpty) return true;
       final q = _artistSearchQuery.toLowerCase();
@@ -515,6 +577,26 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   }
 
   List<Map<String, dynamic>> _getFilteredPlaylists() {
+    final session = ref.read(activeRemoteSessionProvider);
+    final sig = Object.hash(
+      identityHashCode(_playlists),
+      _playlists.length,
+      _playlistSearchQuery,
+      identityHashCode(session),
+      identityHashCode(session?.navidromePlaylists),
+      session?.navidromePlaylists?.length,
+      session?.navidromeStarredSongIds?.length,
+      _starredSongIds.length,
+      AppLocalizations.of(context)!.starredSongs,
+    );
+    final cached = _cachedFilteredPlaylists;
+    if (cached != null && sig == _cachedFilteredPlaylistsSig) return cached;
+    final result = _computeFilteredPlaylists();
+    _cachedFilteredPlaylistsSig = sig;
+    return _cachedFilteredPlaylists = result;
+  }
+
+  List<Map<String, dynamic>> _computeFilteredPlaylists() {
     final l10n = AppLocalizations.of(context)!;
     final session = ref.read(activeRemoteSessionProvider);
     final isCurrentServer =
@@ -604,11 +686,38 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     _artistSortAsc = settings.navidromeArtistSortAscending;
     _songSortField = settings.navidromeSongSortField;
     _songSortAsc = settings.navidromeSongSortAscending;
-    _loadAlbums();
-    _loadArtists();
-    _loadGenres();
-    _loadSongs();
-    _loadPlaylists();
+    // 首屏优先拉当前 tab，其余分类在首帧后错峰补齐：五路同时发请求 +
+    // 同时解析 JSON 是竖屏首屏掉帧的主因。各分类本身都有 session / 本地
+    // 缓存兜底，这里只削平并发峰值，不改变「所有分类最终都可用」的语义
+    // （搜索 tab 的多选、收藏歌单计数等仍依赖跨 tab 数据）。
+    final loaders = <void Function()>[
+      () {
+        _loadAlbums();
+      },
+      () {
+        _loadArtists();
+      },
+      () {
+        _loadGenres();
+      },
+      () {
+        _loadSongs();
+      },
+      () {
+        _loadPlaylists();
+      },
+    ];
+    final firstIndex = initialIndex < loaders.length ? initialIndex : 0;
+    loaders.removeAt(firstIndex)();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(Future<void>.delayed(const Duration(milliseconds: 120), () {
+        if (!mounted) return;
+        for (final loader in loaders) {
+          loader();
+        }
+      }));
+    });
   }
 
   /// 再次请求加载态使用的分类图标（与各标签页自身的加载视图保持一致）
@@ -1593,10 +1702,13 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
 
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    // 只关心「有没有在放」，不关心放的是哪首：收窄订阅，切歌不再重建整页。
+    final hasPlayingMusic = ref.watch(
+      audioCurrentMusicProvider.select((music) => music != null),
+    );
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
       context,
-      hasPlayingMusic: currentMusic != null,
+      hasPlayingMusic: hasPlayingMusic,
       isSelectionMode: _isSelectionMode,
       selectionPanelHeight: 220.0,
     );

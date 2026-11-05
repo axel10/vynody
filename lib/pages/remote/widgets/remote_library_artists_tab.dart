@@ -301,7 +301,7 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
             : null;
 
         final isPortrait =
-            MediaQuery.of(context).orientation == Orientation.portrait;
+            MediaQuery.orientationOf(context) == Orientation.portrait;
         final contentWidth = math.min(
           constraints.maxWidth,
           kFolderPageMaxWidth,
