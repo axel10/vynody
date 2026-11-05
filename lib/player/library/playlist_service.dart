@@ -376,6 +376,66 @@ class PlaylistService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 跨设备导入：同名歌单合并，否则新建。
+  ///
+  /// 旧的导入路径对每个远端歌单无条件调 [generateUniquePlaylistName]，同名就
+  /// 变成「名字 (1)」。歌单是持续演进的对象，推三次得到三个副本、只能手动删，
+  /// 不是合理语义。
+  ///
+  /// 合并按**本地解析后的 path** 去重 —— 跨设备路径必然不同，远端路径已经在
+  /// 导入前被解析成本地 `MusicFile`，所以这里用 `path` 是安全的。
+  /// 内置的「默认列表」与「收藏」不参与同名合并，避免把用户数据并进去。
+  Future<({Playlist playlist, int addedSongs, int skippedSongs, bool merged})>
+  mergeOrAddPlaylist({required String name, required List<MusicFile> songs}) async {
+    final trimmed = name.trim();
+    final targetName = trimmed.isEmpty ? '导入的歌单' : trimmed;
+
+    final existing = _playlists.firstWhereOrNull(
+      (p) =>
+          p.id != favoritePlaylistId &&
+          p.id != 'default' &&
+          p.name.trim().toLowerCase() == targetName.toLowerCase(),
+    );
+
+    if (existing != null) {
+      final existingPaths = existing.songs.map((song) => song.path).toSet();
+      var added = 0;
+      var skipped = 0;
+      for (final song in songs) {
+        if (existingPaths.add(song.path)) {
+          existing.songs.add(song);
+          added++;
+        } else {
+          skipped++;
+        }
+      }
+      existing.updatedAt = DateTime.now();
+      _currentPlaylistId = existing.id;
+      await _savePlaylists();
+      notifyListeners();
+      return (
+        playlist: existing,
+        addedSongs: added,
+        skippedSongs: skipped,
+        merged: true,
+      );
+    }
+
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    final playlist = Playlist(
+      id: id,
+      name: targetName,
+      songs: List<MusicFile>.of(songs),
+    );
+    await addPlaylist(playlist);
+    return (
+      playlist: playlist,
+      addedSongs: songs.length,
+      skippedSongs: 0,
+      merged: false,
+    );
+  }
+
   /// 检查是否存在同名播放列表 (不区分大小写，去除首尾空格)
   bool playlistExists(String name, {String? excludeId}) {
     final searchName = name.trim().toLowerCase();

@@ -5919,4 +5919,55 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get lastFmCredentialsMissing =>
       'Esta compilación no incluye las credenciales de Last.fm, por lo que el scrobbling no está disponible.';
+
+  @override
+  String lanSyncLyricsReceived(int added, int updated, int skipped) {
+    return 'Letras sincronizadas: $added añadidas, $updated actualizadas, $skipped omitidas';
+  }
+
+  @override
+  String lanSyncLyricsSent(int count) {
+    return 'Letras enviadas: $count canciones';
+  }
+
+  @override
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  ) {
+    return 'Sincronización completada: $matched coincidentes, $added añadidas, $updated actualizadas, $skipped omitidas';
+  }
+
+  @override
+  String lanSyncPlaylistsReceived(int playlists, int songs) {
+    return 'Se recibieron $playlists lista(s), $songs canción(es)';
+  }
+
+  @override
+  String lanSyncPlaylistsReceivedPartial(
+    int playlists,
+    int songs,
+    int missing,
+  ) {
+    return 'Se recibieron $playlists lista(s), $songs canción(es), $missing sin coincidencia';
+  }
+
+  @override
+  String lanSyncPlaylistsSent(int playlists, int songs) {
+    return 'Se enviaron $playlists lista(s), $songs canción(es)';
+  }
+
+  @override
+  String lanSyncErrorStatus(int status) {
+    return 'El otro dispositivo devolvió un error (HTTP $status)';
+  }
+
+  @override
+  String get lanSyncErrorTimeout =>
+      'Se agotó el tiempo de conexión. Comprueba que ambos dispositivos estén en la misma red.';
+
+  @override
+  String get lanSyncErrorNetwork => 'No se pudo conectar al dispositivo';
 }

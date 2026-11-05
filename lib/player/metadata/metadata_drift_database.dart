@@ -1658,6 +1658,15 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return rows.map(_songFromRemoteRow).toList(growable: false);
   }
 
+  /// 按标题 + 艺术家查歌。
+  ///
+  /// [artist] 为空时退化为只按标题查（调用方没有艺术家信息，不能因此排除）。
+  /// 给了 [artist] 时，SQL 里必须真的过滤 —— 此前的实现只按标题查、用 artist
+  /// 给结果排个序，导致同名不同艺术家、时长又接近时错配到别人的歌上。这是
+  /// 歌单同步的最后一层匹配兜底，错得最隐蔽。
+  ///
+  /// 艺术家比较用双向 `LIKE`：`A feat. B` 与 `A, B` 这类写法差异下，全等会
+  /// 漏配。艺术家为空的本地记录不排除（老库可能没写 artist）。
   Future<List<SongMetadata>> findSongsByTitleAndArtist({
     required String title,
     String? artist,
@@ -1665,15 +1674,38 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final cleanTitle = title.trim();
     if (cleanTitle.isEmpty) return [];
 
+    final cleanArtist = (artist ?? '').trim().toLowerCase();
+    final hasArtistFilter = cleanArtist.isNotEmpty;
+
+    final artistClause = hasArtistFilter
+        ? '''
+          AND (
+            artist IS NULL
+            OR TRIM(artist) = ''
+            OR LOWER(artist) LIKE ?
+            OR ? LIKE '%' || LOWER(artist) || '%'
+          )'''
+        : '';
+
+    final titleVariable = Variable(cleanTitle.toLowerCase());
+    final variables = hasArtistFilter
+        ? [
+            titleVariable,
+            Variable('%$cleanArtist%'),
+            Variable(cleanArtist),
+          ]
+        : [titleVariable];
+
     final localRows = await customSelect(
       '''
       SELECT *
       FROM songs
       WHERE LOWER(title) = ?
         AND deletedAt IS NULL
+        $artistClause
       LIMIT 10
       ''',
-      variables: [Variable(cleanTitle.toLowerCase())],
+      variables: variables,
       readsFrom: {songs},
     ).get();
 
@@ -1685,26 +1717,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       FROM remote_songs
       WHERE LOWER(title) = ?
         AND deletedAt IS NULL
+        $artistClause
       LIMIT 10
       ''',
-      variables: [Variable(cleanTitle.toLowerCase())],
+      variables: variables,
       readsFrom: {remoteSongs},
     ).get();
 
     results.addAll(remoteRows.map(_songFromRemoteRow));
-
-    if (artist != null && artist.trim().isNotEmpty) {
-      final cleanArtist = artist.trim().toLowerCase();
-      results.sort((a, b) {
-        final aArtist = a.artist.toLowerCase();
-        final bArtist = b.artist.toLowerCase();
-        final aMatches = aArtist.contains(cleanArtist) || cleanArtist.contains(aArtist);
-        final bMatches = bArtist.contains(cleanArtist) || cleanArtist.contains(bArtist);
-        if (aMatches && !bMatches) return -1;
-        if (!aMatches && bMatches) return 1;
-        return 0;
-      });
-    }
 
     return results;
   }

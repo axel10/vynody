@@ -10347,6 +10347,65 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'当前构建未包含 Last.fm 凭据，上报功能不可用。'**
   String get lastFmCredentialsMissing;
+
+  /// Lyrics sync finished on the receiving side
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词同步完成：新增 {added} 首，更新 {updated} 首，忽略 {skipped} 首'**
+  String lanSyncLyricsReceived(int added, int updated, int skipped);
+
+  /// Lyrics exported to another device
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词已发送：{count} 首'**
+  String lanSyncLyricsSent(int count);
+
+  /// Result shown on the device that started a lyrics sync
+  ///
+  /// In zh, this message translates to:
+  /// **'同步完成：匹配 {matched} 首，新增 {added} 首，更新 {updated} 首，忽略 {skipped} 首'**
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  );
+
+  /// Playlists received from another device
+  ///
+  /// In zh, this message translates to:
+  /// **'已接收 {playlists} 个歌单，共 {songs} 首'**
+  String lanSyncPlaylistsReceived(int playlists, int songs);
+
+  /// Playlists received with some songs not matched locally
+  ///
+  /// In zh, this message translates to:
+  /// **'已接收 {playlists} 个歌单，{songs} 首，{missing} 首未匹配'**
+  String lanSyncPlaylistsReceivedPartial(int playlists, int songs, int missing);
+
+  /// Playlists exported to another device
+  ///
+  /// In zh, this message translates to:
+  /// **'已发送 {playlists} 个歌单，共 {songs} 首'**
+  String lanSyncPlaylistsSent(int playlists, int songs);
+
+  /// Remote peer replied with a non-success HTTP status
+  ///
+  /// In zh, this message translates to:
+  /// **'对端返回错误（HTTP {status}）'**
+  String lanSyncErrorStatus(int status);
+
+  /// Connection or read timeout during a LAN transfer
+  ///
+  /// In zh, this message translates to:
+  /// **'连接超时，请确认两台设备在同一网络'**
+  String get lanSyncErrorTimeout;
+
+  /// Could not reach the peer device at all
+  ///
+  /// In zh, this message translates to:
+  /// **'无法连接到设备'**
+  String get lanSyncErrorNetwork;
 }
 
 class _AppLocalizationsDelegate

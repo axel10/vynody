@@ -5657,4 +5657,54 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get lastFmCredentialsMissing =>
       '이 빌드에는 Last.fm 자격 증명이 없어 스크로블을 사용할 수 없습니다.';
+
+  @override
+  String lanSyncLyricsReceived(int added, int updated, int skipped) {
+    return '가사 동기화 완료: 추가 $added곡, 업데이트 $updated곡, 건너뜀 $skipped곡';
+  }
+
+  @override
+  String lanSyncLyricsSent(int count) {
+    return '가사 전송 완료: $count곡';
+  }
+
+  @override
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  ) {
+    return '동기화 완료: 일치 $matched곡, 추가 $added곡, 업데이트 $updated곡, 건너뜀 $skipped곡';
+  }
+
+  @override
+  String lanSyncPlaylistsReceived(int playlists, int songs) {
+    return '재생목록 $playlists개, $songs곡을 받았습니다';
+  }
+
+  @override
+  String lanSyncPlaylistsReceivedPartial(
+    int playlists,
+    int songs,
+    int missing,
+  ) {
+    return '재생목록 $playlists개, $songs곡을 받았습니다 ($missing곡 일치 없음)';
+  }
+
+  @override
+  String lanSyncPlaylistsSent(int playlists, int songs) {
+    return '재생목록 $playlists개, $songs곡을 보냈습니다';
+  }
+
+  @override
+  String lanSyncErrorStatus(int status) {
+    return '상대 기기에서 오류가 발생했습니다 (HTTP $status)';
+  }
+
+  @override
+  String get lanSyncErrorTimeout => '연결 시간이 초과되었습니다. 두 기기가 같은 네트워크에 있는지 확인하세요.';
+
+  @override
+  String get lanSyncErrorNetwork => '기기에 연결할 수 없습니다';
 }

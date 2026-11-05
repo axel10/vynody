@@ -5651,4 +5651,54 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get lastFmCredentialsMissing =>
       'このビルドには Last.fm の認証情報が含まれていないため、スクロブルは利用できません。';
+
+  @override
+  String lanSyncLyricsReceived(int added, int updated, int skipped) {
+    return '歌詞を同期しました：追加 $added、更新 $updated、スキップ $skipped';
+  }
+
+  @override
+  String lanSyncLyricsSent(int count) {
+    return '歌詞を送信しました：$count 曲';
+  }
+
+  @override
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  ) {
+    return '同期完了：一致 $matched、追加 $added、更新 $updated、スキップ $skipped';
+  }
+
+  @override
+  String lanSyncPlaylistsReceived(int playlists, int songs) {
+    return 'プレイリスト $playlists 件、$songs 曲を受信しました';
+  }
+
+  @override
+  String lanSyncPlaylistsReceivedPartial(
+    int playlists,
+    int songs,
+    int missing,
+  ) {
+    return 'プレイリスト $playlists 件、$songs 曲を受信しました（$missing 曲は未一致）';
+  }
+
+  @override
+  String lanSyncPlaylistsSent(int playlists, int songs) {
+    return 'プレイリスト $playlists 件、$songs 曲を送信しました';
+  }
+
+  @override
+  String lanSyncErrorStatus(int status) {
+    return '相手の端末がエラーを返しました（HTTP $status）';
+  }
+
+  @override
+  String get lanSyncErrorTimeout => '接続がタイムアウトしました。两台の端末が同じネットワークにあるか確認してください。';
+
+  @override
+  String get lanSyncErrorNetwork => '端末に接続できませんでした';
 }

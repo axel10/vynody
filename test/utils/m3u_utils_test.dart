@@ -133,5 +133,54 @@ file:///music/song.mp3
       expect(resolved[0].artist, equals('周杰伦'));
       expect(resolved[0].durationMillis, equals(245000));
     });
+
+    test('includeMissingPlaceholders=false 时不返回占位条目，改记 missingEntries', () async {
+      // 跨设备歌单同步必须这样用：占位条目没有对应本地文件，入库后播不了，
+      // 而 UI 没有任何缺失标记，用户只会看到「导入 N 首」然后播到一半失败。
+      final entries = [
+        const M3uEntry(
+          path: 'nowhere/缺失 A.flac',
+          rawPath: 'nowhere/缺失 A.flac',
+          title: '缺失 A',
+          artist: 'Unknown',
+        ),
+        const M3uEntry(
+          path: 'nowhere/缺失 B.flac',
+          rawPath: 'nowhere/缺失 B.flac',
+          title: '缺失 B',
+          artist: 'Unknown',
+        ),
+      ];
+
+      final missing = <M3uEntry>[];
+      final resolved = await M3uUtils.resolveMusicFiles(
+        entries,
+        rootPaths: const [],
+        includeMissingPlaceholders: false,
+        missingEntries: missing,
+      );
+
+      expect(resolved, isEmpty);
+      expect(missing.length, equals(2));
+      expect(missing.map((e) => e.title), containsAll(['缺失 A', '缺失 B']));
+    });
+
+    test('不传 missingEntries 时行为与旧版一致（仍返回占位）', () async {
+      final entries = [
+        const M3uEntry(
+          path: 'nowhere/缺失 C.flac',
+          rawPath: 'nowhere/缺失 C.flac',
+          title: '缺失 C',
+        ),
+      ];
+
+      final resolved = await M3uUtils.resolveMusicFiles(
+        entries,
+        rootPaths: const [],
+      );
+
+      expect(resolved.length, equals(1));
+      expect(resolved[0].isMissing, isTrue);
+    });
   });
 }

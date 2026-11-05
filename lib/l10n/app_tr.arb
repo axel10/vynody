@@ -2294,5 +2294,14 @@
   "lastFmLastScrobble": "Son başarılı gönderim: {time}",
   "lastFmNeverScrobbled": "Henüz gönderilmiş kayıt yok",
   "lastFmPendingCount": "{count} kayıt gönderilmeyi bekliyor",
-  "lastFmCredentialsMissing": "Bu derleme Last.fm kimlik bilgilerini içermiyor, scrobble kullanılamıyor."
+  "lastFmCredentialsMissing": "Bu derleme Last.fm kimlik bilgilerini içermiyor, scrobble kullanılamıyor.",
+  "lanSyncLyricsReceived": "Şarkı sözleri eşitlendi: {added} eklendi, {updated} güncellendi, {skipped} atlandı",
+  "lanSyncLyricsSent": "Şarkı sözleri gönderildi: {count} parça",
+  "lanSyncLyricsSyncResult": "Eşitleme tamamlandı: {matched} eşleşti, {added} eklendi, {updated} güncellendi, {skipped} atlandı",
+  "lanSyncPlaylistsReceived": "{playlists} çalma listesi, {songs} parça alındı",
+  "lanSyncPlaylistsReceivedPartial": "{playlists} çalma listesi, {songs} parça alındı, {missing} parça eşleşmedi",
+  "lanSyncPlaylistsSent": "{playlists} çalma listesi, {songs} parça gönderildi",
+  "lanSyncErrorStatus": "Karşı cihaz bir hata döndürdü (HTTP {status})",
+  "lanSyncErrorTimeout": "Bağlantı zaman aşımına uğradı. İki cihazın da aynı ağda olduğundan emin olun.",
+  "lanSyncErrorNetwork": "Cihaza bağlanılamadı"
 }

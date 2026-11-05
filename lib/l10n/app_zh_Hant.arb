@@ -1877,5 +1877,14 @@
   "lastFmLastScrobble": "上次成功上報：{time}",
   "lastFmNeverScrobbled": "還沒有成功上報的記錄",
   "lastFmPendingCount": "{count} 筆待上報",
-  "lastFmCredentialsMissing": "目前建置未包含 Last.fm 憑證，上報功能無法使用。"
+  "lastFmCredentialsMissing": "目前建置未包含 Last.fm 憑證，上報功能無法使用。",
+  "lanSyncLyricsReceived": "歌詞同步完成：新增 {added} 首，更新 {updated} 首，略過 {skipped} 首",
+  "lanSyncLyricsSent": "歌詞已傳送：{count} 首",
+  "lanSyncLyricsSyncResult": "同步完成：符合 {matched} 首，新增 {added} 首，更新 {updated} 首，略過 {skipped} 首",
+  "lanSyncPlaylistsReceived": "已接收 {playlists} 個播放清單，共 {songs} 首",
+  "lanSyncPlaylistsReceivedPartial": "已接收 {playlists} 個播放清單，{songs} 首，{missing} 首未符合",
+  "lanSyncPlaylistsSent": "已傳送 {playlists} 個播放清單，共 {songs} 首",
+  "lanSyncErrorStatus": "對方傳回錯誤（HTTP {status}）",
+  "lanSyncErrorTimeout": "連線逾時，請確認兩台裝置在同一個網路",
+  "lanSyncErrorNetwork": "無法連線到裝置"
 }

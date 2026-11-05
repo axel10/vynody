@@ -2162,5 +2162,14 @@
   "lastFmLastScrobble": "Zuletzt erfolgreich übertragen: {time}",
   "lastFmNeverScrobbled": "Noch keine Übertragung erfolgt",
   "lastFmPendingCount": "{count} warten auf Übertragung",
-  "lastFmCredentialsMissing": "Dieser Build enthält keine Last.fm-Zugangsdaten, daher ist Scrobbeln nicht verfügbar."
+  "lastFmCredentialsMissing": "Dieser Build enthält keine Last.fm-Zugangsdaten, daher ist Scrobbeln nicht verfügbar.",
+  "lanSyncLyricsReceived": "Songtexte synchronisiert: {added} hinzugefügt, {updated} aktualisiert, {skipped} übersprungen",
+  "lanSyncLyricsSent": "Songtexte gesendet: {count} Titel",
+  "lanSyncLyricsSyncResult": "Synchronisation abgeschlossen: {matched} übereinstimmend, {added} hinzugefügt, {updated} aktualisiert, {skipped} übersprungen",
+  "lanSyncPlaylistsReceived": "{playlists} Playlist(s) empfangen, {songs} Titel",
+  "lanSyncPlaylistsReceivedPartial": "{playlists} Playlist(s) empfangen, {songs} Titel, {missing} nicht zugeordnet",
+  "lanSyncPlaylistsSent": "{playlists} Playlist(s) gesendet, {songs} Titel",
+  "lanSyncErrorStatus": "Das andere Gerät hat einen Fehler zurückgegeben (HTTP {status})",
+  "lanSyncErrorTimeout": "Zeitüberschreitung. Stellen Sie sicher, dass beide Geräte im selben Netzwerk sind.",
+  "lanSyncErrorNetwork": "Verbindung zum Gerät nicht möglich"
 }

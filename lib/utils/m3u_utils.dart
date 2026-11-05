@@ -244,11 +244,18 @@ class M3uUtils {
   /// 3. Configured remote servers (WebDAV & Subsonic) via virtual URI rewriting.
   /// 4. Database search by path suffix, filename, or Title + Artist.
   /// 5. Missing fallback preserving all available metadata.
+  ///
+  /// [includeMissingPlaceholders] 为 false 时不把第 5 级的占位条目放进返回值，
+  /// 而是收进 [missingEntries]。跨设备歌单同步必须传 false —— 占位条目一旦
+  /// 入库，用户会看到「导入 200 首」实际一半播不了，且 UI 没有任何缺失标记。
+  /// 本地 `.m3u` 文件导入保持默认 true（用户能接受看到缺失项）。
   static Future<List<MusicFile>> resolveMusicFiles(
     List<M3uEntry> entries, {
     Iterable<String>? rootPaths,
     List<RemoteServer>? remoteServers,
     MetadataDatabase? db,
+    bool includeMissingPlaceholders = true,
+    List<M3uEntry>? missingEntries,
   }) async {
     if (entries.isEmpty) return [];
 
@@ -594,6 +601,11 @@ class M3uUtils {
       }
 
       // ---- Level 5: Missing Fallback ----
+      missingEntries?.add(entry);
+      if (!includeMissingPlaceholders) {
+        continue;
+      }
+
       final fallbackName = fileName.isNotEmpty ? fileName : entry.path;
       final fallbackTitle =
           (entry.title != null && entry.title!.trim().isNotEmpty)

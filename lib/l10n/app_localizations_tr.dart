@@ -5864,4 +5864,55 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get lastFmCredentialsMissing =>
       'Bu derleme Last.fm kimlik bilgilerini içermiyor, scrobble kullanılamıyor.';
+
+  @override
+  String lanSyncLyricsReceived(int added, int updated, int skipped) {
+    return 'Şarkı sözleri eşitlendi: $added eklendi, $updated güncellendi, $skipped atlandı';
+  }
+
+  @override
+  String lanSyncLyricsSent(int count) {
+    return 'Şarkı sözleri gönderildi: $count parça';
+  }
+
+  @override
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  ) {
+    return 'Eşitleme tamamlandı: $matched eşleşti, $added eklendi, $updated güncellendi, $skipped atlandı';
+  }
+
+  @override
+  String lanSyncPlaylistsReceived(int playlists, int songs) {
+    return '$playlists çalma listesi, $songs parça alındı';
+  }
+
+  @override
+  String lanSyncPlaylistsReceivedPartial(
+    int playlists,
+    int songs,
+    int missing,
+  ) {
+    return '$playlists çalma listesi, $songs parça alındı, $missing parça eşleşmedi';
+  }
+
+  @override
+  String lanSyncPlaylistsSent(int playlists, int songs) {
+    return '$playlists çalma listesi, $songs parça gönderildi';
+  }
+
+  @override
+  String lanSyncErrorStatus(int status) {
+    return 'Karşı cihaz bir hata döndürdü (HTTP $status)';
+  }
+
+  @override
+  String get lanSyncErrorTimeout =>
+      'Bağlantı zaman aşımına uğradı. İki cihazın da aynı ağda olduğundan emin olun.';
+
+  @override
+  String get lanSyncErrorNetwork => 'Cihaza bağlanılamadı';
 }

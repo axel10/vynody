@@ -5920,4 +5920,55 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get lastFmCredentialsMissing =>
       'Cette version n\'inclut pas les identifiants Last.fm ; le scrobbling est donc indisponible.';
+
+  @override
+  String lanSyncLyricsReceived(int added, int updated, int skipped) {
+    return 'Paroles synchronisées : $added ajoutées, $updated mises à jour, $skipped ignorées';
+  }
+
+  @override
+  String lanSyncLyricsSent(int count) {
+    return 'Paroles envoyées : $count titres';
+  }
+
+  @override
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  ) {
+    return 'Synchronisation terminée : $matched correspondances, $added ajoutées, $updated mises à jour, $skipped ignorées';
+  }
+
+  @override
+  String lanSyncPlaylistsReceived(int playlists, int songs) {
+    return '$playlists liste(s) reçue(s), $songs titre(s)';
+  }
+
+  @override
+  String lanSyncPlaylistsReceivedPartial(
+    int playlists,
+    int songs,
+    int missing,
+  ) {
+    return '$playlists liste(s) reçue(s), $songs titre(s), $missing sans correspondance';
+  }
+
+  @override
+  String lanSyncPlaylistsSent(int playlists, int songs) {
+    return '$playlists liste(s) envoyée(s), $songs titre(s)';
+  }
+
+  @override
+  String lanSyncErrorStatus(int status) {
+    return 'L\'autre appareil a renvoyé une erreur (HTTP $status)';
+  }
+
+  @override
+  String get lanSyncErrorTimeout =>
+      'Délai de connexion dépassé. Vérifiez que les deux appareils sont sur le même réseau.';
+
+  @override
+  String get lanSyncErrorNetwork => 'Impossible de se connecter à l\'appareil';
 }

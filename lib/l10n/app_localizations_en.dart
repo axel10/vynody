@@ -5838,4 +5838,55 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get lastFmCredentialsMissing =>
       'This build does not include Last.fm credentials, so scrobbling is unavailable.';
+
+  @override
+  String lanSyncLyricsReceived(int added, int updated, int skipped) {
+    return 'Lyrics synced: $added added, $updated updated, $skipped skipped';
+  }
+
+  @override
+  String lanSyncLyricsSent(int count) {
+    return 'Lyrics sent: $count song(s)';
+  }
+
+  @override
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  ) {
+    return 'Sync complete: $matched matched, $added added, $updated updated, $skipped skipped';
+  }
+
+  @override
+  String lanSyncPlaylistsReceived(int playlists, int songs) {
+    return 'Received $playlists playlist(s), $songs song(s)';
+  }
+
+  @override
+  String lanSyncPlaylistsReceivedPartial(
+    int playlists,
+    int songs,
+    int missing,
+  ) {
+    return 'Received $playlists playlist(s), $songs song(s), $missing unmatched';
+  }
+
+  @override
+  String lanSyncPlaylistsSent(int playlists, int songs) {
+    return 'Sent $playlists playlist(s), $songs song(s)';
+  }
+
+  @override
+  String lanSyncErrorStatus(int status) {
+    return 'The other device returned an error (HTTP $status)';
+  }
+
+  @override
+  String get lanSyncErrorTimeout =>
+      'Connection timed out. Make sure both devices are on the same network.';
+
+  @override
+  String get lanSyncErrorNetwork => 'Could not connect to the device';
 }

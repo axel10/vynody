@@ -17,7 +17,8 @@ import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:bonsoir/bonsoir.dart';
 import 'lan_device.dart';
-import 'lyrics_translation_importer.dart';
+import 'lyrics_import_conflict.dart';
+import 'lyrics_package_importer.dart';
 import 'sharing_riverpod.dart';
 import 'remote_control/remote_control_service.dart';
 import 'security/tls_certificate_service.dart';
@@ -110,17 +111,48 @@ final incomingPlaylistRequestProvider =
       IncomingPlaylistRequest?
     >(IncomingPlaylistRequestNotifier.new);
 
-class IncomingPlaylistReceivedNotifier extends Notifier<int?> {
-  @override
-  int? build() => null;
+/// 一次跨设备传输的落地结果。
+///
+/// 发起方与被动方共用同一条通知链路：此前只有歌单在被动方有提示，
+/// 歌词导入完是静默的；导出方向（被拉取那台）两侧都没有提示。
+enum LanSyncKind { lyrics, playlists }
 
-  void notify(int count) => state = count;
+/// [incoming] = 本机接收并落地；[outgoing] = 本机把数据交给对方。
+enum LanSyncDirection { incoming, outgoing }
+
+class LanSyncReceipt {
+  final LanSyncKind kind;
+  final LanSyncDirection direction;
+
+  /// 载体数量：歌单同步是歌单个数，歌词同步不适用（保持 0）。
+  final int containers;
+  final int added;
+  final int updated;
+  final int skipped;
+  final int missing;
+
+  const LanSyncReceipt({
+    required this.kind,
+    required this.direction,
+    this.containers = 0,
+    this.added = 0,
+    this.updated = 0,
+    this.skipped = 0,
+    this.missing = 0,
+  });
+}
+
+class LanSyncReceiptNotifier extends Notifier<LanSyncReceipt?> {
+  @override
+  LanSyncReceipt? build() => null;
+
+  void notify(LanSyncReceipt receipt) => state = receipt;
   void clear() => state = null;
 }
 
-final incomingPlaylistReceivedProvider =
-    NotifierProvider<IncomingPlaylistReceivedNotifier, int?>(
-      IncomingPlaylistReceivedNotifier.new,
+final lanSyncReceiptProvider =
+    NotifierProvider<LanSyncReceiptNotifier, LanSyncReceipt?>(
+      LanSyncReceiptNotifier.new,
     );
 
 class SharingWarningNotifier extends Notifier<String?> {
@@ -2420,83 +2452,13 @@ class SharingService {
     }
   }
 
-  Future<bool> _importLyricsPackageWithConflict({
+  Future<LyricsImportOutcome> _importLyricsPackageWithConflict({
     required String localCacheKey,
     required Map<String, dynamic> incomingPackage,
-  }) async {
-    final rawIncomingLyrics =
-        incomingPackage['lyrics_cache'] as Map<String, dynamic>?;
-    if (rawIncomingLyrics == null) return false;
-
-    final incomingLyrics = LyricsCacheRecord.fromMap(rawIncomingLyrics);
-    final incomingTranslations =
-        (incomingPackage['translations'] as List<dynamic>?)
-            ?.map(
-              (t) => LyricsTranslationCacheRecord.fromMap(
-                t as Map<String, dynamic>,
-              ),
-            )
-            .toList() ??
-        [];
-
-    final localLyrics = await MetadataDatabase().getLyricsCache(localCacheKey);
-    bool shouldOverwrite = false;
-
-    if (localLyrics == null) {
-      shouldOverwrite = true;
-    } else {
-      final incomingPriority = _getLyricsSourcePriority(incomingLyrics.source);
-      final localPriority = _getLyricsSourcePriority(localLyrics.source);
-
-      if (incomingPriority > localPriority) {
-        shouldOverwrite = true;
-      } else if (incomingPriority == localPriority) {
-        if (incomingLyrics.updatedAtMillis > localLyrics.updatedAtMillis) {
-          shouldOverwrite = true;
-        }
-      }
-    }
-
-    if (shouldOverwrite) {
-      debugPrint(
-        '[SharingService] Overwriting lyrics for cacheKey: $localCacheKey',
-      );
-
-      // 手工搬运换成 toImported：后者固定丢弃远端自增主键（会按 id 命中本地
-      // 另一首歌的行）与本机用户选的展示语言（设备级偏好，不随同步走）。
-      final newRecord = incomingLyrics.toImported(cacheKey: localCacheKey);
-      await MetadataDatabase().insertOrUpdateLyricsCache(newRecord);
-
-      // 译文按 (cacheKey, languageCode) 逐条合并，绝不整表清空。
-      //
-      // 一首歌可以同时存在 zh-cn / ja / ko 多条译文（lyrics_translation_cache
-      // 是 UNIQUE(cacheKey, languageCode)）。旧的「先 clear 再逐条插入」会把
-      // 本机独有的语言一起删掉；而且 clear 是裸 delete，会在删除与插入之间给
-      // watch 订阅方送出一份空快照，正在播放时歌词面板译文会整份闪空。
-      await LyricsTranslationImporter(
-        MetadataDatabase(),
-      ).merge(cacheKey: localCacheKey, incoming: incomingTranslations);
-      return true;
-    }
-    return false;
-  }
-
-  int _getLyricsSourcePriority(LyricsCacheSource source) {
-    switch (source) {
-      case LyricsCacheSource.external:
-      case LyricsCacheSource.manualAdjust:
-        return 4;
-      case LyricsCacheSource.ai:
-      case LyricsCacheSource.aiTimeline:
-      case LyricsCacheSource.aiKaraoke:
-      case LyricsCacheSource.aiGenerate:
-        return 3;
-      case LyricsCacheSource.lrclib:
-      case LyricsCacheSource.embedded:
-        return 2;
-      case LyricsCacheSource.none:
-        return 1;
-    }
+  }) {
+    return LyricsPackageImporter(
+      MetadataDatabase(),
+    ).import(localCacheKey: localCacheKey, incomingPackage: incomingPackage);
   }
 
   bool _isMetadataMatch(String? a, String? b) {
@@ -2519,7 +2481,8 @@ class SharingService {
   Future<Map<String, int>> _importLyricsList(List<dynamic> lyrics) async {
     final localSongs = await MetadataDatabase().getAllSongMetadata();
     int matchedCount = 0;
-    int overwrittenCount = 0;
+    int addedCount = 0;
+    int updatedCount = 0;
     int skippedCount = 0;
 
     for (final item in lyrics) {
@@ -2544,7 +2507,9 @@ class SharingService {
         continue;
       }
 
-      matchedCount += matches.length;
+      // 按「条目」计数，不按命中歌曲数：一首远端条目命中多首本地版本
+      // （live / 伴奏 / 不同采样率）时，matched 虚高会让统计对不上直觉。
+      matchedCount++;
 
       for (final song in matches) {
         final localQuery = LyricsQuery(
@@ -2559,22 +2524,28 @@ class SharingService {
         );
         final localCacheKey = localQuery.cacheKey;
 
-        final success = await _importLyricsPackageWithConflict(
+        final outcome = await _importLyricsPackageWithConflict(
           localCacheKey: localCacheKey,
           incomingPackage: map,
         );
-        if (success) {
-          overwrittenCount++;
-        } else {
-          skippedCount++;
+        switch (outcome) {
+          case LyricsImportOutcome.added:
+            addedCount++;
+          case LyricsImportOutcome.updated:
+            updatedCount++;
+          case LyricsImportOutcome.skipped:
+            skippedCount++;
         }
       }
     }
 
     return {
       'matched': matchedCount,
-      'overwritten': overwrittenCount,
+      'added': addedCount,
+      'updated': updatedCount,
       'skipped': skippedCount,
+      // 旧版客户端只认 overwritten，保留一个等价字段避免它显示成 0。
+      'overwritten': addedCount + updatedCount,
     };
   }
 
@@ -2758,6 +2729,20 @@ class SharingService {
       jsonEncode({'accepted': true, 'lyrics': exportedList}),
     );
     await request.response.close();
+
+    // 导出方向（对端来拉取）在这台设备上也给一条回执，否则用户点完「接受」
+    // 同样什么都看不到。
+    if (exportedList.isNotEmpty) {
+      _ref
+          .read(lanSyncReceiptProvider.notifier)
+          .notify(
+            LanSyncReceipt(
+              kind: LanSyncKind.lyrics,
+              direction: LanSyncDirection.outgoing,
+              added: exportedList.length,
+            ),
+          );
+    }
   }
 
   Future<void> _handleImportLyrics(HttpRequest request) async {
@@ -2797,6 +2782,19 @@ class SharingService {
     }
 
     final stats = await _importLyricsList(lyrics);
+    // 被动方此前完全没有反馈：点「接受」→ 对话框消失 → 什么都没发生。
+    // 导入本身可能是几十秒的匹配 + 写库，用户只能猜。
+    _ref
+        .read(lanSyncReceiptProvider.notifier)
+        .notify(
+          LanSyncReceipt(
+            kind: LanSyncKind.lyrics,
+            direction: LanSyncDirection.incoming,
+            added: stats['added'] ?? 0,
+            updated: stats['updated'] ?? 0,
+            skipped: stats['skipped'] ?? 0,
+          ),
+        );
 
     request.response.statusCode = HttpStatus.ok;
     request.response.headers.contentType = ContentType.json;
@@ -2907,7 +2905,10 @@ class SharingService {
     List<dynamic> playlistsJson,
   ) async {
     int importedPlaylistsCount = 0;
+    int mergedPlaylistsCount = 0;
     int importedSongsCount = 0;
+    int skippedSongsCount = 0;
+    int missingSongsCount = 0;
 
     final playlistService = _ref.read(playlistServiceProvider);
     final scannerRoots = _ref.read(scannerServiceProvider).rootPaths;
@@ -2919,30 +2920,38 @@ class SharingService {
 
       if (m3uContent != null && m3uContent.isNotEmpty) {
         final data = M3uUtils.parse(m3uContent);
-        final uniqueName = playlistService.generateUniquePlaylistName(
-          data.playlistName ?? rawName,
-        );
+        final playlistName = data.playlistName ?? rawName;
+
+        // 占位条目不入库：它们没有对应本地文件，播不了，UI 又没有任何缺失
+        // 标记，用户只会看到「导入 N 首」然后播到一半失败。
+        final missingEntries = <M3uEntry>[];
         final songs = await M3uUtils.resolveMusicFiles(
           data.entries,
           rootPaths: scannerRoots,
+          includeMissingPlaceholders: false,
+          missingEntries: missingEntries,
         );
-        final id =
-            '${DateTime.now().millisecondsSinceEpoch}_$importedPlaylistsCount';
-        final playlist = Playlist(
-          id: id,
-          name: uniqueName,
+
+        // 同名歌单合并而不是新建「名字 (1)」副本。
+        final result = await playlistService.mergeOrAddPlaylist(
+          name: playlistName,
           songs: songs,
         );
 
-        await playlistService.addPlaylist(playlist);
         importedPlaylistsCount++;
-        importedSongsCount += songs.length;
+        importedSongsCount += result.addedSongs;
+        skippedSongsCount += result.skippedSongs;
+        missingSongsCount += missingEntries.length;
+        if (result.merged) mergedPlaylistsCount++;
       }
     }
 
     return {
       'imported_playlists': importedPlaylistsCount,
+      'merged_playlists': mergedPlaylistsCount,
       'imported_songs': importedSongsCount,
+      'skipped_songs': skippedSongsCount,
+      'missing_songs': missingSongsCount,
     };
   }
 
@@ -3003,6 +3012,22 @@ class SharingService {
       jsonEncode({'accepted': true, 'playlists': exportedList}),
     );
     await request.response.close();
+
+    if (exportedList.isNotEmpty) {
+      _ref
+          .read(lanSyncReceiptProvider.notifier)
+          .notify(
+            LanSyncReceipt(
+              kind: LanSyncKind.playlists,
+              direction: LanSyncDirection.outgoing,
+              containers: exportedList.length,
+              added: exportedList.fold<int>(
+                0,
+                (sum, item) => sum + (item['songs_count'] as int? ?? 0),
+              ),
+            ),
+          );
+    }
   }
 
   Future<void> _handleImportPlaylists(HttpRequest request) async {
@@ -3050,8 +3075,18 @@ class SharingService {
     }
 
     final stats = await _importPlaylistsPayload(playlists);
-    final count = stats['imported_playlists'] ?? playlists.length;
-    _ref.read(incomingPlaylistReceivedProvider.notifier).notify(count);
+    _ref
+        .read(lanSyncReceiptProvider.notifier)
+        .notify(
+          LanSyncReceipt(
+            kind: LanSyncKind.playlists,
+            direction: LanSyncDirection.incoming,
+            containers: stats['imported_playlists'] ?? 0,
+            added: stats['imported_songs'] ?? 0,
+            skipped: stats['skipped_songs'] ?? 0,
+            missing: stats['missing_songs'] ?? 0,
+          ),
+        );
 
     request.response.statusCode = HttpStatus.ok;
     request.response.headers.contentType = ContentType.json;

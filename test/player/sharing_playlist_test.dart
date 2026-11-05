@@ -88,4 +88,74 @@ void main() {
       expect(service.playlists.any((p) => p.id == PlaylistService.favoritePlaylistId), isTrue);
     });
   });
+
+  group('mergeOrAddPlaylist（跨设备导入）', () {
+    MusicFile song(String path) => MusicFile(
+      path: path,
+      name: path.split('/').last,
+      title: path.split('/').last,
+    );
+
+    test('同名歌单合并，按本地 path 去重，不产生「(1)」副本', () async {
+      final service = PlaylistService();
+      await service.mergeOrAddPlaylist(
+        name: 'Road Trip',
+        songs: [song('/m/a.mp3'), song('/m/b.mp3')],
+      );
+
+      final result = await service.mergeOrAddPlaylist(
+        name: 'Road Trip',
+        songs: [song('/m/b.mp3'), song('/m/c.mp3')],
+      );
+
+      expect(result.merged, isTrue);
+      expect(result.addedSongs, 1);
+      expect(result.skippedSongs, 1);
+      expect(
+        service.playlists.where((p) => p.name == 'Road Trip').length,
+        1,
+      );
+      expect(result.playlist.songs.map((s) => s.path).toList(), [
+        '/m/a.mp3',
+        '/m/b.mp3',
+        '/m/c.mp3',
+      ]);
+    });
+
+    test('名字大小写与首尾空格不同仍视为同一个歌单', () async {
+      final service = PlaylistService();
+      await service.mergeOrAddPlaylist(name: 'Chill', songs: [song('/m/a.mp3')]);
+      final result = await service.mergeOrAddPlaylist(
+        name: '  chill  ',
+        songs: [song('/m/b.mp3')],
+      );
+
+      expect(result.merged, isTrue);
+      expect(service.playlists.where((p) => p.name == 'Chill').length, 1);
+      expect(result.playlist.songs.length, 2);
+    });
+
+    test('不同名新建歌单', () async {
+      final service = PlaylistService();
+      await service.mergeOrAddPlaylist(name: 'A', songs: [song('/m/a.mp3')]);
+      final result = await service.mergeOrAddPlaylist(
+        name: 'B',
+        songs: [song('/m/b.mp3')],
+      );
+
+      expect(result.merged, isFalse);
+      expect(result.addedSongs, 1);
+      expect(service.playlists.any((p) => p.name == 'B'), isTrue);
+    });
+
+    test('空名走兜底，不会生成空标题歌单', () async {
+      final service = PlaylistService();
+      final result = await service.mergeOrAddPlaylist(
+        name: '   ',
+        songs: [song('/m/a.mp3')],
+      );
+
+      expect(result.playlist.name.trim(), isNotEmpty);
+    });
+  });
 }

@@ -2553,5 +2553,14 @@
   "lastFmLastScrobble": "Last successful scrobble: {time}",
   "lastFmNeverScrobbled": "No scrobbles sent yet",
   "lastFmPendingCount": "{count} waiting to be sent",
-  "lastFmCredentialsMissing": "This build does not include Last.fm credentials, so scrobbling is unavailable."
+  "lastFmCredentialsMissing": "This build does not include Last.fm credentials, so scrobbling is unavailable.",
+  "lanSyncLyricsReceived": "Lyrics synced: {added} added, {updated} updated, {skipped} skipped",
+  "lanSyncLyricsSent": "Lyrics sent: {count} song(s)",
+  "lanSyncLyricsSyncResult": "Sync complete: {matched} matched, {added} added, {updated} updated, {skipped} skipped",
+  "lanSyncPlaylistsReceived": "Received {playlists} playlist(s), {songs} song(s)",
+  "lanSyncPlaylistsReceivedPartial": "Received {playlists} playlist(s), {songs} song(s), {missing} unmatched",
+  "lanSyncPlaylistsSent": "Sent {playlists} playlist(s), {songs} song(s)",
+  "lanSyncErrorStatus": "The other device returned an error (HTTP {status})",
+  "lanSyncErrorTimeout": "Connection timed out. Make sure both devices are on the same network.",
+  "lanSyncErrorNetwork": "Could not connect to the device"
 }

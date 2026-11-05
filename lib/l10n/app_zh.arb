@@ -3884,5 +3884,103 @@
   "lastFmLastScrobble": "上次成功上报：{time}",
   "lastFmNeverScrobbled": "还没有成功上报的记录",
   "lastFmPendingCount": "{count} 条待上报",
-  "lastFmCredentialsMissing": "当前构建未包含 Last.fm 凭据，上报功能不可用。"
+  "lastFmCredentialsMissing": "当前构建未包含 Last.fm 凭据，上报功能不可用。",
+  "lanSyncLyricsReceived": "歌词同步完成：新增 {added} 首，更新 {updated} 首，忽略 {skipped} 首",
+  "@lanSyncLyricsReceived": {
+    "description": "Lyrics sync finished on the receiving side",
+    "placeholders": {
+      "added": {
+        "type": "int"
+      },
+      "updated": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "lanSyncLyricsSent": "歌词已发送：{count} 首",
+  "@lanSyncLyricsSent": {
+    "description": "Lyrics exported to another device",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lanSyncLyricsSyncResult": "同步完成：匹配 {matched} 首，新增 {added} 首，更新 {updated} 首，忽略 {skipped} 首",
+  "@lanSyncLyricsSyncResult": {
+    "description": "Result shown on the device that started a lyrics sync",
+    "placeholders": {
+      "matched": {
+        "type": "int"
+      },
+      "added": {
+        "type": "int"
+      },
+      "updated": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "lanSyncPlaylistsReceived": "已接收 {playlists} 个歌单，共 {songs} 首",
+  "@lanSyncPlaylistsReceived": {
+    "description": "Playlists received from another device",
+    "placeholders": {
+      "playlists": {
+        "type": "int"
+      },
+      "songs": {
+        "type": "int"
+      }
+    }
+  },
+  "lanSyncPlaylistsReceivedPartial": "已接收 {playlists} 个歌单，{songs} 首，{missing} 首未匹配",
+  "@lanSyncPlaylistsReceivedPartial": {
+    "description": "Playlists received with some songs not matched locally",
+    "placeholders": {
+      "playlists": {
+        "type": "int"
+      },
+      "songs": {
+        "type": "int"
+      },
+      "missing": {
+        "type": "int"
+      }
+    }
+  },
+  "lanSyncPlaylistsSent": "已发送 {playlists} 个歌单，共 {songs} 首",
+  "@lanSyncPlaylistsSent": {
+    "description": "Playlists exported to another device",
+    "placeholders": {
+      "playlists": {
+        "type": "int"
+      },
+      "songs": {
+        "type": "int"
+      }
+    }
+  },
+  "lanSyncErrorStatus": "对端返回错误（HTTP {status}）",
+  "@lanSyncErrorStatus": {
+    "description": "Remote peer replied with a non-success HTTP status",
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "lanSyncErrorTimeout": "连接超时，请确认两台设备在同一网络",
+  "@lanSyncErrorTimeout": {
+    "description": "Connection or read timeout during a LAN transfer"
+  },
+  "lanSyncErrorNetwork": "无法连接到设备",
+  "@lanSyncErrorNetwork": {
+    "description": "Could not reach the peer device at all"
+  }
 }

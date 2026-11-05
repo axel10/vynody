@@ -2162,5 +2162,14 @@
   "lastFmLastScrobble": "Último envío correcto: {time}",
   "lastFmNeverScrobbled": "Todavía no se ha enviado ningún registro",
   "lastFmPendingCount": "{count} pendientes de envío",
-  "lastFmCredentialsMissing": "Esta compilación no incluye las credenciales de Last.fm, por lo que el scrobbling no está disponible."
+  "lastFmCredentialsMissing": "Esta compilación no incluye las credenciales de Last.fm, por lo que el scrobbling no está disponible.",
+  "lanSyncLyricsReceived": "Letras sincronizadas: {added} añadidas, {updated} actualizadas, {skipped} omitidas",
+  "lanSyncLyricsSent": "Letras enviadas: {count} canciones",
+  "lanSyncLyricsSyncResult": "Sincronización completada: {matched} coincidentes, {added} añadidas, {updated} actualizadas, {skipped} omitidas",
+  "lanSyncPlaylistsReceived": "Se recibieron {playlists} lista(s), {songs} canción(es)",
+  "lanSyncPlaylistsReceivedPartial": "Se recibieron {playlists} lista(s), {songs} canción(es), {missing} sin coincidencia",
+  "lanSyncPlaylistsSent": "Se enviaron {playlists} lista(s), {songs} canción(es)",
+  "lanSyncErrorStatus": "El otro dispositivo devolvió un error (HTTP {status})",
+  "lanSyncErrorTimeout": "Se agotó el tiempo de conexión. Comprueba que ambos dispositivos estén en la misma red.",
+  "lanSyncErrorNetwork": "No se pudo conectar al dispositivo"
 }

@@ -2162,5 +2162,14 @@
   "lastFmLastScrobble": "Dernier envoi réussi : {time}",
   "lastFmNeverScrobbled": "Aucune écoute envoyée pour l'instant",
   "lastFmPendingCount": "{count} en attente d'envoi",
-  "lastFmCredentialsMissing": "Cette version n'inclut pas les identifiants Last.fm ; le scrobbling est donc indisponible."
+  "lastFmCredentialsMissing": "Cette version n'inclut pas les identifiants Last.fm ; le scrobbling est donc indisponible.",
+  "lanSyncLyricsReceived": "Paroles synchronisées : {added} ajoutées, {updated} mises à jour, {skipped} ignorées",
+  "lanSyncLyricsSent": "Paroles envoyées : {count} titres",
+  "lanSyncLyricsSyncResult": "Synchronisation terminée : {matched} correspondances, {added} ajoutées, {updated} mises à jour, {skipped} ignorées",
+  "lanSyncPlaylistsReceived": "{playlists} liste(s) reçue(s), {songs} titre(s)",
+  "lanSyncPlaylistsReceivedPartial": "{playlists} liste(s) reçue(s), {songs} titre(s), {missing} sans correspondance",
+  "lanSyncPlaylistsSent": "{playlists} liste(s) envoyée(s), {songs} titre(s)",
+  "lanSyncErrorStatus": "L'autre appareil a renvoyé une erreur (HTTP {status})",
+  "lanSyncErrorTimeout": "Délai de connexion dépassé. Vérifiez que les deux appareils sont sur le même réseau.",
+  "lanSyncErrorNetwork": "Impossible de se connecter à l'appareil"
 }

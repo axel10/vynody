@@ -2261,5 +2261,14 @@
   "lastFmLastScrobble": "最後に送信できた日時：{time}",
   "lastFmNeverScrobbled": "まだ送信された記録はありません",
   "lastFmPendingCount": "{count} 件送信待ち",
-  "lastFmCredentialsMissing": "このビルドには Last.fm の認証情報が含まれていないため、スクロブルは利用できません。"
+  "lastFmCredentialsMissing": "このビルドには Last.fm の認証情報が含まれていないため、スクロブルは利用できません。",
+  "lanSyncLyricsReceived": "歌詞を同期しました：追加 {added}、更新 {updated}、スキップ {skipped}",
+  "lanSyncLyricsSent": "歌詞を送信しました：{count} 曲",
+  "lanSyncLyricsSyncResult": "同期完了：一致 {matched}、追加 {added}、更新 {updated}、スキップ {skipped}",
+  "lanSyncPlaylistsReceived": "プレイリスト {playlists} 件、{songs} 曲を受信しました",
+  "lanSyncPlaylistsReceivedPartial": "プレイリスト {playlists} 件、{songs} 曲を受信しました（{missing} 曲は未一致）",
+  "lanSyncPlaylistsSent": "プレイリスト {playlists} 件、{songs} 曲を送信しました",
+  "lanSyncErrorStatus": "相手の端末がエラーを返しました（HTTP {status}）",
+  "lanSyncErrorTimeout": "接続がタイムアウトしました。2 台の端末が同じネットワークにあるか確認してください。",
+  "lanSyncErrorNetwork": "端末に接続できませんでした"
 }

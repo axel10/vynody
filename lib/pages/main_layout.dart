@@ -1164,16 +1164,36 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
     });
 
-    // Listen for incoming playlist received completion
-    ref.listen<int?>(incomingPlaylistReceivedProvider, (previous, next) {
-      if (next != null) {
-        AppSnackBar.show(
-          context,
-          ref,
-          SnackBar(content: Text(l10n.receivePlaylistsSuccess(next))),
-        );
-        ref.read(incomingPlaylistReceivedProvider.notifier).clear();
+    // 跨设备传输完成回执：三条链路共用一条通知，发起方与被动方都会收到。
+    // 此前只有歌单在被动方有提示，歌词导入完是静默的，导出方向两边都没有。
+    ref.listen<LanSyncReceipt?>(lanSyncReceiptProvider, (previous, next) {
+      if (next == null) return;
+      final String text;
+      switch ((next.kind, next.direction)) {
+        case (LanSyncKind.lyrics, LanSyncDirection.incoming):
+          text = l10n.lanSyncLyricsReceived(
+            next.added,
+            next.updated,
+            next.skipped,
+          );
+        case (LanSyncKind.lyrics, LanSyncDirection.outgoing):
+          text = l10n.lanSyncLyricsSent(next.added);
+        case (LanSyncKind.playlists, LanSyncDirection.incoming):
+          text = next.missing > 0
+              ? l10n.lanSyncPlaylistsReceivedPartial(
+                  next.containers,
+                  next.added,
+                  next.missing,
+                )
+              : l10n.lanSyncPlaylistsReceived(
+                  next.containers,
+                  next.added,
+                );
+        case (LanSyncKind.playlists, LanSyncDirection.outgoing):
+          text = l10n.lanSyncPlaylistsSent(next.containers, next.added);
       }
+      AppSnackBar.show(context, ref, SnackBar(content: Text(text)));
+      ref.read(lanSyncReceiptProvider.notifier).clear();
     });
 
     // Listen for incoming remote control pair requests

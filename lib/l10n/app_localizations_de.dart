@@ -5909,4 +5909,55 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get lastFmCredentialsMissing =>
       'Dieser Build enthält keine Last.fm-Zugangsdaten, daher ist Scrobbeln nicht verfügbar.';
+
+  @override
+  String lanSyncLyricsReceived(int added, int updated, int skipped) {
+    return 'Songtexte synchronisiert: $added hinzugefügt, $updated aktualisiert, $skipped übersprungen';
+  }
+
+  @override
+  String lanSyncLyricsSent(int count) {
+    return 'Songtexte gesendet: $count Titel';
+  }
+
+  @override
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  ) {
+    return 'Synchronisation abgeschlossen: $matched übereinstimmend, $added hinzugefügt, $updated aktualisiert, $skipped übersprungen';
+  }
+
+  @override
+  String lanSyncPlaylistsReceived(int playlists, int songs) {
+    return '$playlists Playlist(s) empfangen, $songs Titel';
+  }
+
+  @override
+  String lanSyncPlaylistsReceivedPartial(
+    int playlists,
+    int songs,
+    int missing,
+  ) {
+    return '$playlists Playlist(s) empfangen, $songs Titel, $missing nicht zugeordnet';
+  }
+
+  @override
+  String lanSyncPlaylistsSent(int playlists, int songs) {
+    return '$playlists Playlist(s) gesendet, $songs Titel';
+  }
+
+  @override
+  String lanSyncErrorStatus(int status) {
+    return 'Das andere Gerät hat einen Fehler zurückgegeben (HTTP $status)';
+  }
+
+  @override
+  String get lanSyncErrorTimeout =>
+      'Zeitüberschreitung. Stellen Sie sicher, dass beide Geräte im selben Netzwerk sind.';
+
+  @override
+  String get lanSyncErrorNetwork => 'Verbindung zum Gerät nicht möglich';
 }

@@ -565,6 +565,36 @@ class _SharingPageState extends ConsumerState<SharingPage>
     }
   }
 
+  /// 把同步异常翻译成用户能看懂的文案。
+  ///
+  /// 此前直接把 `e.toString()` 塞进 toast，用户看到的是
+  /// `Exception: Server returned status code 500` —— 既不知道发生了什么，
+  /// 也不知道该做什么。
+  String _describeSyncError(
+    Object error,
+    AppLocalizations l10n,
+    String rejectedText,
+  ) {
+    final text = error.toString();
+    if (text.contains('rejected')) return rejectedText;
+
+    final statusMatch = RegExp(r'status code (\d+)').firstMatch(text);
+    if (statusMatch != null) {
+      final status = int.tryParse(statusMatch.group(1)!);
+      if (status != null) return l10n.lanSyncErrorStatus(status);
+    }
+    if (text.contains('TimeoutException') || text.contains('timed out')) {
+      return l10n.lanSyncErrorTimeout;
+    }
+    if (text.contains('SocketException') ||
+        text.contains('HandshakeException') ||
+        text.contains('HttpException') ||
+        text.contains('Connection refused')) {
+      return l10n.lanSyncErrorNetwork;
+    }
+    return text;
+  }
+
   Future<void> _handleSyncLyricsToDevice(LanDevice device) async {
     final l10n = AppLocalizations.of(context)!;
     try {
@@ -572,16 +602,19 @@ class _SharingPageState extends ConsumerState<SharingPage>
       final service = ref.read(sharingServiceProvider);
       final stats = await service.syncLyricsToDevice(device);
       showToast(
-        l10n.syncLyricsSuccess(
-          '${stats['matched']}',
-          '${stats['overwritten']}',
-          '${stats['skipped']}',
+        l10n.lanSyncLyricsSyncResult(
+          stats['matched'] ?? 0,
+          stats['added'] ?? 0,
+          stats['updated'] ?? 0,
+          stats['skipped'] ?? 0,
         ),
       );
     } catch (e) {
-      final errorMsg = e.toString().contains('rejected')
-          ? l10n.lyricsRequestRejected
-          : e.toString();
+      final errorMsg = _describeSyncError(
+        e,
+        l10n,
+        l10n.lyricsRequestRejected,
+      );
       showToast(l10n.syncLyricsFailed(errorMsg));
     }
   }
@@ -593,16 +626,19 @@ class _SharingPageState extends ConsumerState<SharingPage>
       final service = ref.read(sharingServiceProvider);
       final stats = await service.pullLyricsFromDevice(device);
       showToast(
-        l10n.syncLyricsSuccess(
-          '${stats['matched']}',
-          '${stats['overwritten']}',
-          '${stats['skipped']}',
+        l10n.lanSyncLyricsSyncResult(
+          stats['matched'] ?? 0,
+          stats['added'] ?? 0,
+          stats['updated'] ?? 0,
+          stats['skipped'] ?? 0,
         ),
       );
     } catch (e) {
-      final errorMsg = e.toString().contains('rejected')
-          ? l10n.lyricsRequestRejected
-          : e.toString();
+      final errorMsg = _describeSyncError(
+        e,
+        l10n,
+        l10n.lyricsRequestRejected,
+      );
       showToast(l10n.syncLyricsFailed(errorMsg));
     }
   }
@@ -625,17 +661,21 @@ class _SharingPageState extends ConsumerState<SharingPage>
 
       showToast(l10n.syncingPlaylistsToDevice(device.name));
       final service = ref.read(sharingServiceProvider);
-      final stats = await service.sendPlaylistsToDevice(
-        device,
-        selectedPlaylists,
+      await service.sendPlaylistsToDevice(device, selectedPlaylists);
+      // 用本机视角的「发出去多少」而不是对端落地数：合并语义下对端可能一首
+      // 都没新增，显示「共 0 首」会让人以为没发成功。
+      showToast(
+        l10n.lanSyncPlaylistsSent(
+          selectedPlaylists.length,
+          selectedPlaylists.fold<int>(0, (sum, p) => sum + p.songs.length),
+        ),
       );
-      final importedCount =
-          stats['imported_playlists'] ?? selectedPlaylists.length;
-      showToast(l10n.sendPlaylistsSuccess(importedCount));
     } catch (e) {
-      final errorMsg = e.toString().contains('rejected')
-          ? l10n.playlistRequestRejected
-          : e.toString();
+      final errorMsg = _describeSyncError(
+        e,
+        l10n,
+        l10n.playlistRequestRejected,
+      );
       showToast(l10n.sendPlaylistsFailed(errorMsg));
     }
   }
@@ -646,12 +686,24 @@ class _SharingPageState extends ConsumerState<SharingPage>
       showToast(l10n.syncingPlaylistsFromDevice(device.name));
       final service = ref.read(sharingServiceProvider);
       final stats = await service.pullPlaylistsFromDevice(device);
-      final importedCount = stats['imported_playlists'] ?? 0;
-      showToast(l10n.pullPlaylistsSuccess(importedCount));
+      final playlistCount = stats['imported_playlists'] ?? 0;
+      final songCount = stats['imported_songs'] ?? 0;
+      final missingCount = stats['missing_songs'] ?? 0;
+      showToast(
+        missingCount > 0
+            ? l10n.lanSyncPlaylistsReceivedPartial(
+                playlistCount,
+                songCount,
+                missingCount,
+              )
+            : l10n.lanSyncPlaylistsReceived(playlistCount, songCount),
+      );
     } catch (e) {
-      final errorMsg = e.toString().contains('rejected')
-          ? l10n.playlistRequestRejected
-          : e.toString();
+      final errorMsg = _describeSyncError(
+        e,
+        l10n,
+        l10n.playlistRequestRejected,
+      );
       showToast(l10n.pullPlaylistsFailed(errorMsg));
     }
   }

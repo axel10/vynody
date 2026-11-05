@@ -2162,5 +2162,14 @@
   "lastFmLastScrobble": "마지막 전송 성공: {time}",
   "lastFmNeverScrobbled": "아직 전송된 기록이 없습니다",
   "lastFmPendingCount": "{count}개 전송 대기 중",
-  "lastFmCredentialsMissing": "이 빌드에는 Last.fm 자격 증명이 없어 스크로블을 사용할 수 없습니다."
+  "lastFmCredentialsMissing": "이 빌드에는 Last.fm 자격 증명이 없어 스크로블을 사용할 수 없습니다.",
+  "lanSyncLyricsReceived": "가사 동기화 완료: 추가 {added}곡, 업데이트 {updated}곡, 건너뜀 {skipped}곡",
+  "lanSyncLyricsSent": "가사 전송 완료: {count}곡",
+  "lanSyncLyricsSyncResult": "동기화 완료: 일치 {matched}곡, 추가 {added}곡, 업데이트 {updated}곡, 건너뜀 {skipped}곡",
+  "lanSyncPlaylistsReceived": "재생목록 {playlists}개, {songs}곡을 받았습니다",
+  "lanSyncPlaylistsReceivedPartial": "재생목록 {playlists}개, {songs}곡을 받았습니다 ({missing}곡 일치 없음)",
+  "lanSyncPlaylistsSent": "재생목록 {playlists}개, {songs}곡을 보냈습니다",
+  "lanSyncErrorStatus": "상대 기기에서 오류가 발생했습니다 (HTTP {status})",
+  "lanSyncErrorTimeout": "연결 시간이 초과되었습니다. 두 기기가 같은 네트워크에 있는지 확인하세요.",
+  "lanSyncErrorNetwork": "기기에 연결할 수 없습니다"
 }

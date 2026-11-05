@@ -5556,6 +5556,56 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get lastFmCredentialsMissing => '当前构建未包含 Last.fm 凭据，上报功能不可用。';
+
+  @override
+  String lanSyncLyricsReceived(int added, int updated, int skipped) {
+    return '歌词同步完成：新增 $added 首，更新 $updated 首，忽略 $skipped 首';
+  }
+
+  @override
+  String lanSyncLyricsSent(int count) {
+    return '歌词已发送：$count 首';
+  }
+
+  @override
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  ) {
+    return '同步完成：匹配 $matched 首，新增 $added 首，更新 $updated 首，忽略 $skipped 首';
+  }
+
+  @override
+  String lanSyncPlaylistsReceived(int playlists, int songs) {
+    return '已接收 $playlists 个歌单，共 $songs 首';
+  }
+
+  @override
+  String lanSyncPlaylistsReceivedPartial(
+    int playlists,
+    int songs,
+    int missing,
+  ) {
+    return '已接收 $playlists 个歌单，$songs 首，$missing 首未匹配';
+  }
+
+  @override
+  String lanSyncPlaylistsSent(int playlists, int songs) {
+    return '已发送 $playlists 个歌单，共 $songs 首';
+  }
+
+  @override
+  String lanSyncErrorStatus(int status) {
+    return '对端返回错误（HTTP $status）';
+  }
+
+  @override
+  String get lanSyncErrorTimeout => '连接超时，请确认两台设备在同一网络';
+
+  @override
+  String get lanSyncErrorNetwork => '无法连接到设备';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11110,4 +11160,54 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get lastFmCredentialsMissing => '目前建置未包含 Last.fm 憑證，上報功能無法使用。';
+
+  @override
+  String lanSyncLyricsReceived(int added, int updated, int skipped) {
+    return '歌詞同步完成：新增 $added 首，更新 $updated 首，略過 $skipped 首';
+  }
+
+  @override
+  String lanSyncLyricsSent(int count) {
+    return '歌詞已傳送：$count 首';
+  }
+
+  @override
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  ) {
+    return '同步完成：符合 $matched 首，新增 $added 首，更新 $updated 首，略過 $skipped 首';
+  }
+
+  @override
+  String lanSyncPlaylistsReceived(int playlists, int songs) {
+    return '已接收 $playlists 個播放清單，共 $songs 首';
+  }
+
+  @override
+  String lanSyncPlaylistsReceivedPartial(
+    int playlists,
+    int songs,
+    int missing,
+  ) {
+    return '已接收 $playlists 個播放清單，$songs 首，$missing 首未符合';
+  }
+
+  @override
+  String lanSyncPlaylistsSent(int playlists, int songs) {
+    return '已傳送 $playlists 個播放清單，共 $songs 首';
+  }
+
+  @override
+  String lanSyncErrorStatus(int status) {
+    return '對方傳回錯誤（HTTP $status）';
+  }
+
+  @override
+  String get lanSyncErrorTimeout => '連線逾時，請確認兩台裝置在同一個網路';
+
+  @override
+  String get lanSyncErrorNetwork => '無法連線到裝置';
 }

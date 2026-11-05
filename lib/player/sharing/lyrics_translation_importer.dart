@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/utils/language_code_utils.dart';
 
