@@ -10424,6 +10424,138 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'传输会话已过期，请重试'**
   String get lanSyncErrorSessionExpired;
+
+  /// Progress dialog: collecting what to send
+  ///
+  /// In zh, this message translates to:
+  /// **'正在整理要同步的内容…'**
+  String get lanSyncProgressPreparing;
+
+  /// Progress dialog: transferring data
+  ///
+  /// In zh, this message translates to:
+  /// **'正在传输'**
+  String get lanSyncProgressTransferring;
+
+  /// Progress dialog: waiting for the peer device
+  ///
+  /// In zh, this message translates to:
+  /// **'等待对方确认…'**
+  String get lanSyncProgressWaitingPeer;
+
+  /// Progress dialog: writing received items locally
+  ///
+  /// In zh, this message translates to:
+  /// **'正在导入'**
+  String get lanSyncProgressImporting;
+
+  /// Progress dialog: scanner is indexing new files
+  ///
+  /// In zh, this message translates to:
+  /// **'正在入库…'**
+  String get lanSyncProgressIngesting;
+
+  /// Progress dialog: processed/total counter
+  ///
+  /// In zh, this message translates to:
+  /// **'{processed}/{total}'**
+  String lanSyncProgressCount(int processed, int total);
+
+  /// Progress dialog: cancel button
+  ///
+  /// In zh, this message translates to:
+  /// **'取消'**
+  String get lanSyncCancel;
+
+  /// Progress dialog: cancel already requested
+  ///
+  /// In zh, this message translates to:
+  /// **'正在取消…'**
+  String get lanSyncCancelling;
+
+  /// Toast after the user cancels a sync
+  ///
+  /// In zh, this message translates to:
+  /// **'已取消同步'**
+  String get lanSyncCancelled;
+
+  /// Progress dialog title when sending
+  ///
+  /// In zh, this message translates to:
+  /// **'正在发送到 {device}'**
+  String lanSyncSendingTo(String device);
+
+  /// Progress dialog title when receiving
+  ///
+  /// In zh, this message translates to:
+  /// **'正在从 {device} 接收'**
+  String lanSyncReceivingFrom(String device);
+
+  /// Result card title
+  ///
+  /// In zh, this message translates to:
+  /// **'同步完成'**
+  String get lanSyncResultTitle;
+
+  /// Result card row: number of playlists
+  ///
+  /// In zh, this message translates to:
+  /// **'歌单'**
+  String get lanSyncResultPlaylists;
+
+  /// Result card row: number of added items
+  ///
+  /// In zh, this message translates to:
+  /// **'新增'**
+  String get lanSyncResultAdded;
+
+  /// Result card row: number of updated items
+  ///
+  /// In zh, this message translates to:
+  /// **'更新'**
+  String get lanSyncResultUpdated;
+
+  /// Result card row: number of skipped items
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过'**
+  String get lanSyncResultSkipped;
+
+  /// Result card row: items with no local match
+  ///
+  /// In zh, this message translates to:
+  /// **'未匹配'**
+  String get lanSyncResultMissing;
+
+  /// Result card row: items matching more than one local song
+  ///
+  /// In zh, this message translates to:
+  /// **'多个候选'**
+  String get lanSyncResultAmbiguous;
+
+  /// Result card: how many detail rows were not listed
+  ///
+  /// In zh, this message translates to:
+  /// **'还有 {count} 条…'**
+  String lanSyncResultMoreSamples(int count);
+
+  /// SnackBar action to open the result card
+  ///
+  /// In zh, this message translates to:
+  /// **'查看详情'**
+  String get lanSyncViewDetails;
+
+  /// Sharing page: last sync summary section
+  ///
+  /// In zh, this message translates to:
+  /// **'最近一次同步'**
+  String get lanSyncLastSync;
+
+  /// Sharing page: no sync recorded yet
+  ///
+  /// In zh, this message translates to:
+  /// **'这台设备还没有同步过'**
+  String get lanSyncLastSyncNever;
 }
 
 class _AppLocalizationsDelegate

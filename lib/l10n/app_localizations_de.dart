@@ -5973,4 +5973,80 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get lanSyncErrorSessionExpired =>
       'Die Übertragungssitzung ist abgelaufen. Bitte erneut versuchen.';
+
+  @override
+  String get lanSyncProgressPreparing =>
+      'Zu synchronisierende Inhalte werden vorbereitet…';
+
+  @override
+  String get lanSyncProgressTransferring => 'Wird übertragen';
+
+  @override
+  String get lanSyncProgressWaitingPeer => 'Warten auf das andere Gerät…';
+
+  @override
+  String get lanSyncProgressImporting => 'Wird importiert';
+
+  @override
+  String get lanSyncProgressIngesting => 'Wird zur Bibliothek hinzugefügt…';
+
+  @override
+  String lanSyncProgressCount(int processed, int total) {
+    return '$processed/$total';
+  }
+
+  @override
+  String get lanSyncCancel => 'Abbrechen';
+
+  @override
+  String get lanSyncCancelling => 'Wird abgebrochen…';
+
+  @override
+  String get lanSyncCancelled => 'Synchronisierung abgebrochen';
+
+  @override
+  String lanSyncSendingTo(String device) {
+    return 'Wird an $device gesendet';
+  }
+
+  @override
+  String lanSyncReceivingFrom(String device) {
+    return 'Empfange von $device';
+  }
+
+  @override
+  String get lanSyncResultTitle => 'Synchronisierung abgeschlossen';
+
+  @override
+  String get lanSyncResultPlaylists => 'Playlists';
+
+  @override
+  String get lanSyncResultAdded => 'Hinzugefügt';
+
+  @override
+  String get lanSyncResultUpdated => 'Aktualisiert';
+
+  @override
+  String get lanSyncResultSkipped => 'Übersprungen';
+
+  @override
+  String get lanSyncResultMissing => 'Nicht zugeordnet';
+
+  @override
+  String get lanSyncResultAmbiguous => 'Mehrere Treffer';
+
+  @override
+  String lanSyncResultMoreSamples(int count) {
+    return 'Noch $count weitere…';
+  }
+
+  @override
+  String get lanSyncViewDetails => 'Details anzeigen';
+
+  @override
+  String get lanSyncLastSync => 'Letzte Synchronisierung';
+
+  @override
+  String get lanSyncLastSyncNever =>
+      'Dieses Gerät wurde noch nicht synchronisiert';
 }

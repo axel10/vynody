@@ -5927,4 +5927,78 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get lanSyncErrorSessionExpired =>
       'Aktarım oturumunun süresi doldu. Lütfen tekrar deneyin.';
+
+  @override
+  String get lanSyncProgressPreparing => 'Eşitlenecek içerik hazırlanıyor…';
+
+  @override
+  String get lanSyncProgressTransferring => 'Aktarılıyor';
+
+  @override
+  String get lanSyncProgressWaitingPeer => 'Diğer cihazın onayı bekleniyor…';
+
+  @override
+  String get lanSyncProgressImporting => 'İçe aktarılıyor';
+
+  @override
+  String get lanSyncProgressIngesting => 'Kitaplığa ekleniyor…';
+
+  @override
+  String lanSyncProgressCount(int processed, int total) {
+    return '$processed/$total';
+  }
+
+  @override
+  String get lanSyncCancel => 'İptal';
+
+  @override
+  String get lanSyncCancelling => 'İptal ediliyor…';
+
+  @override
+  String get lanSyncCancelled => 'Eşitleme iptal edildi';
+
+  @override
+  String lanSyncSendingTo(String device) {
+    return '$device cihazına gönderiliyor';
+  }
+
+  @override
+  String lanSyncReceivingFrom(String device) {
+    return '$device cihazından alınıyor';
+  }
+
+  @override
+  String get lanSyncResultTitle => 'Eşitleme tamamlandı';
+
+  @override
+  String get lanSyncResultPlaylists => 'Çalma listeleri';
+
+  @override
+  String get lanSyncResultAdded => 'Eklendi';
+
+  @override
+  String get lanSyncResultUpdated => 'Güncellendi';
+
+  @override
+  String get lanSyncResultSkipped => 'Atlandı';
+
+  @override
+  String get lanSyncResultMissing => 'Eşleşmedi';
+
+  @override
+  String get lanSyncResultAmbiguous => 'Birden fazla aday';
+
+  @override
+  String lanSyncResultMoreSamples(int count) {
+    return '$count tane daha…';
+  }
+
+  @override
+  String get lanSyncViewDetails => 'Ayrıntıları gör';
+
+  @override
+  String get lanSyncLastSync => 'Son eşitleme';
+
+  @override
+  String get lanSyncLastSyncNever => 'Bu cihaz henüz eşitlenmedi';
 }

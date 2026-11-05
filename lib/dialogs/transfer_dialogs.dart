@@ -610,6 +610,31 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      // 字节收完到入库完成之间有段空窗：不说明的话，进度条停在
+                      // 100% 而曲库里搜不到新歌，像是传失败后被卡住了。
+                      if (session.status == TransferStatus.indexing) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.6,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              l10n.lanSyncProgressIngesting,
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       LinearProgressIndicator(
                         value: session.progress,

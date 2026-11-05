@@ -5718,4 +5718,78 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get lanSyncErrorSessionExpired => '전송 세션이 만료되었습니다. 다시 시도하세요.';
+
+  @override
+  String get lanSyncProgressPreparing => '동기화할 내용을 준비하는 중…';
+
+  @override
+  String get lanSyncProgressTransferring => '전송 중';
+
+  @override
+  String get lanSyncProgressWaitingPeer => '상대 기기의 확인을 기다리는 중…';
+
+  @override
+  String get lanSyncProgressImporting => '가져오는 중';
+
+  @override
+  String get lanSyncProgressIngesting => '라이브러리에 추가하는 중…';
+
+  @override
+  String lanSyncProgressCount(int processed, int total) {
+    return '$processed/$total';
+  }
+
+  @override
+  String get lanSyncCancel => '취소';
+
+  @override
+  String get lanSyncCancelling => '취소 중…';
+
+  @override
+  String get lanSyncCancelled => '동기화를 취소했습니다';
+
+  @override
+  String lanSyncSendingTo(String device) {
+    return '$device(으)로 보내는 중';
+  }
+
+  @override
+  String lanSyncReceivingFrom(String device) {
+    return '$device에서 받는 중';
+  }
+
+  @override
+  String get lanSyncResultTitle => '동기화 완료';
+
+  @override
+  String get lanSyncResultPlaylists => '재생목록';
+
+  @override
+  String get lanSyncResultAdded => '추가';
+
+  @override
+  String get lanSyncResultUpdated => '업데이트';
+
+  @override
+  String get lanSyncResultSkipped => '건너뜀';
+
+  @override
+  String get lanSyncResultMissing => '일치 없음';
+
+  @override
+  String get lanSyncResultAmbiguous => '후보 여러 개';
+
+  @override
+  String lanSyncResultMoreSamples(int count) {
+    return '$count개 더…';
+  }
+
+  @override
+  String get lanSyncViewDetails => '자세히 보기';
+
+  @override
+  String get lanSyncLastSync => '마지막 동기화';
+
+  @override
+  String get lanSyncLastSyncNever => '이 기기는 아직 동기화한 적이 없습니다';
 }

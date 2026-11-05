@@ -5901,4 +5901,78 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get lanSyncErrorSessionExpired =>
       'The transfer session expired. Please try again.';
+
+  @override
+  String get lanSyncProgressPreparing => 'Preparing what to sync…';
+
+  @override
+  String get lanSyncProgressTransferring => 'Transferring';
+
+  @override
+  String get lanSyncProgressWaitingPeer => 'Waiting for the other device…';
+
+  @override
+  String get lanSyncProgressImporting => 'Importing';
+
+  @override
+  String get lanSyncProgressIngesting => 'Adding to library…';
+
+  @override
+  String lanSyncProgressCount(int processed, int total) {
+    return '$processed/$total';
+  }
+
+  @override
+  String get lanSyncCancel => 'Cancel';
+
+  @override
+  String get lanSyncCancelling => 'Cancelling…';
+
+  @override
+  String get lanSyncCancelled => 'Sync cancelled';
+
+  @override
+  String lanSyncSendingTo(String device) {
+    return 'Sending to $device';
+  }
+
+  @override
+  String lanSyncReceivingFrom(String device) {
+    return 'Receiving from $device';
+  }
+
+  @override
+  String get lanSyncResultTitle => 'Sync complete';
+
+  @override
+  String get lanSyncResultPlaylists => 'Playlists';
+
+  @override
+  String get lanSyncResultAdded => 'Added';
+
+  @override
+  String get lanSyncResultUpdated => 'Updated';
+
+  @override
+  String get lanSyncResultSkipped => 'Skipped';
+
+  @override
+  String get lanSyncResultMissing => 'Not matched';
+
+  @override
+  String get lanSyncResultAmbiguous => 'Multiple matches';
+
+  @override
+  String lanSyncResultMoreSamples(int count) {
+    return '$count more…';
+  }
+
+  @override
+  String get lanSyncViewDetails => 'View details';
+
+  @override
+  String get lanSyncLastSync => 'Last sync';
+
+  @override
+  String get lanSyncLastSyncNever => 'This device has not synced yet';
 }

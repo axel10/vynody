@@ -5617,6 +5617,80 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get lanSyncErrorSessionExpired => '传输会话已过期，请重试';
+
+  @override
+  String get lanSyncProgressPreparing => '正在整理要同步的内容…';
+
+  @override
+  String get lanSyncProgressTransferring => '正在传输';
+
+  @override
+  String get lanSyncProgressWaitingPeer => '等待对方确认…';
+
+  @override
+  String get lanSyncProgressImporting => '正在导入';
+
+  @override
+  String get lanSyncProgressIngesting => '正在入库…';
+
+  @override
+  String lanSyncProgressCount(int processed, int total) {
+    return '$processed/$total';
+  }
+
+  @override
+  String get lanSyncCancel => '取消';
+
+  @override
+  String get lanSyncCancelling => '正在取消…';
+
+  @override
+  String get lanSyncCancelled => '已取消同步';
+
+  @override
+  String lanSyncSendingTo(String device) {
+    return '正在发送到 $device';
+  }
+
+  @override
+  String lanSyncReceivingFrom(String device) {
+    return '正在从 $device 接收';
+  }
+
+  @override
+  String get lanSyncResultTitle => '同步完成';
+
+  @override
+  String get lanSyncResultPlaylists => '歌单';
+
+  @override
+  String get lanSyncResultAdded => '新增';
+
+  @override
+  String get lanSyncResultUpdated => '更新';
+
+  @override
+  String get lanSyncResultSkipped => '跳过';
+
+  @override
+  String get lanSyncResultMissing => '未匹配';
+
+  @override
+  String get lanSyncResultAmbiguous => '多个候选';
+
+  @override
+  String lanSyncResultMoreSamples(int count) {
+    return '还有 $count 条…';
+  }
+
+  @override
+  String get lanSyncViewDetails => '查看详情';
+
+  @override
+  String get lanSyncLastSync => '最近一次同步';
+
+  @override
+  String get lanSyncLastSyncNever => '这台设备还没有同步过';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11232,4 +11306,78 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get lanSyncErrorSessionExpired => '傳輸工作階段已過期，請重試';
+
+  @override
+  String get lanSyncProgressPreparing => '正在整理要同步的內容…';
+
+  @override
+  String get lanSyncProgressTransferring => '正在傳輸';
+
+  @override
+  String get lanSyncProgressWaitingPeer => '等待對方確認…';
+
+  @override
+  String get lanSyncProgressImporting => '正在匯入';
+
+  @override
+  String get lanSyncProgressIngesting => '正在入庫…';
+
+  @override
+  String lanSyncProgressCount(int processed, int total) {
+    return '$processed/$total';
+  }
+
+  @override
+  String get lanSyncCancel => '取消';
+
+  @override
+  String get lanSyncCancelling => '正在取消…';
+
+  @override
+  String get lanSyncCancelled => '已取消同步';
+
+  @override
+  String lanSyncSendingTo(String device) {
+    return '正在傳送到 $device';
+  }
+
+  @override
+  String lanSyncReceivingFrom(String device) {
+    return '正在從 $device 接收';
+  }
+
+  @override
+  String get lanSyncResultTitle => '同步完成';
+
+  @override
+  String get lanSyncResultPlaylists => '播放清單';
+
+  @override
+  String get lanSyncResultAdded => '新增';
+
+  @override
+  String get lanSyncResultUpdated => '更新';
+
+  @override
+  String get lanSyncResultSkipped => '略過';
+
+  @override
+  String get lanSyncResultMissing => '未符合';
+
+  @override
+  String get lanSyncResultAmbiguous => '多個候選';
+
+  @override
+  String lanSyncResultMoreSamples(int count) {
+    return '還有 $count 筆…';
+  }
+
+  @override
+  String get lanSyncViewDetails => '查看詳情';
+
+  @override
+  String get lanSyncLastSync => '最近一次同步';
+
+  @override
+  String get lanSyncLastSyncNever => '這台裝置還沒有同步過';
 }

@@ -19,6 +19,9 @@ import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:bonsoir/bonsoir.dart';
 import 'lan_device.dart';
+import 'lan_sync_history.dart';
+import 'lan_sync_models.dart';
+import 'lan_sync_progress.dart';
 import 'lan_sync_protocol.dart';
 import 'lyrics_import_conflict.dart';
 import 'lyrics_package_importer.dart';
@@ -29,6 +32,12 @@ import 'package:vynody/main.dart';
 import 'package:vynody/dialogs/transfer_dialogs.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/utils/m3u_utils.dart';
+
+// 这些类型原来定义在本文件里，抽到 `lan_sync_models.dart` 之后依然从这里
+// 可见 —— 外部一直是 `import sharing_service.dart` 取 LanSyncReceipt 等类型，
+// 不想为了搬文件让几十处 import 一起改。
+export 'lan_sync_models.dart';
+export 'lan_sync_progress.dart';
 
 /// Formats an IP address or hostname for use in HTTP URLs.
 /// If [host] is an IPv6 address containing colons and not already enclosed in brackets,
@@ -200,66 +209,6 @@ final incomingPlaylistRequestProvider =
       IncomingPlaylistRequest?
     >(IncomingPlaylistRequestNotifier.new);
 
-/// 一次跨设备传输的落地结果。
-///
-/// 发起方与被动方共用同一条通知链路：此前只有歌单在被动方有提示，
-/// 歌词导入完是静默的；导出方向（被拉取那台）两侧都没有提示。
-enum LanSyncKind { lyrics, playlists }
-
-/// [incoming] = 本机接收并落地；[outgoing] = 本机把数据交给对方。
-enum LanSyncDirection { incoming, outgoing }
-
-class LanSyncReceipt {
-  final LanSyncKind kind;
-  final LanSyncDirection direction;
-
-  /// 载体数量：歌单同步是歌单个数，歌词同步不适用（保持 0）。
-  final int containers;
-  final int added;
-  final int updated;
-  final int skipped;
-  final int missing;
-
-  /// 命中了多首本地歌、无法收敛到唯一的条目数（同名不同版本 / 重复目录）。
-  final int ambiguous;
-
-  const LanSyncReceipt({
-    required this.kind,
-    required this.direction,
-    this.containers = 0,
-    this.added = 0,
-    this.updated = 0,
-    this.skipped = 0,
-    this.missing = 0,
-    this.ambiguous = 0,
-  });
-}
-
-class LanSyncReceiptNotifier extends Notifier<LanSyncReceipt?> {
-  @override
-  LanSyncReceipt? build() => null;
-
-  void notify(LanSyncReceipt receipt) => state = receipt;
-  void clear() => state = null;
-}
-
-final lanSyncReceiptProvider =
-    NotifierProvider<LanSyncReceiptNotifier, LanSyncReceipt?>(
-      LanSyncReceiptNotifier.new,
-    );
-
-/// 同一台设备上已经有一个同步任务在跑。
-///
-/// 旧实现没有任何互斥：用户等不及再点一次就会并发发两份，第二份多半把第一份
-/// 的结果覆盖掉，但两边的回执和进度都会各弹一遍，看起来像「同步了两次」。
-class LanSyncBusyException implements Exception {
-  const LanSyncBusyException(this.kind);
-  final LanSyncKind kind;
-
-  @override
-  String toString() => 'LanSyncBusyException(${kind.name})';
-}
-
 /// 分块接收的临时会话。
 ///
 /// 只在内存里，靠 [LanSyncLimits.chunkSessionTtl] 回收：发送端中途放弃时，
@@ -391,7 +340,12 @@ class TransferFileItem {
   });
 }
 
-enum TransferStatus { pending, transferring, success, failed, cancelled }
+/// 文件传输会话的状态。
+///
+/// [indexing] 是「字节已经收完、但扫描器还没把这些文件读进库」这段窗口：
+/// 旧实现直接在落盘后立刻标 success，用户点开曲库搜不到刚传的歌，得等下一次
+/// 全库扫描。现在这个状态让进度框多停一会儿，同时把扫描改成只扫新增目录。
+enum TransferStatus { pending, transferring, indexing, success, failed, cancelled }
 
 class ActiveFileProgress {
   final String fileName;
@@ -497,6 +451,9 @@ class SharingService {
   /// 各写一遍数据安全得多。
   final Map<String, Future<void>> _inFlightSyncs = {};
 
+  /// 接收方向的进度心跳定时器（见 [_armIncomingProgressTimeout]）。
+  Timer? _incomingProgressTimer;
+
   void cancelTransfer(String sessionId) {
     debugPrint(
       '[SharingService] cancelTransfer called for session: $sessionId',
@@ -539,10 +496,64 @@ class SharingService {
     }
   }
 
-  void _checkAndResumeScanner() {
-    if (_activeTokens.isEmpty) {
-      _ref.read(scannerServiceProvider).resumeMediaObserver(triggerScan: true);
+  void _checkAndResumeScanner({bool triggerScan = true}) {
+    if (_activeTokens.isNotEmpty) return;
+    _ref
+        .read(scannerServiceProvider)
+        .resumeMediaObserver(triggerScan: triggerScan);
+  }
+
+  /// 传输收尾：只让扫描器重扫这次写入了文件的目录。
+  ///
+  /// 返回 false 表示「没有可增量的目录」（比如所有文件都被跳过），调用方
+  /// 需要退回全量扫描。
+  Future<bool> _ingestReceivedDirectories(_UploadRequestMetadata metadata) async {
+    final scanner = _ref.read(scannerServiceProvider);
+    final directories = metadata.receivedDirectories
+        .where((dir) => dir.isNotEmpty)
+        .toList(growable: false);
+    if (directories.isEmpty) return false;
+
+    for (final directory in directories) {
+      try {
+        await scanner.rescanDirectory(directory);
+      } catch (e) {
+        debugPrint(
+          '[SharingService] Failed to rescan directory "$directory": $e',
+        );
+        return false;
+      }
     }
+    return true;
+  }
+
+  /// 文件全部落盘后的后台收尾：增量扫描 → 标记成功 → 恢复媒体观察者。
+  ///
+  /// 放在 `unawaited` 里跑，是为了不把最后一个上传请求拖到扫描结束：
+  /// 发送端读超时只有 45 秒，大文件目录的入库可能更久。
+  Future<void> _finalizeReceivedFiles(
+    String sessionId,
+    _UploadRequestMetadata metadata,
+  ) async {
+    var incremental = false;
+    try {
+      incremental = await _ingestReceivedDirectories(metadata);
+    } catch (e) {
+      debugPrint('[SharingService] Ingest failed, falling back to full scan: $e');
+    }
+
+    _ref
+        .read(activeTransfersProvider.notifier)
+        .updateProgress(
+          sessionId,
+          metadata.totalSize,
+          status: TransferStatus.success,
+          completedFilesCount: metadata.completedFiles.length,
+          activeFiles: [],
+        );
+
+    // 增量扫描成功就不要再触发整库扫描；失败/没目录时退回旧行为。
+    _checkAndResumeScanner(triggerScan: !incremental);
   }
 
   // Discovered devices list managed locally, updated to UI via Riverpod
@@ -1376,6 +1387,81 @@ class SharingService {
     }
   }
 
+  /// 进度 provider 在容器已销毁时会抛异常，这时同步本身还在跑，不能因此中断。
+  LanSyncProgressNotifier? get _progress {
+    try {
+      return _ref.read(lanSyncProgressProvider.notifier);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _beginProgress(
+    LanSyncKind kind,
+    LanSyncDirection direction,
+    String deviceName,
+  ) {
+    _progress?.begin(
+      kind: kind,
+      direction: direction,
+      deviceName: deviceName,
+    );
+    _armIncomingProgressTimeout();
+  }
+
+  /// 换阶段。没有进行中的任务时是 no-op —— 同一条收集逻辑被
+  /// 「主动推送」和「对端拉取」共用，后者不一定有进度对话框。
+  void _progressStage(LanSyncStage stage, {int? processed, int? total}) {
+    _progress?.setStage(stage, processed: processed, total: total);
+  }
+
+  void _progressAdvance([int delta = 1, int? total]) {
+    _progress?.advance(delta, total);
+    _armIncomingProgressTimeout();
+  }
+
+  void _endProgress() {
+    _incomingProgressTimer?.cancel();
+    _incomingProgressTimer = null;
+    _progress?.clear();
+  }
+
+  /// 接收方向的心跳超时。
+  ///
+  /// 发送端中途放弃时，这边不会再收到任何分块，进度条会永远停在「正在接收」。
+  /// 每个分块到达或推进时重置计时，超过分块会话 TTL 就自己收掉。
+  void _armIncomingProgressTimeout() {
+    _incomingProgressTimer?.cancel();
+    final progress = _progress;
+    if (progress?.current?.direction != LanSyncDirection.incoming) return;
+    _incomingProgressTimer = Timer(
+      LanSyncLimits.chunkSessionTtl + const Duration(seconds: 5),
+      () {
+        if (_progress?.current?.direction == LanSyncDirection.incoming) {
+          _endProgress();
+        }
+      },
+    );
+  }
+
+  /// 发布一条完成回执：写「最近一次同步」历史 + 通知 UI。
+  ///
+  /// 两个动作必须绑在一起 —— 之前只 notify，历史只能靠调用方自己补记，
+  /// 结果是发起方有记录、被动方没有，回看得看运气。
+  void _publishReceipt(LanSyncReceipt receipt) {
+    LanSyncHistoryStore.record(receipt);
+    _ref.read(lanSyncReceiptProvider.notifier).notify(receipt);
+  }
+
+  /// 取消检查点。放在分块之间而不是随时中断：硬断一个正在进行的 HTTP
+  /// 请求会让对端留半截会话，反而要等 TTL 才能重来。
+  void _throwIfCancelled() {
+    if (_progress?.cancelRequested ?? false) {
+      throw const LanSyncCancelledException();
+    }
+  }
+
+
   /// 发一个同步请求，返回状态码与解析后的 JSON。
   ///
   /// - 超时覆盖「建连 + 写 body + 读响应」三段，`connectionTimeout` 只管建连；
@@ -1632,7 +1718,8 @@ class SharingService {
 
       if (isAllSkipped) {
         _activeTokens.remove(token);
-        _checkAndResumeScanner();
+        // 一个文件都没写，没有什么可入库的：只恢复媒体观察者，不触发扫描。
+        _checkAndResumeScanner(triggerScan: false);
       }
 
       request.response.statusCode = HttpStatus.ok;
@@ -1911,17 +1998,8 @@ class SharingService {
         metadata.activeFilesMap.remove(relativePath);
 
         if (isFinished) {
-          _ref
-              .read(activeTransfersProvider.notifier)
-              .updateProgress(
-                sessionId,
-                metadata.totalSize,
-                status: TransferStatus.success,
-                completedFilesCount: metadata.completedFiles.length,
-                activeFiles: [],
-              );
           _activeTokens.remove(token);
-          _checkAndResumeScanner();
+          unawaited(_finalizeReceivedFiles(sessionId, metadata));
         } else {
           _ref
               .read(activeTransfersProvider.notifier)
@@ -2152,6 +2230,7 @@ class SharingService {
 
       // Track completed file
       metadata.completedFiles.add(relativePath);
+      metadata.receivedDirectories.add(p.dirname(targetPath));
 
       // Check if all files in the metadata session are completed
       final allFiles = metadata.files
@@ -2165,17 +2244,19 @@ class SharingService {
       metadata.activeFilesMap.remove(relativePath);
 
       if (isFinished) {
+        // 先把状态切到「入库中」，再回响应：最后一个上传请求不能等扫描，
+        // 否则发送端会卡在 45 秒读超时上。扫描在后台跑完再切 success。
         _ref
             .read(activeTransfersProvider.notifier)
             .updateProgress(
               sessionId,
               metadata.totalSize,
-              status: TransferStatus.success,
+              status: TransferStatus.indexing,
               completedFilesCount: metadata.completedFiles.length,
               activeFiles: [],
             );
         _activeTokens.remove(token);
-        _checkAndResumeScanner();
+        unawaited(_finalizeReceivedFiles(sessionId, metadata));
       } else {
         _ref
             .read(activeTransfersProvider.notifier)
@@ -2774,8 +2855,14 @@ class SharingService {
     ).import(localCacheKey: localCacheKey, incomingPackage: incomingPackage);
   }
 
-  Future<Map<String, int>> _importLyricsList(List<dynamic> lyrics) async {
+  Future<LanSyncOutcome> _importLyricsList(List<dynamic> lyrics) async {
     final db = MetadataDatabase();
+
+    _progressStage(
+      LanSyncStage.importing,
+      processed: 0,
+      total: lyrics.length,
+    );
 
     // 曲库只读一遍、归一化只算一遍，之后每条远端条目都是内存查表。
     // 此前是「每条条目对全库跑一次 title/artist 正则归一化」：3000 首的库
@@ -2786,13 +2873,20 @@ class SharingService {
     int addedCount = 0;
     int updatedCount = 0;
     int skippedCount = 0;
+    int missingCount = 0;
+    int ambiguousCount = 0;
+    final missingSamples = <String>[];
+    final ambiguousSamples = <String>[];
 
     for (final item in lyrics) {
+      _throwIfCancelled();
+
       final map = item as Map<String, dynamic>;
       final title = map['title'] as String? ?? '';
       final artist = map['artist'] as String? ?? '';
       final album = map['album'] as String?;
       final durationMs = map['duration_ms'] as int?;
+      final displayName = title.isEmpty ? '?' : title;
 
       final match = matcher.matchByMetadata(
         title: title,
@@ -2802,13 +2896,26 @@ class SharingService {
       );
 
       if (match.isEmpty) {
-        skippedCount++;
+        // 「本地压根没有这首歌」和「本地有但本机这份更好」是两件事：
+        // 前者用户可以补文件 / 检查歌名，后者不需要做任何事。
+        missingCount++;
+        if (missingSamples.length < LanSyncReceipt.maxSamples) {
+          missingSamples.add(displayName);
+        }
+        _progressAdvance();
         continue;
       }
 
       // 按「条目」计数，不按命中歌曲数：一首远端条目命中多首本地版本
       // （live / 伴奏 / 不同采样率）时，matched 虚高会让统计对不上直觉。
       matchedCount++;
+
+      if (match.matches.length > 1) {
+        ambiguousCount++;
+        if (ambiguousSamples.length < LanSyncReceipt.maxSamples) {
+          ambiguousSamples.add(displayName);
+        }
+      }
 
       for (final song in match.matches) {
         final localQuery = LyricsQuery(
@@ -2836,16 +2943,20 @@ class SharingService {
             skippedCount++;
         }
       }
+
+      _progressAdvance();
     }
 
-    return {
-      'matched': matchedCount,
-      'added': addedCount,
-      'updated': updatedCount,
-      'skipped': skippedCount,
-      // 旧版客户端只认 overwritten，保留一个等价字段避免它显示成 0。
-      'overwritten': addedCount + updatedCount,
-    };
+    return LanSyncOutcome(
+      matched: matchedCount,
+      added: addedCount,
+      updated: updatedCount,
+      skipped: skippedCount,
+      missing: missingCount,
+      ambiguous: ambiguousCount,
+      missingSamples: missingSamples,
+      ambiguousSamples: ambiguousSamples,
+    );
   }
 
   /// 收集本机所有「有歌词」的曲目，供推送与导出共用。
@@ -2855,6 +2966,7 @@ class SharingService {
   /// 数据库往返，全程只显示一个 toast，看起来像卡死。
   Future<List<SongMetadataPackage>> _collectLyricsPackages() async {
     final db = MetadataDatabase();
+    _progressStage(LanSyncStage.preparing);
     final songs = await db.getAllSongMetadata();
 
     final songByCacheKey = <String, SongMetadata>{};
@@ -2910,21 +3022,31 @@ class SharingService {
     return packages;
   }
 
-  Future<Map<String, int>> syncLyricsToDevice(LanDevice targetDevice) async {
+  Future<LanSyncOutcome> syncLyricsToDevice(LanDevice targetDevice) async {
     return _runSyncExclusive(
       'lyrics/${targetDevice.id}',
       LanSyncKind.lyrics,
       () async {
-        final packages = await _collectLyricsPackages();
-        if (packages.isEmpty) {
-          return {'matched': 0, 'overwritten': 0, 'skipped': 0};
+        _beginProgress(
+          LanSyncKind.lyrics,
+          LanSyncDirection.outgoing,
+          targetDevice.name,
+        );
+        try {
+          final packages = await _collectLyricsPackages();
+          if (packages.isEmpty) {
+            // 本机没有任何歌词可发：不是失败，但也不该说「同步完成 0 首」。
+            return const LanSyncOutcome();
+          }
+          return await _sendLyricsPackages(targetDevice, packages);
+        } finally {
+          _endProgress();
         }
-        return _sendLyricsPackages(targetDevice, packages);
       },
     );
   }
 
-  Future<Map<String, int>> _sendLyricsPackages(
+  Future<LanSyncOutcome> _sendLyricsPackages(
     LanDevice targetDevice,
     List<SongMetadataPackage> packages,
   ) async {
@@ -2938,6 +3060,12 @@ class SharingService {
         ? chunkLanSyncItems(items)
         : <List<Map<String, dynamic>>>[items];
 
+    _progressStage(
+      LanSyncStage.transferring,
+      processed: 0,
+      total: items.length,
+    );
+
     final client = TlsCertificateService.createPinnedHttpClient(
       expectedFingerprint: targetDevice.certFingerprint,
     );
@@ -2950,15 +3078,13 @@ class SharingService {
 
       final transferId =
           '${DateTime.now().microsecondsSinceEpoch}_${chunks.length}';
-      final aggregate = <String, int>{
-        'matched': 0,
-        'overwritten': 0,
-        'skipped': 0,
-        'added': 0,
-        'updated': 0,
-      };
+      var matched = 0;
+      var added = 0;
+      var updated = 0;
+      var skipped = 0;
 
       for (var index = 0; index < chunks.length; index++) {
+        _throwIfCancelled();
         final isLast = index == chunks.length - 1;
         final payload = <String, dynamic>{
           'version': kLanSyncProtocolVersion,
@@ -2993,31 +3119,50 @@ class SharingService {
           throw Exception('Server returned status code ${result.status}');
         }
 
+        _progressAdvance(chunks[index].length);
+
         // 中间块只有「收到了」，统计以最后一块为准。
         if (isLast) {
-          aggregate['matched'] = result.body['matched'] as int? ?? 0;
-          aggregate['overwritten'] = result.body['overwritten'] as int? ?? 0;
-          aggregate['skipped'] = result.body['skipped'] as int? ?? 0;
-          aggregate['added'] = result.body['added'] as int? ?? 0;
-          aggregate['updated'] = result.body['updated'] as int? ?? 0;
+          matched = result.body['matched'] as int? ?? 0;
+          skipped = result.body['skipped'] as int? ?? 0;
+          added = result.body['added'] as int? ?? 0;
+          updated = result.body['updated'] as int? ?? 0;
         }
       }
 
-      return aggregate;
+      return LanSyncOutcome(
+        matched: matched,
+        added: added,
+        updated: updated,
+        skipped: skipped,
+      );
     } finally {
       client.close();
     }
   }
 
-  Future<Map<String, int>> pullLyricsFromDevice(LanDevice targetDevice) {
+  Future<LanSyncOutcome> pullLyricsFromDevice(LanDevice targetDevice) {
     return _runSyncExclusive(
       'lyrics-pull/${targetDevice.id}',
       LanSyncKind.lyrics,
-      () => _pullLyricsFromDevice(targetDevice),
+      () async {
+        _beginProgress(
+          LanSyncKind.lyrics,
+          LanSyncDirection.outgoing,
+          targetDevice.name,
+        );
+        try {
+          return await _pullLyricsFromDevice(targetDevice);
+        } finally {
+          _endProgress();
+        }
+      },
     );
   }
 
-  Future<Map<String, int>> _pullLyricsFromDevice(LanDevice targetDevice) async {
+  Future<LanSyncOutcome> _pullLyricsFromDevice(LanDevice targetDevice) async {
+    // 拉取时本地在等对端把整包发过来，期间没有任何可量化的进度。
+    _progressStage(LanSyncStage.waitingPeer);
     final client = TlsCertificateService.createPinnedHttpClient(
       expectedFingerprint: targetDevice.certFingerprint,
     );
@@ -3106,15 +3251,14 @@ class SharingService {
     // 导出方向（对端来拉取）在这台设备上也给一条回执，否则用户点完「接受」
     // 同样什么都看不到。
     if (exportedList.isNotEmpty) {
-      _ref
-          .read(lanSyncReceiptProvider.notifier)
-          .notify(
-            LanSyncReceipt(
-              kind: LanSyncKind.lyrics,
-              direction: LanSyncDirection.outgoing,
-              added: exportedList.length,
-            ),
-          );
+      _publishReceipt(
+        LanSyncReceipt(
+          kind: LanSyncKind.lyrics,
+          direction: LanSyncDirection.outgoing,
+          added: exportedList.length,
+          deviceName: senderName,
+        ),
+      );
     }
   }
 
@@ -3150,7 +3294,22 @@ class SharingService {
         });
         return;
       }
-      await _finishLyricsImport(request, incoming);
+      // 单块（v1 对端或内容很少）时整包已经在手上，直接进入导入。
+      _beginProgress(
+        LanSyncKind.lyrics,
+        LanSyncDirection.incoming,
+        senderName,
+      );
+      _progressStage(
+        LanSyncStage.importing,
+        processed: 0,
+        total: totalItems,
+      );
+      try {
+        await _finishLyricsImport(request, incoming, senderName: senderName);
+      } finally {
+        _endProgress();
+      }
       return;
     }
 
@@ -3177,6 +3336,18 @@ class SharingService {
       )..items.addAll(incoming);
       session.receivedChunks.add(chunkIndex);
       _lyricsChunkSessions[sessionKey] = session;
+      // 用户已经点过「接受」，接下来几分钟都在传数据：给一个可见的进度，
+      // 否则屏幕上除了那个已经消失的确认框什么都没有。
+      _beginProgress(
+        LanSyncKind.lyrics,
+        LanSyncDirection.incoming,
+        senderName,
+      );
+      _progressStage(
+        LanSyncStage.transferring,
+        processed: incoming.length,
+        total: totalItems,
+      );
       await _closeWithJson(request, HttpStatus.ok, {
         'accepted': true,
         'chunk_index': chunkIndex,
@@ -3209,6 +3380,7 @@ class SharingService {
 
     session.items.addAll(incoming);
     session.lastTouched = DateTime.now();
+    _progressAdvance(incoming.length);
 
     if (chunkIndex < chunkTotal - 1) {
       await _closeWithJson(request, HttpStatus.ok, {
@@ -3220,7 +3392,15 @@ class SharingService {
     }
 
     _lyricsChunkSessions.remove(sessionKey);
-    await _finishLyricsImport(request, session.items);
+    try {
+      await _finishLyricsImport(
+        request,
+        session.items,
+        senderName: senderName,
+      );
+    } finally {
+      _endProgress();
+    }
   }
 
   Future<bool> _confirmIncomingLyrics({
@@ -3250,42 +3430,60 @@ class SharingService {
 
   Future<void> _finishLyricsImport(
     HttpRequest request,
-    List<dynamic> lyrics,
-  ) async {
-    final stats = await _importLyricsList(lyrics);
+    List<dynamic> lyrics, {
+    String? senderName,
+  }) async {
+    final startedAt = DateTime.now();
+    final outcome = await _importLyricsList(lyrics);
     // 被动方此前完全没有反馈：点「接受」→ 对话框消失 → 什么都没发生。
     // 导入本身可能是几十秒的匹配 + 写库，用户只能猜。
-    _ref
-        .read(lanSyncReceiptProvider.notifier)
-        .notify(
-          LanSyncReceipt(
-            kind: LanSyncKind.lyrics,
-            direction: LanSyncDirection.incoming,
-            added: stats['added'] ?? 0,
-            updated: stats['updated'] ?? 0,
-            skipped: stats['skipped'] ?? 0,
-          ),
-        );
+    _publishReceipt(
+      outcome.toReceipt(
+        kind: LanSyncKind.lyrics,
+        direction: LanSyncDirection.incoming,
+        deviceName: senderName,
+        elapsed: DateTime.now().difference(startedAt),
+      ),
+    );
 
-    await _closeWithJson(request, HttpStatus.ok, {'accepted': true, ...stats});
+    await _closeWithJson(request, HttpStatus.ok, {
+      'accepted': true,
+      'matched': outcome.matched,
+      'added': outcome.added,
+      'updated': outcome.updated,
+      'skipped': outcome.skipped,
+      // 旧版客户端只认 overwritten。
+      'overwritten': outcome.added + outcome.updated,
+    });
   }
 
-  Future<Map<String, int>> sendPlaylistsToDevice(
+  Future<LanSyncOutcome> sendPlaylistsToDevice(
     LanDevice targetDevice,
     List<Playlist> playlists,
   ) async {
     if (playlists.isEmpty) {
-      return {'imported_playlists': 0, 'imported_songs': 0};
+      return const LanSyncOutcome();
     }
 
     return _runSyncExclusive(
       'playlists/${targetDevice.id}',
       LanSyncKind.playlists,
-      () => _sendPlaylistsPayload(targetDevice, playlists),
+      () async {
+        _beginProgress(
+          LanSyncKind.playlists,
+          LanSyncDirection.outgoing,
+          targetDevice.name,
+        );
+        try {
+          return await _sendPlaylistsPayload(targetDevice, playlists);
+        } finally {
+          _endProgress();
+        }
+      },
     );
   }
 
-  Future<Map<String, int>> _sendPlaylistsPayload(
+  Future<LanSyncOutcome> _sendPlaylistsPayload(
     LanDevice targetDevice,
     List<Playlist> playlists,
   ) async {
@@ -3310,6 +3508,12 @@ class SharingService {
         ? chunkLanSyncItems(payload)
         : <List<Map<String, dynamic>>>[payload];
 
+    _progressStage(
+      LanSyncStage.transferring,
+      processed: 0,
+      total: payload.length,
+    );
+
     final client = TlsCertificateService.createPinnedHttpClient(
       expectedFingerprint: targetDevice.certFingerprint,
     );
@@ -3322,12 +3526,9 @@ class SharingService {
 
       final transferId =
           '${DateTime.now().microsecondsSinceEpoch}_${chunks.length}';
-      final aggregate = <String, int>{
-        'imported_playlists': 0,
-        'imported_songs': 0,
-      };
 
       for (var index = 0; index < chunks.length; index++) {
+        _throwIfCancelled();
         final isLast = index == chunks.length - 1;
         final result = await _postSyncJson(
           client,
@@ -3360,33 +3561,53 @@ class SharingService {
           throw Exception('Server returned status code ${result.status}');
         }
 
+        _progressAdvance(chunks[index].length);
+
         if (isLast) {
-          aggregate['imported_playlists'] =
-              result.body['imported_playlists'] as int? ?? 0;
-          aggregate['imported_songs'] =
-              result.body['imported_songs'] as int? ?? 0;
+          // 对端视角的落地数只用于日志：给用户看的数字用本机口径，
+          // 因为合并语义下对端可能一首都没新增，显示「共 0 首」像没发成功。
+          debugPrint(
+            '[SharingService] Playlists received by peer: '
+            '${result.body['imported_playlists'] ?? 0} playlist(s), '
+            '${result.body['imported_songs'] ?? 0} song(s)',
+          );
         }
       }
 
-      return aggregate;
+      return LanSyncOutcome(
+        containers: playlists.length,
+        added: playlists.fold<int>(0, (sum, p) => sum + p.songs.length),
+      );
     } finally {
       client.close();
     }
   }
 
-  Future<Map<String, int>> pullPlaylistsFromDevice(
+  Future<LanSyncOutcome> pullPlaylistsFromDevice(
     LanDevice targetDevice,
   ) {
     return _runSyncExclusive(
       'playlists-pull/${targetDevice.id}',
       LanSyncKind.playlists,
-      () => _pullPlaylistsFromDevice(targetDevice),
+      () async {
+        _beginProgress(
+          LanSyncKind.playlists,
+          LanSyncDirection.outgoing,
+          targetDevice.name,
+        );
+        try {
+          return await _pullPlaylistsFromDevice(targetDevice);
+        } finally {
+          _endProgress();
+        }
+      },
     );
   }
 
-  Future<Map<String, int>> _pullPlaylistsFromDevice(
+  Future<LanSyncOutcome> _pullPlaylistsFromDevice(
     LanDevice targetDevice,
   ) async {
+    _progressStage(LanSyncStage.waitingPeer);
     final client = TlsCertificateService.createPinnedHttpClient(
       expectedFingerprint: targetDevice.certFingerprint,
     );
@@ -3423,7 +3644,7 @@ class SharingService {
     }
   }
 
-  Future<Map<String, int>> _importPlaylistsPayload(
+  Future<LanSyncOutcome> _importPlaylistsPayload(
     List<dynamic> playlistsJson,
   ) async {
     int importedPlaylistsCount = 0;
@@ -3432,12 +3653,24 @@ class SharingService {
     int skippedSongsCount = 0;
     int missingSongsCount = 0;
     int ambiguousSongsCount = 0;
+    final missingSamples = <String>[];
+    final ambiguousSamples = <String>[];
 
     final playlistService = _ref.read(playlistServiceProvider);
     final scannerRoots = _ref.read(scannerServiceProvider).rootPaths;
 
+    _progressStage(
+      LanSyncStage.importing,
+      processed: 0,
+      total: playlistsJson.length,
+    );
+
     for (final item in playlistsJson) {
-      if (item is! Map<String, dynamic>) continue;
+      _throwIfCancelled();
+      if (item is! Map<String, dynamic>) {
+        _progressAdvance();
+        continue;
+      }
       final rawName = item['name'] as String? ?? 'Imported Playlist';
       final m3uContent = item['m3u_content'] as String?;
 
@@ -3469,17 +3702,41 @@ class SharingService {
         missingSongsCount += missingEntries.length;
         ambiguousSongsCount += ambiguousEntries.length;
         if (result.merged) mergedPlaylistsCount++;
+
+        for (final entry in missingEntries) {
+          if (missingSamples.length >= LanSyncReceipt.maxSamples) break;
+          missingSamples.add(_m3uEntryDisplayName(entry));
+        }
+        for (final entry in ambiguousEntries) {
+          if (ambiguousSamples.length >= LanSyncReceipt.maxSamples) break;
+          ambiguousSamples.add(_m3uEntryDisplayName(entry));
+        }
       }
+      _progressAdvance();
     }
 
-    return {
-      'imported_playlists': importedPlaylistsCount,
-      'merged_playlists': mergedPlaylistsCount,
-      'imported_songs': importedSongsCount,
-      'skipped_songs': skippedSongsCount,
-      'missing_songs': missingSongsCount,
-      'ambiguous_songs': ambiguousSongsCount,
-    };
+    debugPrint(
+      '[SharingService] Playlists imported: $importedPlaylistsCount '
+      '($mergedPlaylistsCount merged), songs +$importedSongsCount',
+    );
+
+    return LanSyncOutcome(
+      containers: importedPlaylistsCount,
+      added: importedSongsCount,
+      skipped: skippedSongsCount,
+      missing: missingSongsCount,
+      ambiguous: ambiguousSongsCount,
+      missingSamples: missingSamples,
+      ambiguousSamples: ambiguousSamples,
+    );
+  }
+
+  String _m3uEntryDisplayName(M3uEntry entry) {
+    final title = entry.title?.trim();
+    if (title != null && title.isNotEmpty) return title;
+    final normalized = entry.path.replaceAll('\\', '/');
+    final name = normalized.split('/').last;
+    return name.isEmpty ? entry.path : name;
   }
 
   Future<void> _handleExportPlaylists(HttpRequest request) async {
@@ -3541,19 +3798,18 @@ class SharingService {
     await request.response.close();
 
     if (exportedList.isNotEmpty) {
-      _ref
-          .read(lanSyncReceiptProvider.notifier)
-          .notify(
-            LanSyncReceipt(
-              kind: LanSyncKind.playlists,
-              direction: LanSyncDirection.outgoing,
-              containers: exportedList.length,
-              added: exportedList.fold<int>(
-                0,
-                (sum, item) => sum + (item['songs_count'] as int? ?? 0),
-              ),
-            ),
-          );
+      _publishReceipt(
+        LanSyncReceipt(
+          kind: LanSyncKind.playlists,
+          direction: LanSyncDirection.outgoing,
+          containers: exportedList.length,
+          added: exportedList.fold<int>(
+            0,
+            (sum, item) => sum + (item['songs_count'] as int? ?? 0),
+          ),
+          deviceName: senderName,
+        ),
+      );
     }
   }
 
@@ -3581,7 +3837,25 @@ class SharingService {
         });
         return;
       }
-      await _finishPlaylistImport(request, incoming);
+      _beginProgress(
+        LanSyncKind.playlists,
+        LanSyncDirection.incoming,
+        senderName,
+      );
+      _progressStage(
+        LanSyncStage.importing,
+        processed: 0,
+        total: incoming.length,
+      );
+      try {
+        await _finishPlaylistImport(
+          request,
+          incoming,
+          senderName: senderName,
+        );
+      } finally {
+        _endProgress();
+      }
       return;
     }
 
@@ -3608,6 +3882,15 @@ class SharingService {
       )..items.addAll(incoming);
       session.receivedChunks.add(chunkIndex);
       _playlistChunkSessions[sessionKey] = session;
+      _beginProgress(
+        LanSyncKind.playlists,
+        LanSyncDirection.incoming,
+        senderName,
+      );
+      _progressStage(
+        LanSyncStage.transferring,
+        processed: incoming.length,
+      );
       await _closeWithJson(request, HttpStatus.ok, {
         'accepted': true,
         'chunk_index': chunkIndex,
@@ -3637,6 +3920,7 @@ class SharingService {
 
     session.items.addAll(incoming);
     session.lastTouched = DateTime.now();
+    _progressAdvance(incoming.length);
 
     if (chunkIndex < chunkTotal - 1) {
       await _closeWithJson(request, HttpStatus.ok, {
@@ -3648,7 +3932,15 @@ class SharingService {
     }
 
     _playlistChunkSessions.remove(sessionKey);
-    await _finishPlaylistImport(request, session.items);
+    try {
+      await _finishPlaylistImport(
+        request,
+        session.items,
+        senderName: senderName,
+      );
+    } finally {
+      _endProgress();
+    }
   }
 
   Future<bool> _confirmIncomingPlaylists({
@@ -3686,24 +3978,28 @@ class SharingService {
 
   Future<void> _finishPlaylistImport(
     HttpRequest request,
-    List<dynamic> playlists,
-  ) async {
-    final stats = await _importPlaylistsPayload(playlists);
-    _ref
-        .read(lanSyncReceiptProvider.notifier)
-        .notify(
-          LanSyncReceipt(
-            kind: LanSyncKind.playlists,
-            direction: LanSyncDirection.incoming,
-            containers: stats['imported_playlists'] ?? 0,
-            added: stats['imported_songs'] ?? 0,
-            skipped: stats['skipped_songs'] ?? 0,
-            missing: stats['missing_songs'] ?? 0,
-            ambiguous: stats['ambiguous_songs'] ?? 0,
-          ),
-        );
+    List<dynamic> playlists, {
+    String? senderName,
+  }) async {
+    final startedAt = DateTime.now();
+    final outcome = await _importPlaylistsPayload(playlists);
+    _publishReceipt(
+      outcome.toReceipt(
+        kind: LanSyncKind.playlists,
+        direction: LanSyncDirection.incoming,
+        deviceName: senderName,
+        elapsed: DateTime.now().difference(startedAt),
+      ),
+    );
 
-    await _closeWithJson(request, HttpStatus.ok, {'accepted': true, ...stats});
+    await _closeWithJson(request, HttpStatus.ok, {
+      'accepted': true,
+      'imported_playlists': outcome.containers,
+      'imported_songs': outcome.added,
+      'skipped_songs': outcome.skipped,
+      'missing_songs': outcome.missing,
+      'ambiguous_songs': outcome.ambiguous,
+    });
   }
 }
 
@@ -3714,6 +4010,13 @@ class _UploadRequestMetadata {
   final String senderName;
   int bytesTransferredCumulative = 0;
   final Set<String> completedFiles = {};
+
+  /// 本次实际写入了文件的目录。
+  ///
+  /// 传输结束后只重扫这些目录（`rescanDirectory`），不再整库扫一遍：
+  /// 传一首歌触发全库扫描，在大库上是几十秒的事，而这段时间里曲库里
+  /// 看不到新歌 —— 用户以为传输失败了。
+  final Set<String> receivedDirectories = {};
   String? conflictAction; // 'skip_all', 'overwrite_all', or null
   Future<void>? activeConflictFuture; // Track currently visible conflict dialog
   final Map<String, ActiveFileProgress> activeFilesMap = {};

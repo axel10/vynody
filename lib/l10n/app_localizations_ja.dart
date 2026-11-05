@@ -5713,4 +5713,78 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get lanSyncErrorSessionExpired => '転送セッションの有効期限が切れました。もう一度お試しください。';
+
+  @override
+  String get lanSyncProgressPreparing => '同期する内容を準備しています…';
+
+  @override
+  String get lanSyncProgressTransferring => '転送中';
+
+  @override
+  String get lanSyncProgressWaitingPeer => '相手の端末の確認を待っています…';
+
+  @override
+  String get lanSyncProgressImporting => 'インポート中';
+
+  @override
+  String get lanSyncProgressIngesting => 'ライブラリに追加中…';
+
+  @override
+  String lanSyncProgressCount(int processed, int total) {
+    return '$processed/$total';
+  }
+
+  @override
+  String get lanSyncCancel => 'キャンセル';
+
+  @override
+  String get lanSyncCancelling => 'キャンセル中…';
+
+  @override
+  String get lanSyncCancelled => '同期をキャンセルしました';
+
+  @override
+  String lanSyncSendingTo(String device) {
+    return '$device に送信中';
+  }
+
+  @override
+  String lanSyncReceivingFrom(String device) {
+    return '$device から受信中';
+  }
+
+  @override
+  String get lanSyncResultTitle => '同期が完了しました';
+
+  @override
+  String get lanSyncResultPlaylists => 'プレイリスト';
+
+  @override
+  String get lanSyncResultAdded => '追加';
+
+  @override
+  String get lanSyncResultUpdated => '更新';
+
+  @override
+  String get lanSyncResultSkipped => 'スキップ';
+
+  @override
+  String get lanSyncResultMissing => '未一致';
+
+  @override
+  String get lanSyncResultAmbiguous => '候補が複数';
+
+  @override
+  String lanSyncResultMoreSamples(int count) {
+    return '他 $count 件…';
+  }
+
+  @override
+  String get lanSyncViewDetails => '詳細を表示';
+
+  @override
+  String get lanSyncLastSync => '前回の同期';
+
+  @override
+  String get lanSyncLastSyncNever => 'この端末はまだ同期していません';
 }

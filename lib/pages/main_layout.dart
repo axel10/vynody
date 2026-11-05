@@ -31,6 +31,7 @@ import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_service.dart';
 import 'package:vynody/player/sharing/remote_control/remote_control_service.dart';
 import 'package:vynody/dialogs/transfer_dialogs.dart';
+import 'package:vynody/dialogs/lan_sync_dialogs.dart';
 import 'package:vynody/dialogs/remote_pair_dialogs.dart';
 import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
@@ -1168,37 +1169,35 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     // 此前只有歌单在被动方有提示，歌词导入完是静默的，导出方向两边都没有。
     ref.listen<LanSyncReceipt?>(lanSyncReceiptProvider, (previous, next) {
       if (next == null) return;
-      String text;
-      switch ((next.kind, next.direction)) {
-        case (LanSyncKind.lyrics, LanSyncDirection.incoming):
-          text = l10n.lanSyncLyricsReceived(
-            next.added,
-            next.updated,
-            next.skipped,
-          );
-        case (LanSyncKind.lyrics, LanSyncDirection.outgoing):
-          text = l10n.lanSyncLyricsSent(next.added);
-        case (LanSyncKind.playlists, LanSyncDirection.incoming):
-          text = next.missing > 0
-              ? l10n.lanSyncPlaylistsReceivedPartial(
-                  next.containers,
-                  next.added,
-                  next.missing,
+      // 有明细时不只有一句话，还要能让用户点开看是哪些歌没对上。
+      AppSnackBar.show(
+        context,
+        ref,
+        SnackBar(
+          content: Text(lanSyncReceiptSummary(l10n, next)),
+          action: next.hasDetails
+              ? SnackBarAction(
+                  label: l10n.lanSyncViewDetails,
+                  onPressed: () => showLanSyncResultDialog(context, next),
                 )
-              : l10n.lanSyncPlaylistsReceived(
-                  next.containers,
-                  next.added,
-                );
-          // 命中多首本地歌（同名不同版本 / 重复目录）时单独提一句，用户才知道
-          // 结果不完全确定，而不是以为「导入 N 首」就是 N 首准确的歌。
-          if (next.ambiguous > 0) {
-            text = '$text\n${l10n.lanSyncPlaylistsAmbiguous(next.ambiguous)}';
-          }
-        case (LanSyncKind.playlists, LanSyncDirection.outgoing):
-          text = l10n.lanSyncPlaylistsSent(next.containers, next.added);
-      }
-      AppSnackBar.show(context, ref, SnackBar(content: Text(text)));
+              : null,
+        ),
+      );
       ref.read(lanSyncReceiptProvider.notifier).clear();
+    });
+
+    // 被动方状态机：pending（确认框）→ running（这里显示进度）→ done（回执）。
+    // 发起方的进度框由 sharing_page 自己管，这里只接接收方向 —— 否则同一台
+    // 设备既在发又在收时会抢同一个对话框。
+    ref.listen<LanSyncProgress?>(lanSyncProgressProvider, (previous, next) {
+      if (next == null) {
+        hideLanSyncProgressDialog();
+        return;
+      }
+      if (next.direction != LanSyncDirection.incoming) return;
+      if (!isLanSyncProgressDialogOpen) {
+        showLanSyncProgressDialog(context);
+      }
     });
 
     // Listen for incoming remote control pair requests

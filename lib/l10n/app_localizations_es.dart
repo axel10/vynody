@@ -5983,4 +5983,80 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get lanSyncErrorSessionExpired =>
       'La sesión de transferencia caducó. Inténtalo de nuevo.';
+
+  @override
+  String get lanSyncProgressPreparing =>
+      'Preparando lo que se va a sincronizar…';
+
+  @override
+  String get lanSyncProgressTransferring => 'Transfiriendo';
+
+  @override
+  String get lanSyncProgressWaitingPeer => 'Esperando al otro dispositivo…';
+
+  @override
+  String get lanSyncProgressImporting => 'Importando';
+
+  @override
+  String get lanSyncProgressIngesting => 'Añadiendo a la biblioteca…';
+
+  @override
+  String lanSyncProgressCount(int processed, int total) {
+    return '$processed/$total';
+  }
+
+  @override
+  String get lanSyncCancel => 'Cancelar';
+
+  @override
+  String get lanSyncCancelling => 'Cancelando…';
+
+  @override
+  String get lanSyncCancelled => 'Sincronización cancelada';
+
+  @override
+  String lanSyncSendingTo(String device) {
+    return 'Enviando a $device';
+  }
+
+  @override
+  String lanSyncReceivingFrom(String device) {
+    return 'Recibiendo de $device';
+  }
+
+  @override
+  String get lanSyncResultTitle => 'Sincronización completada';
+
+  @override
+  String get lanSyncResultPlaylists => 'Listas';
+
+  @override
+  String get lanSyncResultAdded => 'Añadidas';
+
+  @override
+  String get lanSyncResultUpdated => 'Actualizadas';
+
+  @override
+  String get lanSyncResultSkipped => 'Omitidas';
+
+  @override
+  String get lanSyncResultMissing => 'Sin coincidencia';
+
+  @override
+  String get lanSyncResultAmbiguous => 'Varias coincidencias';
+
+  @override
+  String lanSyncResultMoreSamples(int count) {
+    return '$count más…';
+  }
+
+  @override
+  String get lanSyncViewDetails => 'Ver detalles';
+
+  @override
+  String get lanSyncLastSync => 'Última sincronización';
+
+  @override
+  String get lanSyncLastSyncNever =>
+      'Este dispositivo aún no se ha sincronizado';
 }
