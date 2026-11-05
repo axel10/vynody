@@ -1349,7 +1349,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                       duration: const Duration(milliseconds: 400),
                       curve: Curves.easeInOut,
                       opacity: isSmallWin ? 1.0 : 0.0,
-                      child: Stack(
+                      // 小窗背景层是桌面端专属。移动端原本仅靠 opacity: 0
+                      // 隐藏，但 LayoutBuilder / ClipRect / BackdropFilter 仍
+                      // 参与每帧 build 与 layout，白白吃掉 UI 线程预算。
+                      child: isDesktop ? Stack(
                         clipBehavior: Clip.none,
                         children: [
                           Positioned.fill(
@@ -1511,7 +1514,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                             ),
                           ),
                         ],
-                      ),
+                      )
+                          : const SizedBox.shrink(),
                     ),
                   ),
                 ),

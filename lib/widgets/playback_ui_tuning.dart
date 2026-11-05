@@ -6,12 +6,21 @@ import '../utils/app_orientation_manager.dart';
 class PlaybackPageUiTuning {
   PlaybackPageUiTuning._();
 
+  /// 小窗模式是桌面端窗口功能。非桌面平台一律按常规布局渲染，避免设置项
+  /// 串味时把整套小窗背景 / 控件树带进移动端渲染树。
+  static bool isSmallWindowModeActive({required bool isSmallWindowMode}) {
+    if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux) {
+      return false;
+    }
+    return isSmallWindowMode;
+  }
+
   static bool isSmallWindow(
     Size size, {
     required bool isWaveformEnabled,
     bool isSmallWindowMode = false,
   }) {
-    return isSmallWindowMode;
+    return isSmallWindowModeActive(isSmallWindowMode: isSmallWindowMode);
   }
 
   static const Size smallWindowMinSize = Size(360, 360);

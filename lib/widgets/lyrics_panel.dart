@@ -265,7 +265,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       return _cachedLineMetrics!;
     }
 
-    final isSmallWin = ref.read(settingsServiceProvider).isSmallWindowMode;
+    final isSmallWin = PlaybackPageUiTuning.isSmallWindowModeActive(
+      isSmallWindowMode: ref.read(settingsServiceProvider).isSmallWindowMode,
+    );
     final isPortrait = (MediaQuery.of(context).orientation == Orientation.portrait) || isSmallWin;
     final timedLyricFontSize = 16 * lyricsFontScale;
     final plainLyricFontSize = 18 * lyricsFontScale;
@@ -1512,7 +1514,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final maxExtent = _scrollController.position.maxScrollExtent;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final bottomSpacers = widget.bottomSpacerHeight + widget.bottomTabBarHeight + bottomPadding;
-    final isSmallWin = ref.read(settingsServiceProvider).isSmallWindowMode;
+    final isSmallWin = PlaybackPageUiTuning.isSmallWindowModeActive(
+      isSmallWindowMode: ref.read(settingsServiceProvider).isSmallWindowMode,
+    );
     final isPortrait = (MediaQuery.of(context).orientation == Orientation.portrait) || isSmallWin;
     // 考虑上下渐变区域不对称带来的视觉中心偏移 (15.0) 以及安全区域遮挡
     final fadeAsymmetryShift = isPortrait ? 15.0 : 0.0;
