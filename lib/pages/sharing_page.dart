@@ -11,7 +11,6 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_service.dart';
 import 'package:vynody/player/sharing/lan_device.dart';
-import 'package:vynody/player/sharing/lan_sync_history.dart';
 import 'package:vynody/dialogs/lan_sync_dialogs.dart';
 import 'package:vynody/dialogs/transfer_dialogs.dart';
 import 'package:vynody/transcode/transcode_riverpod.dart';
@@ -20,7 +19,6 @@ import 'package:vynody/player/sharing/remote_control/remote_control_service.dart
 import 'package:vynody/dialogs/remote_pair_dialogs.dart';
 import 'package:vynody/pages/remote_control_page.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:intl/intl.dart';
 import 'package:vynody/dialogs/upgrade_to_pro_dialog.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
@@ -50,23 +48,6 @@ class _SharingPageState extends ConsumerState<SharingPage>
   bool _didSyncInitialSharingState = false;
   bool _isFolderWritable = true;
   String _lastCheckedFolderPath = '';
-
-  /// 最近一次同步（来自 [LanSyncHistoryStore]）。
-  ///
-  /// 放在页面里而不是 provider：它只服务这一个页面的回看，没必要为了
-  /// 「打开页面读一次 prefs」再搭一条全局状态。
-  LanSyncReceipt? _lastSync;
-  int? _lastSyncAtMillis;
-
-  Future<void> _refreshLastSync() async {
-    final receipt = await LanSyncHistoryStore.read();
-    final finishedAt = await LanSyncHistoryStore.lastFinishedAtMillis();
-    if (!mounted) return;
-    setState(() {
-      _lastSync = receipt;
-      _lastSyncAtMillis = finishedAt;
-    });
-  }
 
   Future<void> _verifyFolderPermission() async {
     if (!mounted) return;
@@ -247,7 +228,6 @@ class _SharingPageState extends ConsumerState<SharingPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _sharingServerNotifier = ref.read(sharingServerStateProvider.notifier);
-    _refreshLastSync();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _verifyFolderPermission();
     });
@@ -645,7 +625,6 @@ class _SharingPageState extends ConsumerState<SharingPage>
         showToast(l10n.lanSyncCancelled);
         return;
       }
-      await _refreshLastSync();
     } on LanSyncBusyException {
       showToast(l10n.lanSyncErrorBusy);
     } catch (e) {
@@ -677,7 +656,6 @@ class _SharingPageState extends ConsumerState<SharingPage>
         showToast(l10n.lanSyncCancelled);
         return;
       }
-      await _refreshLastSync();
     } on LanSyncBusyException {
       showToast(l10n.lanSyncErrorBusy);
     } catch (e) {
@@ -724,7 +702,6 @@ class _SharingPageState extends ConsumerState<SharingPage>
         showToast(l10n.lanSyncCancelled);
         return;
       }
-      await _refreshLastSync();
     } on LanSyncBusyException {
       showToast(l10n.lanSyncErrorBusy);
     } catch (e) {
@@ -756,7 +733,6 @@ class _SharingPageState extends ConsumerState<SharingPage>
         showToast(l10n.lanSyncCancelled);
         return;
       }
-      await _refreshLastSync();
     } on LanSyncBusyException {
       showToast(l10n.lanSyncErrorBusy);
     } catch (e) {
@@ -1475,12 +1451,6 @@ class _SharingPageState extends ConsumerState<SharingPage>
               ),
               const SizedBox(height: 16),
 
-              // 最近一次同步：持久化在 prefs 里，跨重启可回看。
-              if (_lastSync != null) ...[
-                _buildLastSyncCard(theme, l10n),
-                const SizedBox(height: 16),
-              ],
-
               // 2. Discovered Devices Section
               Text(
                 l10n.nearbyDevices,
@@ -1586,84 +1556,6 @@ class _SharingPageState extends ConsumerState<SharingPage>
             ),
           ),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 「最近一次同步」卡片。点开就是完整的结果卡片（含未匹配 / 多候选明细）。
-  Widget _buildLastSyncCard(ThemeData theme, AppLocalizations l10n) {
-    final receipt = _lastSync!;
-    final finishedAt = _lastSyncAtMillis;
-    final String? when = finishedAt == null
-        ? null
-        : DateFormat.yMd(
-            Localizations.localeOf(context).toLanguageTag(),
-          ).add_Hm().format(DateTime.fromMillisecondsSinceEpoch(finishedAt));
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: () => showLanSyncResultDialog(context, receipt),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.history_rounded,
-              size: 18,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.lanSyncLastSync,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    lanSyncReceiptSummary(l10n, receipt),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  if (when != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      when,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.8,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 18,
-              color: theme.colorScheme.onSurfaceVariant,
             ),
           ],
         ),
