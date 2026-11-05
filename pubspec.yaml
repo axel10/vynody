@@ -319,10 +319,10 @@ dependency_overrides:
   # bonsoir_windows:
   #   path: ./Bonsoir/packages/bonsoir_windows
   flutter_taglib:
-    path: ./audio_core/flutter_taglib
-    # git:
-    #   url: https://github.com/axel10/flutter_taglib
-    #   ref: master
+    # path: ./audio_core/flutter_taglib
+    git:
+      url: https://github.com/axel10/flutter_taglib
+      ref: master
   audio_core:
     path: ./audio_core
   desktop_multi_window:
