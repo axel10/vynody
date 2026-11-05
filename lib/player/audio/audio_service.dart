@@ -675,6 +675,14 @@ class AudioService extends Notifier<AudioSnapshot> {
         _visualizerOptions.loadOptions().then((_) => notifyListeners());
         if (_disposed) return;
         _initializeMiniPlayerFftStream();
+      }).catchError((Object error, StackTrace stackTrace) {
+        // 初始化后续步骤（均衡器回填、会话恢复、音量）失败不能变成未处理的
+        // 异步异常：音频内核没起来（真机加载失败 / 纯 widget 测试没有 RustLib）
+        // 时它会一路冒到 framework 顶层，连带把宿主页面的测试判失败。
+        AppLog.log(
+          '[AudioService] 初始化后续步骤失败: $error',
+          mirrorToConsole: true,
+        );
       }),
     );
     return snapshot;

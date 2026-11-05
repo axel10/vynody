@@ -368,12 +368,23 @@ void main() {
           find.ancestor(of: hostBar, matching: find.byType(AnimatedOpacity)).at(1),
         )
         .opacity;
+    // 让位时同时要屏蔽点击，否则透明的那条仍会抢走详情页返回键的触摸。
+    // 这条栏在自己的 AnimatedOpacity 之下还套了 AutoHideHeader 的 IgnorePointer，
+    // 所以按「任一祖先 IgnorePointer 生效」判断，不依赖层数。
+    bool hostBarBlocked() => tester
+        .widgetList<IgnorePointer>(
+          find.ancestor(of: hostBar, matching: find.byType(IgnorePointer)),
+        )
+        .any((widget) => widget.ignoring);
 
-    // 根页面：宿主顶栏在位
+    // 根页面：竖屏停在顶部时宿主顶栏是不占位的 —— 竖屏只有在向下滚离顶部
+    // （`_tabScrolledPastTop`）后才浮出胶囊形态的返回顶栏，这一点与详情页让位
+    // 无关，但同样是「这条栏此刻不该拦住任何触摸」。
     container.read(libraryActiveTabIndexProvider.notifier).set(4);
     await settle(tester);
     expect(hostBar, findsOneWidget);
-    expect(hostBarOpacity(), 1.0);
+    expect(hostBarOpacity(), 0.0, reason: '竖屏停在顶部时宿主顶栏不占位');
+    expect(hostBarBlocked(), isTrue);
 
     // 进详情：宿主顶栏必须让位，露出详情页自己的顶栏（详情标题 + 详情返回按钮）
     await tester.tap(find.byType(AlbumZoomItem).first);
@@ -384,6 +395,7 @@ void main() {
       0.0,
       reason: '详情页自带同位置的顶栏，宿主顶栏盖在上面会顶掉它的标题与返回按钮',
     );
+    expect(hostBarBlocked(), isTrue, reason: '让位后不能再抢详情页返回键的点击');
 
     // 点详情页自己的左上角返回：只退详情，不能弹掉二级宿主
     final detailBack = find.descendant(
@@ -397,7 +409,7 @@ void main() {
     expect(find.byType(AlbumDetailPage), findsNothing);
     expect(find.byType(AlbumsTab), findsOneWidget, reason: '应回到专辑网格，而不是媒体库首页');
     expect(keys[4].currentState!.canPop(), isFalse);
-    expect(hostBarOpacity(), 1.0, reason: '回到根页面后宿主顶栏要恢复');
+    expect(hostBarOpacity(), 0.0, reason: '回到根页面顶部，宿主顶栏回到「不占位」状态');
 
     // 从其它主页面切回媒体库（页面不销毁）后，栈里的详情页仍应让宿主顶栏保持让位
     await tester.tap(find.byType(AlbumZoomItem).first);

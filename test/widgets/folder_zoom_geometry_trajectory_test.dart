@@ -3,7 +3,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
 
-/// 条目几何回归：档位切换时每个条目必须在两个**确定**布局之间直线平移。
+/// 条目几何回归：档位切换时，**两个档位都可见**的条目必须在两个确定布局之间
+/// 直线平移；只在单侧可见的条目则由 `FolderZoomItemPinning` 锁死在屏上，靠
+/// 透明度 / 缩放原地淡入淡出（见各自用例）。
 ///
 /// 曾经的实现是拿插值出来的小数 `animatedGridCols` 直接推格子的，列数每跨过
 /// 一个整数（列表 6 列 → 小网格 8 列）条目的格子归属就换一格，位置目标在动画
@@ -27,13 +29,65 @@ SliverConstraints _constraints() => SliverConstraints(
       cacheOrigin: 0.0,
     );
 
-Offset _centerOf(FolderZoomLayoutMetrics metrics, int index) {
-  final layout = SliverAnimatedZoomGridDelegate(metrics: metrics)
-      .getLayout(_constraints());
-  final geometry = layout.getGeometryForChildIndex(index);
-  return Offset(
-    geometry.crossAxisOffset + geometry.crossAxisExtent / 2,
-    geometry.scrollOffset + geometry.mainAxisExtent / 2,
+/// 采样某个条目在当前布局下的中心坐标。
+///
+/// 网格委托在布局时会读 `SchedulerBinding.currentFrameTimeStamp` 给段打帧号，
+/// 而这个 getter 只在帧内有效（帧结束后会被置空，见 scheduler/binding.dart 的
+/// `handleDrawFrame`）。所以采样必须挂到一次真实帧的回调里执行 —— 直接在测试体里
+/// 调 `getLayout` 会命中 `'_currentFrameTimeStamp != null'` 断言。
+///
+/// 补的这一帧时长为 0：动画进度不变，采样点仍是上一帧 pump 出来的那份布局。
+Future<Offset> _centerOf(
+  WidgetTester tester,
+  FolderZoomLayoutMetrics metrics,
+  int index,
+) async {
+  Offset? center;
+  tester.binding.scheduleFrameCallback((_) {
+    final layout = SliverAnimatedZoomGridDelegate(metrics: metrics)
+        .getLayout(_constraints());
+    final geometry = layout.getGeometryForChildIndex(index);
+    center = Offset(
+      geometry.crossAxisOffset + geometry.crossAxisExtent / 2,
+      geometry.scrollOffset + geometry.mainAxisExtent / 2,
+    );
+  });
+  await tester.pump();
+  return center!;
+}
+
+/// 带真实条目数的网格宿主。
+///
+/// 单侧可见条目的判定（`FolderZoomViewportTracker.buildPinning`）需要知道条目总数，
+/// 而 [SliverToBoxAdapter] 的 `childCount` 为 0，冻结表会直接返回 `null`，
+/// 于是所有条目都走加权位移 —— 用 [_host] 根本测不到 pin 分支。
+Widget _gridHost({
+  required double zoomScale,
+  required void Function(FolderZoomLayoutMetrics) onMetrics,
+  int itemCount = 40,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          FolderZoomSliverBuilder(
+            zoomScale: zoomScale,
+            width: _kWidth,
+            builder: (context, metrics) {
+              onMetrics(metrics);
+              return SliverGrid(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) =>
+                      SizedBox.expand(key: ValueKey('grid_item_$index')),
+                  childCount: itemCount,
+                ),
+                gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
+              );
+            },
+          ),
+        ],
+      ),
+    ),
   );
 }
 
@@ -125,7 +179,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final starts = <int, Offset>{
-      for (final index in indices) index: _centerOf(latest!, index),
+      for (final index in indices)
+        index: await _centerOf(tester, latest!, index),
     };
 
     await tester.pumpWidget(_host(zoomScale: to, onMetrics: capture));
@@ -135,17 +190,17 @@ void main() {
     };
     // pumpWidget 这一帧就是动画的第 0 帧（进度 0），必须和起跳位置完全重合。
     for (final index in indices) {
-      paths[index]!.add(_centerOf(latest!, index));
+      paths[index]!.add(await _centerOf(tester, latest!, index));
     }
     for (var frame = 0; frame < 20; frame++) {
       await tester.pump(const Duration(milliseconds: 14));
       for (final index in indices) {
-        paths[index]!.add(_centerOf(latest!, index));
+        paths[index]!.add(await _centerOf(tester, latest!, index));
       }
     }
     await tester.pumpAndSettle();
     for (final index in indices) {
-      paths[index]!.add(_centerOf(latest!, index));
+      paths[index]!.add(await _centerOf(tester, latest!, index));
     }
     return (starts: starts, paths: paths, metrics: latest!);
   }
@@ -200,13 +255,13 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 90));
 
-    final beforeInterrupt = _centerOf(metrics!, 7);
+    final beforeInterrupt = await _centerOf(tester, metrics!, 7);
     expect(metrics!.resolvedGeometryLayers.length, greaterThan(1));
 
     await tester.pumpWidget(
       _host(zoomScale: kFolderZoomTierLargeGrid, onMetrics: capture),
     );
-    final afterInterrupt = _centerOf(metrics!, 7);
+    final afterInterrupt = await _centerOf(tester, metrics!, 7);
 
     expect(
       (afterInterrupt - beforeInterrupt).distance,
@@ -224,56 +279,125 @@ void main() {
     expect(metrics!.resolvedGeometryLayers.single.crossAxisCount, 6);
   });
 
-  testWidgets('单侧可见条目也按几何层加权位移，不再原地淡入淡出', (tester) async {
+  // 语义（与 zoomable_sliver_grid 的 FolderZoomItemPinning 一致）：
+  // 只有**两个档位都可见**的条目才做位移动画；只在单侧可见的条目位置锁死在屏上，
+  // 靠透明度 / 缩放做原地淡入淡出。
+  testWidgets('单侧可见条目锁在屏上淡入淡出，只有两侧都可见的条目才位移', (tester) async {
     await useLandscapeSurface(tester);
 
     FolderZoomLayoutMetrics? latest;
     void capture(FolderZoomLayoutMetrics value) => latest = value;
 
-    // 列表 -> 小网格（档位变大）：index 13 仅在小网格可见。
     await tester.pumpWidget(
-      _host(zoomScale: kFolderZoomTierLargeList, onMetrics: capture),
+      _gridHost(zoomScale: kFolderZoomTierLargeList, onMetrics: capture),
     );
     await tester.pumpAndSettle();
 
+    // 列表 -> 小网格：列表一屏 7 条左右，索引 8 以后只在小网格可见。
     await tester.pumpWidget(
-      _host(zoomScale: kFolderZoomTierSmallGrid, onMetrics: capture),
+      _gridHost(zoomScale: kFolderZoomTierSmallGrid, onMetrics: capture),
     );
-    final startCenter = _centerOf(latest!, 13);
-    final startTransition = latest!.resolveItemTransition(13);
-    // 过渡期一律按共用条目处理：位置来自几何层加权，不再有单侧淡出分支。
-    expect(startTransition.isShared, isTrue);
-    expect(startTransition.opacity, 1.0);
-    expect(startTransition.scale, 1.0);
+    await tester.pump();
+
+    final pinning = latest!.itemPinning;
+    expect(pinning, isNotNull, reason: '过渡开始必须冻结出单侧条目处置表');
+
+    final fadeIn = <int>[
+      for (var i = 0; i < 40; i++)
+        if (pinning!.pinOf(i) == FolderZoomItemPin.fadeIn) i,
+    ];
+    expect(fadeIn, isNotEmpty, reason: '列表 → 小网格必然有只在目标档位可见的条目');
+
+    // 双端都可见的条目：挑一条确实被构建出来、且两档位置差得远的。
+    // index 0 在两档都在顶端，位置本来就一样，测不出位移。
+    final shared = <int>[
+      for (var i = 1; i < 40; i++)
+        if (pinning!.pinOf(i) == FolderZoomItemPin.shared &&
+            find.byKey(ValueKey('grid_item_$i')).evaluate().isNotEmpty)
+          i,
+    ];
+    expect(shared, isNotEmpty, reason: '必须存在两侧都可见的条目');
+    final sharedIndex = shared.last;
+
+    final pinnedIndex = fadeIn.first;
+    final pinnedFinder = find.byKey(ValueKey('grid_item_$pinnedIndex'));
+    final pinnedTopAtStart = tester.getRect(pinnedFinder).top;
+    final pinnedTransition = latest!.resolveItemTransition(pinnedIndex);
+    expect(pinnedTransition.isShared, isFalse, reason: '单侧可见条目不能走加权位移');
+    expect(pinnedTransition.scale, lessThan(1.0), reason: '淡入起点要略微缩小');
+    final opacityAtStart = pinnedTransition.opacity;
+
+    final sharedFinder = find.byKey(ValueKey('grid_item_$sharedIndex'));
+    final sharedTopAtStart = tester.getRect(sharedFinder).top;
+    final sharedTransition = latest!.resolveItemTransition(sharedIndex);
+    expect(sharedTransition.isShared, isTrue);
+    expect(sharedTransition.opacity, 1.0);
+    expect(sharedTransition.scale, 1.0);
 
     await tester.pump(const Duration(milliseconds: 100));
-    final midCenter = _centerOf(latest!, 13);
-    final midTransition = latest!.resolveItemTransition(13);
-    expect(midTransition.isShared, isTrue);
-    expect(midTransition.opacity, 1.0);
-    expect(midTransition.scale, 1.0);
-    // 与普通滚动一致：条目随几何连续移动，而不是锁死在某一档的屏幕位置。
-    expect((midCenter - startCenter).distance, greaterThan(0.5));
 
-    // 双端均可见的 index 3 同样走位移（opacity=1, scale=1）。
-    final sharedMidTransition = latest!.resolveItemTransition(3);
-    expect(sharedMidTransition.isShared, isTrue);
-    expect(sharedMidTransition.opacity, 1.0);
-    expect(sharedMidTransition.scale, 1.0);
-
-    // 反向（小网格 -> 列表）保持同一套语义。
-    await tester.pumpAndSettle();
-    await tester.pumpWidget(
-      _host(zoomScale: kFolderZoomTierLargeList, onMetrics: capture),
+    expect(
+      (tester.getRect(pinnedFinder).top - pinnedTopAtStart).abs(),
+      lessThan(1.5),
+      reason: '淡入条目必须钉在目标格位上，整段过渡不移动',
     );
-    final exitStartTransition = latest!.resolveItemTransition(13);
-    expect(exitStartTransition.isShared, isTrue);
-    expect(exitStartTransition.opacity, 1.0);
-    expect(exitStartTransition.scale, 1.0);
+    expect(
+      latest!.resolveItemTransition(pinnedIndex).opacity,
+      greaterThan(opacityAtStart),
+      reason: '淡入条目的不透明度要往上走',
+    );
+    if (sharedFinder.evaluate().isNotEmpty) {
+      expect(
+        (tester.getRect(sharedFinder).top - sharedTopAtStart).abs(),
+        greaterThan(0.5),
+        reason: '两侧都可见的条目必须继续做位移动画，不能一起钉死',
+      );
+    }
+
+    await tester.pumpAndSettle();
+    expect(
+      (tester.getRect(pinnedFinder).top - pinnedTopAtStart).abs(),
+      lessThan(1.5),
+      reason: '落定位置应与过渡期锁定位置一致，不能收尾时跳一下',
+    );
+    expect(latest!.itemPinning, isNull, reason: '动画结束后不再有冻结表');
+    expect(latest!.resolveItemTransition(pinnedIndex).isShared, isTrue);
+
+    // 反向（小网格 -> 列表）：只在起点可见的条目原地淡出。
+    await tester.pumpWidget(
+      _gridHost(zoomScale: kFolderZoomTierLargeList, onMetrics: capture),
+    );
+    await tester.pump();
+
+    final exitPinning = latest!.itemPinning;
+    expect(exitPinning, isNotNull);
+    final fadeOut = <int>[
+      for (var i = 0; i < 40; i++)
+        if (exitPinning!.pinOf(i) == FolderZoomItemPin.fadeOut) i,
+    ];
+    expect(fadeOut, isNotEmpty, reason: '小网格 → 列表必然有只在起始档位可见的条目');
+
+    final fadingOut = fadeOut.first;
+    final fadingOutFinder = find.byKey(ValueKey('grid_item_$fadingOut'));
+    final fadingOutTop = tester.getRect(fadingOutFinder).top;
+    final opacityBefore = latest!.resolveItemTransition(fadingOut).opacity;
+
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(
+      (tester.getRect(fadingOutFinder).top - fadingOutTop).abs(),
+      lessThan(1.5),
+      reason: '淡出条目锁在起始屏幕位置，不能位移',
+    );
+    expect(
+      latest!.resolveItemTransition(fadingOut).opacity,
+      lessThan(opacityBefore),
+      reason: '淡出条目的不透明度要往下走',
+    );
   });
 
   testWidgets(
-    '带 SliverPadding 的多档连点：条目平滑移动且收敛到稳态位置',
+    '带 SliverPadding 的多档连点：单侧条目原地淡入、位移条目平滑且收敛到稳态位置',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -331,16 +455,27 @@ void main() {
       await tester.pumpWidget(buildWithPadding(kFolderZoomTierMediumGrid));
       await tester.pump();
 
-      // index 10 在列表不可见，在网格可见；记录其在目标档位上的真实中心坐标与尺寸
+      // index 10 在列表不可见、在网格可见：必须被划成单侧条目（原地淡入 / 淡出），
+      // 位置锁在屏上，而不是从列表几何里的真实位置一路滑过来。
+      // 注意连点跨档时处置沿用上一段冻结结果（这里从「标准列表可见 → 大列表不可见」
+      // 那一段继承下来，所以是 fadeOut），关键是不等于 shared。
       final startTransition = latest!.resolveItemTransition(10);
-      expect(startTransition.isShared, isTrue);
+      expect(startTransition.isShared, isFalse, reason: '单侧可见条目不能走加权位移');
+      expect(latest!.itemPinning, isNotNull, reason: '过渡开始必须冻结出处置表');
+      expect(
+        latest!.itemPinning!.pinOf(10),
+        isNot(FolderZoomItemPin.shared),
+        reason: '单侧可见条目必须被 pin 住',
+      );
 
       await tester.pumpAndSettle();
       final targetRect = tester.getRect(find.byKey(const ValueKey('item_10')));
       final targetCenter = targetRect.center;
 
-      // 重新从标准列表连续切到中网格，逐帧验证 index 10 平滑移动：不跳变，
-      // 且最终收敛到上面记录的稳态位置（旧实现是"整段锁死在目标屏幕位置"）。
+      // 重新从标准列表连续切到中网格，逐帧验证：
+      // - 单侧条目（10）锁定期间屏幕位置不动、不跳变；
+      // - 双端可见的条目（0）位移连续、单帧不跳；
+      // - 收尾时 index 10 精确落在稳态位置。
       await tester.pumpWidget(buildWithPadding(kFolderZoomTierStandardList));
       await tester.pumpAndSettle();
 
@@ -350,23 +485,39 @@ void main() {
       await tester.pump(const Duration(milliseconds: 20));
       await tester.pumpWidget(buildWithPadding(kFolderZoomTierMediumGrid));
 
-      Offset? previousCenter;
+      Offset? previousSharedCenter;
+      double? lockedTop;
       for (int i = 0; i < 15; i++) {
         await tester.pump(const Duration(milliseconds: 16));
-        final transition = latest!.resolveItemTransition(10);
-        expect(transition.isShared, isTrue);
 
-        final finder = find.byKey(const ValueKey('item_10'));
-        if (finder.evaluate().isEmpty) continue;
-        final rect = tester.getRect(finder);
-        if (previousCenter != null) {
+        // 单侧条目：锁定期间位置必须钉住，不能随几何漂移。
+        final pin =
+            latest!.itemPinning?.pinOf(10) ?? FolderZoomItemPin.shared;
+        final pinnedFinder = find.byKey(const ValueKey('item_10'));
+        if (pin != FolderZoomItemPin.shared &&
+            pinnedFinder.evaluate().isNotEmpty) {
+          final rect = tester.getRect(pinnedFinder);
+          lockedTop ??= rect.top;
           expect(
-            (rect.center - previousCenter).distance,
-            lessThan(300.0),
-            reason: 'item_10 在第 $i 帧发生跳变',
+            (rect.top - lockedTop).abs(),
+            lessThan(1.5),
+            reason: 'item_10 是单侧可见条目，第 $i 帧漂移了 '
+                '${(rect.top - lockedTop).abs().toStringAsFixed(1)}px',
           );
         }
-        previousCenter = rect.center;
+
+        // 双端可见条目：位移连续，单帧不允许跳变。
+        final sharedFinder = find.byKey(const ValueKey('item_0'));
+        if (sharedFinder.evaluate().isEmpty) continue;
+        final sharedRect = tester.getRect(sharedFinder);
+        if (previousSharedCenter != null) {
+          expect(
+            (sharedRect.center - previousSharedCenter).distance,
+            lessThan(300.0),
+            reason: 'item_0 在第 $i 帧发生跳变',
+          );
+        }
+        previousSharedCenter = sharedRect.center;
       }
 
       await tester.pumpAndSettle();

@@ -428,7 +428,9 @@ void main() {
     });
 
     testWidgets('艺术家详情页：长按歌曲进入多选后保持激活', (tester) async {
-      setSurface(tester, const Size(390, 1400));
+      // 竖屏艺术家详情是「专辑网格」，没有歌曲行可长按；歌曲行只在横屏的
+      // AlbumSectionSliver 分支里出现（行 key = ValueKey(song.path)）。
+      setSurface(tester, const Size(1280, 800));
       final container = createContainer();
       final artist = artists.first;
 

@@ -49,9 +49,11 @@ void main() {
     // 1. 创建 v38 结构表
     //
     // songs 表按 v38 的真实结构保留迁移会读写的列：
-    // genres（from < 11 引入）、metadataTextScanned（from < 18 引入）、
-    // isAppModified（from < 28 引入）。from < 43 / from < 44 的 UPDATE 依赖这三列，
-    // 缺任意一列都会让迁移在真实 v38 库上同样失败，因此这里必须保留。
+    // genres（from < 11 引入）、metadataTextScanned / metadataImgScanned（同在
+    // from < 18 那一步 ADD COLUMN）、isAppModified（from < 28 引入）、
+    // thumbnailPath / artworkPath（v38 早已有）。
+    // from < 43 / from < 44 / from < 47 的 UPDATE 直接引用这些列，缺任意一列
+    // 都会让迁移在真实 v38 库上同样失败，因此这里必须与真实结构保持一致。
     rawDb.execute('''
       CREATE TABLE songs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,6 +63,9 @@ void main() {
         artist TEXT,
         genres TEXT,
         metadataTextScanned INTEGER,
+        metadataImgScanned INTEGER,
+        thumbnailPath TEXT,
+        artworkPath TEXT,
         isAppModified INTEGER
       );
 
