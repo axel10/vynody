@@ -1153,6 +1153,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get translateLyrics => 'Songtext übersetzen';
 
   @override
+  String get switchTranslationLanguage => 'Übersetzungssprache wechseln';
+
+  @override
+  String get translateToOtherLanguage => 'In eine andere Sprache übersetzen…';
+
+  @override
+  String get translationFollowGlobalSetting => 'Globale Einstellung verwenden';
+
+  @override
   String get clearLyricsCache => 'Aktuellen Songtext-Cache leeren';
 
   @override
@@ -2360,7 +2369,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get retranslateLyricsConfirmation =>
-      'Die aktuelle Übersetzung wird gelöscht und neu übersetzt. Fortfahren?';
+      'Die aktuelle Sprache wird neu übersetzt. Die vorhandene Übersetzung bleibt bis zum Eintreffen der neuen Zeilen erhalten. Fortfahren?';
 
   @override
   String get translationCopiedToClipboard =>

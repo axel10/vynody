@@ -503,9 +503,22 @@ class LyricsController extends Notifier<LyricsControllerState> {
     return _generationCoordinator.regenerateLyricsForCurrentSong();
   }
 
-  Future<String?> translateLyricsForCurrentSong({String? targetLanguageCode}) {
+  Future<String?> translateLyricsForCurrentSong({
+    String? targetLanguageCode,
+    bool force = false,
+  }) {
     return _translationCoordinator.translateLyricsForCurrentSong(
       targetLanguageCode: targetLanguageCode,
+      force: force,
+    );
+  }
+
+  /// 切换当前曲目展示的译文语言（空串 = 回落全局默认）。
+  Future<void> selectTranslationLanguageForCurrentSong(
+    String languageCode,
+  ) {
+    return _translationCoordinator.selectTranslationLanguageForCurrentSong(
+      languageCode,
     );
   }
 
@@ -602,6 +615,11 @@ class LyricsController extends Notifier<LyricsControllerState> {
   }
 
   Future<void> _syncLyricsCacheWatch(String songPath, String cacheKey) async {
+    // 由 watch 订阅以 unawaited 方式触发：控制器在等待期间可能已被销毁
+    // （切页、provider 重建）。Riverpod 3 对已销毁 notifier 的 state 访问会抛
+    // StateError，落到 unawaited 上就是一条无人接的异步异常，所以每个 await 后都复核。
+    if (!ref.mounted) return;
+
     final currentSong = _support.songForPath(songPath);
     if (currentSong == null) {
       debugPrint('[LyricsController] _syncLyricsCacheWatch aborted: song not found in queue for path="$songPath"');
@@ -609,6 +627,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
     }
 
     final availableCaches = await getAvailableLyricRecords(currentSong);
+    if (!ref.mounted) return;
     if (availableCaches.isEmpty) {
       if (!_lyricsCacheWatchPrimed) {
         debugPrint(
@@ -631,19 +650,31 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _lyricsCacheWatchPrimed = true;
 
     final preference = await getSelectedLyricSource(cacheKey);
+    if (!ref.mounted) return;
     final selectedRecord = _support.pickPreferredCacheRecord(
       availableCaches,
       preference: preference,
     );
     if (selectedRecord == null) return;
 
-    // 这首歌选定展示哪种译文，就存在它自己那条歌词记录上。
-    _context.setTranslationDisplayLanguage(
-      selectedRecord.selectedTranslationLanguage,
+    // 这首歌选定展示哪种译文，必须从**库里那条记录**读，不能从 selectedRecord 读：
+    // `getOrPopulateAvailableLyricRecords()` 会为旁挂 .lrc / 内嵌标签**合成**候选记录，
+    // 它们的 selectedTranslationLanguage 恒为空，而这类记录恰恰常是默认选中的那条。
+    // 拿它当载体就会：用户选了韩语 → 写库 → watch 回灌 → 读到空串 → 回落全局默认
+    // （表现为「右键切了语言，面板还是原来的译文，弹窗勾选也没变」）。
+    final cacheRecord = await _context.lyricsCacheRepository.getLyricsCache(
+      cacheKey,
     );
+    if (!ref.mounted) return;
+    if (cacheRecord != null) {
+      _context.setTranslationDisplayLanguage(
+        cacheRecord.selectedTranslationLanguage,
+      );
+    }
 
     final translationRecords = await _context.lyricsCacheRepository
         .getLyricsTranslationCaches(cacheKey);
+    if (!ref.mounted) return;
     final translations = _support.translationsFromCacheRecords(
       translationRecords,
     );

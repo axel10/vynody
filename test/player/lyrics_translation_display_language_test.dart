@@ -216,4 +216,94 @@ void main() {
       'zh-cn',
     );
   });
+
+  test('切换译文语言会落库并立即生效', () async {
+    await seedCache(selectedTranslationLanguage: '');
+
+    final (container, controller) = await boot(
+      globalLanguage: 'zh-cn',
+      song: newSong(),
+    );
+    addTearDown(container.dispose);
+    await waitFor(() => container.read(lyricsControllerProvider).hasLyrics);
+
+    await controller.selectTranslationLanguageForCurrentSong('ja');
+
+    expect(
+      container.read(lyricsControllerProvider).translationDisplayLanguageCode,
+      'ja',
+    );
+    expect(await repo.getSelectedTranslationLanguage(cacheKey), 'ja');
+    expect(
+      controller.effectiveTranslationLanguageFor(
+        controller.currentLyricsForCurrentSong(),
+      ),
+      'ja',
+    );
+  });
+
+  test('切回空串会清掉选择并回落全局默认', () async {
+    await seedCache(selectedTranslationLanguage: 'ja');
+
+    final (container, controller) = await boot(
+      globalLanguage: 'zh-cn',
+      song: newSong(),
+    );
+    addTearDown(container.dispose);
+    await waitFor(() => container.read(lyricsControllerProvider).hasLyrics);
+
+    await controller.selectTranslationLanguageForCurrentSong('');
+
+    expect(await repo.getSelectedTranslationLanguage(cacheKey), '');
+    expect(
+      container.read(lyricsControllerProvider).translationDisplayLanguageCode,
+      '',
+    );
+    expect(
+      controller.effectiveTranslationLanguageFor(
+        controller.currentLyricsForCurrentSong(),
+      ),
+      'zh-cn',
+    );
+  });
+
+  test('已有译文时：不带 force 直接跳过，带 force 才真的重翻且不清空旧译文', () async {
+    await seedCache(selectedTranslationLanguage: 'zh-cn');
+
+    final (container, controller) = await boot(
+      globalLanguage: 'zh-cn',
+      song: newSong(),
+    );
+    addTearDown(container.dispose);
+    await waitFor(() => container.read(lyricsControllerProvider).hasLyrics);
+
+    final before = await repo.getLyricsTranslationCaches(cacheKey);
+    expect(before.length, 2);
+
+    // 命中「内存已有该语言译文」短路：不发请求。
+    expect(await controller.translateLyricsForCurrentSong(), isNull);
+    expect(
+      (await repo.getLyricsTranslationCaches(cacheKey)).length,
+      before.length,
+    );
+
+    // force 绕过短路，真的发起请求；测试环境没有 API key，按失败返回错误文案。
+    // 关键是这里**没有**走「先清空译文」的老路。
+    final forcedError = await controller.translateLyricsForCurrentSong(
+      force: true,
+    );
+    expect(forcedError, isNotNull);
+
+    final after = await repo.getLyricsTranslationCaches(cacheKey);
+    expect(after.length, before.length);
+    // 用「语言码 → 译文全文」的快照比较：List 没有值相等语义，直接比 Set 会误判。
+    Map<String, String> snapshot(
+      List<LyricsTranslationCacheRecord> rows,
+    ) => {
+      for (final row in rows) row.languageCode: row.translatedLines.join('\n'),
+    };
+    expect(snapshot(after), snapshot(before));
+    // 本次翻译的目标语言已被记住。
+    expect(await repo.getSelectedTranslationLanguage(cacheKey), 'zh-cn');
+  });
 }

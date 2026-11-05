@@ -1121,6 +1121,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get translateLyrics => '가사 번역';
 
   @override
+  String get switchTranslationLanguage => '번역 언어 전환';
+
+  @override
+  String get translateToOtherLanguage => '다른 언어로 번역…';
+
+  @override
+  String get translationFollowGlobalSetting => '전역 설정 따르기';
+
+  @override
   String get clearLyricsCache => '현재 가사 캐시 지우기';
 
   @override
@@ -2282,7 +2291,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get retranslateLyrics => '가사 다시 번역';
 
   @override
-  String get retranslateLyricsConfirmation => '현재 번역이 지워지고 다시 번역됩니다. 계속하시겠습니까?';
+  String get retranslateLyricsConfirmation =>
+      '현재 언어로 다시 번역합니다. 새 결과가 나올 때까지 기존 번역은 유지됩니다. 계속할까요?';
 
   @override
   String get translationCopiedToClipboard => '번역 결과가 클립보드에 복사되었습니다';

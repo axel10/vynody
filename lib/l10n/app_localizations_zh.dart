@@ -1108,6 +1108,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get translateLyrics => '翻译歌词';
 
   @override
+  String get switchTranslationLanguage => '切换翻译语言';
+
+  @override
+  String get translateToOtherLanguage => '翻译成其他语言…';
+
+  @override
+  String get translationFollowGlobalSetting => '跟随全局设置';
+
+  @override
   String get clearLyricsCache => '清除当前歌词缓存';
 
   @override
@@ -2247,7 +2256,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get retranslateLyrics => '重新翻译歌词';
 
   @override
-  String get retranslateLyricsConfirmation => '将清空当前翻译并重新翻译，是否继续？';
+  String get retranslateLyricsConfirmation =>
+      '将重新翻译当前语言的译文，原有译文会保留到新结果产出，是否继续？';
 
   @override
   String get translationCopiedToClipboard => '已复制翻译结果到剪贴板';
@@ -6652,6 +6662,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get translateLyrics => '翻譯歌詞';
 
   @override
+  String get switchTranslationLanguage => '切換翻譯語言';
+
+  @override
+  String get translateToOtherLanguage => '翻譯成其他語言…';
+
+  @override
+  String get translationFollowGlobalSetting => '跟隨全域設定';
+
+  @override
   String get clearLyricsCache => '清除目前歌詞快取';
 
   @override
@@ -7791,7 +7810,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get retranslateLyrics => '重新翻譯歌詞';
 
   @override
-  String get retranslateLyricsConfirmation => '將清空目前翻譯並重新翻譯，是否繼續？';
+  String get retranslateLyricsConfirmation =>
+      '將重新翻譯目前語言的譯文，原有譯文會保留到新結果產出，是否繼續？';
 
   @override
   String get translationCopiedToClipboard => '已複製翻譯結果到剪貼簿';

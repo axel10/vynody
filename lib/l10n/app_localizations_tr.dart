@@ -1141,6 +1141,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get translateLyrics => 'Sözleri Çevir';
 
   @override
+  String get switchTranslationLanguage => 'Çeviri dilini değiştir';
+
+  @override
+  String get translateToOtherLanguage => 'Başka bir dile çevir…';
+
+  @override
+  String get translationFollowGlobalSetting => 'Genel ayarı izle';
+
+  @override
   String get clearLyricsCache => 'Söz Önbelleğini Temizle';
 
   @override
@@ -2339,7 +2348,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get retranslateLyricsConfirmation =>
-      'Mevcut çeviri temizlenecek ve yeniden çevrilecektir. Devam edilsin mi?';
+      'Geçerli dil yeniden çevrilecek. Yeni satırlar gelene kadar mevcut çeviri korunur. Devam edilsin mi?';
 
   @override
   String get translationCopiedToClipboard =>

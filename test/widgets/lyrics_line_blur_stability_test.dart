@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/models/music_lyric.dart';
 import 'package:vynody/models/music_lyric_translation.dart';
-import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'package:vynody/widgets/lyrics_panel_views.dart';
 
 /// 焦点模式下每行都会按 `|index - activeIndex|` 算模糊值。跳行时：
@@ -47,9 +46,7 @@ void main() {
             height: 600,
             child: LyricsPanelTimedLyricsView(
               lyrics: lyrics,
-              lyricsState: const LyricsControllerState(
-                lyricsTranslationLanguageCode: 'zh-cn',
-              ),
+              effectiveTranslationLanguage: 'zh-cn',
               displayLines: lines,
               lineHeights: List<double>.filled(lineCount, 60),
               hasTimedLyrics: true,

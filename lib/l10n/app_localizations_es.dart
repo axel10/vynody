@@ -1155,6 +1155,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get translateLyrics => 'Traducir letras';
 
   @override
+  String get switchTranslationLanguage => 'Cambiar el idioma de traducción';
+
+  @override
+  String get translateToOtherLanguage => 'Traducir a otro idioma…';
+
+  @override
+  String get translationFollowGlobalSetting => 'Seguir la configuración global';
+
+  @override
   String get clearLyricsCache => 'Limpiar caché de letras actual';
 
   @override
@@ -2363,7 +2372,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get retranslateLyricsConfirmation =>
-      'Se borrará la traducción actual y se retraducirá. ¿Continuar?';
+      'Se volverá a traducir el idioma actual. La traducción existente se mantiene hasta que lleguen las nuevas líneas. ¿Continuar?';
 
   @override
   String get translationCopiedToClipboard =>

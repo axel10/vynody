@@ -1117,6 +1117,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get translateLyrics => '歌詞を翻訳';
 
   @override
+  String get switchTranslationLanguage => '翻訳言語を切り替え';
+
+  @override
+  String get translateToOtherLanguage => '他の言語に翻訳…';
+
+  @override
+  String get translationFollowGlobalSetting => '全体設定に従う';
+
+  @override
   String get clearLyricsCache => '現在の歌詞キャッシュをクリア';
 
   @override
@@ -2277,7 +2286,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get retranslateLyrics => '歌詞を再翻訳';
 
   @override
-  String get retranslateLyricsConfirmation => '現在の翻訳をクリアして再翻訳します。続行しますか？';
+  String get retranslateLyricsConfirmation =>
+      '現在の言語で翻訳し直します。新しい結果が出るまで既存の訳文は保持されます。続行しますか？';
 
   @override
   String get translationCopiedToClipboard => '翻訳結果をクリップボードにコピーしました';

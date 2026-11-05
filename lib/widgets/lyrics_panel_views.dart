@@ -11,7 +11,6 @@ import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/models/music_lyric.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import '../l10n/app_localizations.dart';
-import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'playback_ui_tuning.dart';
 
 class LyricsPanelEmptyState extends StatelessWidget {
@@ -122,7 +121,7 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
   const LyricsPanelTimedLyricsView({
     super.key,
     required this.lyrics,
-    required this.lyricsState,
+    required this.effectiveTranslationLanguage,
     required this.displayLines,
     required this.lineHeights,
     required this.hasTimedLyrics,
@@ -159,7 +158,15 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
   });
 
   final MusicLyric? lyrics;
-  final LyricsControllerState lyricsState;
+
+  /// 这一帧该画哪一种译文（语言码）。
+  ///
+  /// **必须由调用方用 `LyricsController.effectiveTranslationLanguageFor()` 算好再传**：
+  /// 它是展示语言的唯一入口，行内文字与行高测量必须同源。视图自己从
+  /// `state.lyricsTranslationLanguageCode`（全局默认目标语言）重新推导的话，
+  /// 会忽略「这首歌选定的译文语言」，表现为「右键切了韩语、面板还是英语」。
+  final String effectiveTranslationLanguage;
+
   final List<LyricLine> displayLines;
   final List<double> lineHeights;
   final bool hasTimedLyrics;
@@ -212,10 +219,7 @@ class _LyricsPanelTimedLyricsViewState
 
   @override
   Widget build(BuildContext context) {
-    final targetLang = widget.lyricsState.lyricsTranslationLanguageCode;
-    final effectiveLang =
-        widget.lyrics?.getEffectiveTranslationLanguage(targetLang) ??
-        targetLang;
+    final effectiveLang = widget.effectiveTranslationLanguage;
     final isPortrait =
         (MediaQuery.of(context).orientation == Orientation.portrait) ||
         widget.isSmallWin;

@@ -2205,6 +2205,24 @@ abstract class AppLocalizations {
   /// **'翻译歌词'**
   String get translateLyrics;
 
+  /// No description provided for @switchTranslationLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换翻译语言'**
+  String get switchTranslationLanguage;
+
+  /// No description provided for @translateToOtherLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'翻译成其他语言…'**
+  String get translateToOtherLanguage;
+
+  /// No description provided for @translationFollowGlobalSetting.
+  ///
+  /// In zh, this message translates to:
+  /// **'跟随全局设置'**
+  String get translationFollowGlobalSetting;
+
   /// No description provided for @clearLyricsCache.
   ///
   /// In zh, this message translates to:
@@ -4356,7 +4374,7 @@ abstract class AppLocalizations {
   /// No description provided for @retranslateLyricsConfirmation.
   ///
   /// In zh, this message translates to:
-  /// **'将清空当前翻译并重新翻译，是否继续？'**
+  /// **'将重新翻译当前语言的译文，原有译文会保留到新结果产出，是否继续？'**
   String get retranslateLyricsConfirmation;
 
   /// No description provided for @translationCopiedToClipboard.

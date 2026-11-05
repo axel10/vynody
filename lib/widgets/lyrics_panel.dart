@@ -34,6 +34,7 @@ import 'package:vynody/player/lyrics/lyrics_song_task_state.dart';
 import 'package:vynody/player/lyrics/sources/lyrics_source_preference.dart';
 import 'package:vynody/player/lyrics/timeline/lyrics_timeline.dart';
 import 'package:vynody/utils/lrc_utils.dart';
+import 'package:vynody/utils/language_code_utils.dart';
 import 'lyrics_panel_views.dart';
 import 'playback_ui_tuning.dart';
 import 'app_context_menu.dart';
@@ -157,6 +158,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   Color? _lastBuiltTextColor;
   Color? _lastBuiltSecondaryTextColor;
   LyricsControllerState? _lastBuiltLyricsState;
+  String? _lastBuiltEffectiveTranslationLanguage;
   MusicFile? _lastBuiltCurrentSong;
   String? _lastBuiltLyricsFont;
   String? _lastBuiltLatinFont;
@@ -627,6 +629,16 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             icon: Icons.translate_rounded,
             context: context,
           ),
+        if (!requeryOnly)
+          buildContextMenuItem<String>(
+            value: 'select_translation_language',
+            enabled: hasCurrentSong &&
+                lyricsState.hasLyrics &&
+                !taskState.isTranslationBusy,
+            label: l10n.switchTranslationLanguage,
+            icon: Icons.language_rounded,
+            context: context,
+          ),
         if (!requeryOnly && hasTranslation)
           buildContextMenuItem<String>(
             value: 'copy_translation_results',
@@ -796,6 +808,15 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                   enabled: hasCurrentSong && !taskState.isTranslationBusy,
                   label: l10n.translateLyrics,
                   icon: Icons.translate_rounded,
+                ),
+              if (!requeryOnly)
+                LyricsOptionItem(
+                  value: 'select_translation_language',
+                  enabled: hasCurrentSong &&
+                      lyricsState.hasLyrics &&
+                      !taskState.isTranslationBusy,
+                  label: l10n.switchTranslationLanguage,
+                  icon: Icons.language_rounded,
                 ),
               if (!requeryOnly && hasTranslation)
                 LyricsOptionItem(
@@ -1001,17 +1022,21 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             ),
           );
           if (confirm != true) return;
-
-          await _lyricsControllerActions.clearTranslationCacheForCurrentSong();
+          // 以前这里会先 clearTranslationCacheForCurrentSong()：它把这个 cacheKey 下
+          // 所有语言的译文从库里和内存一起删掉，面板随即整段空白，翻译失败就彻底
+          // 没有译文了。现在不清空，改由 force 绕过「已有译文就跳过」的短路，
+          // 旧译文一直保留到新结果逐行产出。
         }
 
         if (!context.mounted || !mounted) return;
         final errorMessage = await _lyricsControllerActions
-            .translateLyricsForCurrentSong();
+            .translateLyricsForCurrentSong(force: hasTranslation);
         if (errorMessage != null) {
           _showGenerationErrorSnack(errorMessage);
         }
       }
+    } else if (selected == 'select_translation_language') {
+      await _showSelectTranslationLanguageDialog();
     } else if (selected == 'copy_translation_results') {
       if (translation != null) {
         await _copyTranslationViaDialog(
@@ -1772,6 +1797,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     );
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;
     final lyrics = displayLyrics;
+    // 行内译文与行高测量必须用同一个判定：这里就地按唯一入口算好再传下去，
+    // 视图层不允许自己从 `state.lyricsTranslationLanguageCode` 重新推导。
+    final effectiveTranslationLanguage = ref
+        .read(lyricsControllerProvider.notifier)
+        .effectiveTranslationLanguageFor(lyrics);
     final hasTimedLyrics = _hasTimedLyrics(displayLines);
     final isGenerating = currentSongTaskState.isGenerationBusy;
     final isTranslating = currentSongTaskState.isTranslationBusy;
@@ -2092,6 +2122,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             textColor != _lastBuiltTextColor ||
             secondaryTextColor != _lastBuiltSecondaryTextColor ||
             lyricsState != _lastBuiltLyricsState ||
+            effectiveTranslationLanguage !=
+                _lastBuiltEffectiveTranslationLanguage ||
             currentSong != _lastBuiltCurrentSong ||
             _isFocusMode != _lastBuiltIsFocusMode ||
             _scrollTriggerTime != _lastBuiltScrollTriggerTime ||
@@ -2124,6 +2156,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _lastBuiltTextColor = textColor;
           _lastBuiltSecondaryTextColor = secondaryTextColor;
           _lastBuiltLyricsState = lyricsState;
+          _lastBuiltEffectiveTranslationLanguage = effectiveTranslationLanguage;
           _lastBuiltCurrentSong = currentSong;
           _lastBuiltIsFocusMode = _isFocusMode;
           _lastBuiltScrollTriggerTime = _scrollTriggerTime;
@@ -2149,7 +2182,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
           _cachedLyricsView = LyricsPanelTimedLyricsView(
             lyrics: lyrics,
-            lyricsState: lyricsState,
+            effectiveTranslationLanguage: effectiveTranslationLanguage,
             displayLines: renderedLines,
             lineHeights: lineHeights,
             hasTimedLyrics: hasTimedLyrics,
@@ -2310,8 +2343,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               ?.translatedLineAt(
                 i,
                 ref
-                    .read(lyricsControllerProvider)
-                    .lyricsTranslationLanguageCode,
+                    .read(lyricsControllerProvider.notifier)
+                    .effectiveTranslationLanguageFor(lyrics),
               )
               .trim() ??
           '';
@@ -2431,16 +2464,186 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     );
   }
 
+  /// 「切换翻译语言」：列出这首歌已有的译文语言（可切），并给「翻译成其他语言」
+  /// 与「跟随全局设置」两个出口。
+  ///
+  /// 只切展示不触发翻译；想翻成新语言走 [translateLyricsForCurrentSong]，
+  /// 它会把目标语言一并写进这首歌的选择。
+  Future<void> _showSelectTranslationLanguageDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = ref.read(lyricsControllerProvider.notifier);
+    final displayLyrics = _lyricsForDisplay();
+    final activeLanguage =
+        controller.effectiveTranslationLanguageFor(displayLyrics);
+    final explicitSelection =
+        ref.read(lyricsControllerProvider).translationDisplayLanguageCode;
+
+    final translations = <MusicLyricTranslation>[
+      ...?displayLyrics?.translations.values.where((t) => t.hasContent),
+    ]..sort(
+      (a, b) => _translationUpdatedAt(b).compareTo(_translationUpdatedAt(a)),
+    );
+
+    const String translateOtherValue = '__translate_other__';
+    const String followGlobalValue = '__follow_global__';
+
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        return AlertDialog(
+          title: Text(l10n.switchTranslationLanguage),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final translation in translations)
+                  ListTile(
+                    leading: Icon(
+                      Icons.translate_rounded,
+                      color: translation.languageCode == activeLanguage
+                          ? theme.colorScheme.primary
+                          : null,
+                    ),
+                    title: Text(
+                      LanguageCodeUtils.languageDisplayName(
+                        translation.languageCode,
+                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: translation.languageCode == activeLanguage
+                            ? FontWeight.bold
+                            : null,
+                      ),
+                    ),
+                    subtitle: Text(
+                      _translationSubtitle(translation),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: translation.languageCode == activeLanguage
+                        ? Icon(
+                            Icons.check_circle_rounded,
+                            color: theme.colorScheme.primary,
+                          )
+                        : null,
+                    onTap: () => Navigator.pop(
+                      dialogContext,
+                      translation.languageCode,
+                    ),
+                  ),
+                if (translations.isNotEmpty) const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.language_rounded),
+                  title: Text(l10n.translateToOtherLanguage),
+                  onTap: () =>
+                      Navigator.pop(dialogContext, translateOtherValue),
+                ),
+                if (explicitSelection.isNotEmpty)
+                  ListTile(
+                    leading: const Icon(Icons.settings_suggest_rounded),
+                    title: Text(l10n.translationFollowGlobalSetting),
+                    onTap: () => Navigator.pop(dialogContext, followGlobalValue),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.cancel),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (choice == null || !mounted) return;
+
+    if (choice == followGlobalValue) {
+      await controller.selectTranslationLanguageForCurrentSong('');
+      return;
+    }
+
+    if (choice == translateOtherValue) {
+      final target = await _showTranslationTargetLanguagePicker();
+      if (target == null || !mounted || !context.mounted) return;
+      if (!await checkProGate(
+        context,
+        ref,
+        feature: ProFeature.aiTranslation,
+      )) {
+        return;
+      }
+      if (!mounted || !context.mounted) return;
+      if (!await _ensureGeminiApiKey()) return;
+      if (!mounted || !context.mounted) return;
+      // force：目标语言可能已经有译文，这里的语义就是「再翻一遍」。
+      final errorMessage = await controller.translateLyricsForCurrentSong(
+        targetLanguageCode: target,
+        force: true,
+      );
+      if (errorMessage != null) {
+        _showGenerationErrorSnack(errorMessage);
+      }
+      return;
+    }
+
+    await controller.selectTranslationLanguageForCurrentSong(choice);
+  }
+
+  Future<String?> _showTranslationTargetLanguagePicker() {
+    final l10n = AppLocalizations.of(context)!;
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(l10n.translateToOtherLanguage),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final code
+                    in LanguageCodeUtils.supportedTranslationLanguageCodes)
+                  ListTile(
+                    leading: const Icon(Icons.translate_rounded),
+                    title: Text(LanguageCodeUtils.languageDisplayName(code)),
+                    onTap: () => Navigator.pop(dialogContext, code),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.cancel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  DateTime _translationUpdatedAt(MusicLyricTranslation translation) {
+    return translation.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  String _translationSubtitle(MusicLyricTranslation translation) {
+    final parts = <String>[];
+    final provider = (translation.provider ?? '').trim();
+    if (provider.isNotEmpty) parts.add(provider);
+    final updatedAt = translation.updatedAt;
+    if (updatedAt != null) {
+      String two(int value) => value.toString().padLeft(2, '0');
+      parts.add(
+        '${updatedAt.year}-${two(updatedAt.month)}-${two(updatedAt.day)} '
+        '${two(updatedAt.hour)}:${two(updatedAt.minute)}',
+      );
+    }
+    return parts.join(' · ');
+  }
+
   String getLanguageDisplayName(String code) {
     if (code.isEmpty) return '';
-    final l10n = AppLocalizations.of(context)!;
-    final lower = code.toLowerCase();
-    switch (lower) {
-      case 'zh': return l10n.chineseLanguage;
-      case 'en': return l10n.englishLanguage;
-      case 'ja': return l10n.japaneseLanguage;
-      case 'ko': return l10n.koreanLanguage;
-      default: return code.toUpperCase();
-    }
+    return LanguageCodeUtils.languageDisplayName(code);
   }
 }

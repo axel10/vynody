@@ -42,12 +42,13 @@ class LyricsTranslationCoordinator {
 
   Future<String?> translateLyricsForCurrentSong({
     String? targetLanguageCode,
+    bool force = false,
   }) async {
     final song = _context.currentMusic();
     debugPrint(
       '[LyricsTranslation] translateLyricsForCurrentSong invoked -> '
       'song="${song?.displayName}" path="${song?.path}" targetLang="$targetLanguageCode" '
-      'stateLang="${_context.state.lyricsTranslationLanguageCode}"',
+      'force=$force stateLang="${_context.state.lyricsTranslationLanguageCode}"',
     );
     if (!_context.isProUnlocked()) {
       debugPrint('[LyricsTranslation] Blocked: pro trial expired or not unlocked');
@@ -58,24 +59,19 @@ class LyricsTranslationCoordinator {
       return _l10n().noCurrentSongAvailable;
     }
 
+    // 目标语言的来源：显式指定 > 这首歌已选定的译文语言 > 全局默认。
+    // 这里**不再改写** state.lyricsTranslationLanguageCode —— 那是「全局默认目标语言」
+    // 的设置镜像，翻译某一首歌就把它改掉，会让没选过语言的其它歌跟着串味。
+    final selectedLanguage = _context.state.translationDisplayLanguageCode;
     final normalizedLanguageCode = LanguageCodeUtils.normalizeLanguageCode(
-      targetLanguageCode ?? _context.state.lyricsTranslationLanguageCode,
+      targetLanguageCode ??
+          (selectedLanguage.isNotEmpty
+              ? selectedLanguage
+              : _context.state.lyricsTranslationLanguageCode),
     );
     if (normalizedLanguageCode.isEmpty) {
       debugPrint('[LyricsTranslation] Blocked: invalid target language code');
       return _l10n().invalidTargetLanguage;
-    }
-    if (_context.state.lyricsTranslationLanguageCode !=
-        normalizedLanguageCode) {
-      debugPrint(
-        '[LyricsTranslation] Language changed: ${_context.state.lyricsTranslationLanguageCode} -> $normalizedLanguageCode',
-      );
-      _context.setLyricsTranslationStatus('');
-      _context.setState(
-        _context.state.copyWith(
-          lyricsTranslationLanguageCode: normalizedLanguageCode,
-        ),
-      );
     }
 
     if (_context.isLyricsTranslationBusyForSong(song.path)) {
@@ -96,6 +92,7 @@ class LyricsTranslationCoordinator {
       return _translateLyricsForSong(
         song,
         normalizedLanguageCode: normalizedLanguageCode,
+        force: force,
       );
     });
   }
@@ -103,6 +100,7 @@ class LyricsTranslationCoordinator {
   Future<String?> _translateLyricsForSong(
     MusicFile song, {
     required String normalizedLanguageCode,
+    bool force = false,
   }) async {
     debugPrint(
       '[LyricsTranslation] _translateLyricsForSong start -> song="${song.displayName}" '
@@ -132,6 +130,7 @@ class LyricsTranslationCoordinator {
         currentSong,
         normalizedLanguageCode: normalizedLanguageCode,
         sourceLyrics: sourceLyrics,
+        force: force,
       );
       if (request == null) {
         debugPrint('[LyricsTranslation] _translateLyricsForSong aborted: _buildLyricsTranslationRequest returned null');
@@ -171,6 +170,7 @@ class LyricsTranslationCoordinator {
     MusicFile song, {
     required String normalizedLanguageCode,
     required String sourceLyrics,
+    bool force = false,
   }) async {
     final query = await _support.buildLyricsQueryForSong(song);
     if (query == null) {
@@ -202,18 +202,23 @@ class LyricsTranslationCoordinator {
       debugPrint('[LyricsTranslation] Request skipped: translation already in-flight for key "$translationKey"');
       return null;
     }
-    if (currentLyrics?.translationFor(normalizedLanguageCode)?.hasContent ==
-        true) {
-      debugPrint(
-        '[LyricsTranslation] Request skipped: memory lyrics already has translation for "$normalizedLanguageCode"',
-      );
-      return null;
-    }
-    if (_context.translatedLyricsKeys.contains(translationKey)) {
-      debugPrint(
-        '[LyricsTranslation] Request skipped: key "$translationKey" already in translatedLyricsKeys cache set',
-      );
-      return null;
+    // force = 用户显式要求重翻。下面两道「已有译文就跳过」的短路必须放行，
+    // 否则重新翻译只能靠先清空译文来绕过 —— 那会把本来可用的旧译文一起删掉。
+    // 在途检查不放行：同一语言不允许两个并发请求。
+    if (!force) {
+      if (currentLyrics?.translationFor(normalizedLanguageCode)?.hasContent ==
+          true) {
+        debugPrint(
+          '[LyricsTranslation] Request skipped: memory lyrics already has translation for "$normalizedLanguageCode"',
+        );
+        return null;
+      }
+      if (_context.translatedLyricsKeys.contains(translationKey)) {
+        debugPrint(
+          '[LyricsTranslation] Request skipped: key "$translationKey" already in translatedLyricsKeys cache set',
+        );
+        return null;
+      }
     }
 
     debugPrint(
@@ -248,6 +253,13 @@ class LyricsTranslationCoordinator {
         isTranslationRunning: true,
         translationStatus: _l10n().translatingLyrics,
       ),
+    );
+
+    // 「这次翻译用的目标语言」就是这首歌之后要展示的译文语言，先落库再开流：
+    // 目标语言暂时没有内容时展示侧会自动回落到旧译文，面板不会变空。
+    await _persistSelectedTranslationLanguage(
+      request.cacheKey,
+      request.languageCode,
     );
 
     final initialModelLabel =
@@ -426,6 +438,54 @@ class LyricsTranslationCoordinator {
       }
       debugPrint('[LyricsTranslation] _runLyricsTranslationRequest finally finished for key ${request.translationKey}');
     }
+  }
+
+  /// 切换「这首歌展示哪一种译文」。
+  ///
+  /// 传空串表示清除选择、回落全局默认目标语言。只切展示，不触发翻译；
+  /// 想翻成新语言请走 [translateLyricsForCurrentSong]（它会把目标语言一并写进来）。
+  Future<void> selectTranslationLanguageForCurrentSong(
+    String languageCode,
+  ) async {
+    final song = _context.currentMusic();
+    if (song == null) return;
+
+    final normalized = LanguageCodeUtils.normalizeLanguageCode(languageCode);
+    final cached = await _support.readCachedLyricsRecordByPath(song.path);
+    final cacheKey = (cached != null && cached.cacheKey.isNotEmpty)
+        ? cached.cacheKey
+        : _support.lyricsCacheKeyForPath(song.path);
+    if (cacheKey.isEmpty) return;
+
+    await _persistSelectedTranslationLanguage(cacheKey, normalized);
+    _context.bumpRevision();
+    // 换语言 = 每行多一条/少一条译文，行高要重测。
+    _context.bumpLyricsLayoutRevision();
+    debugPrint(
+      '[LyricsTranslation] Display language switched -> '
+      'path="${song.path}" lang="${normalized == '' ? '(follow global)' : normalized}"',
+    );
+  }
+
+  /// 写「展示哪种译文」并同步内存状态。歌词记录不存在时落库是 no-op，
+  /// 但状态仍要跟手 —— 否则「刚翻完还没落盘歌词记录」的那一下会看着没反应。
+  Future<void> _persistSelectedTranslationLanguage(
+    String cacheKey,
+    String languageCode,
+  ) async {
+    if (cacheKey.isNotEmpty) {
+      try {
+        await _context.lyricsCacheRepository.setSelectedTranslationLanguage(
+          cacheKey,
+          languageCode,
+        );
+      } catch (e) {
+        debugPrint(
+          '[LyricsTranslation] Failed to persist selected translation language: $e',
+        );
+      }
+    }
+    _context.setTranslationDisplayLanguage(languageCode);
   }
 
   Future<void> flushPendingLyricsTranslationUpdates() async {

@@ -1141,6 +1141,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get translateLyrics => 'Translate Lyrics';
 
   @override
+  String get switchTranslationLanguage => 'Switch translation language';
+
+  @override
+  String get translateToOtherLanguage => 'Translate to another language…';
+
+  @override
+  String get translationFollowGlobalSetting => 'Follow global setting';
+
+  @override
   String get clearLyricsCache => 'Clear Current Lyrics Cache';
 
   @override
@@ -2336,7 +2345,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retranslateLyricsConfirmation =>
-      'This will clear the current translation and re-translate. Continue?';
+      'This re-translates the current language. The existing translation stays until the new lines arrive. Continue?';
 
   @override
   String get translationCopiedToClipboard =>
