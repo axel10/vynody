@@ -1029,9 +1029,14 @@ class SharingService {
 
     // 关掉共享时，排队等确认的请求要给发起方一个明确的拒绝：否则对方的
     // HTTP 请求会一直挂着，直到连接层超时（用户看到的是「没反应」）。
-    _ref.read(incomingRequestProvider.notifier).rejectAllPending();
-    _ref.read(incomingLyricsRequestProvider.notifier).rejectAllPending();
-    _ref.read(incomingPlaylistRequestProvider.notifier).rejectAllPending();
+    try {
+      _ref.read(incomingRequestProvider.notifier).rejectAllPending();
+      _ref.read(incomingLyricsRequestProvider.notifier).rejectAllPending();
+      _ref.read(incomingPlaylistRequestProvider.notifier).rejectAllPending();
+    } catch (e) {
+      // provider 容器已销毁时读不到，属于正常收尾路径。
+      debugPrint('[SharingService] Skip rejecting pending requests: $e');
+    }
     _lyricsChunkSessions.clear();
     _playlistChunkSessions.clear();
     _inFlightSyncs.clear();
