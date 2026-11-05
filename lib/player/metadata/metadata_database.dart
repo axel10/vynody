@@ -526,6 +526,11 @@ class MetadataDatabase {
   Future<List<LyricsCacheRecord>> getLyricsCaches(String cacheKey) =>
       _db.getLyricsCaches(cacheKey);
 
+  /// 批量取歌词缓存（发送端用），避免逐首查询。
+  Future<Map<String, LyricsCacheRecord>> getLyricsCachesByKeys(
+    Iterable<String> cacheKeys,
+  ) => _db.getLyricsCachesByKeys(cacheKeys);
+
   Future<List<LyricsCacheRecord>> getLyricsCachesByPrefix(String prefix) =>
       _db.getLyricsCachesByPrefix(prefix);
 
@@ -547,6 +552,11 @@ class MetadataDatabase {
   Future<List<LyricsTranslationCacheRecord>> getLyricsTranslationCaches(
     String cacheKey,
   ) => _db.getLyricsTranslationCaches(cacheKey);
+
+  /// 批量取多语言译文（发送端用），避免逐首查询。
+  Future<Map<String, List<LyricsTranslationCacheRecord>>>
+  getLyricsTranslationCachesByKeys(Iterable<String> cacheKeys) =>
+      _db.getLyricsTranslationCachesByKeys(cacheKeys);
 
   Stream<List<LyricsTranslationCacheRecord>> watchLyricsTranslationCaches(
     String cacheKey,
@@ -735,9 +745,6 @@ class MetadataDatabase {
   Future<Map<String, SongMetadata>> getSongMetadataByPaths(
     Iterable<String> paths,
   ) => _db.getSongMetadataByPaths(paths);
-
-  Future<List<SongMetadata>> findSongsByPathSuffix(String suffix) =>
-      _db.findSongsByPathSuffix(suffix);
 
   Future<List<SongMetadata>> findRemoteSongsByRemoteId(String remoteId) =>
       _db.findRemoteSongsByRemoteId(remoteId);

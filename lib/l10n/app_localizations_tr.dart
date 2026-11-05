@@ -5915,4 +5915,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get lanSyncErrorNetwork => 'Cihaza bağlanılamadı';
+
+  @override
+  String lanSyncPlaylistsAmbiguous(int count) {
+    return '$count parça için birden fazla aday vardı; en olası olan kullanıldı';
+  }
 }

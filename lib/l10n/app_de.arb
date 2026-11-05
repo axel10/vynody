@@ -2171,5 +2171,6 @@
   "lanSyncPlaylistsSent": "{playlists} Playlist(s) gesendet, {songs} Titel",
   "lanSyncErrorStatus": "Das andere Gerät hat einen Fehler zurückgegeben (HTTP {status})",
   "lanSyncErrorTimeout": "Zeitüberschreitung. Stellen Sie sicher, dass beide Geräte im selben Netzwerk sind.",
-  "lanSyncErrorNetwork": "Verbindung zum Gerät nicht möglich"
+  "lanSyncErrorNetwork": "Verbindung zum Gerät nicht möglich",
+  "lanSyncPlaylistsAmbiguous": "Für {count} Titel gab es mehrere Kandidaten; der wahrscheinlichste wurde verwendet"
 }

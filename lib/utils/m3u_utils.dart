@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/remote_song_matcher.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_storage.dart';
@@ -249,6 +249,9 @@ class M3uUtils {
   /// 而是收进 [missingEntries]。跨设备歌单同步必须传 false —— 占位条目一旦
   /// 入库，用户会看到「导入 200 首」实际一半播不了，且 UI 没有任何缺失标记。
   /// 本地 `.m3u` 文件导入保持默认 true（用户能接受看到缺失项）。
+  ///
+  /// [ambiguousEntries] 收集「多首本地歌都符合、无法收敛到唯一」的条目：导入端
+  /// 仍会取最可能的那个，但要能让用户知道结果不完全确定。
   static Future<List<MusicFile>> resolveMusicFiles(
     List<M3uEntry> entries, {
     Iterable<String>? rootPaths,
@@ -256,10 +259,24 @@ class M3uUtils {
     MetadataDatabase? db,
     bool includeMissingPlaceholders = true,
     List<M3uEntry>? missingEntries,
+    List<M3uEntry>? ambiguousEntries,
   }) async {
     if (entries.isEmpty) return [];
 
     final targetDb = db ?? MetadataDatabase();
+
+    // 文件存在性探测统一走异步 + 缓存：第 2 级的「右到左子路径穷举」对每首歌
+    // 要做 目录段数 × 根目录数 次探测，同步 existsSync 会整段卡住 UI。
+    final probe = LocalFileProbe();
+
+    // 索引按需构建：命中第 1、2 级时根本用不到全库索引，没必要先读一遍曲库。
+    RemoteSongMatcher? matcher;
+    Future<RemoteSongMatcher> ensureMatcher() async {
+      return matcher ??= await RemoteSongMatcher.build(
+        db: targetDb,
+        probe: probe,
+      );
+    }
 
     // 1. Load scan roots if not provided
     List<String> effectiveRoots = [];
@@ -306,7 +323,8 @@ class M3uUtils {
       // ---- Level 1: Direct Match ----
       final directMeta = directMetadataMap[entry.path];
       final isDirectRemote = RemoteMediaResolver.isRemoteUri(entry.path);
-      final directExists = isDirectRemote || File(entry.path).existsSync();
+      final directExists =
+          isDirectRemote || await probe.exists(entry.path);
 
       if (directMeta != null && directExists) {
         resolvedSong = _buildMusicFileFromMetadata(
@@ -316,7 +334,7 @@ class M3uUtils {
           fallbackArtist: entry.artist,
           fallbackDuration: entry.durationMillis,
         );
-      } else if (!isDirectRemote && File(entry.path).existsSync()) {
+      } else if (!isDirectRemote && directExists) {
         try {
           final meta = await targetDb.getSongMetadata(entry.path);
           if (meta != null) {
@@ -356,7 +374,7 @@ class M3uUtils {
         // Try relative path direct join with all roots
         for (final root in effectiveRoots) {
           final candidate = p.normalize(p.join(root, rawPath));
-          if (File(candidate).existsSync()) {
+          if (await probe.exists(candidate)) {
             final meta = await targetDb.getSongMetadata(candidate);
             if (meta != null) {
               resolvedSong = _buildMusicFileFromMetadata(
@@ -392,7 +410,7 @@ class M3uUtils {
               final subpath = segments.sublist(i).join('/');
               for (final root in effectiveRoots) {
                 final candidate = p.normalize(p.join(root, subpath));
-                if (File(candidate).existsSync()) {
+                if (await probe.exists(candidate)) {
                   final meta = await targetDb.getSongMetadata(candidate);
                   if (meta != null) {
                     resolvedSong = _buildMusicFileFromMetadata(
@@ -523,12 +541,17 @@ class M3uUtils {
 
       // ---- Level 4: Database Search Match ----
       // 4.1 Match by path suffix / filename
+      //
+      // 走 matcher 的文件名索引，不再对每首歌发一次 `path LIKE '%...'`
+      // ——那种查询走不了索引，每首都是一次全表扫。
       final fileName = p.basename(rawPath);
       if (fileName.isNotEmpty) {
         try {
-          final suffixMatches = await targetDb.findSongsByPathSuffix(fileName);
+          final suffixMatches = (await ensureMatcher()).matchByFileName(
+            fileName,
+          );
           for (final candidate in suffixMatches) {
-            if (File(candidate.path).existsSync()) {
+            if (await probe.exists(candidate.path)) {
               resolvedSong = _buildMusicFileFromMetadata(
                 candidate,
                 exists: true,
@@ -563,33 +586,26 @@ class M3uUtils {
           entry.title != null &&
           entry.title!.trim().isNotEmpty) {
         try {
-          final titleMatches = await targetDb.findSongsByTitleAndArtist(
-            title: entry.title!,
+          final match = (await ensureMatcher()).matchByMetadata(
+            title: entry.title,
             artist: entry.artist,
+            durationMs: entry.durationMillis,
           );
-
-          if (titleMatches.isNotEmpty) {
-            SongMetadata best = titleMatches.first;
-            if (entry.durationMillis != null && titleMatches.length > 1) {
-              best = titleMatches.reduce((a, b) {
-                final diffA =
-                    ((a.duration ?? 0) - entry.durationMillis!).abs();
-                final diffB =
-                    ((b.duration ?? 0) - entry.durationMillis!).abs();
-                return diffA < diffB ? a : b;
-              });
-            }
-
-            final isRemote = RemoteMediaResolver.isRemoteUri(best.path);
-            final exists = isRemote || File(best.path).existsSync();
-            if (exists) {
+          if (match.ambiguous) {
+            // 同名同艺术家、时长也接近的多首（live / 伴奏 / 重复目录）。
+            // 仍取最可能的那个，但要让导入端知道这个结果不确定。
+            ambiguousEntries?.add(entry);
+          }
+          for (final candidate in match.matches) {
+            if (await probe.exists(candidate.path)) {
               resolvedSong = _buildMusicFileFromMetadata(
-                best,
+                candidate,
                 exists: true,
                 fallbackTitle: entry.title,
                 fallbackArtist: entry.artist,
                 fallbackDuration: entry.durationMillis,
               );
+              break;
             }
           }
         } catch (_) {}

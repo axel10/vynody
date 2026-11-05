@@ -5707,4 +5707,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get lanSyncErrorNetwork => '기기에 연결할 수 없습니다';
+
+  @override
+  String lanSyncPlaylistsAmbiguous(int count) {
+    return '$count곡은 후보가 여러 개여서 가장 가능성 높은 항목을 사용했습니다';
+  }
 }

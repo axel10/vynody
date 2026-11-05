@@ -1886,5 +1886,6 @@
   "lanSyncPlaylistsSent": "已傳送 {playlists} 個播放清單，共 {songs} 首",
   "lanSyncErrorStatus": "對方傳回錯誤（HTTP {status}）",
   "lanSyncErrorTimeout": "連線逾時，請確認兩台裝置在同一個網路",
-  "lanSyncErrorNetwork": "無法連線到裝置"
+  "lanSyncErrorNetwork": "無法連線到裝置",
+  "lanSyncPlaylistsAmbiguous": "其中 {count} 首存在多個候選，已取最可能的一個"
 }

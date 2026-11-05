@@ -5970,4 +5970,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get lanSyncErrorNetwork => 'No se pudo conectar al dispositivo';
+
+  @override
+  String lanSyncPlaylistsAmbiguous(int count) {
+    return '$count canción(es) tenían varios candidatos; se usó la más probable';
+  }
 }

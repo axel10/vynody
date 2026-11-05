@@ -2171,5 +2171,6 @@
   "lanSyncPlaylistsSent": "{playlists} liste(s) envoyée(s), {songs} titre(s)",
   "lanSyncErrorStatus": "L'autre appareil a renvoyé une erreur (HTTP {status})",
   "lanSyncErrorTimeout": "Délai de connexion dépassé. Vérifiez que les deux appareils sont sur le même réseau.",
-  "lanSyncErrorNetwork": "Impossible de se connecter à l'appareil"
+  "lanSyncErrorNetwork": "Impossible de se connecter à l'appareil",
+  "lanSyncPlaylistsAmbiguous": "{count} titre(s) avaient plusieurs candidats ; le plus probable a été retenu"
 }

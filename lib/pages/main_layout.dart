@@ -1168,7 +1168,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     // 此前只有歌单在被动方有提示，歌词导入完是静默的，导出方向两边都没有。
     ref.listen<LanSyncReceipt?>(lanSyncReceiptProvider, (previous, next) {
       if (next == null) return;
-      final String text;
+      String text;
       switch ((next.kind, next.direction)) {
         case (LanSyncKind.lyrics, LanSyncDirection.incoming):
           text = l10n.lanSyncLyricsReceived(
@@ -1189,6 +1189,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                   next.containers,
                   next.added,
                 );
+          // 命中多首本地歌（同名不同版本 / 重复目录）时单独提一句，用户才知道
+          // 结果不完全确定，而不是以为「导入 N 首」就是 N 首准确的歌。
+          if (next.ambiguous > 0) {
+            text = '$text\n${l10n.lanSyncPlaylistsAmbiguous(next.ambiguous)}';
+          }
         case (LanSyncKind.playlists, LanSyncDirection.outgoing):
           text = l10n.lanSyncPlaylistsSent(next.containers, next.added);
       }

@@ -2171,5 +2171,6 @@
   "lanSyncPlaylistsSent": "Se enviaron {playlists} lista(s), {songs} canción(es)",
   "lanSyncErrorStatus": "El otro dispositivo devolvió un error (HTTP {status})",
   "lanSyncErrorTimeout": "Se agotó el tiempo de conexión. Comprueba que ambos dispositivos estén en la misma red.",
-  "lanSyncErrorNetwork": "No se pudo conectar al dispositivo"
+  "lanSyncErrorNetwork": "No se pudo conectar al dispositivo",
+  "lanSyncPlaylistsAmbiguous": "{count} canción(es) tenían varios candidatos; se usó la más probable"
 }

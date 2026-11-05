@@ -2270,5 +2270,6 @@
   "lanSyncPlaylistsSent": "プレイリスト {playlists} 件、{songs} 曲を送信しました",
   "lanSyncErrorStatus": "相手の端末がエラーを返しました（HTTP {status}）",
   "lanSyncErrorTimeout": "接続がタイムアウトしました。2 台の端末が同じネットワークにあるか確認してください。",
-  "lanSyncErrorNetwork": "端末に接続できませんでした"
+  "lanSyncErrorNetwork": "端末に接続できませんでした",
+  "lanSyncPlaylistsAmbiguous": "{count} 曲は候補が複数あったため、最も可能性の高いものを使用しました"
 }

@@ -1600,37 +1600,6 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return result;
   }
 
-  Future<List<SongMetadata>> findSongsByPathSuffix(String suffix) async {
-    final trimmed = suffix.trim();
-    if (trimmed.isEmpty) return [];
-
-    // Search by exact suffix or separator + suffix
-    final normalized = trimmed.replaceAll('\\', '/');
-    final lastComponent = normalized.contains('/') ? normalized.split('/').last : normalized;
-    final separator = Platform.isWindows ? r'\' : '/';
-    final suffixPattern = '%$separator$trimmed';
-    final slashPattern = '%/$normalized';
-    final filenamePattern = '%$separator$lastComponent';
-
-    final rows = await customSelect(
-      '''
-      SELECT *
-      FROM songs
-      WHERE (path = ? OR path LIKE ? OR path LIKE ? OR path LIKE ?)
-        AND deletedAt IS NULL
-      LIMIT 10
-      ''',
-      variables: [
-        Variable(trimmed),
-        Variable(suffixPattern),
-        Variable(slashPattern),
-        Variable(filenamePattern),
-      ],
-      readsFrom: {songs},
-    ).get();
-    return rows.map(_songFromQueryRow).toList(growable: false);
-  }
-
   Future<List<SongMetadata>> findRemoteSongsByRemoteId(String remoteId) async {
     final cleanRemoteId = remoteId.trim();
     if (cleanRemoteId.isEmpty) return [];
@@ -2709,6 +2678,43 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return rows.map(_lyricsCacheFromRow).toList(growable: false);
   }
 
+  /// 批量取歌词缓存，用于跨设备同步的发送端。
+  ///
+  /// 原先逐首歌调一次 `getLyricsCache`，3000 首就是 3000 次往返；这里按
+  /// 500 个一批走 `IN (…)`，压到个位数。表上 `cacheKey` 唯一，出现多条时
+  /// 取 `updatedAtMillis` 最大的一条（与 `getLyricsCaches` 的语义一致）。
+  Future<Map<String, LyricsCacheRecord>> getLyricsCachesByKeys(
+    Iterable<String> cacheKeys,
+  ) async {
+    final normalizedKeys = cacheKeys
+        .map(ScannerPathUtils.normalizeLyricCacheKey)
+        .where((key) => key.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (normalizedKeys.isEmpty) return const {};
+
+    final result = <String, LyricsCacheRecord>{};
+    const batchSize = 500;
+    for (var i = 0; i < normalizedKeys.length; i += batchSize) {
+      final end = i + batchSize > normalizedKeys.length
+          ? normalizedKeys.length
+          : i + batchSize;
+      final chunk = normalizedKeys.sublist(i, end);
+      final rows = await (select(
+        lyricsCaches,
+      )..where((t) => t.cacheKey.isIn(chunk))).get();
+      for (final row in rows) {
+        final record = _lyricsCacheFromRow(row);
+        final previous = result[record.cacheKey];
+        if (previous == null ||
+            record.updatedAtMillis > previous.updatedAtMillis) {
+          result[record.cacheKey] = record;
+        }
+      }
+    }
+    return result;
+  }
+
   Future<List<LyricsCacheRecord>> getLyricsCachesByPrefix(String prefix) async {
     final normalized = ScannerPathUtils.normalizeLyricCacheKey(prefix);
     if (normalized.isEmpty) return const [];
@@ -2847,6 +2853,42 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
               ]))
             .get();
     return rows.map(_lyricsTranslationCacheFromRow).toList(growable: false);
+  }
+
+  /// 批量取多语言译文，键是 `cacheKey`，值按 `updatedAtMillis` 倒序。
+  ///
+  /// 与 [getLyricsCachesByKeys] 同因：发送端逐首查译文同样是 3N 次往返。
+  Future<Map<String, List<LyricsTranslationCacheRecord>>>
+  getLyricsTranslationCachesByKeys(Iterable<String> cacheKeys) async {
+    final normalizedKeys = cacheKeys
+        .map(ScannerPathUtils.normalizeLyricCacheKey)
+        .where((key) => key.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (normalizedKeys.isEmpty) return const {};
+
+    final result = <String, List<LyricsTranslationCacheRecord>>{};
+    const batchSize = 500;
+    for (var i = 0; i < normalizedKeys.length; i += batchSize) {
+      final end = i + batchSize > normalizedKeys.length
+          ? normalizedKeys.length
+          : i + batchSize;
+      final chunk = normalizedKeys.sublist(i, end);
+      final rows = await (select(
+        lyricsTranslationCaches,
+      )..where((t) => t.cacheKey.isIn(chunk))).get();
+      for (final row in rows) {
+        final record = _lyricsTranslationCacheFromRow(row);
+        (result[record.cacheKey] ??= <LyricsTranslationCacheRecord>[]).add(
+          record,
+        );
+      }
+    }
+
+    for (final records in result.values) {
+      records.sort((a, b) => b.updatedAtMillis.compareTo(a.updatedAtMillis));
+    }
+    return result;
   }
 
   Stream<List<LyricsTranslationCacheRecord>> watchLyricsTranslationCaches(

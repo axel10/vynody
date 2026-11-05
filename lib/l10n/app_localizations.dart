@@ -10406,6 +10406,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'无法连接到设备'**
   String get lanSyncErrorNetwork;
+
+  /// Songs that matched more than one local track
+  ///
+  /// In zh, this message translates to:
+  /// **'其中 {count} 首存在多个候选，已取最可能的一个'**
+  String lanSyncPlaylistsAmbiguous(int count);
 }
 
 class _AppLocalizationsDelegate

@@ -3982,5 +3982,14 @@
   "lanSyncErrorNetwork": "无法连接到设备",
   "@lanSyncErrorNetwork": {
     "description": "Could not reach the peer device at all"
+  },
+  "lanSyncPlaylistsAmbiguous": "其中 {count} 首存在多个候选，已取最可能的一个",
+  "@lanSyncPlaylistsAmbiguous": {
+    "description": "Songs that matched more than one local track",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

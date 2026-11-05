@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/metadata/remote_song_matcher.dart';
 import 'package:vynody/player/platform/apple_file_access.dart';
 import 'package:flutter/services.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
@@ -131,6 +132,9 @@ class LanSyncReceipt {
   final int skipped;
   final int missing;
 
+  /// 命中了多首本地歌、无法收敛到唯一的条目数（同名不同版本 / 重复目录）。
+  final int ambiguous;
+
   const LanSyncReceipt({
     required this.kind,
     required this.direction,
@@ -139,6 +143,7 @@ class LanSyncReceipt {
     this.updated = 0,
     this.skipped = 0,
     this.missing = 0,
+    this.ambiguous = 0,
   });
 }
 
@@ -2461,25 +2466,14 @@ class SharingService {
     ).import(localCacheKey: localCacheKey, incomingPackage: incomingPackage);
   }
 
-  bool _isMetadataMatch(String? a, String? b) {
-    final normA = _normalizeMetadataString(a);
-    final normB = _normalizeMetadataString(b);
-    if (normA.isEmpty || normB.isEmpty) {
-      return normA == normB;
-    }
-    return normA == normB;
-  }
-
-  String _normalizeMetadataString(String? s) {
-    if (s == null) return '';
-    return s
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9\u4e00-\u9fff]+'), '')
-        .trim();
-  }
-
   Future<Map<String, int>> _importLyricsList(List<dynamic> lyrics) async {
-    final localSongs = await MetadataDatabase().getAllSongMetadata();
+    final db = MetadataDatabase();
+
+    // 曲库只读一遍、归一化只算一遍，之后每条远端条目都是内存查表。
+    // 此前是「每条条目对全库跑一次 title/artist 正则归一化」：3000 首的库
+    // 约 1800 万次 replaceAll，主 isolate 会僵住几十秒。
+    final matcher = await RemoteSongMatcher.build(db: db);
+
     int matchedCount = 0;
     int addedCount = 0;
     int updatedCount = 0;
@@ -2489,20 +2483,17 @@ class SharingService {
       final map = item as Map<String, dynamic>;
       final title = map['title'] as String? ?? '';
       final artist = map['artist'] as String? ?? '';
+      final album = map['album'] as String?;
       final durationMs = map['duration_ms'] as int?;
 
-      final matches = localSongs.where((song) {
-        final titleMatch = _isMetadataMatch(song.title, title);
-        final artistMatch = _isMetadataMatch(song.artist, artist);
+      final match = matcher.matchByMetadata(
+        title: title,
+        artist: artist,
+        album: album,
+        durationMs: durationMs,
+      );
 
-        bool durationMatch = true;
-        if (durationMs != null && song.duration != null) {
-          durationMatch = (song.duration! - durationMs).abs() <= 3000;
-        }
-        return titleMatch && artistMatch && durationMatch;
-      }).toList();
-
-      if (matches.isEmpty) {
+      if (match.isEmpty) {
         skippedCount++;
         continue;
       }
@@ -2511,7 +2502,7 @@ class SharingService {
       // （live / 伴奏 / 不同采样率）时，matched 虚高会让统计对不上直觉。
       matchedCount++;
 
-      for (final song in matches) {
+      for (final song in match.matches) {
         final localQuery = LyricsQuery(
           filePath: song.path,
           fileName: p.basename(song.path),
@@ -2550,9 +2541,13 @@ class SharingService {
   }
 
   Future<Map<String, int>> syncLyricsToDevice(LanDevice targetDevice) async {
-    final songs = await MetadataDatabase().getAllSongMetadata();
-    final List<Map<String, dynamic>> exportedList = [];
+    final db = MetadataDatabase();
+    final songs = await db.getAllSongMetadata();
 
+    // 先把 cacheKey 全算出来，再一次性批量取缓存。
+    // 旧实现是逐首 getLyricsCache + getLyricsTranslationCaches：3000 首 =
+    // 6000 次数据库往返，全程只显示一个 toast，看起来像卡死。
+    final songByCacheKey = <String, SongMetadata>{};
     for (final song in songs) {
       final query = LyricsQuery(
         filePath: song.path,
@@ -2564,21 +2559,35 @@ class SharingService {
             ? Duration(milliseconds: song.duration!)
             : null,
       );
-      final cacheKey = query.cacheKey;
-      final cacheRecord = await MetadataDatabase().getLyricsCache(cacheKey);
+      songByCacheKey[query.cacheKey] = song;
+    }
 
-      if (cacheRecord != null && cacheRecord.source != LyricsCacheSource.none) {
-        final translations = await MetadataDatabase()
-            .getLyricsTranslationCaches(cacheKey);
-        exportedList.add({
-          'title': song.title,
-          'artist': song.artist,
-          'album': song.album,
-          'duration_ms': song.duration,
-          'lyrics_cache': cacheRecord.toMap(),
-          'translations': translations.map((t) => t.toMap()).toList(),
-        });
-      }
+    final caches = await db.getLyricsCachesByKeys(songByCacheKey.keys);
+    final exportKeys = caches.entries
+        .where((entry) => entry.value.source != LyricsCacheSource.none)
+        .map((entry) => entry.key)
+        .toList(growable: false);
+
+    final translationsByCacheKey = exportKeys.isEmpty
+        ? const <String, List<LyricsTranslationCacheRecord>>{}
+        : await db.getLyricsTranslationCachesByKeys(exportKeys);
+
+    final exportedList = <Map<String, dynamic>>[];
+    for (final cacheKey in exportKeys) {
+      final song = songByCacheKey[cacheKey];
+      if (song == null) continue;
+      final cacheRecord = caches[cacheKey]!;
+      final translations =
+          translationsByCacheKey[cacheKey] ??
+          const <LyricsTranslationCacheRecord>[];
+      exportedList.add({
+        'title': song.title,
+        'artist': song.artist,
+        'album': song.album,
+        'duration_ms': song.duration,
+        'lyrics_cache': cacheRecord.toMap(),
+        'translations': translations.map((t) => t.toMap()).toList(),
+      });
     }
 
     if (exportedList.isEmpty) {
@@ -2909,6 +2918,7 @@ class SharingService {
     int importedSongsCount = 0;
     int skippedSongsCount = 0;
     int missingSongsCount = 0;
+    int ambiguousSongsCount = 0;
 
     final playlistService = _ref.read(playlistServiceProvider);
     final scannerRoots = _ref.read(scannerServiceProvider).rootPaths;
@@ -2925,11 +2935,13 @@ class SharingService {
         // 占位条目不入库：它们没有对应本地文件，播不了，UI 又没有任何缺失
         // 标记，用户只会看到「导入 N 首」然后播到一半失败。
         final missingEntries = <M3uEntry>[];
+        final ambiguousEntries = <M3uEntry>[];
         final songs = await M3uUtils.resolveMusicFiles(
           data.entries,
           rootPaths: scannerRoots,
           includeMissingPlaceholders: false,
           missingEntries: missingEntries,
+          ambiguousEntries: ambiguousEntries,
         );
 
         // 同名歌单合并而不是新建「名字 (1)」副本。
@@ -2942,6 +2954,7 @@ class SharingService {
         importedSongsCount += result.addedSongs;
         skippedSongsCount += result.skippedSongs;
         missingSongsCount += missingEntries.length;
+        ambiguousSongsCount += ambiguousEntries.length;
         if (result.merged) mergedPlaylistsCount++;
       }
     }
@@ -2952,6 +2965,7 @@ class SharingService {
       'imported_songs': importedSongsCount,
       'skipped_songs': skippedSongsCount,
       'missing_songs': missingSongsCount,
+      'ambiguous_songs': ambiguousSongsCount,
     };
   }
 
@@ -3085,6 +3099,7 @@ class SharingService {
             added: stats['imported_songs'] ?? 0,
             skipped: stats['skipped_songs'] ?? 0,
             missing: stats['missing_songs'] ?? 0,
+            ambiguous: stats['ambiguous_songs'] ?? 0,
           ),
         );
 

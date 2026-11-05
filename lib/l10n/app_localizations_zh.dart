@@ -5606,6 +5606,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get lanSyncErrorNetwork => '无法连接到设备';
+
+  @override
+  String lanSyncPlaylistsAmbiguous(int count) {
+    return '其中 $count 首存在多个候选，已取最可能的一个';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11210,4 +11215,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get lanSyncErrorNetwork => '無法連線到裝置';
+
+  @override
+  String lanSyncPlaylistsAmbiguous(int count) {
+    return '其中 $count 首存在多個候選，已取最可能的一個';
+  }
 }

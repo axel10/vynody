@@ -5697,8 +5697,14 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get lanSyncErrorTimeout => '接続がタイムアウトしました。两台の端末が同じネットワークにあるか確認してください。';
+  String get lanSyncErrorTimeout =>
+      '接続がタイムアウトしました。2 台の端末が同じネットワークにあるか確認してください。';
 
   @override
   String get lanSyncErrorNetwork => '端末に接続できませんでした';
+
+  @override
+  String lanSyncPlaylistsAmbiguous(int count) {
+    return '$count 曲は候補が複数あったため、最も可能性の高いものを使用しました';
+  }
 }
