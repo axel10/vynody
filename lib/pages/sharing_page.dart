@@ -575,8 +575,18 @@ class _SharingPageState extends ConsumerState<SharingPage>
     AppLocalizations l10n,
     String rejectedText,
   ) {
+    // 重复点击：同一设备上已有任务在跑。单独给一句，而不是让人以为网络出错。
+    if (error is LanSyncBusyException) {
+      return l10n.lanSyncErrorBusy;
+    }
+
     final text = error.toString();
-    if (text.contains('rejected')) return rejectedText;
+    if (text.contains('chunk session expired')) {
+      return l10n.lanSyncErrorSessionExpired;
+    }
+    if (text.contains('rejected')) {
+      return rejectedText;
+    }
 
     final statusMatch = RegExp(r'status code (\d+)').firstMatch(text);
     if (statusMatch != null) {

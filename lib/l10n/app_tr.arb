@@ -2304,5 +2304,7 @@
   "lanSyncErrorStatus": "Karşı cihaz bir hata döndürdü (HTTP {status})",
   "lanSyncErrorTimeout": "Bağlantı zaman aşımına uğradı. İki cihazın da aynı ağda olduğundan emin olun.",
   "lanSyncErrorNetwork": "Cihaza bağlanılamadı",
-  "lanSyncPlaylistsAmbiguous": "{count} parça için birden fazla aday vardı; en olası olan kullanıldı"
+  "lanSyncPlaylistsAmbiguous": "{count} parça için birden fazla aday vardı; en olası olan kullanıldı",
+  "lanSyncErrorBusy": "Bu cihazla eşitleme hâlâ sürüyor",
+  "lanSyncErrorSessionExpired": "Aktarım oturumunun süresi doldu. Lütfen tekrar deneyin."
 }

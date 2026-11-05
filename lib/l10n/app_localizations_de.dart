@@ -5965,4 +5965,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String lanSyncPlaylistsAmbiguous(int count) {
     return 'Für $count Titel gab es mehrere Kandidaten; der wahrscheinlichste wurde verwendet';
   }
+
+  @override
+  String get lanSyncErrorBusy =>
+      'Mit diesem Gerät läuft noch eine Synchronisierung';
+
+  @override
+  String get lanSyncErrorSessionExpired =>
+      'Die Übertragungssitzung ist abgelaufen. Bitte erneut versuchen.';
 }

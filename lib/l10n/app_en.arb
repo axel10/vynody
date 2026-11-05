@@ -2563,5 +2563,7 @@
   "lanSyncErrorStatus": "The other device returned an error (HTTP {status})",
   "lanSyncErrorTimeout": "Connection timed out. Make sure both devices are on the same network.",
   "lanSyncErrorNetwork": "Could not connect to the device",
-  "lanSyncPlaylistsAmbiguous": "{count} song(s) had multiple candidates; the most likely one was used"
+  "lanSyncPlaylistsAmbiguous": "{count} song(s) had multiple candidates; the most likely one was used",
+  "lanSyncErrorBusy": "A sync with this device is still running",
+  "lanSyncErrorSessionExpired": "The transfer session expired. Please try again."
 }

@@ -1887,5 +1887,7 @@
   "lanSyncErrorStatus": "對方傳回錯誤（HTTP {status}）",
   "lanSyncErrorTimeout": "連線逾時，請確認兩台裝置在同一個網路",
   "lanSyncErrorNetwork": "無法連線到裝置",
-  "lanSyncPlaylistsAmbiguous": "其中 {count} 首存在多個候選，已取最可能的一個"
+  "lanSyncPlaylistsAmbiguous": "其中 {count} 首存在多個候選，已取最可能的一個",
+  "lanSyncErrorBusy": "這台裝置上一次同步還沒結束，請稍候",
+  "lanSyncErrorSessionExpired": "傳輸工作階段已過期，請重試"
 }

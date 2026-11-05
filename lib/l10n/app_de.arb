@@ -2172,5 +2172,7 @@
   "lanSyncErrorStatus": "Das andere Gerät hat einen Fehler zurückgegeben (HTTP {status})",
   "lanSyncErrorTimeout": "Zeitüberschreitung. Stellen Sie sicher, dass beide Geräte im selben Netzwerk sind.",
   "lanSyncErrorNetwork": "Verbindung zum Gerät nicht möglich",
-  "lanSyncPlaylistsAmbiguous": "Für {count} Titel gab es mehrere Kandidaten; der wahrscheinlichste wurde verwendet"
+  "lanSyncPlaylistsAmbiguous": "Für {count} Titel gab es mehrere Kandidaten; der wahrscheinlichste wurde verwendet",
+  "lanSyncErrorBusy": "Mit diesem Gerät läuft noch eine Synchronisierung",
+  "lanSyncErrorSessionExpired": "Die Übertragungssitzung ist abgelaufen. Bitte erneut versuchen."
 }

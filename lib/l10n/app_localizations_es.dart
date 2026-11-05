@@ -5975,4 +5975,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String lanSyncPlaylistsAmbiguous(int count) {
     return '$count canción(es) tenían varios candidatos; se usó la más probable';
   }
+
+  @override
+  String get lanSyncErrorBusy =>
+      'Ya hay una sincronización en curso con este dispositivo';
+
+  @override
+  String get lanSyncErrorSessionExpired =>
+      'La sesión de transferencia caducó. Inténtalo de nuevo.';
 }

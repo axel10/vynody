@@ -2271,5 +2271,7 @@
   "lanSyncErrorStatus": "相手の端末がエラーを返しました（HTTP {status}）",
   "lanSyncErrorTimeout": "接続がタイムアウトしました。2 台の端末が同じネットワークにあるか確認してください。",
   "lanSyncErrorNetwork": "端末に接続できませんでした",
-  "lanSyncPlaylistsAmbiguous": "{count} 曲は候補が複数あったため、最も可能性の高いものを使用しました"
+  "lanSyncPlaylistsAmbiguous": "{count} 曲は候補が複数あったため、最も可能性の高いものを使用しました",
+  "lanSyncErrorBusy": "この端末との同期はまだ実行中です",
+  "lanSyncErrorSessionExpired": "転送セッションの有効期限が切れました。もう一度お試しください。"
 }

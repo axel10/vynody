@@ -10412,6 +10412,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'其中 {count} 首存在多个候选，已取最可能的一个'**
   String lanSyncPlaylistsAmbiguous(int count);
+
+  /// User tapped sync again while one is still running for the same device
+  ///
+  /// In zh, this message translates to:
+  /// **'这台设备上一次同步还没结束，请稍候'**
+  String get lanSyncErrorBusy;
+
+  /// Chunked transfer session expired on the peer (HTTP 409)
+  ///
+  /// In zh, this message translates to:
+  /// **'传输会话已过期，请重试'**
+  String get lanSyncErrorSessionExpired;
 }
 
 class _AppLocalizationsDelegate

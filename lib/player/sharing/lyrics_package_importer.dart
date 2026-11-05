@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/sharing/lan_sync_protocol.dart';
 import 'package:vynody/player/sharing/lyrics_import_conflict.dart';
 import 'package:vynody/player/sharing/lyrics_translation_importer.dart';
 
@@ -42,6 +43,16 @@ class LyricsPackageImporter {
         const <LyricsTranslationCacheRecord>[];
 
     final localLyrics = await _db.getLyricsCache(localCacheKey);
+
+    // 内容指纹短路：内容一样、只是 `updatedAtMillis` 不同时不重写。
+    // 不做这道判断的话，同一份歌词会因为「远端时间戳较新」被整条覆盖一遍，
+    // 连带刷新本地时间戳、让后续冲突判定偏向远端。
+    final incomingHash = incomingPackage['content_hash'] as String?;
+    if (localLyrics != null &&
+        incomingHash != null &&
+        incomingHash == lyricsContentHashOf(localLyrics)) {
+      return LyricsImportOutcome.skipped;
+    }
 
     final outcome = decideLyricsImport(
       localSource: localLyrics?.source,

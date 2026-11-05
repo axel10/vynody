@@ -5707,4 +5707,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String lanSyncPlaylistsAmbiguous(int count) {
     return '$count 曲は候補が複数あったため、最も可能性の高いものを使用しました';
   }
+
+  @override
+  String get lanSyncErrorBusy => 'この端末との同期はまだ実行中です';
+
+  @override
+  String get lanSyncErrorSessionExpired => '転送セッションの有効期限が切れました。もう一度お試しください。';
 }

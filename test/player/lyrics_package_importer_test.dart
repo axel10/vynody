@@ -7,6 +7,7 @@ import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import 'package:vynody/player/sharing/lan_sync_protocol.dart';
 import 'package:vynody/player/sharing/lyrics_import_conflict.dart';
 import 'package:vynody/player/sharing/lyrics_package_importer.dart';
 
@@ -257,5 +258,46 @@ void main() {
     );
 
     expect(outcome, LyricsImportOutcome.skipped);
+  });
+
+  test('内容指纹相同：不重写、不刷新时间戳，也不碰译文', () async {
+    final localKey = ScannerPathUtils.normalizeLyricCacheKey(
+      'C:/Music/Pop/Same - Content.flac',
+    );
+    final first = _buildRemotePackage(
+      source: LyricsCacheSource.lrclib,
+      updatedAtMillis: 1000,
+      translations: [_translationMap('ja', '日本語', at: 1000)],
+    );
+
+    expect(
+      await importer.import(localCacheKey: localKey, incomingPackage: first),
+      LyricsImportOutcome.added,
+    );
+    final before = await db.getLyricsCache(localKey);
+
+    // 同一份内容、时间戳更新。没有 content_hash 时会被整条覆盖（连带刷新
+    // updatedAtMillis、重写译文）；带上指纹就直接短路。
+    final contentHash = lyricsContentHashOf(
+      LyricsCacheRecord.fromMap(first['lyrics_cache'] as Map<String, dynamic>),
+    );
+    final second = _buildRemotePackage(
+      source: LyricsCacheSource.lrclib,
+      updatedAtMillis: 9999999,
+      translations: [_translationMap('ja', '日本語', at: 9999999)],
+    )..['content_hash'] = contentHash;
+
+    final outcome = await importer.import(
+      localCacheKey: localKey,
+      incomingPackage: second,
+    );
+
+    expect(outcome, LyricsImportOutcome.skipped);
+    final after = await db.getLyricsCache(localKey);
+    expect(after!.updatedAtMillis, before!.updatedAtMillis);
+    expect(
+      (await db.getLyricsTranslationCaches(localKey)).single.updatedAtMillis,
+      1000,
+    );
   });
 }

@@ -5920,4 +5920,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String lanSyncPlaylistsAmbiguous(int count) {
     return '$count parça için birden fazla aday vardı; en olası olan kullanıldı';
   }
+
+  @override
+  String get lanSyncErrorBusy => 'Bu cihazla eşitleme hâlâ sürüyor';
+
+  @override
+  String get lanSyncErrorSessionExpired =>
+      'Aktarım oturumunun süresi doldu. Lütfen tekrar deneyin.';
 }

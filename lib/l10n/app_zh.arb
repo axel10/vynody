@@ -3991,5 +3991,9 @@
         "type": "int"
       }
     }
-  }
+  },
+  "lanSyncErrorBusy": "这台设备上一次同步还没结束，请稍候",
+  "@lanSyncErrorBusy": {"description": "User tapped sync again while one is still running for the same device"},
+  "lanSyncErrorSessionExpired": "传输会话已过期，请重试",
+  "@lanSyncErrorSessionExpired": {"description": "Chunked transfer session expired on the peer (HTTP 409)"}
 }

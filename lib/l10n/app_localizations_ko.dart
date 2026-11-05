@@ -5712,4 +5712,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String lanSyncPlaylistsAmbiguous(int count) {
     return '$count곡은 후보가 여러 개여서 가장 가능성 높은 항목을 사용했습니다';
   }
+
+  @override
+  String get lanSyncErrorBusy => '이 기기와의 동기화가 아직 진행 중입니다';
+
+  @override
+  String get lanSyncErrorSessionExpired => '전송 세션이 만료되었습니다. 다시 시도하세요.';
 }

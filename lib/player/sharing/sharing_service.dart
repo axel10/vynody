@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:audio_core/audio_core.dart' show AppleFileAccessHolder;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +19,7 @@ import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:bonsoir/bonsoir.dart';
 import 'lan_device.dart';
+import 'lan_sync_protocol.dart';
 import 'lyrics_import_conflict.dart';
 import 'lyrics_package_importer.dart';
 import 'sharing_riverpod.dart';
@@ -39,10 +41,95 @@ String formatHostForUrl(String host) {
 }
 
 // Riverpod states for UI communication
-class IncomingRequestNotifier extends Notifier<IncomingTransferRequest?> {
+
+/// 待确认请求的排队基类。
+///
+/// 三条链路原先各是一个单槽 `Notifier<T?>`：两台设备同时推过来时，后一条
+/// 直接覆盖前一条，前一条的 `Completer` 永远不会完成，那条 HTTP 请求会一直挂到
+/// 连接层超时（用户看到「对方没反应」）。
+///
+/// 这里改成队列：`state` 始终是**队首**，UI 的 `ref.listen` 不用改；处理完一条
+/// 用 `setRequest(null)` 出队，下一条自动顶上。排太久的自动按拒绝处理，避免
+/// 发送端一直等。
+abstract class QueuedIncomingRequestNotifier<T> extends Notifier<T?> {
+  /// 请在发送端的读超时之前过期：否则发送端已经放弃了，这边还弹着对话框，
+  /// 用户点「接受」后对面已经不在等这份回执。
+  static const Duration requestTtl = Duration(seconds: 30);
+
+  final List<({T request, DateTime enqueuedAt})> _pending = [];
+  Timer? _expiryTimer;
+
   @override
-  IncomingTransferRequest? build() => null;
-  void setRequest(IncomingTransferRequest? request) => state = request;
+  T? build() {
+    ref.onDispose(() {
+      _expiryTimer?.cancel();
+      _expiryTimer = null;
+    });
+    return _pending.isEmpty ? null : _pending.first.request;
+  }
+
+  /// 入队一个请求；传 null 表示队首已有结论，出队并让下一条顶上来。
+  void setRequest(T? request) {
+    if (request != null) {
+      _pending.add((request: request, enqueuedAt: DateTime.now()));
+      _ensureExpiryTimer();
+      _sync();
+      return;
+    }
+    if (_pending.isNotEmpty) _pending.removeAt(0);
+    _sync();
+  }
+
+  /// 超时或连接断开时由外部调用，等价于用户拒绝。
+  void rejectAllPending() {
+    if (_pending.isEmpty) return;
+    final pending = List.of(_pending);
+    _pending.clear();
+    for (final entry in pending) {
+      rejectExpired(entry.request);
+    }
+    _sync();
+  }
+
+  /// 该请求因超时被判为拒绝时怎么通知发起方。
+  void rejectExpired(T request);
+
+  void _sync() {
+    final next = _pending.isEmpty ? null : _pending.first.request;
+    if (!identical(state, next)) {
+      state = next;
+    }
+    if (_pending.isEmpty) {
+      _expiryTimer?.cancel();
+      _expiryTimer = null;
+    }
+  }
+
+  void _ensureExpiryTimer() {
+    _expiryTimer ??= Timer.periodic(const Duration(seconds: 5), (_) {
+      if (_pending.isEmpty) return;
+      final deadline = DateTime.now().subtract(requestTtl);
+
+      // 只处理队首：队首是用户此刻看到的那条。排队的其它条目过期没有意义，
+      // 而且乱序出队会让回调里的 `setRequest(null)` 弹错一条。
+      final head = _pending.first;
+      if (!head.enqueuedAt.isBefore(deadline)) return;
+
+      rejectExpired(head.request);
+      // 回调通常会自己 `setRequest(null)` 出队；没出队就兜底移除。
+      if (_pending.isNotEmpty && identical(_pending.first.request, head.request)) {
+        _pending.removeAt(0);
+        _sync();
+      }
+    });
+  }
+}
+
+class IncomingRequestNotifier
+    extends QueuedIncomingRequestNotifier<IncomingTransferRequest> {
+  @override
+  void rejectExpired(IncomingTransferRequest request) =>
+      request.onDecision(false);
 }
 
 final incomingRequestProvider =
@@ -68,10 +155,11 @@ class IncomingLyricsRequest {
   });
 }
 
-class IncomingLyricsRequestNotifier extends Notifier<IncomingLyricsRequest?> {
+class IncomingLyricsRequestNotifier
+    extends QueuedIncomingRequestNotifier<IncomingLyricsRequest> {
   @override
-  IncomingLyricsRequest? build() => null;
-  void setRequest(IncomingLyricsRequest? request) => state = request;
+  void rejectExpired(IncomingLyricsRequest request) =>
+      request.onDecision(false);
 }
 
 final incomingLyricsRequestProvider =
@@ -100,10 +188,10 @@ class IncomingPlaylistRequest {
 }
 
 class IncomingPlaylistRequestNotifier
-    extends Notifier<IncomingPlaylistRequest?> {
+    extends QueuedIncomingRequestNotifier<IncomingPlaylistRequest> {
   @override
-  IncomingPlaylistRequest? build() => null;
-  void setRequest(IncomingPlaylistRequest? request) => state = request;
+  void rejectExpired(IncomingPlaylistRequest request) =>
+      request.onDecision(false);
 }
 
 final incomingPlaylistRequestProvider =
@@ -159,6 +247,32 @@ final lanSyncReceiptProvider =
     NotifierProvider<LanSyncReceiptNotifier, LanSyncReceipt?>(
       LanSyncReceiptNotifier.new,
     );
+
+/// 同一台设备上已经有一个同步任务在跑。
+///
+/// 旧实现没有任何互斥：用户等不及再点一次就会并发发两份，第二份多半把第一份
+/// 的结果覆盖掉，但两边的回执和进度都会各弹一遍，看起来像「同步了两次」。
+class LanSyncBusyException implements Exception {
+  const LanSyncBusyException(this.kind);
+  final LanSyncKind kind;
+
+  @override
+  String toString() => 'LanSyncBusyException(${kind.name})';
+}
+
+/// 分块接收的临时会话。
+///
+/// 只在内存里，靠 [LanSyncLimits.chunkSessionTtl] 回收：发送端中途放弃时，
+/// 半截数据不能一直留着占内存。
+class _LanChunkSession {
+  _LanChunkSession({required this.totalChunks, required this.senderId});
+
+  final int totalChunks;
+  final String senderId;
+  final List<dynamic> items = [];
+  final Set<int> receivedChunks = {};
+  DateTime lastTouched = DateTime.now();
+}
 
 class SharingWarningNotifier extends Notifier<String?> {
   @override
@@ -372,6 +486,16 @@ class SharingService {
 
   final Map<String, List<HttpClientRequest>> _currentUploadRequests = {};
   final Map<String, List<HttpRequest>> _currentReceiverRequests = {};
+
+  /// 进行中的分块接收会话，键为 `senderId/transferId`。
+  final Map<String, _LanChunkSession> _lyricsChunkSessions = {};
+  final Map<String, _LanChunkSession> _playlistChunkSessions = {};
+
+  /// 同一目标设备上正在跑的同步任务，键为 `kind/deviceId`。
+  ///
+  /// 只用来防重复点击，不做排队：重复发起直接报「正在进行中」，比并发跑两份
+  /// 各写一遍数据安全得多。
+  final Map<String, Future<void>> _inFlightSyncs = {};
 
   void cancelTransfer(String sessionId) {
     debugPrint(
@@ -750,6 +874,9 @@ class SharingService {
         'deviceType': _deviceType,
         'version': '0.11.0',
         'proto': '2',
+        // 分块 / gzip 的能力标志。老客户端不广播这个键，发送端就按 v1 的
+        // 单请求格式发 —— `proto` 不能用，它从 TLS 那一版起就恒为 2。
+        'sync': '$kLanSyncProtocolVersion',
         'tls': '1',
         if (_tlsCertService?.fingerprint != null) 'fp': _tlsCertService!.fingerprint!,
       },
@@ -833,6 +960,8 @@ class SharingService {
               lastSeen: DateTime.now(),
               isOnline: true,
               certFingerprint: certFingerprint,
+              syncProtocol:
+                  int.tryParse(attrs[kLanSyncCapabilityAttribute] ?? '') ?? 1,
             );
             if (certFingerprint != null && certFingerprint.isNotEmpty) {
               TlsCertificateService.registerDeviceFingerprint(id, certFingerprint);
@@ -897,6 +1026,15 @@ class SharingService {
 
     await _httpServer?.close(force: true);
     _httpServer = null;
+
+    // 关掉共享时，排队等确认的请求要给发起方一个明确的拒绝：否则对方的
+    // HTTP 请求会一直挂着，直到连接层超时（用户看到的是「没反应」）。
+    _ref.read(incomingRequestProvider.notifier).rejectAllPending();
+    _ref.read(incomingLyricsRequestProvider.notifier).rejectAllPending();
+    _ref.read(incomingPlaylistRequestProvider.notifier).rejectAllPending();
+    _lyricsChunkSessions.clear();
+    _playlistChunkSessions.clear();
+    _inFlightSyncs.clear();
 
     for (final device in _discoveredDevicesMap.values) {
       TlsCertificateService.unregisterDeviceFingerprint(device.id);
@@ -1070,6 +1208,15 @@ class SharingService {
       return;
     }
 
+    // 能力回告：对端（新版本）据此判断能不能发分块 / gzip 请求。
+    // 老客户端不会读它，加了也没有副作用。
+    if (path.startsWith('/api/lyrics') || path.startsWith('/api/playlists')) {
+      request.response.headers.set(
+        kLanSyncVersionHeader,
+        '$kLanSyncProtocolVersion',
+      );
+    }
+
     try {
       final remoteService = _ref.read(remoteControlServiceProvider);
 
@@ -1112,8 +1259,163 @@ class SharingService {
     }
   }
 
-  String _deriveSessionName(List<TransferFileItem> files) {
-    if (files.isEmpty) return '未命名传输';
+  /// 读同步请求体：先看 `Content-Length` 上限，边读边累计，超限立即 413。
+  ///
+  /// 旧实现是 `utf8.decoder.bind(request).join()`，没有任何上限，也没有处理
+  /// `Content-Encoding` —— 一个畸形请求就能把接收端内存吃光。
+  ///
+  /// 返回 null 表示已经写好并关闭了响应，调用方直接 return。
+  Future<Map<String, dynamic>?> _readSyncJsonBody(
+    HttpRequest request, {
+    int maxBytes = LanSyncLimits.maxBodyBytes,
+  }) async {
+    if (request.contentLength > maxBytes) {
+      await _rejectPayloadTooLarge(request, request.contentLength);
+      return null;
+    }
+
+    final builder = BytesBuilder(copy: false);
+    await for (final chunk in request) {
+      builder.add(chunk);
+      if (builder.length > maxBytes) {
+        await _rejectPayloadTooLarge(request, builder.length);
+        return null;
+      }
+    }
+
+    final String text;
+    try {
+      text = decodeLanSyncBody(
+        builder.takeBytes(),
+        contentEncoding: request.headers.value(
+          HttpHeaders.contentEncodingHeader,
+        ),
+      );
+    } on FormatException catch (e) {
+      debugPrint('[SharingService] Bad request body encoding: $e');
+      await _closeWithJson(request, HttpStatus.badRequest, {
+        'error': 'Malformed request body',
+      });
+      return null;
+    }
+
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(text);
+    } on FormatException catch (e) {
+      debugPrint('[SharingService] Bad request JSON: $e');
+      await _closeWithJson(request, HttpStatus.badRequest, {
+        'error': 'Malformed JSON body',
+      });
+      return null;
+    }
+
+    if (decoded is! Map<String, dynamic>) {
+      await _closeWithJson(request, HttpStatus.badRequest, {
+        'error': 'Expected a JSON object',
+      });
+      return null;
+    }
+    return decoded;
+  }
+
+  Future<void> _rejectPayloadTooLarge(HttpRequest request, int size) async {
+    debugPrint(
+      '[SharingService] Rejecting oversized body: $size bytes '
+      '(limit ${LanSyncLimits.maxBodyBytes})',
+    );
+    await _closeWithJson(request, HttpStatus.requestEntityTooLarge, {
+      'error': 'Payload too large',
+      'limit': LanSyncLimits.maxBodyBytes,
+      'received': size,
+    });
+  }
+
+  Future<void> _closeWithJson(
+    HttpRequest request,
+    int statusCode,
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      request.response.statusCode = statusCode;
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(jsonEncode(payload));
+      await request.response.close();
+    } catch (e) {
+      debugPrint('[SharingService] Failed to close response: $e');
+    }
+  }
+
+  /// 回收超时的分块会话。
+  void _pruneChunkSessions(Map<String, _LanChunkSession> sessions) {
+    final deadline = DateTime.now().subtract(LanSyncLimits.chunkSessionTtl);
+    sessions.removeWhere((_, session) => session.lastTouched.isBefore(deadline));
+  }
+
+  /// 同设备互斥：重复点击直接抛 [LanSyncBusyException]，不并发跑两份。
+  Future<T> _runSyncExclusive<T>(
+    String key,
+    LanSyncKind kind,
+    Future<T> Function() action,
+  ) async {
+    if (_inFlightSyncs.containsKey(key)) {
+      throw LanSyncBusyException(kind);
+    }
+    final gate = Completer<void>();
+    _inFlightSyncs[key] = gate.future;
+    try {
+      return await action();
+    } finally {
+      _inFlightSyncs.remove(key);
+      if (!gate.isCompleted) gate.complete();
+    }
+  }
+
+  /// 发一个同步请求，返回状态码与解析后的 JSON。
+  ///
+  /// - 超时覆盖「建连 + 写 body + 读响应」三段，`connectionTimeout` 只管建连；
+  /// - [allowGzip] 为 true 且体积超过阈值时压缩，并带上 `Content-Encoding`。
+  ///   只有确认对端支持 v2 才允许，否则老版本会把压缩字节当 UTF-8 解。
+  Future<({int status, Map<String, dynamic> body})> _postSyncJson(
+    HttpClient client,
+    Uri uri,
+    Map<String, dynamic> payload, {
+    bool allowGzip = false,
+  }) async {
+    final body = utf8.encode(jsonEncode(payload));
+
+    final request = await client
+        .postUrl(uri)
+        .timeout(LanSyncLimits.readTimeout);
+    request.headers.contentType = ContentType.json;
+    request.headers.set(kLanSyncVersionHeader, '$kLanSyncProtocolVersion');
+
+    if (allowGzip && body.length >= LanSyncLimits.gzipThresholdBytes) {
+      final compressed = gzip.encode(body);
+      request.headers.set(HttpHeaders.contentEncodingHeader, 'gzip');
+      request.contentLength = compressed.length;
+      request.add(compressed);
+    } else {
+      request.contentLength = body.length;
+      request.add(body);
+    }
+
+    final response = await request.close().timeout(LanSyncLimits.readTimeout);
+    final text = await utf8.decoder
+        .bind(response)
+        .join()
+        .timeout(LanSyncLimits.readTimeout);
+
+    final Object? decoded = text.isEmpty ? null : jsonDecode(text);
+    return (
+      status: response.statusCode,
+      body: decoded is Map<String, dynamic>
+          ? decoded
+          : <String, dynamic>{},
+    );
+  }
+
+  String _deriveSessionName(List<TransferFileItem> files) {    if (files.isEmpty) return '未命名传输';
     if (files.length == 1) {
       final name = files[0].name.replaceAll('\\', '/');
       return p.basename(name);
@@ -1128,8 +1430,9 @@ class SharingService {
   }
 
   Future<void> _handleTransferRequest(HttpRequest request) async {
-    final content = await utf8.decoder.bind(request).join();
-    final json = jsonDecode(content) as Map<String, dynamic>;
+    // 与歌词/歌单同一条读 body 路径：带体积上限与 gzip 解码。
+    final json = await _readSyncJsonBody(request);
+    if (json == null) return;
 
     final senderId = json['sender_id'] as String? ?? 'unknown';
     final senderName = json['sender_name'] as String? ?? 'Unknown';
@@ -2540,13 +2843,15 @@ class SharingService {
     };
   }
 
-  Future<Map<String, int>> syncLyricsToDevice(LanDevice targetDevice) async {
+  /// 收集本机所有「有歌词」的曲目，供推送与导出共用。
+  ///
+  /// 先把 cacheKey 全算出来，再用两次批量查询取缓存与译文。旧实现是逐首
+  /// `getLyricsCache` + `getLyricsTranslationCaches`：3000 首就是 6000 次
+  /// 数据库往返，全程只显示一个 toast，看起来像卡死。
+  Future<List<SongMetadataPackage>> _collectLyricsPackages() async {
     final db = MetadataDatabase();
     final songs = await db.getAllSongMetadata();
 
-    // 先把 cacheKey 全算出来，再一次性批量取缓存。
-    // 旧实现是逐首 getLyricsCache + getLyricsTranslationCaches：3000 首 =
-    // 6000 次数据库往返，全程只显示一个 toast，看起来像卡死。
     final songByCacheKey = <String, SongMetadata>{};
     for (final song in songs) {
       final query = LyricsQuery(
@@ -2567,32 +2872,66 @@ class SharingService {
         .where((entry) => entry.value.source != LyricsCacheSource.none)
         .map((entry) => entry.key)
         .toList(growable: false);
+    if (exportKeys.isEmpty) return const [];
 
-    final translationsByCacheKey = exportKeys.isEmpty
-        ? const <String, List<LyricsTranslationCacheRecord>>{}
-        : await db.getLyricsTranslationCachesByKeys(exportKeys);
+    final translationsByCacheKey = await db.getLyricsTranslationCachesByKeys(
+      exportKeys,
+    );
 
-    final exportedList = <Map<String, dynamic>>[];
+    final packages = <SongMetadataPackage>[];
     for (final cacheKey in exportKeys) {
       final song = songByCacheKey[cacheKey];
-      if (song == null) continue;
-      final cacheRecord = caches[cacheKey]!;
+      final cacheRecord = caches[cacheKey];
+      if (song == null || cacheRecord == null) continue;
       final translations =
           translationsByCacheKey[cacheKey] ??
           const <LyricsTranslationCacheRecord>[];
-      exportedList.add({
-        'title': song.title,
-        'artist': song.artist,
-        'album': song.album,
-        'duration_ms': song.duration,
-        'lyrics_cache': cacheRecord.toMap(),
-        'translations': translations.map((t) => t.toMap()).toList(),
-      });
+      packages.add(
+        SongMetadataPackage(
+          senderPath: song.path,
+          title: song.title,
+          artist: song.artist,
+          album: song.album,
+          durationMs: song.duration,
+          lyricsCache: cacheRecord.toMap(),
+          translations: translations
+              .map((t) => t.toMap())
+              .toList(growable: false),
+          // 内容指纹：接收端据此跳过「内容一样、只是时间戳不同」的重写。
+          contentHash: lyricsContentHashOf(cacheRecord),
+        ),
+      );
     }
+    return packages;
+  }
 
-    if (exportedList.isEmpty) {
-      return {'matched': 0, 'overwritten': 0, 'skipped': 0};
-    }
+  Future<Map<String, int>> syncLyricsToDevice(LanDevice targetDevice) async {
+    return _runSyncExclusive(
+      'lyrics/${targetDevice.id}',
+      LanSyncKind.lyrics,
+      () async {
+        final packages = await _collectLyricsPackages();
+        if (packages.isEmpty) {
+          return {'matched': 0, 'overwritten': 0, 'skipped': 0};
+        }
+        return _sendLyricsPackages(targetDevice, packages);
+      },
+    );
+  }
+
+  Future<Map<String, int>> _sendLyricsPackages(
+    LanDevice targetDevice,
+    List<SongMetadataPackage> packages,
+  ) async {
+    final items = packages
+        .map((package) => package.toJson())
+        .toList(growable: false);
+
+    // v1 对端只能收「一个请求装全部」的老格式；v2 按批发送，单请求体积有上限。
+    final canChunk = targetDevice.supportsChunkedSync;
+    final chunks = canChunk
+        ? chunkLanSyncItems(items)
+        : <List<Map<String, dynamic>>>[items];
 
     final client = TlsCertificateService.createPinnedHttpClient(
       expectedFingerprint: targetDevice.certFingerprint,
@@ -2603,39 +2942,77 @@ class SharingService {
       final uri = Uri.parse(
         'https://$formattedHost:${targetDevice.httpPort}/api/lyrics/import',
       );
-      final request = await client.postUrl(uri);
-      request.headers.contentType = ContentType.json;
-      request.write(
-        jsonEncode({
+
+      final transferId =
+          '${DateTime.now().microsecondsSinceEpoch}_${chunks.length}';
+      final aggregate = <String, int>{
+        'matched': 0,
+        'overwritten': 0,
+        'skipped': 0,
+        'added': 0,
+        'updated': 0,
+      };
+
+      for (var index = 0; index < chunks.length; index++) {
+        final isLast = index == chunks.length - 1;
+        final payload = <String, dynamic>{
+          'version': kLanSyncProtocolVersion,
           'sender_id': _deviceId,
           'sender_name': _deviceName,
-          'lyrics': exportedList,
-        }),
-      );
+          'lyrics': chunks[index],
+          if (canChunk) ...{
+            'transfer_id': transferId,
+            'chunk_index': index,
+            'chunk_total': chunks.length,
+            'total_items': items.length,
+          },
+        };
 
-      final response = await request.close();
-      if (response.statusCode == HttpStatus.ok) {
-        final body = await utf8.decoder.bind(response).join();
-        final json = jsonDecode(body) as Map<String, dynamic>;
-        if (json['accepted'] == false) {
+        final result = await _postSyncJson(
+          client,
+          uri,
+          payload,
+          allowGzip: canChunk,
+        );
+
+        if (result.status == HttpStatus.forbidden ||
+            result.body['accepted'] == false) {
           throw Exception('rejected');
         }
-        return {
-          'matched': json['matched'] as int? ?? 0,
-          'overwritten': json['overwritten'] as int? ?? 0,
-          'skipped': json['skipped'] as int? ?? 0,
-        };
-      } else if (response.statusCode == HttpStatus.forbidden) {
-        throw Exception('rejected');
-      } else {
-        throw Exception('Server returned status code ${response.statusCode}');
+        if (result.status == HttpStatus.conflict) {
+          // 分块会话过期（对端 TTL 到了，或中途重启）：让用户重试，
+          // 不能把 409 笼统当成网络错误。
+          throw Exception('chunk session expired');
+        }
+        if (result.status != HttpStatus.ok) {
+          throw Exception('Server returned status code ${result.status}');
+        }
+
+        // 中间块只有「收到了」，统计以最后一块为准。
+        if (isLast) {
+          aggregate['matched'] = result.body['matched'] as int? ?? 0;
+          aggregate['overwritten'] = result.body['overwritten'] as int? ?? 0;
+          aggregate['skipped'] = result.body['skipped'] as int? ?? 0;
+          aggregate['added'] = result.body['added'] as int? ?? 0;
+          aggregate['updated'] = result.body['updated'] as int? ?? 0;
+        }
       }
+
+      return aggregate;
     } finally {
       client.close();
     }
   }
 
-  Future<Map<String, int>> pullLyricsFromDevice(LanDevice targetDevice) async {
+  Future<Map<String, int>> pullLyricsFromDevice(LanDevice targetDevice) {
+    return _runSyncExclusive(
+      'lyrics-pull/${targetDevice.id}',
+      LanSyncKind.lyrics,
+      () => _pullLyricsFromDevice(targetDevice),
+    );
+  }
+
+  Future<Map<String, int>> _pullLyricsFromDevice(LanDevice targetDevice) async {
     final client = TlsCertificateService.createPinnedHttpClient(
       expectedFingerprint: targetDevice.certFingerprint,
     );
@@ -2648,10 +3025,13 @@ class SharingService {
         'https://$formattedHost:${targetDevice.httpPort}/api/lyrics/export?sender_id=$encodedSenderId&sender_name=$encodedSenderName',
       );
       final request = await client.getUrl(uri);
-      final response = await request.close();
+      final response = await request.close().timeout(LanSyncLimits.readTimeout);
 
       if (response.statusCode == HttpStatus.ok) {
-        final body = await utf8.decoder.bind(response).join();
+        final body = await utf8.decoder
+            .bind(response)
+            .join()
+            .timeout(LanSyncLimits.readTimeout);
         final json = jsonDecode(body) as Map<String, dynamic>;
         if (json['accepted'] == false) {
           throw Exception('rejected');
@@ -2701,41 +3081,20 @@ class SharingService {
       return;
     }
 
-    final songs = await MetadataDatabase().getAllSongMetadata();
-    final List<Map<String, dynamic>> exportedList = [];
-
-    for (final song in songs) {
-      final query = LyricsQuery(
-        filePath: song.path,
-        fileName: p.basename(song.path),
-        title: song.title,
-        artist: song.artist,
-        album: song.album,
-        duration: song.duration != null
-            ? Duration(milliseconds: song.duration!)
-            : null,
-      );
-      final cacheKey = query.cacheKey;
-      final cacheRecord = await MetadataDatabase().getLyricsCache(cacheKey);
-
-      if (cacheRecord != null && cacheRecord.source != LyricsCacheSource.none) {
-        final translations = await MetadataDatabase()
-            .getLyricsTranslationCaches(cacheKey);
-        exportedList.add({
-          'title': song.title,
-          'artist': song.artist,
-          'album': song.album,
-          'duration_ms': song.duration,
-          'lyrics_cache': cacheRecord.toMap(),
-          'translations': translations.map((t) => t.toMap()).toList(),
-        });
-      }
-    }
+    // 与推送方向共用同一个收集器：批量查询、内容指纹、载荷结构都只有一份。
+    final packages = await _collectLyricsPackages();
+    final exportedList = packages
+        .map((package) => package.toJson())
+        .toList(growable: false);
 
     request.response.statusCode = HttpStatus.ok;
     request.response.headers.contentType = ContentType.json;
     request.response.write(
-      jsonEncode({'accepted': true, 'lyrics': exportedList}),
+      jsonEncode({
+        'version': kLanSyncProtocolVersion,
+        'accepted': true,
+        'lyrics': exportedList,
+      }),
     );
     await request.response.close();
 
@@ -2754,13 +3113,116 @@ class SharingService {
     }
   }
 
+  /// 收歌词导入请求。
+  ///
+  /// 兼容两种格式：
+  /// - v1：`{sender_id, lyrics:[...]}`，一次性整包；
+  /// - v2：`{transfer_id, chunk_index, chunk_total, lyrics:[...]}`，按批到达。
+  ///   确认框只在第一块弹一次，最后一块才真正落库。老客户端不带这些字段，
+  ///   等价于 `chunk_total == 1`，走同一条路径。
   Future<void> _handleImportLyrics(HttpRequest request) async {
-    final content = await utf8.decoder.bind(request).join();
-    final json = jsonDecode(content) as Map<String, dynamic>;
+    final json = await _readSyncJsonBody(request);
+    if (json == null) return;
+
     final senderId = json['sender_id'] as String? ?? 'unknown';
     final senderName = json['sender_name'] as String? ?? 'Unknown';
-    final lyrics = json['lyrics'] as List<dynamic>? ?? [];
+    final incoming = json['lyrics'] as List<dynamic>? ?? const [];
+    final chunkTotal = json['chunk_total'] as int? ?? 1;
+    final chunkIndex = json['chunk_index'] as int? ?? 0;
+    final transferId = json['transfer_id'] as String? ?? 'single';
+    final totalItems = json['total_items'] as int? ?? incoming.length;
 
+    if (chunkTotal <= 1) {
+      final accepted = await _confirmIncomingLyrics(
+        senderId: senderId,
+        senderName: senderName,
+        itemCount: totalItems,
+      );
+      if (!accepted) {
+        await _closeWithJson(request, HttpStatus.forbidden, {
+          'accepted': false,
+          'reason': 'Request rejected by user',
+        });
+        return;
+      }
+      await _finishLyricsImport(request, incoming);
+      return;
+    }
+
+    _pruneChunkSessions(_lyricsChunkSessions);
+    final sessionKey = '$senderId/$transferId';
+
+    if (chunkIndex == 0) {
+      final accepted = await _confirmIncomingLyrics(
+        senderId: senderId,
+        senderName: senderName,
+        itemCount: totalItems,
+      );
+      if (!accepted) {
+        _lyricsChunkSessions.remove(sessionKey);
+        await _closeWithJson(request, HttpStatus.forbidden, {
+          'accepted': false,
+          'reason': 'Request rejected by user',
+        });
+        return;
+      }
+      final session = _LanChunkSession(
+        totalChunks: chunkTotal,
+        senderId: senderId,
+      )..items.addAll(incoming);
+      session.receivedChunks.add(chunkIndex);
+      _lyricsChunkSessions[sessionKey] = session;
+      await _closeWithJson(request, HttpStatus.ok, {
+        'accepted': true,
+        'chunk_index': chunkIndex,
+        'chunk_total': chunkTotal,
+      });
+      return;
+    }
+
+    final session = _lyricsChunkSessions[sessionKey];
+    if (session == null || session.totalChunks != chunkTotal) {
+      // 会话过期（超过 TTL）、发送端换了 transfer_id、或批次总数对不上：
+      // 让对端重头再来，而不是把这一批当成一次完整导入（那会把确认框弹第二遍）。
+      _lyricsChunkSessions.remove(sessionKey);
+      await _closeWithJson(request, HttpStatus.conflict, {
+        'accepted': false,
+        'reason': 'chunk session expired',
+      });
+      return;
+    }
+
+    if (!session.receivedChunks.add(chunkIndex)) {
+      // 同一批被重发（发送端重试）：只回应，不重复追加。
+      await _closeWithJson(request, HttpStatus.ok, {
+        'accepted': true,
+        'chunk_index': chunkIndex,
+        'chunk_total': chunkTotal,
+      });
+      return;
+    }
+
+    session.items.addAll(incoming);
+    session.lastTouched = DateTime.now();
+
+    if (chunkIndex < chunkTotal - 1) {
+      await _closeWithJson(request, HttpStatus.ok, {
+        'accepted': true,
+        'chunk_index': chunkIndex,
+        'chunk_total': chunkTotal,
+      });
+      return;
+    }
+
+    _lyricsChunkSessions.remove(sessionKey);
+    await _finishLyricsImport(request, session.items);
+  }
+
+  Future<bool> _confirmIncomingLyrics({
+    required String senderId,
+    required String senderName,
+    required int itemCount,
+  }) {
     final completer = Completer<bool>();
     _ref
         .read(incomingLyricsRequestProvider.notifier)
@@ -2769,27 +3231,22 @@ class SharingService {
             senderId: senderId,
             senderName: senderName,
             type: IncomingLyricsRequestType.importLyrics,
-            lyricsCount: lyrics.length,
+            lyricsCount: itemCount,
             onDecision: (accepted) {
-              completer.complete(accepted);
+              if (!completer.isCompleted) completer.complete(accepted);
               _ref
                   .read(incomingLyricsRequestProvider.notifier)
                   .setRequest(null);
             },
           ),
         );
+    return completer.future;
+  }
 
-    final accepted = await completer.future;
-    if (!accepted) {
-      request.response.statusCode = HttpStatus.forbidden;
-      request.response.headers.contentType = ContentType.json;
-      request.response.write(
-        jsonEncode({'accepted': false, 'reason': 'Request rejected by user'}),
-      );
-      await request.response.close();
-      return;
-    }
-
+  Future<void> _finishLyricsImport(
+    HttpRequest request,
+    List<dynamic> lyrics,
+  ) async {
     final stats = await _importLyricsList(lyrics);
     // 被动方此前完全没有反馈：点「接受」→ 对话框消失 → 什么都没发生。
     // 导入本身可能是几十秒的匹配 + 写库，用户只能猜。
@@ -2805,10 +3262,7 @@ class SharingService {
           ),
         );
 
-    request.response.statusCode = HttpStatus.ok;
-    request.response.headers.contentType = ContentType.json;
-    request.response.write(jsonEncode({'accepted': true, ...stats}));
-    await request.response.close();
+    await _closeWithJson(request, HttpStatus.ok, {'accepted': true, ...stats});
   }
 
   Future<Map<String, int>> sendPlaylistsToDevice(
@@ -2819,8 +3273,19 @@ class SharingService {
       return {'imported_playlists': 0, 'imported_songs': 0};
     }
 
+    return _runSyncExclusive(
+      'playlists/${targetDevice.id}',
+      LanSyncKind.playlists,
+      () => _sendPlaylistsPayload(targetDevice, playlists),
+    );
+  }
+
+  Future<Map<String, int>> _sendPlaylistsPayload(
+    LanDevice targetDevice,
+    List<Playlist> playlists,
+  ) async {
     final scannerRoots = _ref.read(scannerServiceProvider).rootPaths;
-    final List<Map<String, dynamic>> payload = [];
+    final payload = <Map<String, dynamic>>[];
     for (final playlist in playlists) {
       payload.add({
         'id': playlist.id,
@@ -2834,6 +3299,12 @@ class SharingService {
       });
     }
 
+    // 老对端只认整包；v2 按批发，单请求体积有上限。
+    final canChunk = targetDevice.supportsChunkedSync;
+    final chunks = canChunk
+        ? chunkLanSyncItems(payload)
+        : <List<Map<String, dynamic>>>[payload];
+
     final client = TlsCertificateService.createPinnedHttpClient(
       expectedFingerprint: targetDevice.certFingerprint,
     );
@@ -2843,38 +3314,72 @@ class SharingService {
       final uri = Uri.parse(
         'https://$formattedHost:${targetDevice.httpPort}/api/playlists/import',
       );
-      final request = await client.postUrl(uri);
-      request.headers.contentType = ContentType.json;
-      request.write(
-        jsonEncode({
-          'sender_id': _deviceId,
-          'sender_name': _deviceName,
-          'playlists': payload,
-        }),
-      );
 
-      final response = await request.close();
-      if (response.statusCode == HttpStatus.ok) {
-        final body = await utf8.decoder.bind(response).join();
-        final json = jsonDecode(body) as Map<String, dynamic>;
-        if (json['accepted'] == false) {
+      final transferId =
+          '${DateTime.now().microsecondsSinceEpoch}_${chunks.length}';
+      final aggregate = <String, int>{
+        'imported_playlists': 0,
+        'imported_songs': 0,
+      };
+
+      for (var index = 0; index < chunks.length; index++) {
+        final isLast = index == chunks.length - 1;
+        final result = await _postSyncJson(
+          client,
+          uri,
+          {
+            'version': kLanSyncProtocolVersion,
+            'sender_id': _deviceId,
+            'sender_name': _deviceName,
+            'playlists': chunks[index],
+            if (canChunk) ...{
+              'transfer_id': transferId,
+              'chunk_index': index,
+              'chunk_total': chunks.length,
+              'total_items': payload.length,
+            },
+          },
+          allowGzip: canChunk,
+        );
+
+        if (result.status == HttpStatus.forbidden ||
+            result.body['accepted'] == false) {
           throw Exception('rejected');
         }
-        return {
-          'imported_playlists': json['imported_playlists'] as int? ?? 0,
-          'imported_songs': json['imported_songs'] as int? ?? 0,
-        };
-      } else if (response.statusCode == HttpStatus.forbidden) {
-        throw Exception('rejected');
-      } else {
-        throw Exception('Server returned status code ${response.statusCode}');
+        if (result.status == HttpStatus.conflict) {
+          // 分块会话过期（对端 TTL 到了，或中途重启）：让用户重试，
+          // 不能把 409 笼统当成网络错误。
+          throw Exception('chunk session expired');
+        }
+        if (result.status != HttpStatus.ok) {
+          throw Exception('Server returned status code ${result.status}');
+        }
+
+        if (isLast) {
+          aggregate['imported_playlists'] =
+              result.body['imported_playlists'] as int? ?? 0;
+          aggregate['imported_songs'] =
+              result.body['imported_songs'] as int? ?? 0;
+        }
       }
+
+      return aggregate;
     } finally {
       client.close();
     }
   }
 
   Future<Map<String, int>> pullPlaylistsFromDevice(
+    LanDevice targetDevice,
+  ) {
+    return _runSyncExclusive(
+      'playlists-pull/${targetDevice.id}',
+      LanSyncKind.playlists,
+      () => _pullPlaylistsFromDevice(targetDevice),
+    );
+  }
+
+  Future<Map<String, int>> _pullPlaylistsFromDevice(
     LanDevice targetDevice,
   ) async {
     final client = TlsCertificateService.createPinnedHttpClient(
@@ -2889,10 +3394,13 @@ class SharingService {
         'https://$formattedHost:${targetDevice.httpPort}/api/playlists/export?sender_id=$encodedSenderId&sender_name=$encodedSenderName',
       );
       final request = await client.getUrl(uri);
-      final response = await request.close();
+      final response = await request.close().timeout(LanSyncLimits.readTimeout);
 
       if (response.statusCode == HttpStatus.ok) {
-        final body = await utf8.decoder.bind(response).join();
+        final body = await utf8.decoder
+            .bind(response)
+            .join()
+            .timeout(LanSyncLimits.readTimeout);
         final json = jsonDecode(body) as Map<String, dynamic>;
         if (json['accepted'] == false) {
           throw Exception('rejected');
@@ -3045,13 +3553,105 @@ class SharingService {
   }
 
   Future<void> _handleImportPlaylists(HttpRequest request) async {
-    final content = await utf8.decoder.bind(request).join();
-    final json = jsonDecode(content) as Map<String, dynamic>;
+    final json = await _readSyncJsonBody(request);
+    if (json == null) return;
+
     final senderId = json['sender_id'] as String? ?? 'unknown';
     final senderName = json['sender_name'] as String? ?? 'Unknown';
-    final playlists = json['playlists'] as List<dynamic>? ?? [];
+    final incoming = json['playlists'] as List<dynamic>? ?? const [];
+    final chunkTotal = json['chunk_total'] as int? ?? 1;
+    final chunkIndex = json['chunk_index'] as int? ?? 0;
+    final transferId = json['transfer_id'] as String? ?? 'single';
 
-    int totalSongs = 0;
+    if (chunkTotal <= 1) {
+      final accepted = await _confirmIncomingPlaylists(
+        senderId: senderId,
+        senderName: senderName,
+        playlists: incoming,
+      );
+      if (!accepted) {
+        await _closeWithJson(request, HttpStatus.forbidden, {
+          'accepted': false,
+          'reason': 'Request rejected by user',
+        });
+        return;
+      }
+      await _finishPlaylistImport(request, incoming);
+      return;
+    }
+
+    _pruneChunkSessions(_playlistChunkSessions);
+    final sessionKey = '$senderId/$transferId';
+
+    if (chunkIndex == 0) {
+      final accepted = await _confirmIncomingPlaylists(
+        senderId: senderId,
+        senderName: senderName,
+        playlists: incoming,
+      );
+      if (!accepted) {
+        _playlistChunkSessions.remove(sessionKey);
+        await _closeWithJson(request, HttpStatus.forbidden, {
+          'accepted': false,
+          'reason': 'Request rejected by user',
+        });
+        return;
+      }
+      final session = _LanChunkSession(
+        totalChunks: chunkTotal,
+        senderId: senderId,
+      )..items.addAll(incoming);
+      session.receivedChunks.add(chunkIndex);
+      _playlistChunkSessions[sessionKey] = session;
+      await _closeWithJson(request, HttpStatus.ok, {
+        'accepted': true,
+        'chunk_index': chunkIndex,
+        'chunk_total': chunkTotal,
+      });
+      return;
+    }
+
+    final session = _playlistChunkSessions[sessionKey];
+    if (session == null || session.totalChunks != chunkTotal) {
+      _playlistChunkSessions.remove(sessionKey);
+      await _closeWithJson(request, HttpStatus.conflict, {
+        'accepted': false,
+        'reason': 'chunk session expired',
+      });
+      return;
+    }
+
+    if (!session.receivedChunks.add(chunkIndex)) {
+      await _closeWithJson(request, HttpStatus.ok, {
+        'accepted': true,
+        'chunk_index': chunkIndex,
+        'chunk_total': chunkTotal,
+      });
+      return;
+    }
+
+    session.items.addAll(incoming);
+    session.lastTouched = DateTime.now();
+
+    if (chunkIndex < chunkTotal - 1) {
+      await _closeWithJson(request, HttpStatus.ok, {
+        'accepted': true,
+        'chunk_index': chunkIndex,
+        'chunk_total': chunkTotal,
+      });
+      return;
+    }
+
+    _playlistChunkSessions.remove(sessionKey);
+    await _finishPlaylistImport(request, session.items);
+  }
+
+  Future<bool> _confirmIncomingPlaylists({
+    required String senderId,
+    required String senderName,
+    required List<dynamic> playlists,
+  }) {
+    var totalSongs = 0;
     for (final p in playlists) {
       if (p is Map<String, dynamic>) {
         totalSongs += p['songs_count'] as int? ?? 0;
@@ -3069,25 +3669,20 @@ class SharingService {
             playlistCount: playlists.length,
             songsCount: totalSongs,
             onDecision: (accepted) {
-              completer.complete(accepted);
+              if (!completer.isCompleted) completer.complete(accepted);
               _ref
                   .read(incomingPlaylistRequestProvider.notifier)
                   .setRequest(null);
             },
           ),
         );
+    return completer.future;
+  }
 
-    final accepted = await completer.future;
-    if (!accepted) {
-      request.response.statusCode = HttpStatus.forbidden;
-      request.response.headers.contentType = ContentType.json;
-      request.response.write(
-        jsonEncode({'accepted': false, 'reason': 'Request rejected by user'}),
-      );
-      await request.response.close();
-      return;
-    }
-
+  Future<void> _finishPlaylistImport(
+    HttpRequest request,
+    List<dynamic> playlists,
+  ) async {
     final stats = await _importPlaylistsPayload(playlists);
     _ref
         .read(lanSyncReceiptProvider.notifier)
@@ -3103,10 +3698,7 @@ class SharingService {
           ),
         );
 
-    request.response.statusCode = HttpStatus.ok;
-    request.response.headers.contentType = ContentType.json;
-    request.response.write(jsonEncode({'accepted': true, ...stats}));
-    await request.response.close();
+    await _closeWithJson(request, HttpStatus.ok, {'accepted': true, ...stats});
   }
 }
 

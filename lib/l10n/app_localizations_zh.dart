@@ -5611,6 +5611,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String lanSyncPlaylistsAmbiguous(int count) {
     return '其中 $count 首存在多个候选，已取最可能的一个';
   }
+
+  @override
+  String get lanSyncErrorBusy => '这台设备上一次同步还没结束，请稍候';
+
+  @override
+  String get lanSyncErrorSessionExpired => '传输会话已过期，请重试';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11220,4 +11226,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String lanSyncPlaylistsAmbiguous(int count) {
     return '其中 $count 首存在多個候選，已取最可能的一個';
   }
+
+  @override
+  String get lanSyncErrorBusy => '這台裝置上一次同步還沒結束，請稍候';
+
+  @override
+  String get lanSyncErrorSessionExpired => '傳輸工作階段已過期，請重試';
 }

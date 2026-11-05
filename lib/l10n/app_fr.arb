@@ -2172,5 +2172,7 @@
   "lanSyncErrorStatus": "L'autre appareil a renvoyé une erreur (HTTP {status})",
   "lanSyncErrorTimeout": "Délai de connexion dépassé. Vérifiez que les deux appareils sont sur le même réseau.",
   "lanSyncErrorNetwork": "Impossible de se connecter à l'appareil",
-  "lanSyncPlaylistsAmbiguous": "{count} titre(s) avaient plusieurs candidats ; le plus probable a été retenu"
+  "lanSyncPlaylistsAmbiguous": "{count} titre(s) avaient plusieurs candidats ; le plus probable a été retenu",
+  "lanSyncErrorBusy": "Une synchronisation avec cet appareil est déjà en cours",
+  "lanSyncErrorSessionExpired": "La session de transfert a expiré. Réessayez."
 }
