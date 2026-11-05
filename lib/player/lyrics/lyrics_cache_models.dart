@@ -164,17 +164,15 @@ class LyricsCacheRecord {
   final String cacheKey;
   final LyricsCacheSource source;
 
-  /// 本记录歌词本身的语言（**不是**译文语言）。
-  ///
-  /// 目前没有生产代码给它赋过非空值，`pickPreferredLyricsRecord` 会拿它做
-  /// 「来源 + 语言」精确匹配 —— 保持原语义，不要拿它存译文选择。
-  final String languageCode;
-
   /// 用户在这首歌上选中的**译文**展示语言；空 = 跟随全局设置。
   ///
   /// 由 `setSelectedTranslationLanguage()` 单列写入。整行写入（
   /// `insertOrUpdateLyricsCache`）会保留库里的旧值，避免「保存歌词内容」
   /// 把用户的展示选择洗成空。
+  ///
+  /// 与译文的 `languageCode` 不是同一件事：那个是「这条译文是什么语言」，
+  /// 这个是「我要看哪种语言的译文」。曾有一个同名的 `languageCode` 字段用来
+  /// 表示「歌词本体语言」，但全项目从未赋过非空值，已于 schema 49 删除。
   final String selectedTranslationLanguage;
 
   final bool isSynced;
@@ -187,7 +185,6 @@ class LyricsCacheRecord {
     this.id,
     required this.cacheKey,
     required this.source,
-    this.languageCode = '',
     this.selectedTranslationLanguage = '',
     required this.isSynced,
     this.syncedLyrics,
@@ -196,11 +193,32 @@ class LyricsCacheRecord {
     required this.updatedAtMillis,
   });
 
+  /// 跨设备导入专用：换成接收端派生出的 [cacheKey]，丢掉远端自增主键。
+  ///
+  /// 两条硬性理由：
+  /// - `id` 是对方数据库的主键，原样带进 `insertOrUpdateLyricsCache` 会按 id
+  ///   命中本地**另一首歌**的行；
+  /// - `selectedTranslationLanguage` 是设备级偏好（「这台设备要看哪种译文」），
+  ///   不属于内容，同步时禁止搬运，否则会覆盖本机用户的选择。
+  ///
+  /// 不要用 `copyWith` 实现这个语义：`id ?? this.id` 无法置空，可空字段也
+  /// 没有办法显式写成 null。
+  LyricsCacheRecord toImported({required String cacheKey}) {
+    return LyricsCacheRecord(
+      cacheKey: cacheKey,
+      source: source,
+      isSynced: isSynced,
+      syncedLyrics: syncedLyrics,
+      syncedLines: syncedLines,
+      timelineOffsetMillis: timelineOffsetMillis,
+      updatedAtMillis: updatedAtMillis,
+    );
+  }
+
   LyricsCacheRecord copyWith({
     int? id,
     String? cacheKey,
     LyricsCacheSource? source,
-    String? languageCode,
     String? selectedTranslationLanguage,
     bool? isSynced,
     String? syncedLyrics,
@@ -212,7 +230,6 @@ class LyricsCacheRecord {
       id: id ?? this.id,
       cacheKey: cacheKey ?? this.cacheKey,
       source: source ?? this.source,
-      languageCode: languageCode ?? this.languageCode,
       selectedTranslationLanguage:
           selectedTranslationLanguage ?? this.selectedTranslationLanguage,
       isSynced: isSynced ?? this.isSynced,
@@ -228,7 +245,6 @@ class LyricsCacheRecord {
     return {
       'cacheKey': cacheKey,
       'source': source.dbValue,
-      'languageCode': languageCode,
       'selectedTranslationLanguage': selectedTranslationLanguage,
       'isSynced': isSynced ? 1 : 0,
       'syncedLyrics': syncedLyrics,
@@ -247,8 +263,8 @@ class LyricsCacheRecord {
       id: map['id'] as int?,
       cacheKey: map['cacheKey'] as String? ?? '',
       source: LyricsCacheSource.fromDbValue(map['source']),
-      languageCode: map['languageCode'] as String? ?? '',
-      // 老备份没有这一列，按「跟随全局设置」处理。
+      // 老备份里可能有 languageCode（已废弃的「歌词本体语言」），忽略即可。
+      // 老备份没有 selectedTranslationLanguage，按「跟随全局设置」处理。
       selectedTranslationLanguage:
           map['selectedTranslationLanguage'] as String? ?? '',
       isSynced: (map['isSynced'] as int? ?? 0) == 1,

@@ -26,7 +26,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 48;
+  int get schemaVersion => 49;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -543,6 +543,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           "TEXT NOT NULL DEFAULT ''",
         );
       }
+      if (from < 49) {
+        // 删除从未被赋值过的 lyrics_cache.languageCode（「歌词本体语言」）。
+        // 全项目没有任何构造点传过非空值，它唯一参与的「来源 + 语言」精确
+        // 匹配分支因为这张表是 UNIQUE(cacheKey) 而不可能命中。
+        await _dropLyricsCacheLanguageCodeColumn(m);
+      }
     },
   );
 
@@ -829,6 +835,49 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<bool> _columnExists(String table, String column) async {
     final rows = await customSelect('PRAGMA table_info($table)').get();
     return rows.any((row) => row.data['name'] == column);
+  }
+
+  /// schema 49：删除 `lyrics_cache.languageCode`。
+  ///
+  /// 不走 `Migrator.dropColumn` —— 它只在 SQLite 3.35+ 可用，而本项目没有
+  /// 引入 `sqlite3_flutter_libs`（pubspec 里只有 sqlite3 的 Dart 绑定），
+  /// Android 12 及更早的系统 SQLite 低于该版本，升级时会直接抛错。
+  /// 这里统一走「建新表 → 拷贝 → 删旧表 → 换名」，全版本兼容。
+  ///
+  /// 幂等：列不存在（新库、已迁移库）时直接返回。
+  Future<void> _dropLyricsCacheLanguageCodeColumn(Migrator m) async {
+    if (!await _columnExists('lyrics_cache', 'languageCode')) return;
+
+    await m.database.customStatement('''
+      CREATE TABLE lyrics_cache_migrated (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cacheKey TEXT NOT NULL,
+        source TEXT NOT NULL,
+        selectedTranslationLanguage TEXT NOT NULL DEFAULT '',
+        isSynced INTEGER NOT NULL,
+        syncedLyrics TEXT,
+        syncedLinesJson TEXT NOT NULL,
+        timelineOffsetMillis INTEGER NOT NULL,
+        updatedAtMillis INTEGER NOT NULL,
+        UNIQUE(cacheKey)
+      )
+    ''');
+    await m.database.customStatement('''
+      INSERT INTO lyrics_cache_migrated (
+        id, cacheKey, source, selectedTranslationLanguage,
+        isSynced, syncedLyrics, syncedLinesJson,
+        timelineOffsetMillis, updatedAtMillis
+      )
+      SELECT
+        id, cacheKey, source, selectedTranslationLanguage,
+        isSynced, syncedLyrics, syncedLinesJson,
+        timelineOffsetMillis, updatedAtMillis
+      FROM lyrics_cache
+    ''');
+    await m.database.customStatement('DROP TABLE lyrics_cache');
+    await m.database.customStatement(
+      'ALTER TABLE lyrics_cache_migrated RENAME TO lyrics_cache',
+    );
   }
 
   Future<bool> _tableExists(String table) async {
@@ -2552,7 +2601,6 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         LyricsCachesCompanion(
           cacheKey: Value(normalizedCacheKey),
           source: Value(record.source.dbValue),
-          languageCode: Value(record.languageCode),
           selectedTranslationLanguage: Value(
             record.selectedTranslationLanguage.isNotEmpty
                 ? record.selectedTranslationLanguage
@@ -3325,7 +3373,6 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       id: row.id,
       cacheKey: row.cacheKey,
       source: LyricsCacheSource.fromDbValue(row.source),
-      languageCode: row.languageCode,
       selectedTranslationLanguage: row.selectedTranslationLanguage,
       isSynced: row.isSynced,
       syncedLyrics: row.syncedLyrics,
@@ -4003,12 +4050,12 @@ class LyricsCaches extends Table {
   IntColumn get id => integer().autoIncrement().named('id')();
   TextColumn get cacheKey => text().named('cacheKey')();
   TextColumn get source => text().named('source')();
-  TextColumn get languageCode => text().withDefault(const Constant('')).named('languageCode')();
 
   /// 用户在这首歌上选中的**译文**展示语言；空 = 跟随全局设置。
   ///
-  /// 与 [languageCode]（本记录歌词自身的语言）不是同一件事：前者是"要看哪种
-  /// 语言的译文"，后者是"这条歌词本身是什么语言"。
+  /// 只表示「要看哪种语言的译文」，与译文的 `languageCode`（那条译文本身是
+  /// 什么语言）不是一回事。曾有同名 `languageCode` 列表示「歌词本体语言」，
+  /// 因全项目从未赋值，已于 schema 49 删除。
   TextColumn get selectedTranslationLanguage =>
       text().withDefault(const Constant('')).named('selectedTranslationLanguage')();
 

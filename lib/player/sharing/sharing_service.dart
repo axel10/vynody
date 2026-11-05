@@ -17,6 +17,7 @@ import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:bonsoir/bonsoir.dart';
 import 'lan_device.dart';
+import 'lyrics_translation_importer.dart';
 import 'sharing_riverpod.dart';
 import 'remote_control/remote_control_service.dart';
 import 'security/tls_certificate_service.dart';
@@ -2461,31 +2462,20 @@ class SharingService {
         '[SharingService] Overwriting lyrics for cacheKey: $localCacheKey',
       );
 
-      final newRecord = LyricsCacheRecord(
-        cacheKey: localCacheKey,
-        source: incomingLyrics.source,
-        isSynced: incomingLyrics.isSynced,
-        syncedLyrics: incomingLyrics.syncedLyrics,
-        syncedLines: incomingLyrics.syncedLines,
-        timelineOffsetMillis: incomingLyrics.timelineOffsetMillis,
-        updatedAtMillis: incomingLyrics.updatedAtMillis,
-      );
+      // 手工搬运换成 toImported：后者固定丢弃远端自增主键（会按 id 命中本地
+      // 另一首歌的行）与本机用户选的展示语言（设备级偏好，不随同步走）。
+      final newRecord = incomingLyrics.toImported(cacheKey: localCacheKey);
       await MetadataDatabase().insertOrUpdateLyricsCache(newRecord);
 
-      await MetadataDatabase().clearLyricsTranslationCacheByKey(localCacheKey);
-      for (final translation in incomingTranslations) {
-        final newTranslation = LyricsTranslationCacheRecord(
-          cacheKey: localCacheKey,
-          languageCode: translation.languageCode,
-          translatedText: translation.translatedText,
-          translatedLines: translation.translatedLines,
-          provider: translation.provider,
-          updatedAtMillis: translation.updatedAtMillis,
-        );
-        await MetadataDatabase().insertOrUpdateLyricsTranslationCache(
-          newTranslation,
-        );
-      }
+      // 译文按 (cacheKey, languageCode) 逐条合并，绝不整表清空。
+      //
+      // 一首歌可以同时存在 zh-cn / ja / ko 多条译文（lyrics_translation_cache
+      // 是 UNIQUE(cacheKey, languageCode)）。旧的「先 clear 再逐条插入」会把
+      // 本机独有的语言一起删掉；而且 clear 是裸 delete，会在删除与插入之间给
+      // watch 订阅方送出一份空快照，正在播放时歌词面板译文会整份闪空。
+      await LyricsTranslationImporter(
+        MetadataDatabase(),
+      ).merge(cacheKey: localCacheKey, incoming: incomingTranslations);
       return true;
     }
     return false;

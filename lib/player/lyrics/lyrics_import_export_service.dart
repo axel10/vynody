@@ -163,7 +163,6 @@ class LyricsImportExportService {
     if (imported.syncedLyrics != existing.syncedLyrics) return true;
     if (imported.timelineOffsetMillis != existing.timelineOffsetMillis) return true;
     if (imported.source != existing.source) return true;
-    if (imported.languageCode != existing.languageCode) return true;
 
     if (imported.syncedLines.length != existing.syncedLines.length) return true;
     for (int i = 0; i < imported.syncedLines.length; i++) {

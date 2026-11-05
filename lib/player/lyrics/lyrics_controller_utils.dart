@@ -188,7 +188,7 @@ class LyricsControllerSupport {
   /// 保证「实际显示」与「弹窗打勾」永远一致。
   LyricsCacheRecord? pickPreferredCacheRecord(
     List<LyricsCacheRecord> records, {
-    ({LyricsCacheSource source, String languageCode})? preference,
+    LyricsSourcePreference? preference,
   }) {
     return pickPreferredLyricsRecord(records, preference: preference);
   }
@@ -477,7 +477,9 @@ class LyricsControllerSupport {
         );
       }
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('selected_lyric_source_$cacheKey', '${source.dbValue}|');
+      // 只存来源。旧格式 `source|languageCode` 的第二段恒为空，已在 schema 49
+      // 一并废弃；读取端仍兼容带 `|` 的历史值。
+      await prefs.setString('selected_lyric_source_$cacheKey', source.dbValue);
     } catch (e) {
       debugPrint('[LyricsController] Failed to cache manual lyrics: $e');
     }

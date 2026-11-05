@@ -21,6 +21,7 @@ import 'package:vynody/player/lyrics/lyrics_controller_utils.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/lyrics/timeline/lyrics_timeline_service.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
+import 'package:vynody/player/lyrics/sources/lyrics_source_preference.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
 import 'package:vynody/player/lyrics/lyrics_song_task_state.dart';
@@ -342,16 +343,18 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   static const String _activeLyricSourcePrefix = 'selected_lyric_source_';
 
-  Future<({LyricsCacheSource source, String languageCode})?> getSelectedLyricSource(String cacheKey) async {
+  Future<LyricsSourcePreference?> getSelectedLyricSource(
+    String cacheKey,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final val = prefs.getString('$_activeLyricSourcePrefix$cacheKey');
-      if (val != null && val.contains('|')) {
-        final parts = val.split('|');
-        return (
-          source: LyricsCacheSource.fromDbValue(parts[0]),
-          languageCode: parts.length > 1 ? parts[1] : '',
-        );
+      if (val != null && val.isNotEmpty) {
+        // 兼容历史格式 `source|languageCode`：languageCode 维度已废弃，
+        // 取 `|` 之前的部分即可。新写入是纯 `source.dbValue`。
+        final sourceValue = val.contains('|') ? val.split('|').first : val;
+        if (sourceValue.isEmpty) return null;
+        return (source: LyricsCacheSource.fromDbValue(sourceValue));
       }
     } catch (e) {
       debugPrint('[LyricsController] Error getting selected lyric source: $e');
@@ -359,30 +362,31 @@ class LyricsController extends Notifier<LyricsControllerState> {
     return null;
   }
 
-  Future<void> setSelectedLyricSource(String cacheKey, LyricsCacheSource source, {String languageCode = ''}) async {
+  Future<void> setSelectedLyricSource(
+    String cacheKey,
+    LyricsCacheSource source,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = '$_activeLyricSourcePrefix$cacheKey';
-      await prefs.setString(key, '${source.dbValue}|$languageCode');
-      
+      await prefs.setString(key, source.dbValue);
+
       final currentSong = _context.currentMusic();
       if (currentSong != null) {
         final currentQuery = await _support.buildLyricsQueryForSong(currentSong);
         final currentKey = currentQuery?.cacheKey ?? cacheKey;
         if (currentKey != cacheKey) {
-          await prefs.setString('$_activeLyricSourcePrefix$currentKey', '${source.dbValue}|$languageCode');
+          await prefs.setString(
+            '$_activeLyricSourcePrefix$currentKey',
+            source.dbValue,
+          );
         }
 
         // 切换来源即覆盖旧缓存：将新选中的来源持久化覆盖到数据库中
         final available = await getAvailableLyricRecords(currentSong);
-        LyricsCacheRecord? targetRecord;
-        for (final r in available) {
-          if (r.source == source && r.languageCode == languageCode) {
-            targetRecord = r;
-            break;
-          }
-        }
-        targetRecord ??= available.where((r) => r.source == source).firstOrNull;
+        final targetRecord = available
+            .where((r) => r.source == source)
+            .firstOrNull;
 
         if (targetRecord != null) {
           await _context.lyricsCacheRepository.saveLyricsCache(
@@ -705,7 +709,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
     _logDebug(
       'lyrics cache watch applied -> path="$songPath" cacheKey="$cacheKey" '
-      'source=${selectedRecord.source.dbValue} lang=${selectedRecord.languageCode} '
+      'source=${selectedRecord.source.dbValue} '
       'lines=${selectedRecord.syncedLines.length} '
       'translationsFromDB=${translations.keys.toList()} '
       '(recordsCount=${translationRecords.length})',

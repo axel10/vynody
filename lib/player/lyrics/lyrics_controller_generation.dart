@@ -767,7 +767,12 @@ class LyricsGenerationCoordinator {
       );
       await _context.lyricsCacheRepository.saveLyricsCache(record);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('selected_lyric_source_${record.cacheKey}', '${record.source.dbValue}|${record.languageCode}');
+      // 只存来源。旧格式 `source|languageCode` 的第二段恒为空，已随 schema 49
+      // 一起废弃；读取端仍兼容带 `|` 的历史值。
+      await prefs.setString(
+        'selected_lyric_source_${record.cacheKey}',
+        record.source.dbValue,
+      );
 
       if (recordTimeline && song.path.isNotEmpty && generatedLyrics.trim().isNotEmpty) {
         final description = source == LyricsCacheSource.aiKaraoke

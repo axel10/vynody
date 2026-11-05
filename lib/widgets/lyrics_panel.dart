@@ -2390,7 +2390,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     );
     final LyricsCacheSource activeSource =
         activeRecord?.source ?? LyricsCacheSource.none;
-    final String activeLang = activeRecord?.languageCode ?? '';
 
     if (!mounted) return;
 
@@ -2404,7 +2403,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: sources.map((record) {
-                final isSelected = record.source == activeSource && record.languageCode == activeLang;
+                final isSelected = record.source == activeSource;
                 String title = '';
                 IconData icon;
                 switch (record.source) {
@@ -2426,10 +2425,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                     break;
                   default:
                     if (record.source.isAiSource) {
-                      final langSuffix = record.languageCode.isNotEmpty
-                          ? ' (${getLanguageDisplayName(record.languageCode)})'
-                          : '';
-                      title = '${l10n.aiGeneratedLyrics}$langSuffix';
+                      title = l10n.aiGeneratedLyrics;
                       icon = Icons.auto_awesome_rounded;
                     } else {
                       title = record.source.dbValue;
@@ -2446,7 +2442,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                     await _lyricsControllerActions.setSelectedLyricSource(
                       cacheKey,
                       record.source,
-                      languageCode: record.languageCode,
                     );
                   },
                 );

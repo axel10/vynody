@@ -2505,18 +2505,6 @@ class $LyricsCachesTable extends LyricsCaches
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _languageCodeMeta = const VerificationMeta(
-    'languageCode',
-  );
-  @override
-  late final GeneratedColumn<String> languageCode = GeneratedColumn<String>(
-    'languageCode',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
   static const VerificationMeta _selectedTranslationLanguageMeta =
       const VerificationMeta('selectedTranslationLanguage');
   @override
@@ -2591,7 +2579,6 @@ class $LyricsCachesTable extends LyricsCaches
     id,
     cacheKey,
     source,
-    languageCode,
     selectedTranslationLanguage,
     isSynced,
     syncedLyrics,
@@ -2629,15 +2616,6 @@ class $LyricsCachesTable extends LyricsCaches
       );
     } else if (isInserting) {
       context.missing(_sourceMeta);
-    }
-    if (data.containsKey('languageCode')) {
-      context.handle(
-        _languageCodeMeta,
-        languageCode.isAcceptableOrUnknown(
-          data['languageCode']!,
-          _languageCodeMeta,
-        ),
-      );
     }
     if (data.containsKey('selectedTranslationLanguage')) {
       context.handle(
@@ -2719,10 +2697,6 @@ class $LyricsCachesTable extends LyricsCaches
         DriftSqlType.string,
         data['${effectivePrefix}source'],
       )!,
-      languageCode: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}languageCode'],
-      )!,
       selectedTranslationLanguage: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}selectedTranslationLanguage'],
@@ -2760,12 +2734,12 @@ class LyricsCache extends DataClass implements Insertable<LyricsCache> {
   final int id;
   final String cacheKey;
   final String source;
-  final String languageCode;
 
   /// 用户在这首歌上选中的**译文**展示语言；空 = 跟随全局设置。
   ///
-  /// 与 [languageCode]（本记录歌词自身的语言）不是同一件事：前者是"要看哪种
-  /// 语言的译文"，后者是"这条歌词本身是什么语言"。
+  /// 只表示「要看哪种语言的译文」，与译文的 `languageCode`（那条译文本身是
+  /// 什么语言）不是一回事。曾有同名 `languageCode` 列表示「歌词本体语言」，
+  /// 因全项目从未赋值，已于 schema 49 删除。
   final String selectedTranslationLanguage;
   final bool isSynced;
   final String? syncedLyrics;
@@ -2776,7 +2750,6 @@ class LyricsCache extends DataClass implements Insertable<LyricsCache> {
     required this.id,
     required this.cacheKey,
     required this.source,
-    required this.languageCode,
     required this.selectedTranslationLanguage,
     required this.isSynced,
     this.syncedLyrics,
@@ -2790,7 +2763,6 @@ class LyricsCache extends DataClass implements Insertable<LyricsCache> {
     map['id'] = Variable<int>(id);
     map['cacheKey'] = Variable<String>(cacheKey);
     map['source'] = Variable<String>(source);
-    map['languageCode'] = Variable<String>(languageCode);
     map['selectedTranslationLanguage'] = Variable<String>(
       selectedTranslationLanguage,
     );
@@ -2809,7 +2781,6 @@ class LyricsCache extends DataClass implements Insertable<LyricsCache> {
       id: Value(id),
       cacheKey: Value(cacheKey),
       source: Value(source),
-      languageCode: Value(languageCode),
       selectedTranslationLanguage: Value(selectedTranslationLanguage),
       isSynced: Value(isSynced),
       syncedLyrics: syncedLyrics == null && nullToAbsent
@@ -2830,7 +2801,6 @@ class LyricsCache extends DataClass implements Insertable<LyricsCache> {
       id: serializer.fromJson<int>(json['id']),
       cacheKey: serializer.fromJson<String>(json['cacheKey']),
       source: serializer.fromJson<String>(json['source']),
-      languageCode: serializer.fromJson<String>(json['languageCode']),
       selectedTranslationLanguage: serializer.fromJson<String>(
         json['selectedTranslationLanguage'],
       ),
@@ -2850,7 +2820,6 @@ class LyricsCache extends DataClass implements Insertable<LyricsCache> {
       'id': serializer.toJson<int>(id),
       'cacheKey': serializer.toJson<String>(cacheKey),
       'source': serializer.toJson<String>(source),
-      'languageCode': serializer.toJson<String>(languageCode),
       'selectedTranslationLanguage': serializer.toJson<String>(
         selectedTranslationLanguage,
       ),
@@ -2866,7 +2835,6 @@ class LyricsCache extends DataClass implements Insertable<LyricsCache> {
     int? id,
     String? cacheKey,
     String? source,
-    String? languageCode,
     String? selectedTranslationLanguage,
     bool? isSynced,
     Value<String?> syncedLyrics = const Value.absent(),
@@ -2877,7 +2845,6 @@ class LyricsCache extends DataClass implements Insertable<LyricsCache> {
     id: id ?? this.id,
     cacheKey: cacheKey ?? this.cacheKey,
     source: source ?? this.source,
-    languageCode: languageCode ?? this.languageCode,
     selectedTranslationLanguage:
         selectedTranslationLanguage ?? this.selectedTranslationLanguage,
     isSynced: isSynced ?? this.isSynced,
@@ -2891,9 +2858,6 @@ class LyricsCache extends DataClass implements Insertable<LyricsCache> {
       id: data.id.present ? data.id.value : this.id,
       cacheKey: data.cacheKey.present ? data.cacheKey.value : this.cacheKey,
       source: data.source.present ? data.source.value : this.source,
-      languageCode: data.languageCode.present
-          ? data.languageCode.value
-          : this.languageCode,
       selectedTranslationLanguage: data.selectedTranslationLanguage.present
           ? data.selectedTranslationLanguage.value
           : this.selectedTranslationLanguage,
@@ -2919,7 +2883,6 @@ class LyricsCache extends DataClass implements Insertable<LyricsCache> {
           ..write('id: $id, ')
           ..write('cacheKey: $cacheKey, ')
           ..write('source: $source, ')
-          ..write('languageCode: $languageCode, ')
           ..write('selectedTranslationLanguage: $selectedTranslationLanguage, ')
           ..write('isSynced: $isSynced, ')
           ..write('syncedLyrics: $syncedLyrics, ')
@@ -2935,7 +2898,6 @@ class LyricsCache extends DataClass implements Insertable<LyricsCache> {
     id,
     cacheKey,
     source,
-    languageCode,
     selectedTranslationLanguage,
     isSynced,
     syncedLyrics,
@@ -2950,7 +2912,6 @@ class LyricsCache extends DataClass implements Insertable<LyricsCache> {
           other.id == this.id &&
           other.cacheKey == this.cacheKey &&
           other.source == this.source &&
-          other.languageCode == this.languageCode &&
           other.selectedTranslationLanguage ==
               this.selectedTranslationLanguage &&
           other.isSynced == this.isSynced &&
@@ -2964,7 +2925,6 @@ class LyricsCachesCompanion extends UpdateCompanion<LyricsCache> {
   final Value<int> id;
   final Value<String> cacheKey;
   final Value<String> source;
-  final Value<String> languageCode;
   final Value<String> selectedTranslationLanguage;
   final Value<bool> isSynced;
   final Value<String?> syncedLyrics;
@@ -2975,7 +2935,6 @@ class LyricsCachesCompanion extends UpdateCompanion<LyricsCache> {
     this.id = const Value.absent(),
     this.cacheKey = const Value.absent(),
     this.source = const Value.absent(),
-    this.languageCode = const Value.absent(),
     this.selectedTranslationLanguage = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.syncedLyrics = const Value.absent(),
@@ -2987,7 +2946,6 @@ class LyricsCachesCompanion extends UpdateCompanion<LyricsCache> {
     this.id = const Value.absent(),
     required String cacheKey,
     required String source,
-    this.languageCode = const Value.absent(),
     this.selectedTranslationLanguage = const Value.absent(),
     required bool isSynced,
     this.syncedLyrics = const Value.absent(),
@@ -3004,7 +2962,6 @@ class LyricsCachesCompanion extends UpdateCompanion<LyricsCache> {
     Expression<int>? id,
     Expression<String>? cacheKey,
     Expression<String>? source,
-    Expression<String>? languageCode,
     Expression<String>? selectedTranslationLanguage,
     Expression<bool>? isSynced,
     Expression<String>? syncedLyrics,
@@ -3016,7 +2973,6 @@ class LyricsCachesCompanion extends UpdateCompanion<LyricsCache> {
       if (id != null) 'id': id,
       if (cacheKey != null) 'cacheKey': cacheKey,
       if (source != null) 'source': source,
-      if (languageCode != null) 'languageCode': languageCode,
       if (selectedTranslationLanguage != null)
         'selectedTranslationLanguage': selectedTranslationLanguage,
       if (isSynced != null) 'isSynced': isSynced,
@@ -3032,7 +2988,6 @@ class LyricsCachesCompanion extends UpdateCompanion<LyricsCache> {
     Value<int>? id,
     Value<String>? cacheKey,
     Value<String>? source,
-    Value<String>? languageCode,
     Value<String>? selectedTranslationLanguage,
     Value<bool>? isSynced,
     Value<String?>? syncedLyrics,
@@ -3044,7 +2999,6 @@ class LyricsCachesCompanion extends UpdateCompanion<LyricsCache> {
       id: id ?? this.id,
       cacheKey: cacheKey ?? this.cacheKey,
       source: source ?? this.source,
-      languageCode: languageCode ?? this.languageCode,
       selectedTranslationLanguage:
           selectedTranslationLanguage ?? this.selectedTranslationLanguage,
       isSynced: isSynced ?? this.isSynced,
@@ -3066,9 +3020,6 @@ class LyricsCachesCompanion extends UpdateCompanion<LyricsCache> {
     }
     if (source.present) {
       map['source'] = Variable<String>(source.value);
-    }
-    if (languageCode.present) {
-      map['languageCode'] = Variable<String>(languageCode.value);
     }
     if (selectedTranslationLanguage.present) {
       map['selectedTranslationLanguage'] = Variable<String>(
@@ -3099,7 +3050,6 @@ class LyricsCachesCompanion extends UpdateCompanion<LyricsCache> {
           ..write('id: $id, ')
           ..write('cacheKey: $cacheKey, ')
           ..write('source: $source, ')
-          ..write('languageCode: $languageCode, ')
           ..write('selectedTranslationLanguage: $selectedTranslationLanguage, ')
           ..write('isSynced: $isSynced, ')
           ..write('syncedLyrics: $syncedLyrics, ')
@@ -11482,7 +11432,6 @@ typedef $$LyricsCachesTableCreateCompanionBuilder =
       Value<int> id,
       required String cacheKey,
       required String source,
-      Value<String> languageCode,
       Value<String> selectedTranslationLanguage,
       required bool isSynced,
       Value<String?> syncedLyrics,
@@ -11495,7 +11444,6 @@ typedef $$LyricsCachesTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> cacheKey,
       Value<String> source,
-      Value<String> languageCode,
       Value<String> selectedTranslationLanguage,
       Value<bool> isSynced,
       Value<String?> syncedLyrics,
@@ -11525,11 +11473,6 @@ class $$LyricsCachesTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
     column: $table.source,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get languageCode => $composableBuilder(
-    column: $table.languageCode,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11588,11 +11531,6 @@ class $$LyricsCachesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get languageCode => $composableBuilder(
-    column: $table.languageCode,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get selectedTranslationLanguage => $composableBuilder(
     column: $table.selectedTranslationLanguage,
     builder: (column) => ColumnOrderings(column),
@@ -11641,11 +11579,6 @@ class $$LyricsCachesTableAnnotationComposer
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
-
-  GeneratedColumn<String> get languageCode => $composableBuilder(
-    column: $table.languageCode,
-    builder: (column) => column,
-  );
 
   GeneratedColumn<String> get selectedTranslationLanguage => $composableBuilder(
     column: $table.selectedTranslationLanguage,
@@ -11716,7 +11649,6 @@ class $$LyricsCachesTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> cacheKey = const Value.absent(),
                 Value<String> source = const Value.absent(),
-                Value<String> languageCode = const Value.absent(),
                 Value<String> selectedTranslationLanguage =
                     const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
@@ -11728,7 +11660,6 @@ class $$LyricsCachesTableTableManager
                 id: id,
                 cacheKey: cacheKey,
                 source: source,
-                languageCode: languageCode,
                 selectedTranslationLanguage: selectedTranslationLanguage,
                 isSynced: isSynced,
                 syncedLyrics: syncedLyrics,
@@ -11741,7 +11672,6 @@ class $$LyricsCachesTableTableManager
                 Value<int> id = const Value.absent(),
                 required String cacheKey,
                 required String source,
-                Value<String> languageCode = const Value.absent(),
                 Value<String> selectedTranslationLanguage =
                     const Value.absent(),
                 required bool isSynced,
@@ -11753,7 +11683,6 @@ class $$LyricsCachesTableTableManager
                 id: id,
                 cacheKey: cacheKey,
                 source: source,
-                languageCode: languageCode,
                 selectedTranslationLanguage: selectedTranslationLanguage,
                 isSynced: isSynced,
                 syncedLyrics: syncedLyrics,

@@ -105,11 +105,10 @@ void main() {
   });
 
   group('默认展示哪一条来源', () {
-    LyricsCacheRecord record(LyricsCacheSource source, {String lang = ''}) {
+    LyricsCacheRecord record(LyricsCacheSource source) {
       return LyricsCacheRecord(
         cacheKey: 'k',
         source: source,
-        languageCode: lang,
         isSynced: true,
         syncedLyrics: '[00:01.00]x',
         syncedLines: const [],
@@ -127,17 +126,27 @@ void main() {
       expect(picked?.source, LyricsCacheSource.manualAdjust);
     });
 
-    test('偏好精确命中来源与语言', () {
+    test('偏好命中来源时优先展示它', () {
       final picked = pickPreferredLyricsRecord(
         [
           record(LyricsCacheSource.embedded),
-          record(LyricsCacheSource.ai, lang: 'zh'),
-          record(LyricsCacheSource.ai, lang: 'en'),
+          record(LyricsCacheSource.ai),
         ],
-        preference: (source: LyricsCacheSource.ai, languageCode: 'en'),
+        preference: (source: LyricsCacheSource.ai),
       );
       expect(picked?.source, LyricsCacheSource.ai);
-      expect(picked?.languageCode, 'en');
+    });
+
+    test('同来源多条候选时保持第一条', () {
+      // languageCode 维度已随 schema 49 删除：lyrics_cache 是 UNIQUE(cacheKey)，
+      // 同一 key 不会出现「同来源不同语言」的多行，这里是获取歌词时合成的候选。
+      final first = record(LyricsCacheSource.ai);
+      final second = record(LyricsCacheSource.ai);
+      final picked = pickPreferredLyricsRecord(
+        [first, second],
+        preference: (source: LyricsCacheSource.ai),
+      );
+      expect(identical(picked, first), isTrue);
     });
 
     test('偏好指向的来源已不在候选里时回退到优先级，而不是空选', () {
@@ -145,7 +154,7 @@ void main() {
       // 一项都不打勾，实际却显示了 lrclib。
       final picked = pickPreferredLyricsRecord(
         [record(LyricsCacheSource.lrclib)],
-        preference: (source: LyricsCacheSource.embedded, languageCode: ''),
+        preference: (source: LyricsCacheSource.embedded),
       );
       expect(picked?.source, LyricsCacheSource.lrclib);
     });
