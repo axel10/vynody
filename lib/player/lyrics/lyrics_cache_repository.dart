@@ -52,6 +52,18 @@ class LyricsCacheRepository {
     return _db.insertOrUpdateLyricsCache(record);
   }
 
+  /// 记住「这首歌展示哪一种译文」。空串 = 清除选择、回落全局设置。
+  Future<void> setSelectedTranslationLanguage(
+    String cacheKey,
+    String languageCode,
+  ) {
+    return _db.setSelectedTranslationLanguage(cacheKey, languageCode);
+  }
+
+  Future<String> getSelectedTranslationLanguage(String cacheKey) {
+    return _db.getSelectedTranslationLanguage(cacheKey);
+  }
+
   Future<List<LyricsTranslationCacheRecord>> getLyricsTranslationCaches(
     String cacheKey,
   ) {

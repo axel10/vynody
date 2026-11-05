@@ -163,7 +163,20 @@ class LyricsCacheRecord {
   final int? id;
   final String cacheKey;
   final LyricsCacheSource source;
+
+  /// 本记录歌词本身的语言（**不是**译文语言）。
+  ///
+  /// 目前没有生产代码给它赋过非空值，`pickPreferredLyricsRecord` 会拿它做
+  /// 「来源 + 语言」精确匹配 —— 保持原语义，不要拿它存译文选择。
   final String languageCode;
+
+  /// 用户在这首歌上选中的**译文**展示语言；空 = 跟随全局设置。
+  ///
+  /// 由 `setSelectedTranslationLanguage()` 单列写入。整行写入（
+  /// `insertOrUpdateLyricsCache`）会保留库里的旧值，避免「保存歌词内容」
+  /// 把用户的展示选择洗成空。
+  final String selectedTranslationLanguage;
+
   final bool isSynced;
   final String? syncedLyrics;
   final List<LyricLine> syncedLines;
@@ -175,6 +188,7 @@ class LyricsCacheRecord {
     required this.cacheKey,
     required this.source,
     this.languageCode = '',
+    this.selectedTranslationLanguage = '',
     required this.isSynced,
     this.syncedLyrics,
     required this.syncedLines,
@@ -187,6 +201,7 @@ class LyricsCacheRecord {
     String? cacheKey,
     LyricsCacheSource? source,
     String? languageCode,
+    String? selectedTranslationLanguage,
     bool? isSynced,
     String? syncedLyrics,
     List<LyricLine>? syncedLines,
@@ -198,6 +213,8 @@ class LyricsCacheRecord {
       cacheKey: cacheKey ?? this.cacheKey,
       source: source ?? this.source,
       languageCode: languageCode ?? this.languageCode,
+      selectedTranslationLanguage:
+          selectedTranslationLanguage ?? this.selectedTranslationLanguage,
       isSynced: isSynced ?? this.isSynced,
       syncedLyrics: syncedLyrics ?? this.syncedLyrics,
       syncedLines: syncedLines ?? this.syncedLines,
@@ -212,6 +229,7 @@ class LyricsCacheRecord {
       'cacheKey': cacheKey,
       'source': source.dbValue,
       'languageCode': languageCode,
+      'selectedTranslationLanguage': selectedTranslationLanguage,
       'isSynced': isSynced ? 1 : 0,
       'syncedLyrics': syncedLyrics,
       'syncedLinesJson': jsonEncode(
@@ -230,6 +248,9 @@ class LyricsCacheRecord {
       cacheKey: map['cacheKey'] as String? ?? '',
       source: LyricsCacheSource.fromDbValue(map['source']),
       languageCode: map['languageCode'] as String? ?? '',
+      // 老备份没有这一列，按「跟随全局设置」处理。
+      selectedTranslationLanguage:
+          map['selectedTranslationLanguage'] as String? ?? '',
       isSynced: (map['isSynced'] as int? ?? 0) == 1,
       syncedLyrics: map['syncedLyrics'] as String?,
       syncedLines: decodedLines,

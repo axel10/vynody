@@ -26,7 +26,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 47;
+  int get schemaVersion => 48;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -528,6 +528,20 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
             AND (thumbnailPath IS NULL OR thumbnailPath = '')
             AND (isAppModified = 0 OR isAppModified IS NULL)
         ''');
+      }
+      if (from < 48) {
+        // 歌词译文语言选择：每首歌记住"当前展示哪一种译文"。
+        // 空串 = 跟随全局设置，因此老库不需要回填。
+        //
+        // 必须带上 `NOT NULL DEFAULT ''`：_addColumnIfMissing 只做裸 ALTER，
+        // 否则既有行拿到 NULL，而 drift 生成的 LyricsCache 把该列当非空 String
+        // 读取，一读就抛类型错误。
+        await _addColumnIfMissing(
+          m,
+          'lyrics_cache',
+          'selectedTranslationLanguage',
+          "TEXT NOT NULL DEFAULT ''",
+        );
       }
     },
   );
@@ -2520,6 +2534,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     if (normalizedCacheKey.isEmpty) return;
 
     await transaction(() async {
+      // 整行写入（delete + insert）不能顺手把「用户选了哪种译文」洗成空：
+      // 12 处 LyricsCacheRecord 构造点都不会填这个字段，保存歌词内容、切来源、
+      // 接收分享、生成歌词都会走到这里。所以旧值在这里统一接住 —— 与 songs 表
+      // 「重新构造而不是 copyWith 导致整列写成 NULL」是同一类事故。
+      final previousSelectedLanguage =
+          await (select(lyricsCaches)
+                ..where((t) => t.cacheKey.equals(normalizedCacheKey)))
+              .map((t) => t.selectedTranslationLanguage)
+              .getSingleOrNull();
+
       await (delete(lyricsCaches)
             ..where((t) => t.cacheKey.equals(normalizedCacheKey)))
           .go();
@@ -2529,6 +2553,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           cacheKey: Value(normalizedCacheKey),
           source: Value(record.source.dbValue),
           languageCode: Value(record.languageCode),
+          selectedTranslationLanguage: Value(
+            record.selectedTranslationLanguage.isNotEmpty
+                ? record.selectedTranslationLanguage
+                : (previousSelectedLanguage ?? ''),
+          ),
           isSynced: Value(record.isSynced),
           syncedLyrics: Value(record.syncedLyrics),
           syncedLinesJson: Value(
@@ -2543,6 +2572,38 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         ),
       );
     });
+  }
+
+  /// 只写「这首歌展示哪种译文」这一列，不整行重写。
+  ///
+  /// 传空串表示清除选择（回落全局设置）。行不存在时静默 no-op：还没有歌词
+  /// 记录时选语言没有意义，等歌词落地后再写。
+  Future<void> setSelectedTranslationLanguage(
+    String cacheKey,
+    String languageCode,
+  ) async {
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
+    if (normalizedCacheKey.isEmpty) return;
+
+    await (update(lyricsCaches)
+          ..where((t) => t.cacheKey.equals(normalizedCacheKey)))
+        .write(
+          LyricsCachesCompanion(
+            selectedTranslationLanguage: Value(languageCode.trim()),
+          ),
+        );
+  }
+
+  Future<String> getSelectedTranslationLanguage(String cacheKey) async {
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
+    if (normalizedCacheKey.isEmpty) return '';
+
+    final value =
+        await (select(lyricsCaches)
+              ..where((t) => t.cacheKey.equals(normalizedCacheKey)))
+            .map((t) => t.selectedTranslationLanguage)
+            .getSingleOrNull();
+    return value ?? '';
   }
 
   Future<LyricsCacheRecord?> getLyricsCache(String cacheKey) async {
@@ -3265,6 +3326,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       cacheKey: row.cacheKey,
       source: LyricsCacheSource.fromDbValue(row.source),
       languageCode: row.languageCode,
+      selectedTranslationLanguage: row.selectedTranslationLanguage,
       isSynced: row.isSynced,
       syncedLyrics: row.syncedLyrics,
       syncedLines: _decodeSyncedLines(row.syncedLinesJson),
@@ -3942,6 +4004,14 @@ class LyricsCaches extends Table {
   TextColumn get cacheKey => text().named('cacheKey')();
   TextColumn get source => text().named('source')();
   TextColumn get languageCode => text().withDefault(const Constant('')).named('languageCode')();
+
+  /// 用户在这首歌上选中的**译文**展示语言；空 = 跟随全局设置。
+  ///
+  /// 与 [languageCode]（本记录歌词自身的语言）不是同一件事：前者是"要看哪种
+  /// 语言的译文"，后者是"这条歌词本身是什么语言"。
+  TextColumn get selectedTranslationLanguage =>
+      text().withDefault(const Constant('')).named('selectedTranslationLanguage')();
+
   BoolColumn get isSynced => boolean().named('isSynced')();
   TextColumn get syncedLyrics => text().nullable().named('syncedLyrics')();
   TextColumn get syncedLinesJson => text().named('syncedLinesJson')();

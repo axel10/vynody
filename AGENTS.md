@@ -40,6 +40,8 @@ flutter run -d <device-id>               # dev run on a device
 
 - 如果改动意图明显，需求合理，适合做成测试的时候请务必用测试用例固定程序行为
 
+- 当遇到一个复杂的、工作量大的问题时请记住先写工作计划，包括现状是什么，痛点是什么，理想状态是什么，改动方法是什么，写入到markdown文件里
+
 ## Architecture notes
 
 - **State management:** Riverpod (`flutter_riverpod` v3). Providers live co-located with their domain code (e.g., `lib/player/audio/` has audio providers).
