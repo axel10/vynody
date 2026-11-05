@@ -14,8 +14,9 @@ typedef CoverProbeFunctionSync = bool Function(String filePath);
 ///
 /// Features:
 /// 1. Bottom-up post-order DFS traversal of directory trees.
-/// 2. Deterministic sorting: songs are strictly sorted by Title ascending (fallback to filename ascending),
-///    completely decoupled from dynamic user-defined UI sort criteria.
+/// 2. Deterministic sorting: songs are sorted by positive track number ascending first,
+///    then Title ascending (fallback to filename ascending), completely decoupled from
+///    dynamic user-defined UI sort criteria.
 /// 3. Lazy short-circuit probing: probes `tagFile.hasCover` sequentially and immediately stops (breaks)
 ///    at the first song with artwork.
 /// 4. Subtree inheritance: if a folder has no direct songs with artwork, it inherits the representative
@@ -104,9 +105,6 @@ class FolderCoverResolver {
         : b.name;
     return titleA.toLowerCase().compareTo(titleB.toLowerCase());
   }
-
-  /// Alias for backward compatibility.
-  static int compareSongsByTitle(MusicFile a, MusicFile b) => compareSongsForFolderCover(a, b);
 
   /// Strictly compares folders by Name ascending (case-insensitive).
   static int compareFoldersByName(MusicFolder a, MusicFolder b) {
@@ -305,7 +303,7 @@ class FolderCoverResolver {
         }
       }
 
-      // 2. Evaluate direct files with deterministic title ascending order and short-circuit probe
+      // 2. Evaluate direct files in deterministic track-number-then-title order with short-circuit probe
       MusicFile? directRep;
       if (folder.files.isNotEmpty) {
         final sortedFiles = List<MusicFile>.from(folder.files)

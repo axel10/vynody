@@ -464,7 +464,10 @@ class ScannerTreeBuilder {
       title: _cleanText(resolvedMetadata?.title ?? entry.title),
       artist: _cleanText(resolvedMetadata?.artist ?? entry.artist),
       album: _cleanText(resolvedMetadata?.album ?? entry.album),
-      trackNumber: resolvedMetadata?.trackNumber,
+      // DB 标签更权威（可能是用户改过的），MediaStore 值只作兜底：
+      // 首次扫描时后台元数据解析还没跑，DB 为空，若不给 entry 兜底，
+      // 目录树里所有音轨号都是 null → 代表封面退化成纯标题排序。
+      trackNumber: resolvedMetadata?.trackNumber ?? entry.trackNumber,
       durationMillis:
           resolvedMetadata?.duration ?? entry.duration.inMilliseconds,
       id: parsedId ?? resolvedMetadata?.mediaId ?? resolvedMetadata?.id,

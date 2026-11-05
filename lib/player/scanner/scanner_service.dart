@@ -5,7 +5,6 @@ import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:on_audio_query/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:media_scanner/media_scanner.dart';
@@ -2347,88 +2346,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         unawaited(_processAndSaveAndroidSongsBackground(keptEntries));
         return;
       }
-
-      if (Platform.isIOS) {
-        debugPrint('[ScannerService] iOS media scan start');
-        final songs = await OnAudioQuery().querySongs(
-          sortType: null,
-          orderType: OrderType.ASC_OR_SMALLER,
-          uriType: UriType.EXTERNAL,
-          ignoreCase: true,
-        );
-        final keptSongs = songs
-            .where((song) {
-              return !_shouldSkipShortAudioDuration(song.duration) &&
-                  !MusicFileUtils.isAppleDoubleFilePath(song.data);
-            })
-            .toList(growable: false);
-        final skippedSongPaths = songs
-            .where(
-              (song) =>
-                  _shouldSkipShortAudioDuration(song.duration) ||
-                  MusicFileUtils.isAppleDoubleFilePath(song.data),
-            )
-            .map((song) => _normalizePath(song.data))
-            .where((path) => path.isNotEmpty)
-            .toList(growable: false);
-        if (skippedSongPaths.isNotEmpty) {
-          _metadataStore.deleteMissingFromCache(skippedSongPaths);
-        }
-        if (keptSongs.isEmpty) {
-          _setSystemMediaFolder(null);
-          await MetadataDatabase().syncSongSourcePresence(
-            sourceMask: SongSourceFlags.systemMedia,
-            presentPaths: const [],
-          );
-          notifyListeners();
-          return;
-        }
-        debugPrint(
-          '[ScannerService] iOS media scan result count=${songs.length} '
-          'kept=${keptSongs.length}',
-        );
-
-        final metadataByPath = await _buildScannedMetadataMap(
-          keptSongs,
-          filePathOf: (song) => song.data,
-          songIdOf: (song) => song.id,
-          fallbackTitleOf: (song) => song.title,
-          fallbackAlbumOf: (song) => song.album ?? '',
-          fallbackArtistOf: (song) => song.artist ?? '',
-          fallbackDurationOf: (song) => song.duration,
-          fallbackTrackNumberOf: (song) => song.track,
-          sourceFlags: SongSourceFlags.systemMedia,
-        );
-
-        _setSystemMediaFolder(
-          _treeBuilder.buildFolderTreeFromMetadata(
-            metadataByPath.values,
-            _compareNaturally,
-            rootPath: 'system',
-            rootName: _l10n().systemMediaLibrary,
-          ),
-        );
-        debugPrint(
-          '[ScannerService] iOS system media tree built '
-          'hasTree=${_systemMediaFolder != null} '
-          'rootFolders=${_systemMediaFolder?.subFolders.length ?? 0} '
-          'files=${_systemMediaFolder?.files.length ?? 0}',
-        );
-        if (_systemMediaFolder != null) {
-          _folderSorter.sortFolderRecursiveForTree(
-            _systemMediaFolder!,
-            resolveSettings: _resolveSortSettingsForFolder,
-          );
-        }
-        await MetadataDatabase().syncSongSourcePresence(
-          sourceMask: SongSourceFlags.systemMedia,
-          presentPaths: keptSongs.map((song) => song.data),
-        );
-        notifyListeners();
-
-        unawaited(_refreshFolderCoversForRoots(['system']));
-        unawaited(_processAndSaveIosSongsBackground(keptSongs));
-      }
     } catch (e) {
       debugPrint('[ScannerService] Error scanning system media: $e');
     }
@@ -2817,72 +2734,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
     unawaited(_refreshFolderCoversForRoots(['system']));
-  }
-
-  Future<void> _processAndSaveIosSongsBackground(List<SongModel> songs) async {
-    await _processEntriesBackground(
-      songs,
-      filePathOf: (song) => song.data,
-      songIdOf: (song) => song.id,
-      sourceMask: SongSourceFlags.systemMedia,
-    );
-    unawaited(_refreshFolderCoversForRoots(['system']));
-  }
-
-  Future<Map<String, SongMetadata>> _buildScannedMetadataMap<T>(
-    Iterable<T> entries, {
-    required String? Function(T entry) filePathOf,
-    required int? Function(T entry) songIdOf,
-    required String Function(T entry) fallbackTitleOf,
-    required String Function(T entry) fallbackAlbumOf,
-    required String Function(T entry) fallbackArtistOf,
-    required int? Function(T entry) fallbackDurationOf,
-    required int? Function(T entry) fallbackTrackNumberOf,
-    int? sourceFlags,
-  }) async {
-    final metadataByPath = <String, SongMetadata>{};
-
-    final entryByPath = <String, T>{};
-    final filePaths = <String>[];
-    for (final entry in entries) {
-      final filePath = filePathOf(entry);
-      if (filePath == null) continue;
-      entryByPath[filePath] = entry;
-      filePaths.add(filePath);
-    }
-
-    final batchResults = await MetadataHelper.readMetadataBatch(
-      filePaths,
-      getImage: false,
-    );
-    final db = MetadataDatabase();
-
-    for (final result in batchResults) {
-      final filePath = result.path;
-      if (filePath.isEmpty) continue;
-
-      final entry = entryByPath[filePath];
-      if (entry == null) continue;
-
-      final existing = await db.getSongMetadata(filePath);
-      final metadata = _buildScannedMetadataFromBatchResult(
-        filePath,
-        result,
-        existing: existing,
-        mediaId: songIdOf(entry),
-        fallbackTitle: fallbackTitleOf(entry),
-        fallbackAlbum: fallbackAlbumOf(entry),
-        fallbackArtist: fallbackArtistOf(entry),
-        fallbackDuration: fallbackDurationOf(entry),
-        fallbackTrackNumber: fallbackTrackNumberOf(entry),
-        sourceFlags: sourceFlags,
-      );
-
-      metadataByPath[filePath] = metadata;
-      _metadataStore.cacheMetadata(metadata.copyWith(waveformBlob: null));
-    }
-
-    return metadataByPath;
   }
 
   Future<void> _processEntriesBackground<T>(
@@ -3818,26 +3669,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     dynamic result, {
     SongMetadata? existing,
     int? sourceFlags,
-    int? mediaId,
-    String? fallbackTitle,
-    String? fallbackAlbum,
-    String? fallbackArtist,
-    String? fallbackAlbumArtist,
-    int? fallbackDuration,
-    int? fallbackTrackNumber,
   }) {
     return _scanPipeline.buildScannedMetadataFromBatchResult(
       filePath,
       result,
       existing: existing,
       sourceFlags: sourceFlags,
-      mediaId: mediaId,
-      fallbackTitle: fallbackTitle,
-      fallbackAlbum: fallbackAlbum,
-      fallbackArtist: fallbackArtist,
-      fallbackAlbumArtist: fallbackAlbumArtist,
-      fallbackDuration: fallbackDuration,
-      fallbackTrackNumber: fallbackTrackNumber,
     );
   }
 
