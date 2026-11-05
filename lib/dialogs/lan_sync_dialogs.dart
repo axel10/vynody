@@ -7,57 +7,70 @@ import 'package:vynody/player/sharing/lan_sync_models.dart';
 import 'package:vynody/player/sharing/lan_sync_progress.dart';
 
 /// 进度对话框当前是否开着。
+///
+/// 从 `showDialog` 到路由真正销毁（`dispose`）全程为 true。**不能**用
+/// `showDialog().whenComplete` 清零：那个 future 是路由的 `popped`，在
+/// `didPop` 那一刻就完成（`Route.didPop` → `didComplete`），退场动画还没跑完。
+/// 标志一清，下面那条「自己退栈」的 post-frame 就会再 pop 一次。
 bool _progressDialogOpen = false;
 
-/// 已经请求关闭、但路由可能还没 push 完。
+/// 已经请求关闭（任务结束 / 失败 / 取消），但路由可能还没铺开。
 ///
 /// 同步失败得比 `showDialog` 铺开还快时（比如同设备互斥直接抛
-/// `LanSyncBusyException`），`hide` 会先于路由入栈执行。这时如果直接用全局
-/// navigator 去 pop，弹掉的是**页面**。所以关闭只置标志 + 用对话框自己的
-/// context 退栈；路由晚到就由它自己的 build 兜底退出。
+/// `LanSyncBusyException`），`hide` 会先于路由入栈执行。所以关闭只置标志，
+/// 路由晚到就由它自己的 build 兜底退出。
 bool _hideRequested = false;
-BuildContext? _dialogContext;
 
-/// 已经在退栈中。
+/// 进度对话框**自己那条**路由的句柄。
 ///
-/// `whenComplete` 要等退场动画跑完才触发，这中间 `_progressDialogOpen` 还是
-/// true。接口的两端（服务的 finally 和调用方的 finally）几乎同时收尾，
-/// 没有这个标记就会 pop 两次 —— 第二次弹掉的是**页面**。
-bool _closing = false;
+/// 关闭只能按这条路由的身份退栈：`Navigator.pop()` 弹的是导航器的**栈顶**，
+/// 不保证是它自己。同步收尾时栈顶常常已经换人（结果卡片、确认框的退场动画），
+/// pop 出去就把主页面弹掉了 —— 表现就是整页下滑然后白屏、返回键直接退到后台。
+ModalRoute<dynamic>? _dialogRoute;
+
+/// 退掉一条指定路由。
+///
+/// - 它就是栈顶：走正常 `pop()`，带退场动画。
+/// - 上面还压着别的路由：`removeRoute` 按身份摘掉自己，绝不动栈顶。
+/// - 已经在退场（`isActive` 为假）：什么都不做 —— 重复 pop 会连带弹掉页面。
+void _dismissRoute(ModalRoute<dynamic>? route) {
+  if (route == null || !route.isActive) return;
+  final navigator = route.navigator;
+  if (navigator == null) return;
+  if (route.isCurrent) {
+    navigator.pop();
+  } else {
+    navigator.removeRoute(route);
+  }
+}
 
 /// 打开进度对话框。已经开着就不重复开。
 ///
 /// 这里不用 `showDialog().then()` 串起任务，是因为任务本身在调用方手里：
 /// 对话框只是这块屏幕上的一个「正在做什么」的显示器，任务结束由调用方摘掉它。
 void showLanSyncProgressDialog(BuildContext context) {
-  if (_progressDialogOpen) return;
+  final existing = _dialogRoute;
+  // `_progressDialogOpen` 现在要等路由销毁才清零，所以「已经退栈、正在跑退场
+  // 动画」这一小段不能算作开着 —— 否则连着两次同步时，第二次的进度框会被
+  // 上一个对话框的残余状态挡掉。
+  if (_progressDialogOpen && (existing == null || existing.isActive)) return;
   _progressDialogOpen = true;
   _hideRequested = false;
-  _closing = false;
-  _dialogContext = null;
+  _dialogRoute = null;
   showDialog<void>(
     context: context,
     useRootNavigator: true,
     barrierDismissible: false,
     builder: (_) => const _LanSyncProgressDialog(),
-  ).whenComplete(() {
-    _progressDialogOpen = false;
-    _hideRequested = false;
-    _closing = false;
-    _dialogContext = null;
-  });
+  );
 }
 
-/// 关闭进度对话框。找不到可弹的路由时静默 — 用户可能已经切到别的页面，
+/// 关闭进度对话框。找不到可退的路由时静默 — 用户可能已经切到别的页面，
 /// 或者整个导航树正在被销毁（退出应用），这时不该抛异常打断同步收尾。
 void hideLanSyncProgressDialog() {
-  if (!_progressDialogOpen || _closing) return;
-  _closing = true;
+  if (!_progressDialogOpen) return;
   _hideRequested = true;
-  final dialogContext = _dialogContext;
-  if (dialogContext != null && dialogContext.mounted) {
-    Navigator.of(dialogContext).pop();
-  }
+  _dismissRoute(_dialogRoute);
 }
 
 bool get isLanSyncProgressDialogOpen => _progressDialogOpen;
@@ -72,15 +85,29 @@ class _LanSyncProgressDialog extends ConsumerStatefulWidget {
 
 class _LanSyncProgressDialogState
     extends ConsumerState<_LanSyncProgressDialog> {
+  /// 本对话框的路由。关闭一律按这个句柄退栈，不碰栈顶。
+  ModalRoute<dynamic>? _route;
+
   @override
-  void initState() {
-    super.initState();
-    _dialogContext = context;
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route == null) return;
+    _route = route;
+    _dialogRoute = route;
   }
 
   @override
   void dispose() {
-    if (identical(_dialogContext, context)) _dialogContext = null;
+    // 路由真正销毁（退场动画跑完、overlay 项被移除）才算关闭完成。
+    // 在这里清标志而不是 `showDialog().whenComplete`，是因为后者在 `didPop`
+    // 那一刻就触发 —— 那时本 widget 还挂在树上，build 里排的自退栈会再 pop
+    // 一次，弹掉的就是下面的主页面。
+    if (identical(_dialogRoute, _route)) {
+      _dialogRoute = null;
+      _progressDialogOpen = false;
+      _hideRequested = false;
+    }
     super.dispose();
   }
 
@@ -93,16 +120,13 @@ class _LanSyncProgressDialogState
     // 关闭已请求 / 任务已经结束但对话框才刚铺开：自己退栈。
     // 不这么做的话，「同步失败得比弹窗还快」会留下一个关不掉的模态框。
     //
-    // 用 `pop()` 而不是 `maybePop()`：外层 PopScope 的 `canPop: false` 会拦掉
-    // maybePop，于是自己永远关不掉。
+    // `_dismissRoute` 会先确认这条路由还是活的且仍是栈顶 —— pop 是幂等的
+    // 那是错觉，重复调用弹掉的是别人的路由。
     if (_hideRequested || progress == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        if (_hideRequested || ref.read(lanSyncProgressProvider) == null) {
-          if (_closing) return;
-          _closing = true;
-          Navigator.of(context).pop();
-        }
+        _hideRequested = true;
+        _dismissRoute(_route);
       });
     }
 

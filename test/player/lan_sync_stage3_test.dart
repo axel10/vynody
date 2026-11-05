@@ -309,7 +309,7 @@ void main() {
 
       expect(find.text('正在发送到 MacBook'), findsNothing);
 
-      // 退场动画跑完才会触发 whenComplete，标记要再等一帧。
+      // 标记要等路由真正销毁（退场动画跑完）才清零。
       await tester.pump(const Duration(seconds: 1));
       expect(isLanSyncProgressDialogOpen, isFalse);
     });
@@ -329,6 +329,92 @@ void main() {
       expect(find.text('open'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 1));
+      expect(isLanSyncProgressDialogOpen, isFalse);
+    });
+
+    // 回归：同步收尾时 main_layout 的监听先调 hide() 把对话框 pop 掉，
+    // 此时路由进入退场动画（`isActive` 为假，但 widget 还挂在树上），
+    // 它的 build 会因为 `progress == null` 再排一次「自己退栈」。
+    // 以前那一步用 `Navigator.of(context).pop()` —— 弹的是**栈顶**，
+    // 对话框已经不在栈里了，被弹掉的是它下面的主页面：
+    // 整页下滑、白屏、返回键直接退到后台。
+    testWidgets('先 hide 再由 build 自退栈：不能把主页面 pop 掉', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final notifier = container.read(lanSyncProgressProvider.notifier);
+      notifier.begin(
+        kind: LanSyncKind.lyrics,
+        direction: LanSyncDirection.incoming,
+        deviceName: 'MacBook',
+      );
+      notifier.setStage(LanSyncStage.importing, processed: 0, total: 8);
+
+      await pumpHost(tester, container);
+      await tester.tap(find.text('open'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('正在导入'), findsOneWidget);
+
+      // 导入结束：进度归零 → 监听调 hide（等价于 main_layout 的 ref.listen）。
+      notifier.clear();
+      hideLanSyncProgressDialog();
+
+      // 退场动画还在跑：这一帧里对话框会重建并排一次自退栈。
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // 主页面必须原封不动地还在。
+      expect(find.text('open'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('open'), findsOneWidget);
+      expect(isLanSyncProgressDialogOpen, isFalse);
+    });
+
+    testWidgets('连续两次同步：上一次的退场动画不能挡掉下一个进度框', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final notifier = container.read(lanSyncProgressProvider.notifier);
+      notifier.begin(
+        kind: LanSyncKind.lyrics,
+        direction: LanSyncDirection.incoming,
+        deviceName: 'MacBook',
+      );
+      notifier.setStage(LanSyncStage.transferring, processed: 0, total: 2);
+
+      await pumpHost(tester, container);
+      await tester.tap(find.text('open'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 第一次结束（对话框进入退场动画，尚未销毁）。
+      notifier.clear();
+      hideLanSyncProgressDialog();
+      await tester.pump();
+
+      // 第二次立刻开始。
+      notifier.begin(
+        kind: LanSyncKind.lyrics,
+        direction: LanSyncDirection.incoming,
+        deviceName: 'Pixel',
+      );
+      notifier.setStage(LanSyncStage.transferring, processed: 0, total: 2);
+      showLanSyncProgressDialog(
+        tester.element(find.text('open')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('正在从 Pixel 接收'), findsOneWidget);
+      expect(find.text('open'), findsOneWidget);
+
+      notifier.clear();
+      hideLanSyncProgressDialog();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('open'), findsOneWidget);
       expect(isLanSyncProgressDialogOpen, isFalse);
     });
   });

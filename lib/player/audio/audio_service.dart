@@ -51,6 +51,7 @@ import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/lastfm/lastfm_riverpod.dart';
+import 'package:vynody/player/lastfm/lastfm_scrobble_service.dart';
 
 class AudioService extends Notifier<AudioSnapshot> {
   static const String _volumeStorageKey = 'player_volume';
@@ -250,6 +251,34 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool? _lastNotifiedIsBuffering;
   int _lastNotifiedIndex = -1;
   String? _lastNotifiedFilePath;
+
+  /// 位置通知（[PlayerController.updatePosition]）是 60Hz 的高频信号，
+  /// 而 [_handlePlayerChanges] 里挂着一堆「每秒看几次就够」的活：自动保存
+  /// 定时器重估、Last.fm 上报判定、平台侧时间轴同步、歌词补抓。全部按帧跑
+  /// 会把 UI isolate 吃满 —— CPU profile 上这些活连同定时器唤醒调度占了
+  /// 68%，vsync 只剩 6% 的窗口，画面直接停止出帧。
+  ///
+  /// 所以这里分两档：每帧只更新位置并通知 [_positionListeners]；其余重活
+  /// 按 [_heavyPlayerSyncInterval] 的节奏执行。
+  static const Duration _heavyPlayerSyncInterval = Duration(milliseconds: 200);
+
+  /// 上一次执行重活的时间。null 表示还没跑过，首帧必须跑。
+  DateTime? _lastHeavyPlayerSyncAt;
+
+  /// 单次 [_handlePlayerChanges] 超过这个耗时才算「异常慢」。
+  ///
+  /// 它挂在 60Hz 的位置通知上，单帧预算只有 16.6ms；吃掉一半以上就会
+  /// 开始丢帧。取 8ms 作为告警线，给后面的出帧留出余量。
+  static const int _slowPlayerChangesThresholdMicros = 8000;
+
+  /// 慢回调告警的节流时间戳 —— 卡住时每帧都会超阈值，不节流会刷爆日志。
+  DateTime _lastSlowPlayerChangesLogAt = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Last.fm 上报服务实例。
+  ///
+  /// 热路径上每帧 `ref.read` 一次 provider 会付出容器查找的代价，这里在首次
+  /// 用到时取一次并缓存。
+  LastFmScrobbleService? _lastFmScrobbleServiceCache;
   late final SettingsService settingsService;
   late final VisualizerOptionsService _visualizerOptions;
   late final PlaybackQueueProcessor _queueProcessor;
@@ -949,7 +978,12 @@ class AudioService extends Notifier<AudioSnapshot> {
   void _updatePlaybackSessionAutoSaveTimer() {
     if (!_playbackSessionReady || _disposed) return;
 
-    final shouldRun = _queue.isNotEmpty && _isPlaying && !_isAppBackgrounded;
+    // 这里只问「队列空不空」，不能走 `_queue` —— 那个 getter 会把整个播放
+    // 队列 map 成新的 MusicFile 列表并分配一次，队列几千首时每次都是 O(n)。
+    // 本方法由 [_handlePlayerChanges] 高频调用，profile 上这一行独占 11% 的
+    // UI isolate 时间。`items` 本身就是 List，判空是 O(1)。
+    final shouldRun =
+        _player.playlist.items.isNotEmpty && _isPlaying && !_isAppBackgrounded;
     if (shouldRun) {
       _sessionManager.ensureAutoSaveTimer(() => _persistPlaybackSession());
     } else {
@@ -1492,16 +1526,21 @@ class AudioService extends Notifier<AudioSnapshot> {
   /// 上报侧的计入规则（时长过半或满 4 分钟、且曲目不短于 30 秒）与本地
   /// 「5 秒或过半」的播放统计不是一回事，因此判定全部交给上报侧完成，
   /// 这里只转发原始数据。
+  ///
+  /// 服务实例会缓存：方法由 [_handlePlayerChanges] 高频调用，每帧走一次
+  /// `ref.read` 的容器查找在 profile 上占到了 8% 的 UI isolate 时间。
   void _updateLastFmTracking(MusicFile song) {
     try {
-      ref
-          .read(lastFmScrobbleServiceProvider)
-          .onPositionUpdate(
-            song: song,
-            position: _position,
-            isPlaying: _isPlaying,
-            duration: _duration,
-          );
+      final LastFmScrobbleService service =
+          _lastFmScrobbleServiceCache ??
+          ref.read(lastFmScrobbleServiceProvider);
+      _lastFmScrobbleServiceCache = service;
+      service.onPositionUpdate(
+        song: song,
+        position: _position,
+        isPlaying: _isPlaying,
+        duration: _duration,
+      );
     } catch (error) {
       debugPrint('AudioService: last.fm tracking failed: $error');
     }
@@ -1733,6 +1772,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   void _handlePlayerChanges() {
+    final callbackStartedAt = DateTime.now();
     final previousIsPlaying = _isPlaying;
     _isPlaying = _player.player.isPlaying;
     _duration = _player.player.duration;
@@ -1754,6 +1794,19 @@ class AudioService extends Notifier<AudioSnapshot> {
         activeTrack.uri != currentSong.path) {
       return;
     }
+
+    final now = DateTime.now();
+
+    // 本方法由 [PlayerController.updatePosition] 以播放帧率驱动，位置推进本身
+    // 只需要「赋值 + 通知监听者」。剩下的活（平台侧时间轴、Last.fm 判定、
+    // 自动保存定时器、歌词补抓）按 [_heavyPlayerSyncInterval] 的节奏跑即可。
+    final heavyDue =
+        _lastHeavyPlayerSyncAt == null ||
+        now.difference(_lastHeavyPlayerSyncAt!) >= _heavyPlayerSyncInterval;
+    if (heavyDue) {
+      _lastHeavyPlayerSyncAt = now;
+    }
+    final playbackStateChanged = previousIsPlaying != _isPlaying;
 
     if (_duration > Duration.zero && currentSong != null) {
       final durMs = _duration.inMilliseconds;
@@ -1823,7 +1876,6 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
 
     final realPosition = _player.player.position;
-    final now = DateTime.now();
     if (now.difference(_lastPositionDebugLogAt) >= const Duration(seconds: 1)) {
       _lastPositionDebugLogAt = now;
       // debugPrint(
@@ -1873,19 +1925,28 @@ class AudioService extends Notifier<AudioSnapshot> {
       _notifyIfNeeded(force: true);
     }
 
-    _windowsIntegration?.updateTimeline(_position, _duration);
-    _androidIntegration?.updateTimeline(_position, _duration);
-    _darwinIntegration?.updateTimeline(_position, _duration);
-    _linuxIntegration?.updateTimeline(_position, _duration);
-    _windowsIntegration?.updatePlaybackStatus(_isPlaying);
-    _androidIntegration?.updatePlaybackStatus(_isPlaying);
-    _darwinIntegration?.updatePlaybackStatus(_isPlaying);
-    _linuxIntegration?.updatePlaybackStatus(_isPlaying);
-    _updatePlaybackTrackingForCurrentSong();
+    // 平台侧（媒体通知 / 锁屏 / SMTC）只在播放态变化时立刻同步，位置按闸走。
+    // 每条 updateTimeline / updatePlaybackStatus 都是一次跨平台通道写入，
+    // 逐帧打过去会把平台线程也拖住，反过来挤压 vsync。
+    if (playbackStateChanged || heavyDue) {
+      _windowsIntegration?.updatePlaybackStatus(_isPlaying);
+      _androidIntegration?.updatePlaybackStatus(_isPlaying);
+      _darwinIntegration?.updatePlaybackStatus(_isPlaying);
+      _linuxIntegration?.updatePlaybackStatus(_isPlaying);
+    }
+    if (heavyDue) {
+      _windowsIntegration?.updateTimeline(_position, _duration);
+      _androidIntegration?.updateTimeline(_position, _duration);
+      _darwinIntegration?.updateTimeline(_position, _duration);
+      _linuxIntegration?.updateTimeline(_position, _duration);
+      _updatePlaybackTrackingForCurrentSong();
+    }
 
     // 如果当前开启了歌词模式或桌面歌词，但因为切歌瞬间加载太快（时长 Duration 还没准备好）
     // 导致 API 没匹配到或尚未开始加载，当时长变为有效正值时，自动触发补抓取。
-    if (isLyricsNeeded &&
+    // 按闸执行：这里要读一批 provider 状态，逐帧判定没有意义。
+    if (heavyDue &&
+        isLyricsNeeded &&
         currentMusic != null &&
         _duration > Duration.zero &&
         !hasLyrics &&
@@ -1902,7 +1963,36 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
 
     _notifyIfNeeded();
-    _updatePlaybackSessionAutoSaveTimer();
+    // 定时器的启停取决于 `_isPlaying`，播放态一变就必须重估，不能等闸。
+    if (heavyDue || playbackStateChanged) {
+      _updatePlaybackSessionAutoSaveTimer();
+    }
+
+    _logSlowPlayerChanges(callbackStartedAt);
+  }
+
+  /// 回调超预算时打一条告警。
+  ///
+  /// 这条日志是白屏问题的哨兵：一旦这条链重新变重，UI isolate 的 vsync
+  /// 窗口会被挤掉，表现为画面停止刷新而音频照常播放 —— 那种状态下既没有
+  /// 异常也没有别的日志，只能靠这种耗时告警定位。
+  void _logSlowPlayerChanges(DateTime startedAt) {
+    final elapsedMicros = DateTime.now()
+        .difference(startedAt)
+        .inMicroseconds;
+    if (elapsedMicros < _slowPlayerChangesThresholdMicros) return;
+
+    final now = DateTime.now();
+    if (now.difference(_lastSlowPlayerChangesLogAt) < const Duration(seconds: 1)) {
+      return;
+    }
+    _lastSlowPlayerChangesLogAt = now;
+
+    debugPrint(
+      '[AudioService][SlowPlayerChanges] ${(elapsedMicros / 1000).toStringAsFixed(1)}ms '
+      'playing=$_isPlaying queueLen=${_player.playlist.items.length} '
+      'pos=${_position.inMilliseconds}ms track=${currentMusic?.displayName ?? '-'}',
+    );
   }
 
   void _notifyIfNeeded({bool force = false}) {
@@ -4299,6 +4389,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _queueMetadataWriteBackTimer?.cancel();
     _queueMetadataWriteBackTimer = null;
     _pendingQueueMetadataWrites.clear();
+    _lastFmScrobbleServiceCache = null;
     _player.removeListener(_handlePlayerChanges);
     _player.playlist.removeListener(_handlePlaylistChanges);
     _player.equalizer.removeListener(notifyListeners);

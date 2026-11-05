@@ -1400,7 +1400,17 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             '[NavTrace] MainLayout.PopScope invoked: didPop=$didPop, result=$result',
             mirrorToConsole: true,
           );
-          if (didPop) return;
+          if (didPop) {
+            // 主页面自己被弹掉了 —— 意味着有代码在栈顶调了 `Navigator.pop()`。
+            // 后果是整个导航器变空，屏幕只剩窗口底色（白），返回键直接退到
+            // 后台，只能杀进程重开。这条栈用来指认凶手。
+            AppLog.log(
+              '[NavTrace] !!! 主路由被 pop 掉了，调用栈：\n'
+              '${StackTrace.current.toString().split('\n').take(14).join('\n')}',
+              mirrorToConsole: true,
+            );
+            return;
+          }
           _handleBackPressed();
         },
         child: Listener(
