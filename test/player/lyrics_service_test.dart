@@ -595,6 +595,15 @@ class _NoopLyricsCacheRepository implements LyricsCacheRepository {
   Future<void> saveLyricsCache(LyricsCacheRecord record) async {}
 
   @override
+  Future<void> setSelectedTranslationLanguage(
+    String cacheKey,
+    String languageCode,
+  ) async {}
+
+  @override
+  Future<String> getSelectedTranslationLanguage(String cacheKey) async => '';
+
+  @override
   Future<void> saveLyricsTranslationCache(
     LyricsTranslationCacheRecord record,
   ) async {}

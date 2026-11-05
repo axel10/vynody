@@ -61,6 +61,7 @@ class LyricsControllerContext {
     required this.setIsLyricsLoading,
     required this.setIsLyricsTranslating,
     required this.setLyricsTranslationStatus,
+    required this.setTranslationDisplayLanguage,
     required this.setLyricsGenerationStatus,
     required this.setLyricsGenerationDisplayState,
     required this.setHasLyrics,
@@ -98,6 +99,11 @@ class LyricsControllerContext {
   final void Function(bool value) setIsLyricsLoading;
   final void Function(bool value) setIsLyricsTranslating;
   final void Function(String value) setLyricsTranslationStatus;
+
+  /// 同步「当前展示哪种译文」。只由数据库记录驱动（`lyrics_cache.selectedTranslationLanguage`），
+  /// 空串表示回落全局设置。
+  final void Function(String value) setTranslationDisplayLanguage;
+
   final void Function(String value) setLyricsGenerationStatus;
   final void Function(LyricsGenerationDisplayState value)
   setLyricsGenerationDisplayState;
@@ -167,6 +173,13 @@ class LyricsControllerContext {
       const LyricsGenerationDisplayState();
 
   LyricsControllerState get state => getState();
+
+  /// 展示语言的**偏好值**（不含按内容兜底）：这首歌选定的译文语言优先，
+  /// 空则用全局默认目标语言。优先级只在这里定义一次。
+  String get preferredTranslationLanguage {
+    final selected = state.translationDisplayLanguageCode;
+    return selected.isNotEmpty ? selected : state.lyricsTranslationLanguageCode;
+  }
 
   bool updateLyricsGenerationDisplayState(
     LyricsGenerationDisplayState nextState,

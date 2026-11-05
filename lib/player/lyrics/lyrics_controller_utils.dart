@@ -800,8 +800,8 @@ class LyricsControllerSupport {
       );
       if (cachedTranslations.isEmpty) return;
 
-      final preferredLanguageCode =
-          LanguageCodeUtils.currentAppLanguageCode();
+      // 排序偏好与展示侧同源：这首歌选定的译文语言优先，空则全局默认。
+      final preferredLanguageCode = _context.preferredTranslationLanguage;
       cachedTranslations.sort((a, b) {
         final aPreferred = a.languageCode == preferredLanguageCode;
         final bPreferred = b.languageCode == preferredLanguageCode;

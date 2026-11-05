@@ -31,9 +31,8 @@ Future<void> handleLyricsTranslationTap(
 
   final lyricsState = ref.read(lyricsControllerProvider);
   final displayLyrics = lyricsController.currentLyricsForCurrentSong();
-  final targetLang = lyricsState.lyricsTranslationLanguageCode;
   final effectiveLang =
-      displayLyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
+      lyricsController.effectiveTranslationLanguageFor(displayLyrics);
   final translation = displayLyrics?.translationFor(effectiveLang);
   final hasTranslation = translation != null && translation.hasContent;
 

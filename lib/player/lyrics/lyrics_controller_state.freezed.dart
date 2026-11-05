@@ -14,7 +14,13 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$LyricsControllerState {
 
- bool get isLyricsLoading; bool get isLyricsTranslating; String get lyricsTranslationStatus; String get lyricsGenerationStatus; bool get hasLyrics; bool get lyricsSearchAttempted; List<LyricLine> get currentLyricsLines; String get currentLyricsText; bool get isLyricsGenerating; LyricsGenerationPhase get lyricsGenerationPhase; double get lyricsGenerationProgress; String get lyricsTranslationLanguageCode; int get revision;
+ bool get isLyricsLoading; bool get isLyricsTranslating; String get lyricsTranslationStatus; String get lyricsGenerationStatus; bool get hasLyrics; bool get lyricsSearchAttempted; List<LyricLine> get currentLyricsLines; String get currentLyricsText; bool get isLyricsGenerating; LyricsGenerationPhase get lyricsGenerationPhase; double get lyricsGenerationProgress; String get lyricsTranslationLanguageCode;/// 当前这首歌**展示**哪一种译文（per-song，来自 `lyrics_cache.selectedTranslationLanguage`）。
+///
+/// 空串 = 跟随 [lyricsTranslationLanguageCode]（全局默认目标语言）。
+/// 与 [lyricsTranslationLanguageCode] 不是同一件事：后者是"要翻译成什么"，
+/// 前者是"已经在看什么"。展示侧只允许通过
+/// `LyricsController.effectiveTranslationLanguageFor()` 读取。
+ String get translationDisplayLanguageCode; int get revision;
 /// Create a copy of LyricsControllerState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +31,16 @@ $LyricsControllerStateCopyWith<LyricsControllerState> get copyWith => _$LyricsCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LyricsControllerState&&(identical(other.isLyricsLoading, isLyricsLoading) || other.isLyricsLoading == isLyricsLoading)&&(identical(other.isLyricsTranslating, isLyricsTranslating) || other.isLyricsTranslating == isLyricsTranslating)&&(identical(other.lyricsTranslationStatus, lyricsTranslationStatus) || other.lyricsTranslationStatus == lyricsTranslationStatus)&&(identical(other.lyricsGenerationStatus, lyricsGenerationStatus) || other.lyricsGenerationStatus == lyricsGenerationStatus)&&(identical(other.hasLyrics, hasLyrics) || other.hasLyrics == hasLyrics)&&(identical(other.lyricsSearchAttempted, lyricsSearchAttempted) || other.lyricsSearchAttempted == lyricsSearchAttempted)&&const DeepCollectionEquality().equals(other.currentLyricsLines, currentLyricsLines)&&(identical(other.currentLyricsText, currentLyricsText) || other.currentLyricsText == currentLyricsText)&&(identical(other.isLyricsGenerating, isLyricsGenerating) || other.isLyricsGenerating == isLyricsGenerating)&&(identical(other.lyricsGenerationPhase, lyricsGenerationPhase) || other.lyricsGenerationPhase == lyricsGenerationPhase)&&(identical(other.lyricsGenerationProgress, lyricsGenerationProgress) || other.lyricsGenerationProgress == lyricsGenerationProgress)&&(identical(other.lyricsTranslationLanguageCode, lyricsTranslationLanguageCode) || other.lyricsTranslationLanguageCode == lyricsTranslationLanguageCode)&&(identical(other.revision, revision) || other.revision == revision));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LyricsControllerState&&(identical(other.isLyricsLoading, isLyricsLoading) || other.isLyricsLoading == isLyricsLoading)&&(identical(other.isLyricsTranslating, isLyricsTranslating) || other.isLyricsTranslating == isLyricsTranslating)&&(identical(other.lyricsTranslationStatus, lyricsTranslationStatus) || other.lyricsTranslationStatus == lyricsTranslationStatus)&&(identical(other.lyricsGenerationStatus, lyricsGenerationStatus) || other.lyricsGenerationStatus == lyricsGenerationStatus)&&(identical(other.hasLyrics, hasLyrics) || other.hasLyrics == hasLyrics)&&(identical(other.lyricsSearchAttempted, lyricsSearchAttempted) || other.lyricsSearchAttempted == lyricsSearchAttempted)&&const DeepCollectionEquality().equals(other.currentLyricsLines, currentLyricsLines)&&(identical(other.currentLyricsText, currentLyricsText) || other.currentLyricsText == currentLyricsText)&&(identical(other.isLyricsGenerating, isLyricsGenerating) || other.isLyricsGenerating == isLyricsGenerating)&&(identical(other.lyricsGenerationPhase, lyricsGenerationPhase) || other.lyricsGenerationPhase == lyricsGenerationPhase)&&(identical(other.lyricsGenerationProgress, lyricsGenerationProgress) || other.lyricsGenerationProgress == lyricsGenerationProgress)&&(identical(other.lyricsTranslationLanguageCode, lyricsTranslationLanguageCode) || other.lyricsTranslationLanguageCode == lyricsTranslationLanguageCode)&&(identical(other.translationDisplayLanguageCode, translationDisplayLanguageCode) || other.translationDisplayLanguageCode == translationDisplayLanguageCode)&&(identical(other.revision, revision) || other.revision == revision));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isLyricsLoading,isLyricsTranslating,lyricsTranslationStatus,lyricsGenerationStatus,hasLyrics,lyricsSearchAttempted,const DeepCollectionEquality().hash(currentLyricsLines),currentLyricsText,isLyricsGenerating,lyricsGenerationPhase,lyricsGenerationProgress,lyricsTranslationLanguageCode,revision);
+int get hashCode => Object.hash(runtimeType,isLyricsLoading,isLyricsTranslating,lyricsTranslationStatus,lyricsGenerationStatus,hasLyrics,lyricsSearchAttempted,const DeepCollectionEquality().hash(currentLyricsLines),currentLyricsText,isLyricsGenerating,lyricsGenerationPhase,lyricsGenerationProgress,lyricsTranslationLanguageCode,translationDisplayLanguageCode,revision);
 
 @override
 String toString() {
-  return 'LyricsControllerState(isLyricsLoading: $isLyricsLoading, isLyricsTranslating: $isLyricsTranslating, lyricsTranslationStatus: $lyricsTranslationStatus, lyricsGenerationStatus: $lyricsGenerationStatus, hasLyrics: $hasLyrics, lyricsSearchAttempted: $lyricsSearchAttempted, currentLyricsLines: $currentLyricsLines, currentLyricsText: $currentLyricsText, isLyricsGenerating: $isLyricsGenerating, lyricsGenerationPhase: $lyricsGenerationPhase, lyricsGenerationProgress: $lyricsGenerationProgress, lyricsTranslationLanguageCode: $lyricsTranslationLanguageCode, revision: $revision)';
+  return 'LyricsControllerState(isLyricsLoading: $isLyricsLoading, isLyricsTranslating: $isLyricsTranslating, lyricsTranslationStatus: $lyricsTranslationStatus, lyricsGenerationStatus: $lyricsGenerationStatus, hasLyrics: $hasLyrics, lyricsSearchAttempted: $lyricsSearchAttempted, currentLyricsLines: $currentLyricsLines, currentLyricsText: $currentLyricsText, isLyricsGenerating: $isLyricsGenerating, lyricsGenerationPhase: $lyricsGenerationPhase, lyricsGenerationProgress: $lyricsGenerationProgress, lyricsTranslationLanguageCode: $lyricsTranslationLanguageCode, translationDisplayLanguageCode: $translationDisplayLanguageCode, revision: $revision)';
 }
 
 
@@ -45,7 +51,7 @@ abstract mixin class $LyricsControllerStateCopyWith<$Res>  {
   factory $LyricsControllerStateCopyWith(LyricsControllerState value, $Res Function(LyricsControllerState) _then) = _$LyricsControllerStateCopyWithImpl;
 @useResult
 $Res call({
- bool isLyricsLoading, bool isLyricsTranslating, String lyricsTranslationStatus, String lyricsGenerationStatus, bool hasLyrics, bool lyricsSearchAttempted, List<LyricLine> currentLyricsLines, String currentLyricsText, bool isLyricsGenerating, LyricsGenerationPhase lyricsGenerationPhase, double lyricsGenerationProgress, String lyricsTranslationLanguageCode, int revision
+ bool isLyricsLoading, bool isLyricsTranslating, String lyricsTranslationStatus, String lyricsGenerationStatus, bool hasLyrics, bool lyricsSearchAttempted, List<LyricLine> currentLyricsLines, String currentLyricsText, bool isLyricsGenerating, LyricsGenerationPhase lyricsGenerationPhase, double lyricsGenerationProgress, String lyricsTranslationLanguageCode, String translationDisplayLanguageCode, int revision
 });
 
 
@@ -62,7 +68,7 @@ class _$LyricsControllerStateCopyWithImpl<$Res>
 
 /// Create a copy of LyricsControllerState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? isLyricsLoading = null,Object? isLyricsTranslating = null,Object? lyricsTranslationStatus = null,Object? lyricsGenerationStatus = null,Object? hasLyrics = null,Object? lyricsSearchAttempted = null,Object? currentLyricsLines = null,Object? currentLyricsText = null,Object? isLyricsGenerating = null,Object? lyricsGenerationPhase = null,Object? lyricsGenerationProgress = null,Object? lyricsTranslationLanguageCode = null,Object? revision = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? isLyricsLoading = null,Object? isLyricsTranslating = null,Object? lyricsTranslationStatus = null,Object? lyricsGenerationStatus = null,Object? hasLyrics = null,Object? lyricsSearchAttempted = null,Object? currentLyricsLines = null,Object? currentLyricsText = null,Object? isLyricsGenerating = null,Object? lyricsGenerationPhase = null,Object? lyricsGenerationProgress = null,Object? lyricsTranslationLanguageCode = null,Object? translationDisplayLanguageCode = null,Object? revision = null,}) {
   return _then(_self.copyWith(
 isLyricsLoading: null == isLyricsLoading ? _self.isLyricsLoading : isLyricsLoading // ignore: cast_nullable_to_non_nullable
 as bool,isLyricsTranslating: null == isLyricsTranslating ? _self.isLyricsTranslating : isLyricsTranslating // ignore: cast_nullable_to_non_nullable
@@ -76,6 +82,7 @@ as String,isLyricsGenerating: null == isLyricsGenerating ? _self.isLyricsGenerat
 as bool,lyricsGenerationPhase: null == lyricsGenerationPhase ? _self.lyricsGenerationPhase : lyricsGenerationPhase // ignore: cast_nullable_to_non_nullable
 as LyricsGenerationPhase,lyricsGenerationProgress: null == lyricsGenerationProgress ? _self.lyricsGenerationProgress : lyricsGenerationProgress // ignore: cast_nullable_to_non_nullable
 as double,lyricsTranslationLanguageCode: null == lyricsTranslationLanguageCode ? _self.lyricsTranslationLanguageCode : lyricsTranslationLanguageCode // ignore: cast_nullable_to_non_nullable
+as String,translationDisplayLanguageCode: null == translationDisplayLanguageCode ? _self.translationDisplayLanguageCode : translationDisplayLanguageCode // ignore: cast_nullable_to_non_nullable
 as String,revision: null == revision ? _self.revision : revision // ignore: cast_nullable_to_non_nullable
 as int,
   ));
@@ -162,10 +169,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isLyricsLoading,  bool isLyricsTranslating,  String lyricsTranslationStatus,  String lyricsGenerationStatus,  bool hasLyrics,  bool lyricsSearchAttempted,  List<LyricLine> currentLyricsLines,  String currentLyricsText,  bool isLyricsGenerating,  LyricsGenerationPhase lyricsGenerationPhase,  double lyricsGenerationProgress,  String lyricsTranslationLanguageCode,  int revision)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isLyricsLoading,  bool isLyricsTranslating,  String lyricsTranslationStatus,  String lyricsGenerationStatus,  bool hasLyrics,  bool lyricsSearchAttempted,  List<LyricLine> currentLyricsLines,  String currentLyricsText,  bool isLyricsGenerating,  LyricsGenerationPhase lyricsGenerationPhase,  double lyricsGenerationProgress,  String lyricsTranslationLanguageCode,  String translationDisplayLanguageCode,  int revision)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LyricsControllerState() when $default != null:
-return $default(_that.isLyricsLoading,_that.isLyricsTranslating,_that.lyricsTranslationStatus,_that.lyricsGenerationStatus,_that.hasLyrics,_that.lyricsSearchAttempted,_that.currentLyricsLines,_that.currentLyricsText,_that.isLyricsGenerating,_that.lyricsGenerationPhase,_that.lyricsGenerationProgress,_that.lyricsTranslationLanguageCode,_that.revision);case _:
+return $default(_that.isLyricsLoading,_that.isLyricsTranslating,_that.lyricsTranslationStatus,_that.lyricsGenerationStatus,_that.hasLyrics,_that.lyricsSearchAttempted,_that.currentLyricsLines,_that.currentLyricsText,_that.isLyricsGenerating,_that.lyricsGenerationPhase,_that.lyricsGenerationProgress,_that.lyricsTranslationLanguageCode,_that.translationDisplayLanguageCode,_that.revision);case _:
   return orElse();
 
 }
@@ -183,10 +190,10 @@ return $default(_that.isLyricsLoading,_that.isLyricsTranslating,_that.lyricsTran
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isLyricsLoading,  bool isLyricsTranslating,  String lyricsTranslationStatus,  String lyricsGenerationStatus,  bool hasLyrics,  bool lyricsSearchAttempted,  List<LyricLine> currentLyricsLines,  String currentLyricsText,  bool isLyricsGenerating,  LyricsGenerationPhase lyricsGenerationPhase,  double lyricsGenerationProgress,  String lyricsTranslationLanguageCode,  int revision)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isLyricsLoading,  bool isLyricsTranslating,  String lyricsTranslationStatus,  String lyricsGenerationStatus,  bool hasLyrics,  bool lyricsSearchAttempted,  List<LyricLine> currentLyricsLines,  String currentLyricsText,  bool isLyricsGenerating,  LyricsGenerationPhase lyricsGenerationPhase,  double lyricsGenerationProgress,  String lyricsTranslationLanguageCode,  String translationDisplayLanguageCode,  int revision)  $default,) {final _that = this;
 switch (_that) {
 case _LyricsControllerState():
-return $default(_that.isLyricsLoading,_that.isLyricsTranslating,_that.lyricsTranslationStatus,_that.lyricsGenerationStatus,_that.hasLyrics,_that.lyricsSearchAttempted,_that.currentLyricsLines,_that.currentLyricsText,_that.isLyricsGenerating,_that.lyricsGenerationPhase,_that.lyricsGenerationProgress,_that.lyricsTranslationLanguageCode,_that.revision);case _:
+return $default(_that.isLyricsLoading,_that.isLyricsTranslating,_that.lyricsTranslationStatus,_that.lyricsGenerationStatus,_that.hasLyrics,_that.lyricsSearchAttempted,_that.currentLyricsLines,_that.currentLyricsText,_that.isLyricsGenerating,_that.lyricsGenerationPhase,_that.lyricsGenerationProgress,_that.lyricsTranslationLanguageCode,_that.translationDisplayLanguageCode,_that.revision);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +210,10 @@ return $default(_that.isLyricsLoading,_that.isLyricsTranslating,_that.lyricsTran
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isLyricsLoading,  bool isLyricsTranslating,  String lyricsTranslationStatus,  String lyricsGenerationStatus,  bool hasLyrics,  bool lyricsSearchAttempted,  List<LyricLine> currentLyricsLines,  String currentLyricsText,  bool isLyricsGenerating,  LyricsGenerationPhase lyricsGenerationPhase,  double lyricsGenerationProgress,  String lyricsTranslationLanguageCode,  int revision)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isLyricsLoading,  bool isLyricsTranslating,  String lyricsTranslationStatus,  String lyricsGenerationStatus,  bool hasLyrics,  bool lyricsSearchAttempted,  List<LyricLine> currentLyricsLines,  String currentLyricsText,  bool isLyricsGenerating,  LyricsGenerationPhase lyricsGenerationPhase,  double lyricsGenerationProgress,  String lyricsTranslationLanguageCode,  String translationDisplayLanguageCode,  int revision)?  $default,) {final _that = this;
 switch (_that) {
 case _LyricsControllerState() when $default != null:
-return $default(_that.isLyricsLoading,_that.isLyricsTranslating,_that.lyricsTranslationStatus,_that.lyricsGenerationStatus,_that.hasLyrics,_that.lyricsSearchAttempted,_that.currentLyricsLines,_that.currentLyricsText,_that.isLyricsGenerating,_that.lyricsGenerationPhase,_that.lyricsGenerationProgress,_that.lyricsTranslationLanguageCode,_that.revision);case _:
+return $default(_that.isLyricsLoading,_that.isLyricsTranslating,_that.lyricsTranslationStatus,_that.lyricsGenerationStatus,_that.hasLyrics,_that.lyricsSearchAttempted,_that.currentLyricsLines,_that.currentLyricsText,_that.isLyricsGenerating,_that.lyricsGenerationPhase,_that.lyricsGenerationProgress,_that.lyricsTranslationLanguageCode,_that.translationDisplayLanguageCode,_that.revision);case _:
   return null;
 
 }
@@ -218,7 +225,7 @@ return $default(_that.isLyricsLoading,_that.isLyricsTranslating,_that.lyricsTran
 
 
 class _LyricsControllerState extends LyricsControllerState {
-  const _LyricsControllerState({this.isLyricsLoading = false, this.isLyricsTranslating = false, this.lyricsTranslationStatus = '', this.lyricsGenerationStatus = '', this.hasLyrics = false, this.lyricsSearchAttempted = false, final  List<LyricLine> currentLyricsLines = const <LyricLine>[], this.currentLyricsText = '', this.isLyricsGenerating = false, this.lyricsGenerationPhase = LyricsGenerationPhase.idle, this.lyricsGenerationProgress = 0.0, this.lyricsTranslationLanguageCode = LanguageCodeUtils.fallbackLanguageCode, this.revision = 0}): _currentLyricsLines = currentLyricsLines,super._();
+  const _LyricsControllerState({this.isLyricsLoading = false, this.isLyricsTranslating = false, this.lyricsTranslationStatus = '', this.lyricsGenerationStatus = '', this.hasLyrics = false, this.lyricsSearchAttempted = false, final  List<LyricLine> currentLyricsLines = const <LyricLine>[], this.currentLyricsText = '', this.isLyricsGenerating = false, this.lyricsGenerationPhase = LyricsGenerationPhase.idle, this.lyricsGenerationProgress = 0.0, this.lyricsTranslationLanguageCode = LanguageCodeUtils.fallbackLanguageCode, this.translationDisplayLanguageCode = '', this.revision = 0}): _currentLyricsLines = currentLyricsLines,super._();
   
 
 @override@JsonKey() final  bool isLyricsLoading;
@@ -239,6 +246,13 @@ class _LyricsControllerState extends LyricsControllerState {
 @override@JsonKey() final  LyricsGenerationPhase lyricsGenerationPhase;
 @override@JsonKey() final  double lyricsGenerationProgress;
 @override@JsonKey() final  String lyricsTranslationLanguageCode;
+/// 当前这首歌**展示**哪一种译文（per-song，来自 `lyrics_cache.selectedTranslationLanguage`）。
+///
+/// 空串 = 跟随 [lyricsTranslationLanguageCode]（全局默认目标语言）。
+/// 与 [lyricsTranslationLanguageCode] 不是同一件事：后者是"要翻译成什么"，
+/// 前者是"已经在看什么"。展示侧只允许通过
+/// `LyricsController.effectiveTranslationLanguageFor()` 读取。
+@override@JsonKey() final  String translationDisplayLanguageCode;
 @override@JsonKey() final  int revision;
 
 /// Create a copy of LyricsControllerState
@@ -251,16 +265,16 @@ _$LyricsControllerStateCopyWith<_LyricsControllerState> get copyWith => __$Lyric
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LyricsControllerState&&(identical(other.isLyricsLoading, isLyricsLoading) || other.isLyricsLoading == isLyricsLoading)&&(identical(other.isLyricsTranslating, isLyricsTranslating) || other.isLyricsTranslating == isLyricsTranslating)&&(identical(other.lyricsTranslationStatus, lyricsTranslationStatus) || other.lyricsTranslationStatus == lyricsTranslationStatus)&&(identical(other.lyricsGenerationStatus, lyricsGenerationStatus) || other.lyricsGenerationStatus == lyricsGenerationStatus)&&(identical(other.hasLyrics, hasLyrics) || other.hasLyrics == hasLyrics)&&(identical(other.lyricsSearchAttempted, lyricsSearchAttempted) || other.lyricsSearchAttempted == lyricsSearchAttempted)&&const DeepCollectionEquality().equals(other._currentLyricsLines, _currentLyricsLines)&&(identical(other.currentLyricsText, currentLyricsText) || other.currentLyricsText == currentLyricsText)&&(identical(other.isLyricsGenerating, isLyricsGenerating) || other.isLyricsGenerating == isLyricsGenerating)&&(identical(other.lyricsGenerationPhase, lyricsGenerationPhase) || other.lyricsGenerationPhase == lyricsGenerationPhase)&&(identical(other.lyricsGenerationProgress, lyricsGenerationProgress) || other.lyricsGenerationProgress == lyricsGenerationProgress)&&(identical(other.lyricsTranslationLanguageCode, lyricsTranslationLanguageCode) || other.lyricsTranslationLanguageCode == lyricsTranslationLanguageCode)&&(identical(other.revision, revision) || other.revision == revision));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LyricsControllerState&&(identical(other.isLyricsLoading, isLyricsLoading) || other.isLyricsLoading == isLyricsLoading)&&(identical(other.isLyricsTranslating, isLyricsTranslating) || other.isLyricsTranslating == isLyricsTranslating)&&(identical(other.lyricsTranslationStatus, lyricsTranslationStatus) || other.lyricsTranslationStatus == lyricsTranslationStatus)&&(identical(other.lyricsGenerationStatus, lyricsGenerationStatus) || other.lyricsGenerationStatus == lyricsGenerationStatus)&&(identical(other.hasLyrics, hasLyrics) || other.hasLyrics == hasLyrics)&&(identical(other.lyricsSearchAttempted, lyricsSearchAttempted) || other.lyricsSearchAttempted == lyricsSearchAttempted)&&const DeepCollectionEquality().equals(other._currentLyricsLines, _currentLyricsLines)&&(identical(other.currentLyricsText, currentLyricsText) || other.currentLyricsText == currentLyricsText)&&(identical(other.isLyricsGenerating, isLyricsGenerating) || other.isLyricsGenerating == isLyricsGenerating)&&(identical(other.lyricsGenerationPhase, lyricsGenerationPhase) || other.lyricsGenerationPhase == lyricsGenerationPhase)&&(identical(other.lyricsGenerationProgress, lyricsGenerationProgress) || other.lyricsGenerationProgress == lyricsGenerationProgress)&&(identical(other.lyricsTranslationLanguageCode, lyricsTranslationLanguageCode) || other.lyricsTranslationLanguageCode == lyricsTranslationLanguageCode)&&(identical(other.translationDisplayLanguageCode, translationDisplayLanguageCode) || other.translationDisplayLanguageCode == translationDisplayLanguageCode)&&(identical(other.revision, revision) || other.revision == revision));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isLyricsLoading,isLyricsTranslating,lyricsTranslationStatus,lyricsGenerationStatus,hasLyrics,lyricsSearchAttempted,const DeepCollectionEquality().hash(_currentLyricsLines),currentLyricsText,isLyricsGenerating,lyricsGenerationPhase,lyricsGenerationProgress,lyricsTranslationLanguageCode,revision);
+int get hashCode => Object.hash(runtimeType,isLyricsLoading,isLyricsTranslating,lyricsTranslationStatus,lyricsGenerationStatus,hasLyrics,lyricsSearchAttempted,const DeepCollectionEquality().hash(_currentLyricsLines),currentLyricsText,isLyricsGenerating,lyricsGenerationPhase,lyricsGenerationProgress,lyricsTranslationLanguageCode,translationDisplayLanguageCode,revision);
 
 @override
 String toString() {
-  return 'LyricsControllerState(isLyricsLoading: $isLyricsLoading, isLyricsTranslating: $isLyricsTranslating, lyricsTranslationStatus: $lyricsTranslationStatus, lyricsGenerationStatus: $lyricsGenerationStatus, hasLyrics: $hasLyrics, lyricsSearchAttempted: $lyricsSearchAttempted, currentLyricsLines: $currentLyricsLines, currentLyricsText: $currentLyricsText, isLyricsGenerating: $isLyricsGenerating, lyricsGenerationPhase: $lyricsGenerationPhase, lyricsGenerationProgress: $lyricsGenerationProgress, lyricsTranslationLanguageCode: $lyricsTranslationLanguageCode, revision: $revision)';
+  return 'LyricsControllerState(isLyricsLoading: $isLyricsLoading, isLyricsTranslating: $isLyricsTranslating, lyricsTranslationStatus: $lyricsTranslationStatus, lyricsGenerationStatus: $lyricsGenerationStatus, hasLyrics: $hasLyrics, lyricsSearchAttempted: $lyricsSearchAttempted, currentLyricsLines: $currentLyricsLines, currentLyricsText: $currentLyricsText, isLyricsGenerating: $isLyricsGenerating, lyricsGenerationPhase: $lyricsGenerationPhase, lyricsGenerationProgress: $lyricsGenerationProgress, lyricsTranslationLanguageCode: $lyricsTranslationLanguageCode, translationDisplayLanguageCode: $translationDisplayLanguageCode, revision: $revision)';
 }
 
 
@@ -271,7 +285,7 @@ abstract mixin class _$LyricsControllerStateCopyWith<$Res> implements $LyricsCon
   factory _$LyricsControllerStateCopyWith(_LyricsControllerState value, $Res Function(_LyricsControllerState) _then) = __$LyricsControllerStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool isLyricsLoading, bool isLyricsTranslating, String lyricsTranslationStatus, String lyricsGenerationStatus, bool hasLyrics, bool lyricsSearchAttempted, List<LyricLine> currentLyricsLines, String currentLyricsText, bool isLyricsGenerating, LyricsGenerationPhase lyricsGenerationPhase, double lyricsGenerationProgress, String lyricsTranslationLanguageCode, int revision
+ bool isLyricsLoading, bool isLyricsTranslating, String lyricsTranslationStatus, String lyricsGenerationStatus, bool hasLyrics, bool lyricsSearchAttempted, List<LyricLine> currentLyricsLines, String currentLyricsText, bool isLyricsGenerating, LyricsGenerationPhase lyricsGenerationPhase, double lyricsGenerationProgress, String lyricsTranslationLanguageCode, String translationDisplayLanguageCode, int revision
 });
 
 
@@ -288,7 +302,7 @@ class __$LyricsControllerStateCopyWithImpl<$Res>
 
 /// Create a copy of LyricsControllerState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? isLyricsLoading = null,Object? isLyricsTranslating = null,Object? lyricsTranslationStatus = null,Object? lyricsGenerationStatus = null,Object? hasLyrics = null,Object? lyricsSearchAttempted = null,Object? currentLyricsLines = null,Object? currentLyricsText = null,Object? isLyricsGenerating = null,Object? lyricsGenerationPhase = null,Object? lyricsGenerationProgress = null,Object? lyricsTranslationLanguageCode = null,Object? revision = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? isLyricsLoading = null,Object? isLyricsTranslating = null,Object? lyricsTranslationStatus = null,Object? lyricsGenerationStatus = null,Object? hasLyrics = null,Object? lyricsSearchAttempted = null,Object? currentLyricsLines = null,Object? currentLyricsText = null,Object? isLyricsGenerating = null,Object? lyricsGenerationPhase = null,Object? lyricsGenerationProgress = null,Object? lyricsTranslationLanguageCode = null,Object? translationDisplayLanguageCode = null,Object? revision = null,}) {
   return _then(_LyricsControllerState(
 isLyricsLoading: null == isLyricsLoading ? _self.isLyricsLoading : isLyricsLoading // ignore: cast_nullable_to_non_nullable
 as bool,isLyricsTranslating: null == isLyricsTranslating ? _self.isLyricsTranslating : isLyricsTranslating // ignore: cast_nullable_to_non_nullable
@@ -302,6 +316,7 @@ as String,isLyricsGenerating: null == isLyricsGenerating ? _self.isLyricsGenerat
 as bool,lyricsGenerationPhase: null == lyricsGenerationPhase ? _self.lyricsGenerationPhase : lyricsGenerationPhase // ignore: cast_nullable_to_non_nullable
 as LyricsGenerationPhase,lyricsGenerationProgress: null == lyricsGenerationProgress ? _self.lyricsGenerationProgress : lyricsGenerationProgress // ignore: cast_nullable_to_non_nullable
 as double,lyricsTranslationLanguageCode: null == lyricsTranslationLanguageCode ? _self.lyricsTranslationLanguageCode : lyricsTranslationLanguageCode // ignore: cast_nullable_to_non_nullable
+as String,translationDisplayLanguageCode: null == translationDisplayLanguageCode ? _self.translationDisplayLanguageCode : translationDisplayLanguageCode // ignore: cast_nullable_to_non_nullable
 as String,revision: null == revision ? _self.revision : revision // ignore: cast_nullable_to_non_nullable
 as int,
   ));

@@ -322,8 +322,8 @@ class DesktopLyricsManager {
         // 获取翻译行（原文一行，翻译一行）
         String? translation;
         if (settings.desktopLyricsShowTranslation && baseLyrics != null) {
-          final targetLang = lyricsState.lyricsTranslationLanguageCode;
-          final effectiveLang = baseLyrics.getEffectiveTranslationLanguage(targetLang);
+          final effectiveLang =
+              lyricsController.effectiveTranslationLanguageFor(baseLyrics);
           if (effectiveLang.isNotEmpty) {
             final transText = baseLyrics.translatedLineAt(activeIndex, effectiveLang).trim();
             if (transText.isNotEmpty) {

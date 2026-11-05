@@ -240,8 +240,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     required bool hasTimedLyrics,
     required BuildContext context,
   }) {
-    final targetLang = ref.read(lyricsControllerProvider).lyricsTranslationLanguageCode;
-    final effectiveLang = lyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
+    final effectiveLang = ref
+        .read(lyricsControllerProvider.notifier)
+        .effectiveTranslationLanguageFor(lyrics);
     final settings = ref.read(settingsServiceProvider);
     final lyricsFont = settings.lyricsFontFamily;
     final latinFont = settings.lyricsLatinFontFamily;
@@ -542,8 +543,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (!context.mounted || !mounted) return;
 
     final displayLyrics = _lyricsForDisplay();
-    final targetLang = lyricsState.lyricsTranslationLanguageCode;
-    final effectiveLang = displayLyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
+    final effectiveLang = ref
+        .read(lyricsControllerProvider.notifier)
+        .effectiveTranslationLanguageFor(displayLyrics);
     final translation = displayLyrics?.translationFor(effectiveLang);
     final hasTranslation = translation != null && translation.hasContent;
 

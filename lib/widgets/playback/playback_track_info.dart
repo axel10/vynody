@@ -459,13 +459,12 @@ class PlaybackTrackInfo extends ConsumerWidget {
       final showLyricsWordByWord = ref.watch(
         settingsServiceProvider.select((s) => s.showLyricsWordByWord),
       );
-      final lyricsState = ref.watch(lyricsControllerProvider);
-      final displayLyrics = ref
-          .read(lyricsControllerProvider.notifier)
-          .currentLyricsForCurrentSong();
-      final targetLang = lyricsState.lyricsTranslationLanguageCode;
-      final effectiveLang = displayLyrics
-          ?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
+      // 订阅整个控制器状态：译文到达 / 展示语言切换都需要重建本行。
+      ref.watch(lyricsControllerProvider);
+      final lyricsController = ref.read(lyricsControllerProvider.notifier);
+      final displayLyrics = lyricsController.currentLyricsForCurrentSong();
+      final effectiveLang =
+          lyricsController.effectiveTranslationLanguageFor(displayLyrics);
       final translation = displayLyrics?.translationFor(effectiveLang);
       final hasTranslation = translation != null && translation.hasContent;
       final syncedLines = displayLyrics?.syncedLines ?? const [];

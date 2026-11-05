@@ -462,7 +462,8 @@ class PlaybackControls extends ConsumerWidget {
       settingsServiceProvider.select((s) => s.showLyricsWordByWord),
     );
 
-    final lyricsState = ref.watch(lyricsControllerProvider);
+    // 订阅整个控制器状态：译文到达 / 展示语言切换都需要重建播控。
+    ref.watch(lyricsControllerProvider);
     final currentSongTaskState = currentMusic != null
         ? ref
             .watch(lyricsControllerProvider.notifier)
@@ -473,9 +474,9 @@ class PlaybackControls extends ConsumerWidget {
 
     final displayLyrics =
         ref.read(lyricsControllerProvider.notifier).currentLyricsForCurrentSong();
-    final targetLang = lyricsState.lyricsTranslationLanguageCode;
-    final effectiveLang =
-        displayLyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
+    final effectiveLang = ref
+        .read(lyricsControllerProvider.notifier)
+        .effectiveTranslationLanguageFor(displayLyrics);
     final translation = displayLyrics?.translationFor(effectiveLang);
     final hasTranslation = translation != null && translation.hasContent;
     final syncedLines = displayLyrics?.syncedLines ?? const [];

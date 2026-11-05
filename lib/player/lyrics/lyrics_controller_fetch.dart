@@ -125,6 +125,10 @@ class LyricsFetchCoordinator {
     final cacheKey = cached.cacheKey.isNotEmpty
         ? cached.cacheKey
         : _support.lyricsCacheKeyForPath(song.path);
+    // 这首歌选定展示哪种译文，跟着歌词记录一起读出来。
+    _context.setTranslationDisplayLanguage(
+      cached.selectedTranslationLanguage,
+    );
     final translationRecords = await _context.lyricsCacheRepository
         .getLyricsTranslationCaches(cacheKey);
     final translations = _support.translationsFromCacheRecords(

@@ -25,6 +25,15 @@ abstract class LyricsControllerState with _$LyricsControllerState {
     @Default(0.0) double lyricsGenerationProgress,
     @Default(LanguageCodeUtils.fallbackLanguageCode)
     String lyricsTranslationLanguageCode,
+
+    /// 当前这首歌**展示**哪一种译文（per-song，来自 `lyrics_cache.selectedTranslationLanguage`）。
+    ///
+    /// 空串 = 跟随 [lyricsTranslationLanguageCode]（全局默认目标语言）。
+    /// 与 [lyricsTranslationLanguageCode] 不是同一件事：后者是"要翻译成什么"，
+    /// 前者是"已经在看什么"。展示侧只允许通过
+    /// `LyricsController.effectiveTranslationLanguageFor()` 读取。
+    @Default('') String translationDisplayLanguageCode,
+
     @Default(0) int revision,
   }) = _LyricsControllerState;
 }

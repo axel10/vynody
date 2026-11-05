@@ -108,6 +108,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
       setIsLyricsLoading: (value) => _isLyricsLoading = value,
       setIsLyricsTranslating: (value) => _isLyricsTranslating = value,
       setLyricsTranslationStatus: (value) => _lyricsTranslationStatus = value,
+      setTranslationDisplayLanguage: _setTranslationDisplayLanguage,
       setLyricsGenerationStatus: (value) => _lyricsGenerationStatus = value,
       setLyricsGenerationDisplayState: (value) =>
           _setLyricsGenerationDisplayState(value),
@@ -145,6 +146,16 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   set _lyricsTranslationStatus(String value) {
     state = state.copyWith(lyricsTranslationStatus: value);
+  }
+
+  /// 只由歌词缓存记录驱动，不额外 `bumpRevision`：调用方（缓存同步）随后会统一 bump。
+  ///
+  /// 刻意不在这里做语言码归一化：译文表的 key 就是落库时的原值，展示侧要按同一个
+  /// 字符串查表，归一化是写入方（翻译 / 选语言）的职责。
+  void _setTranslationDisplayLanguage(String value) {
+    final next = value.trim();
+    if (state.translationDisplayLanguageCode == next) return;
+    state = state.copyWith(translationDisplayLanguageCode: next);
   }
 
   set _lyricsGenerationStatus(String value) {
@@ -498,6 +509,39 @@ class LyricsController extends Notifier<LyricsControllerState> {
     );
   }
 
+  /// 当前应当展示的译文语言 —— **展示侧的唯一入口**。
+  ///
+  /// 优先级（与 `docs/歌词译文语言-现状与改造计划.md` §4.1 一致）：
+  /// 1. 这首歌选定的译文语言（`lyrics_cache.selectedTranslationLanguage`）且确有内容；
+  /// 2. 全局默认目标语言且确有内容；
+  /// 3. `MusicLyric.getEffectiveTranslationLanguage()` 的「最新有内容」兜底
+  ///    —— 只在前两级都拿不到内容时生效。
+  ///
+  /// 中间这一级不能省：`getEffectiveTranslationLanguage` 只看一个入参，会把
+  /// 「选定的语言没有内容」直接跳到「最新的一条」，于是设定过的全局默认被绕过。
+  ///
+  /// 面板行高测量、桌面歌词、竖屏/横屏播控、翻译开关判定都必须走这里，
+  /// 不允许各自拼 `getEffectiveTranslationLanguage` + 自选入参。
+  String effectiveTranslationLanguageFor(MusicLyric? lyrics) {
+    final selected = state.translationDisplayLanguageCode;
+    final fallback = state.lyricsTranslationLanguageCode;
+    if (lyrics == null) {
+      return selected.isNotEmpty ? selected : fallback;
+    }
+    if (selected.isNotEmpty && _hasTranslatedContent(lyrics, selected)) {
+      return selected;
+    }
+    if (_hasTranslatedContent(lyrics, fallback)) {
+      return fallback;
+    }
+    return lyrics.getEffectiveTranslationLanguage(fallback);
+  }
+
+  bool _hasTranslatedContent(MusicLyric lyrics, String languageCode) {
+    if (languageCode.isEmpty) return false;
+    return lyrics.translationFor(languageCode)?.hasContent ?? false;
+  }
+
   void cancelActiveAiTask() {
     _logDebug('cancelActiveAiTask called');
     if (_context.lyricsAiCancelToken != null) {
@@ -592,6 +636,11 @@ class LyricsController extends Notifier<LyricsControllerState> {
       preference: preference,
     );
     if (selectedRecord == null) return;
+
+    // 这首歌选定展示哪种译文，就存在它自己那条歌词记录上。
+    _context.setTranslationDisplayLanguage(
+      selectedRecord.selectedTranslationLanguage,
+    );
 
     final translationRecords = await _context.lyricsCacheRepository
         .getLyricsTranslationCaches(cacheKey);
