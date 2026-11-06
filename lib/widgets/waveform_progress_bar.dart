@@ -84,7 +84,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
   /// 无关，只与「有没有东西持续请求帧」有关。Timer.periodic 只在需要出帧时
   /// 请求一帧，其余时间引擎静止。背景模糊已静态化、波形已有 RepaintBoundary，
   /// 所以减占用只能从驱动源入手。要调帧率只改这里。
-  static const Duration _kScrollingFrameInterval = Duration(milliseconds: 50);
+  static const Duration _kScrollingFrameInterval = Duration(milliseconds: 66);
   bool _isDragging = false;
   bool _isInertia = false;
   double _lastInertiaX = 0;
