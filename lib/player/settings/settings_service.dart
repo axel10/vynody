@@ -698,12 +698,11 @@ class SettingsService extends ChangeNotifier {
       'playing_indicator_animation';
   static const String _keyMiniPlayerSpectrum = 'mini_player_spectrum';
 
-  /// 常驻动效的默认档位：只有 Apple 平台默认保留动画。
-  /// 判据是图形合成后端，与 [_visualizerEnabledProperty] 按「移动端 / 桌面端」
-  /// 分档的口径不同，勿顺手把两处统一成同一组平台。
-  static bool get _defaultAmbientMotionEnabled =>
-      defaultTargetPlatform == TargetPlatform.macOS ||
-      defaultTargetPlatform == TargetPlatform.iOS;
+  /// 常驻动效（正在播放图标动画 / 迷你播放器频谱）统一默认开启，不再按平台分档。
+  /// 与 [_visualizerEnabledProperty] 按「移动端 / 桌面端」分档的默认口径彼此独立，
+  /// 勿顺手把两处统一成同一组平台。
+  /// 两个开关共用这一个默认值；用户显式关闭后会写入 prefs，重启仍保持关闭。
+  static const bool _defaultAmbientMotionEnabled = true;
 
   // Visualizer styling keys
   static const String _keyVisualizerEnabled = 'visualizer_enabled';

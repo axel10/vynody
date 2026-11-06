@@ -663,5 +663,45 @@ void main() {
       expect(settings.showPlaybackTopDragHandle, isTrue);
     });
   });
+
+  group('SettingsService - ambient motion defaults', () {
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    test('both ambient motion switches default to enabled on every platform', () async {
+      for (final platform in TargetPlatform.values) {
+        debugDefaultTargetPlatformOverride = platform;
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsService(prefs);
+
+        expect(settings.isPlayingIndicatorAnimationEnabled, isTrue,
+            reason: '$platform: playing indicator animation should be on by default');
+        expect(settings.isMiniPlayerSpectrumEnabled, isTrue,
+            reason: '$platform: mini player spectrum should be on by default');
+      }
+    });
+
+    test('explicit opt-out persists, and resetMotionEffects restores the default', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
+      settings.isPlayingIndicatorAnimationEnabled = false;
+      settings.isMiniPlayerSpectrumEnabled = false;
+
+      final reloaded = SettingsService(prefs);
+      expect(reloaded.isPlayingIndicatorAnimationEnabled, isFalse);
+      expect(reloaded.isMiniPlayerSpectrumEnabled, isFalse);
+
+      reloaded.resetMotionEffects();
+      expect(reloaded.isPlayingIndicatorAnimationEnabled, isTrue);
+      expect(reloaded.isMiniPlayerSpectrumEnabled, isTrue);
+
+      final afterReset = SettingsService(prefs);
+      expect(afterReset.isPlayingIndicatorAnimationEnabled, isTrue);
+      expect(afterReset.isMiniPlayerSpectrumEnabled, isTrue);
+    });
+  });
 }
 

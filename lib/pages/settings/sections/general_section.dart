@@ -681,7 +681,8 @@ class GeneralSection extends ConsumerWidget {
         ),
         SettingsGroupCard(
           // 「减少动效」原本是独立设置页，现归入「界面与行为」的一张卡片。
-          // 两个开关彼此独立，不设总开关；平台默认值由 SettingsService 决定。
+          // 两个开关彼此独立，不设总开关；默认值统一由 SettingsService 提供
+          // （全平台默认开启，用户显式关闭后持久化）。
           title: l10n.reduceMotionGroup,
           icon: Icons.animation,
           children: [
