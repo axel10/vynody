@@ -180,7 +180,12 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
   }
 
   void _updateTickerState() {
-    if (widget.isPlaying &&
+    // 只有滚动模式需要逐帧插值：柱子要随进度连续平移。整条模式的柱子几何
+    // 完全固定（已录进 Picture），Ticker 唯一的作用是让颜色分割线平滑移动，
+    // 却会把整个播放页（含全屏模糊层）钉在 60fps。这里让整条模式跟随引擎
+    // 快照跳动，与标准滑块的刷新节奏一致。
+    if (widget.isScrolling &&
+        widget.isPlaying &&
         !_isDragging &&
         !_isInertia &&
         _endOfSongSeekTimer == null &&
@@ -432,6 +437,16 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
       if (!isInteracting) {
         _smoothProgressNotifier.value = widget.progress.clamp(0.0, 1.0);
       }
+    }
+
+    // 整条模式不跑 Ticker，播放头必须在这里跟随引擎快照。上面的
+    // snapThreshold 会把正常播放的小步进（约 200ms / 曲长）全部挡掉，
+    // 缺了这段，分割线会永久停在换曲时的位置。
+    if (!widget.isScrolling &&
+        !isInteracting &&
+        !widget.isTransitioning &&
+        _smoothProgressNotifier.value != widget.progress) {
+      _smoothProgressNotifier.value = widget.progress.clamp(0.0, 1.0);
     }
 
     _updateTickerState();

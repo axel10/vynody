@@ -355,6 +355,121 @@ void main() {
       expect(testAudio.currentSpeed, equals(1.0));
     },
   );
+
+  testWidgets(
+    'static waveform does not run the 60fps ticker but follows snapshot progress',
+    (WidgetTester tester) async {
+      final testAudio = _TestAudioService();
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
+      double currentProgress = 0.3;
+      StateSetter? rebuildProgress;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            audioServiceProvider.overrideWith((ref) => testAudio),
+            audioServiceStateProvider.overrideWith(() => testAudio),
+            settingsServiceProvider.overrideWith((ref) => settings),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 300,
+                  height: 80,
+                  child: StatefulBuilder(
+                    builder: (context, setState) {
+                      rebuildProgress = setState;
+                      return WaveformProgressBar(
+                        waveform: List.generate(100, (i) => 0.5),
+                        progress: currentProgress,
+                        duration: const Duration(seconds: 200),
+                        isPlaying: true,
+                        isScrolling: false,
+                        onScrubbing: (_) {},
+                        onSeek: (_) {},
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // 推进多帧：若 Ticker 仍在跑，插值会累加 deltaProgress。整条模式的
+      // 几何固定，播放头应停在上一次引擎快照的位置。
+      for (int i = 0; i < 12; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(_waveformPainter(tester).progress, closeTo(0.3, 1e-9));
+
+      // 引擎快照的小步进（200ms / 200s = 0.001）小于 snapThreshold，
+      // 必须仍被同步，否则分割线会永久卡在换曲时的位置。
+      currentProgress = 0.301;
+      rebuildProgress!(() {});
+      await tester.pump();
+      expect(_waveformPainter(tester).progress, closeTo(0.301, 1e-9));
+    },
+  );
+
+  testWidgets(
+    'scrolling waveform still runs the ticker for continuous translation',
+    (WidgetTester tester) async {
+      final testAudio = _TestAudioService();
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            audioServiceProvider.overrideWith((ref) => testAudio),
+            audioServiceStateProvider.overrideWith(() => testAudio),
+            settingsServiceProvider.overrideWith((ref) => settings),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 300,
+                  height: 80,
+                  child: WaveformProgressBar(
+                    waveform: List.generate(100, (i) => 0.5),
+                    progress: 0.3,
+                    duration: const Duration(seconds: 200),
+                    isPlaying: true,
+                    isScrolling: true,
+                    onScrubbing: (_) {},
+                    onSeek: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // 滚动模式的柱子需要逐帧平移，Ticker 不能被误停。
+      for (int i = 0; i < 12; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(_waveformPainter(tester).progress, greaterThan(0.3));
+    },
+  );
+}
+
+/// 从树里取出当前生效的波形 painter，用于读取 repaint notifier 的进度值。
+WaveformPainter _waveformPainter(WidgetTester tester) {
+  final finder = find.byWidgetPredicate(
+    (widget) => widget is CustomPaint && widget.painter is WaveformPainter,
+  );
+  expect(finder, findsOneWidget);
+  return tester.widget<CustomPaint>(finder).painter! as WaveformPainter;
 }
 
 AudioSnapshot createTestAudioSnapshot({double playbackSpeed = 1.0}) {
