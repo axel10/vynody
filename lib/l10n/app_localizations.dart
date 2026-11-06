@@ -10556,6 +10556,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'这台设备还没有同步过'**
   String get lanSyncLastSyncNever;
+
+  /// No description provided for @reduceMotionGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'减少动效'**
+  String get reduceMotionGroup;
+
+  /// No description provided for @playingIndicatorAnimation.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在播放图标动画'**
+  String get playingIndicatorAnimation;
+
+  /// No description provided for @playingIndicatorAnimationDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭后，当前歌曲显示静止的暂停或播放图标，不再随音乐跳动。'**
+  String get playingIndicatorAnimationDescription;
+
+  /// No description provided for @miniPlayerSpectrum.
+  ///
+  /// In zh, this message translates to:
+  /// **'迷你播放器频谱动画'**
+  String get miniPlayerSpectrum;
+
+  /// No description provided for @miniPlayerSpectrumDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭后，浮动栏迷你播放器背后的频谱不再显示。'**
+  String get miniPlayerSpectrumDescription;
 }
 
 class _AppLocalizationsDelegate

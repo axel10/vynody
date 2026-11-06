@@ -446,7 +446,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // 0. 背景频谱动画
+          // 0. 背景频谱动画（开关由 MiniSpectrumBackground 内部统一判定）
           Positioned.fill(child: MiniSpectrumBackground(audio: audio)),
 
           // 1. 歌曲信息与按钮区域（拖动进度条时高斯模糊并淡出）

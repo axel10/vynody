@@ -6049,4 +6049,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get lanSyncLastSyncNever =>
       'Dieses Gerät wurde noch nicht synchronisiert';
+
+  @override
+  String get reduceMotionGroup => 'Bewegungen reduzieren';
+
+  @override
+  String get playingIndicatorAnimation => 'Animation des Wiedergabe-Indikators';
+
+  @override
+  String get playingIndicatorAnimationDescription =>
+      'Aus: Der aktuelle Titel zeigt statt des animierten Equalizers ein statisches Pause- oder Play-Symbol.';
+
+  @override
+  String get miniPlayerSpectrum => 'Mini-Player-Spektrum';
+
+  @override
+  String get miniPlayerSpectrumDescription =>
+      'Aus: Das FFT-Spektrum hinter dem Mini-Player der schwebenden Leiste wird ausgeblendet.';
 }

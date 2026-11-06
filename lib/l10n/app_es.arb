@@ -2196,5 +2196,10 @@
   "lanSyncResultMoreSamples": "{count} más…",
   "lanSyncViewDetails": "Ver detalles",
   "lanSyncLastSync": "Última sincronización",
-  "lanSyncLastSyncNever": "Este dispositivo aún no se ha sincronizado"
+  "lanSyncLastSyncNever": "Este dispositivo aún no se ha sincronizado",
+  "reduceMotionGroup": "Reducir animaciones",
+  "playingIndicatorAnimation": "Animación del indicador de reproducción",
+  "playingIndicatorAnimationDescription": "Al desactivarla, la canción actual muestra un icono estático de pausa o reproducción en lugar del ecualizador animado.",
+  "miniPlayerSpectrum": "Espectro del mini reproductor",
+  "miniPlayerSpectrumDescription": "Al desactivarlo, se oculta el espectro FFT detrás del mini reproductor de la barra flotante."
 }

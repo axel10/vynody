@@ -680,6 +680,30 @@ class GeneralSection extends ConsumerWidget {
           ],
         ),
         SettingsGroupCard(
+          // 「减少动效」原本是独立设置页，现归入「界面与行为」的一张卡片。
+          // 两个开关彼此独立，不设总开关；平台默认值由 SettingsService 决定。
+          title: l10n.reduceMotionGroup,
+          icon: Icons.animation,
+          children: [
+            SwitchListTile(
+              title: Text(l10n.playingIndicatorAnimation),
+              subtitle: Text(l10n.playingIndicatorAnimationDescription),
+              value: settings.isPlayingIndicatorAnimationEnabled,
+              onChanged: (value) {
+                settings.isPlayingIndicatorAnimationEnabled = value;
+              },
+            ),
+            SwitchListTile(
+              title: Text(l10n.miniPlayerSpectrum),
+              subtitle: Text(l10n.miniPlayerSpectrumDescription),
+              value: settings.isMiniPlayerSpectrumEnabled,
+              onChanged: (value) {
+                settings.isMiniPlayerSpectrumEnabled = value;
+              },
+            ),
+          ],
+        ),
+        SettingsGroupCard(
           title: l10n.playbackBehaviorGroup,
           icon: Icons.touch_app_outlined,
           children: [

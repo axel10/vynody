@@ -6001,4 +6001,21 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get lanSyncLastSyncNever => 'Bu cihaz henüz eşitlenmedi';
+
+  @override
+  String get reduceMotionGroup => 'Hareketi azalt';
+
+  @override
+  String get playingIndicatorAnimation => 'Oynatma göstergesi animasyonu';
+
+  @override
+  String get playingIndicatorAnimationDescription =>
+      'Kapalıyken geçerli şarkı, animasyonlu ekolayzer yerine duraklat/oynat simgesini sabit olarak gösterir.';
+
+  @override
+  String get miniPlayerSpectrum => 'Mini oynatıcı spektrumu';
+
+  @override
+  String get miniPlayerSpectrumDescription =>
+      'Kapalıyken yüzen dock mini oynatıcısının arkasındaki FFT spektrumu gizlenir.';
 }

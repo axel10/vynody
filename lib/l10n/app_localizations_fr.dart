@@ -6060,4 +6060,22 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get lanSyncLastSyncNever =>
       'Cet appareil n\'a pas encore été synchronisé';
+
+  @override
+  String get reduceMotionGroup => 'Réduire les animations';
+
+  @override
+  String get playingIndicatorAnimation =>
+      'Animation de l\'indicateur de lecture';
+
+  @override
+  String get playingIndicatorAnimationDescription =>
+      'Désactivée : le morceau en cours affiche une icône statique pause ou lecture au lieu de l’égaliseur animé.';
+
+  @override
+  String get miniPlayerSpectrum => 'Spectre du mini lecteur';
+
+  @override
+  String get miniPlayerSpectrumDescription =>
+      'Désactivé : le spectre FFT derrière le mini lecteur de la barre flottante est masqué.';
 }

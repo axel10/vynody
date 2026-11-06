@@ -2328,5 +2328,10 @@
   "lanSyncResultMoreSamples": "{count} tane daha…",
   "lanSyncViewDetails": "Ayrıntıları gör",
   "lanSyncLastSync": "Son eşitleme",
-  "lanSyncLastSyncNever": "Bu cihaz henüz eşitlenmedi"
+  "lanSyncLastSyncNever": "Bu cihaz henüz eşitlenmedi",
+  "reduceMotionGroup": "Hareketi azalt",
+  "playingIndicatorAnimation": "Oynatma göstergesi animasyonu",
+  "playingIndicatorAnimationDescription": "Kapalıyken geçerli şarkı, animasyonlu ekolayzer yerine duraklat/oynat simgesini sabit olarak gösterir.",
+  "miniPlayerSpectrum": "Mini oynatıcı spektrumu",
+  "miniPlayerSpectrumDescription": "Kapalıyken yüzen dock mini oynatıcısının arkasındaki FFT spektrumu gizlenir."
 }

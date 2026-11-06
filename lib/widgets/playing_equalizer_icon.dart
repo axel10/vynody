@@ -24,13 +24,21 @@ const double _kMinBarRatio = 0.18;
 
 /// 列表 / 队列中「当前播放」行的指示图标。
 ///
-/// 优先订阅迷你播放器那一路真实 FFT 流（`AudioService.miniPlayerFftStream`），
-/// 用 4 根垂直居中的柱条随音乐跳动；拿不到 FFT 数据时（未解锁 Pro、窗口最小化、
-/// 音频内核尚未就绪）退回本地正弦动画，保证标识始终可见、始终有动感。
+/// 动效开启时优先订阅迷你播放器那一路真实 FFT 流
+/// （`AudioService.miniPlayerFftStream`），用 4 根垂直居中的柱条随音乐跳动；
+/// 拿不到 FFT 数据时（未解锁 Pro、窗口最小化、音频内核尚未就绪）退回本地
+/// 正弦动画。数据路径刻意不走 setState / AnimatedBuilder：FFT 以 60Hz 输出，
+/// 列表行若整行重建会直接吃掉滚动性能。这里用 [ValueNotifier] +
+/// `CustomPainter` 的 `repaint` 增量重绘，外层再包 [RepaintBoundary]
+/// 把脏区限制在这个小图标内。
 ///
-/// 数据路径刻意不走 setState / AnimatedBuilder：FFT 以 60Hz 输出，列表行
-/// 若整行重建会直接吃掉滚动性能。这里用 [ValueNotifier] + `CustomPainter`
-/// 的 `repaint` 增量重绘，外层再包 [RepaintBoundary] 把脏区限制在这个小图标内。
+/// 动效关闭（设置 → 减少动效）时彻底取消 FFT 订阅与兜底 Ticker，改画一个
+/// 静态状态图标：播放中 = 暂停图标，暂停 = 播放图标。两个图形刻意不同，
+/// 避免「正在播放但被省掉动画」和「暂停」撞脸。静态图标只指示状态，
+/// 不挂任何点击事件。
+///
+/// 注意：只画静态帧是不够的 —— 订阅留着，audio_core 的 `hasListener`
+/// 就仍为真，60Hz 采集与推帧照跑。切断数据源必须真的 `cancel()`。
 class PlayingEqualizerIcon extends ConsumerStatefulWidget {
   const PlayingEqualizerIcon({
     super.key,
@@ -69,6 +77,10 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
   /// 缓存成字段是为了让 [didUpdateWidget] 与 painter 复用同一份判定。
   bool _isPlaying = true;
 
+  /// 动效开关缓存。initState 取初值，之后只由 `ref.listen` 更新；
+  /// 60Hz 热路径只读字段，禁在 [_onFftFrame] 里 `ref.read`。
+  bool _animationEnabled = true;
+
   @override
   void initState() {
     super.initState();
@@ -77,8 +89,9 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
       duration: const Duration(milliseconds: 1800),
     );
     _isPlaying = widget.isPlaying ?? ref.read(audioIsPlayingProvider);
-    _syncFallback();
-    _subscribeFft();
+    _animationEnabled =
+        ref.read(settingsServiceProvider).isPlayingIndicatorAnimationEnabled;
+    _syncAnimation();
   }
 
   @override
@@ -90,9 +103,28 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
     }
   }
 
+  /// 动效开关的唯一收敛点：开启时保住订阅 + 兜底，关闭时彻底切断数据源。
+  void _syncAnimation() {
+    if (_disposed) return;
+    if (!_animationEnabled) {
+      _fftSubscription?.cancel();
+      _fftSubscription = null;
+      // 重试回调可能已经排在帧后，靠 _subscribeFft 的开关守卫兜住。
+      _retryCount = 0;
+      if (_fallback.isAnimating) _fallback.stop();
+      _heights.value = const [];
+      for (var i = 0; i < _smoothed.length; i++) {
+        _smoothed[i] = 0.0;
+      }
+      return;
+    }
+    if (_fftSubscription == null) _subscribeFft();
+    _syncFallback();
+  }
+
   /// 音频服务的可视化输出在首次 snapshot 之后才创建，这里允许前几帧重试。
   void _subscribeFft() {
-    if (_disposed) return;
+    if (_disposed || !_animationEnabled) return;
 
     Stream<FftFrame>? stream;
     try {
@@ -117,7 +149,7 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
   }
 
   void _onFftFrame(FftFrame frame) {
-    if (_disposed) return;
+    if (_disposed || !_animationEnabled) return;
     // 暂停时画的是静态 idle 高度（见 [_resolveRatios]），再接收数据只会
     // 白标脏一次、白出一帧。恢复播放后下一帧自然就接上了。
     if (!_isPlaying) return;
@@ -146,6 +178,7 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
   }
 
   void _syncFallback() {
+    if (_disposed || !_animationEnabled) return;
     final needsFallback = _isPlaying && _heights.value.isEmpty;
     if (needsFallback) {
       if (!_fallback.isAnimating) {
@@ -168,6 +201,19 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
 
   @override
   Widget build(BuildContext context) {
+    // 动效开关变化：只重连数据源 + 重建这一个图标，不触碰列表行。
+    ref.listen<bool>(
+      settingsServiceProvider.select(
+        (s) => s.isPlayingIndicatorAnimationEnabled,
+      ),
+      (previous, next) {
+        if (next == _animationEnabled) return;
+        _animationEnabled = next;
+        _syncAnimation();
+        if (mounted) setState(() {});
+      },
+    );
+
     // 没有外部指定播放态时，跟随全局；只在真正变化时重建一次。
     if (widget.isPlaying == null) {
       ref.listen<bool>(audioIsPlayingProvider, (previous, next) {
@@ -176,6 +222,20 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
         _syncFallback();
         if (mounted) setState(() {});
       });
+    }
+
+    if (!_animationEnabled) {
+      // 静态状态指示：播放中显示「可暂停」，暂停时显示「可播放」。
+      // 刻意不包 GestureDetector / IconButton —— 这里只指示状态。
+      return SizedBox(
+        width: widget.size,
+        height: widget.size,
+        child: Icon(
+          _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          size: widget.size,
+          color: widget.color,
+        ),
+      );
     }
 
     return SizedBox(

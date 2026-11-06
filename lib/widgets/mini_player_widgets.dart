@@ -232,57 +232,64 @@ class _MiniSpectrumBackgroundState
       ValueNotifier<List<double>>(const []);
   StreamSubscription<FftFrame>? _subscription;
 
-  @override
-  void initState() {
-    super.initState();
-    _updateSubscription();
+  /// 当前订阅绑定的 AudioService；换实例时必须重连，否则会继续读旧流。
+  AudioService? _subscribedAudio;
+
+  /// 「减少动效」是这个组件的唯一开关：dock 与播放页内 MiniPlayerCard
+  /// 两个调用点都走这里，禁止只在某一个调用点包 if，否则另一处会漏。
+  /// 关闭时不画还不够，必须真的 cancel —— 订阅留着，audio_core 的
+  /// `hasListener` 就仍为真，60Hz 采集与推帧照跑。
+  void _stopSubscription() {
+    _subscription?.cancel();
+    _subscription = null;
+    _subscribedAudio = null;
+    _fftNotifier.value = const [];
   }
 
   @override
   void didUpdateWidget(covariant MiniSpectrumBackground oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.audio != widget.audio) {
-      _updateSubscription();
-    }
-  }
-
-  void _updateSubscription({bool isPlaying = true}) {
-    _subscription?.cancel();
-    _subscription = null;
-    if (!isPlaying) {
-      _fftNotifier.value = const [];
-      return;
-    }
-    final fftStream = widget.audio.miniPlayerFftStream;
-    if (fftStream != null) {
-      _subscription = fftStream.listen(
-        (frame) {
-          _fftNotifier.value = frame.values;
-        },
-        onError: (_) {
-          _fftNotifier.value = const [];
-        },
-      );
+    if (oldWidget.audio != widget.audio && _subscribedAudio != null) {
+      _stopSubscription();
     }
   }
 
   @override
   void dispose() {
     _subscription?.cancel();
+    _subscription = null;
     _fftNotifier.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final spectrumEnabled = ref.watch(
+      settingsServiceProvider.select((s) => s.isMiniPlayerSpectrumEnabled),
+    );
     final isPlaying = ref.watch(audioIsPlayingProvider);
-    if (!isPlaying) {
-      if (_subscription != null) {
-        _updateSubscription(isPlaying: false);
-      }
+
+    if (!spectrumEnabled || !isPlaying) {
+      if (_subscription != null) _stopSubscription();
       return const SizedBox.shrink();
-    } else if (_subscription == null) {
-      _updateSubscription(isPlaying: true);
+    }
+
+    // audio 换实例或首次进入时重连；流尚未就绪则下个重建周期再试。
+    // 订阅完全由 build 驱动，避免 initState 再读一次设置形成第二个真相。
+    if (_subscription == null || _subscribedAudio != widget.audio) {
+      _stopSubscription();
+      final fftStream = widget.audio.miniPlayerFftStream;
+      if (fftStream != null) {
+        _subscription = fftStream.listen(
+          (frame) {
+            _fftNotifier.value = frame.values;
+          },
+          onError: (_) {
+            _fftNotifier.value = const [];
+          },
+        );
+        _subscribedAudio = widget.audio;
+      }
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;

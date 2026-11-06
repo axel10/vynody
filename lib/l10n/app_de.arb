@@ -2196,5 +2196,10 @@
   "lanSyncResultMoreSamples": "Noch {count} weitere…",
   "lanSyncViewDetails": "Details anzeigen",
   "lanSyncLastSync": "Letzte Synchronisierung",
-  "lanSyncLastSyncNever": "Dieses Gerät wurde noch nicht synchronisiert"
+  "lanSyncLastSyncNever": "Dieses Gerät wurde noch nicht synchronisiert",
+  "reduceMotionGroup": "Bewegungen reduzieren",
+  "playingIndicatorAnimation": "Animation des Wiedergabe-Indikators",
+  "playingIndicatorAnimationDescription": "Aus: Der aktuelle Titel zeigt statt des animierten Equalizers ein statisches Pause- oder Play-Symbol.",
+  "miniPlayerSpectrum": "Mini-Player-Spektrum",
+  "miniPlayerSpectrumDescription": "Aus: Das FFT-Spektrum hinter dem Mini-Player der schwebenden Leiste wird ausgeblendet."
 }

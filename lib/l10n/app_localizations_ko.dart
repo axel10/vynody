@@ -5792,4 +5792,21 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get lanSyncLastSyncNever => '이 기기는 아직 동기화한 적이 없습니다';
+
+  @override
+  String get reduceMotionGroup => '모션 줄이기';
+
+  @override
+  String get playingIndicatorAnimation => '재생 중 아이콘 애니메이션';
+
+  @override
+  String get playingIndicatorAnimationDescription =>
+      '끄면 현재 곡에 애니메이션 이퀄라이저 대신 정지된 일시정지/재생 아이콘이 표시됩니다.';
+
+  @override
+  String get miniPlayerSpectrum => '미니 플레이어 스펙트럼';
+
+  @override
+  String get miniPlayerSpectrumDescription =>
+      '끄면 플로팅 독 미니 플레이어 뒤의 FFT 스펙트럼이 숨겨집니다.';
 }

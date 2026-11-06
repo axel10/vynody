@@ -693,6 +693,18 @@ class SettingsService extends ChangeNotifier {
   static const double defaultPlaybackBlurredArtworkBlurSigma = 30.0;
   static const double defaultPlaybackCustomImageBlurSigma = 0.0;
 
+  // Ambient motion keys
+  static const String _keyPlayingIndicatorAnimation =
+      'playing_indicator_animation';
+  static const String _keyMiniPlayerSpectrum = 'mini_player_spectrum';
+
+  /// 常驻动效的默认档位：只有 Apple 平台默认保留动画。
+  /// 判据是图形合成后端，与 [_visualizerEnabledProperty] 按「移动端 / 桌面端」
+  /// 分档的口径不同，勿顺手把两处统一成同一组平台。
+  static bool get _defaultAmbientMotionEnabled =>
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+
   // Visualizer styling keys
   static const String _keyVisualizerEnabled = 'visualizer_enabled';
   static const String _keyVisualizerStyle = 'visualizer_style';
@@ -1891,6 +1903,20 @@ class SettingsService extends ChangeNotifier {
       }
       _lastKnownCustomProviderName = normalized;
     },
+  );
+
+  late final _playingIndicatorAnimationProperty = SettingProperty<bool>(
+    key: _keyPlayingIndicatorAnimation,
+    defaultValue: _defaultAmbientMotionEnabled,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _miniPlayerSpectrumProperty = SettingProperty<bool>(
+    key: _keyMiniPlayerSpectrum,
+    defaultValue: _defaultAmbientMotionEnabled,
+    prefs: _prefs,
+    onChanged: notifyListeners,
   );
 
   late final _visualizerEnabledProperty = SettingProperty<bool>(
@@ -3151,6 +3177,19 @@ class SettingsService extends ChangeNotifier {
     return _builtInAcoustidApiKey;
   }
 
+  /// 列表 / 队列里的「正在播放」图标是否随 FFT 跳动。
+  /// 关闭后显示静态播放状态图标，且不订阅 FFT 流、不启动兜底 Ticker。
+  bool get isPlayingIndicatorAnimationEnabled =>
+      _playingIndicatorAnimationProperty.value;
+  set isPlayingIndicatorAnimationEnabled(bool value) =>
+      _playingIndicatorAnimationProperty.value = value;
+
+  /// 底部 dock 迷你播放器背景频谱是否出帧。
+  /// 关闭后 dock 不构建频谱层；播放页内的 MiniPlayerCard 不受此项影响。
+  bool get isMiniPlayerSpectrumEnabled => _miniPlayerSpectrumProperty.value;
+  set isMiniPlayerSpectrumEnabled(bool value) =>
+      _miniPlayerSpectrumProperty.value = value;
+
   bool get isVisualizerEnabled => _visualizerEnabledProperty.value;
   set isVisualizerEnabled(bool value) =>
       _visualizerEnabledProperty.value = value;
@@ -3723,6 +3762,11 @@ class SettingsService extends ChangeNotifier {
         entry.key: entry.value.toJson(),
     });
     await _prefs.setString(_keyShortcutBindings, encoded);
+  }
+
+  void resetMotionEffects() {
+    _playingIndicatorAnimationProperty.reset();
+    _miniPlayerSpectrumProperty.reset();
   }
 
   void resetVisualizerAppearance() {

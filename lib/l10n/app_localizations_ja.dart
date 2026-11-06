@@ -5787,4 +5787,21 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get lanSyncLastSyncNever => 'この端末はまだ同期していません';
+
+  @override
+  String get reduceMotionGroup => 'モーションを減らす';
+
+  @override
+  String get playingIndicatorAnimation => '再生中アイコンのアニメーション';
+
+  @override
+  String get playingIndicatorAnimationDescription =>
+      'オフにすると、再生中の曲はアニメーション付きイコライザーの代わりに静止した一時停止／再生アイコンを表示します。';
+
+  @override
+  String get miniPlayerSpectrum => 'ミニプレーヤーのスペクトラム';
+
+  @override
+  String get miniPlayerSpectrumDescription =>
+      'オフにすると、フローティングドックのミニプレーヤー背面の FFT スペクトラムを表示しません。';
 }

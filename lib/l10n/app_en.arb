@@ -2587,5 +2587,10 @@
   "lanSyncResultMoreSamples": "{count} more…",
   "lanSyncViewDetails": "View details",
   "lanSyncLastSync": "Last sync",
-  "lanSyncLastSyncNever": "This device has not synced yet"
+  "lanSyncLastSyncNever": "This device has not synced yet",
+  "reduceMotionGroup": "Reduce motion",
+  "playingIndicatorAnimation": "Playing indicator animation",
+  "playingIndicatorAnimationDescription": "When off, the current song shows a static pause or play icon instead of an animated equalizer.",
+  "miniPlayerSpectrum": "Mini player spectrum",
+  "miniPlayerSpectrumDescription": "When off, the FFT spectrum behind the floating dock mini player is hidden."
 }

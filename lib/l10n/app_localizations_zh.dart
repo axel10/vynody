@@ -5691,6 +5691,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get lanSyncLastSyncNever => '这台设备还没有同步过';
+
+  @override
+  String get reduceMotionGroup => '减少动效';
+
+  @override
+  String get playingIndicatorAnimation => '正在播放图标动画';
+
+  @override
+  String get playingIndicatorAnimationDescription =>
+      '关闭后，当前歌曲显示静止的暂停或播放图标，不再随音乐跳动。';
+
+  @override
+  String get miniPlayerSpectrum => '迷你播放器频谱动画';
+
+  @override
+  String get miniPlayerSpectrumDescription => '关闭后，浮动栏迷你播放器背后的频谱不再显示。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11380,4 +11396,20 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get lanSyncLastSyncNever => '這台裝置還沒有同步過';
+
+  @override
+  String get reduceMotionGroup => '減少動效';
+
+  @override
+  String get playingIndicatorAnimation => '正在播放圖示動畫';
+
+  @override
+  String get playingIndicatorAnimationDescription =>
+      '關閉後，目前歌曲顯示靜止的暫停或播放圖示，不再隨音樂跳動。';
+
+  @override
+  String get miniPlayerSpectrum => '迷你播放器頻譜動畫';
+
+  @override
+  String get miniPlayerSpectrumDescription => '關閉後，浮動列迷你播放器背後的頻譜不再顯示。';
 }

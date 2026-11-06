@@ -444,4 +444,20 @@ final List<SettingSearchItem> settingsSearchRegistry = [
     icon: Icons.description_outlined,
     title: (l10n) => l10n.exportLogs,
   ),
+
+  // --- 界面与行为 / 减少动效 (Reduce motion) ---
+  SettingSearchItem(
+    id: 'general.playing_indicator_animation',
+    section: SettingsSection.general,
+    icon: Icons.graphic_eq_rounded,
+    title: (l10n) => l10n.playingIndicatorAnimation,
+    description: (l10n) => l10n.playingIndicatorAnimationDescription,
+  ),
+  SettingSearchItem(
+    id: 'general.mini_player_spectrum',
+    section: SettingsSection.general,
+    icon: Icons.animation,
+    title: (l10n) => l10n.miniPlayerSpectrum,
+    description: (l10n) => l10n.miniPlayerSpectrumDescription,
+  ),
 ];

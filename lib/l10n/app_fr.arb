@@ -2196,5 +2196,10 @@
   "lanSyncResultMoreSamples": "{count} de plus…",
   "lanSyncViewDetails": "Voir les détails",
   "lanSyncLastSync": "Dernière synchronisation",
-  "lanSyncLastSyncNever": "Cet appareil n'a pas encore été synchronisé"
+  "lanSyncLastSyncNever": "Cet appareil n'a pas encore été synchronisé",
+  "reduceMotionGroup": "Réduire les animations",
+  "playingIndicatorAnimation": "Animation de l'indicateur de lecture",
+  "playingIndicatorAnimationDescription": "Désactivée : le morceau en cours affiche une icône statique pause ou lecture au lieu de l’égaliseur animé.",
+  "miniPlayerSpectrum": "Spectre du mini lecteur",
+  "miniPlayerSpectrumDescription": "Désactivé : le spectre FFT derrière le mini lecteur de la barre flottante est masqué."
 }

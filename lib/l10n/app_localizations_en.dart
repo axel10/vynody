@@ -5975,4 +5975,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lanSyncLastSyncNever => 'This device has not synced yet';
+
+  @override
+  String get reduceMotionGroup => 'Reduce motion';
+
+  @override
+  String get playingIndicatorAnimation => 'Playing indicator animation';
+
+  @override
+  String get playingIndicatorAnimationDescription =>
+      'When off, the current song shows a static pause or play icon instead of an animated equalizer.';
+
+  @override
+  String get miniPlayerSpectrum => 'Mini player spectrum';
+
+  @override
+  String get miniPlayerSpectrumDescription =>
+      'When off, the FFT spectrum behind the floating dock mini player is hidden.';
 }
