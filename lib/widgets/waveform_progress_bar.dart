@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/physics.dart';
-import 'package:flutter/scheduler.dart' show Ticker;
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -76,8 +75,16 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
 
   // Smooth progress states
   late final ValueNotifier<double> _smoothProgressNotifier;
-  Ticker? _ticker;
-  Duration? _lastFrameTime;
+  Timer? _progressTimer;
+
+  /// 滚动波形插值的出帧周期（约 30fps）。**驱动源必须是 Timer 而不是 Ticker**：
+  /// Ticker.start() 每帧 scheduleFrame，哪怕回调里一行都不执行，引擎仍会
+  /// 60fps 走完整 drawFrame / compositeFrame / render(scene)。实测把发布周期
+  /// 调到 1s、回调几乎全部 return，GPU 依然是十几 —— 占用与 notifier 写几次
+  /// 无关，只与「有没有东西持续请求帧」有关。Timer.periodic 只在需要出帧时
+  /// 请求一帧，其余时间引擎静止。背景模糊已静态化、波形已有 RepaintBoundary，
+  /// 所以减占用只能从驱动源入手。要调帧率只改这里。
+  static const Duration _kScrollingFrameInterval = Duration(milliseconds: 50);
   bool _isDragging = false;
   bool _isInertia = false;
   double _lastInertiaX = 0;
@@ -123,8 +130,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
     _smoothProgressNotifier = ValueNotifier<double>(
       widget.progress.clamp(0.0, 1.0),
     );
-    _ticker = createTicker(_onTick);
-    _updateTickerState();
+    _updateProgressDriver();
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -136,7 +142,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
     _animationController.dispose();
     _stopInertia();
     _inertiaController.dispose();
-    _ticker?.dispose();
+    _progressTimer?.cancel();
     _smoothProgressNotifier.dispose();
     _hoverProgressNotifier.dispose();
     _pictureCache.clear();
@@ -148,13 +154,12 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
     super.dispose();
   }
 
-  void _onTick(Duration elapsed) {
+  /// 由 [_progressTimer] 驱动，而非 vsync Ticker。每次回调写一次 notifier，
+  /// 引擎才出一帧；两次回调之间没有任何东西 scheduleFrame。
+  /// delta 取固定周期：Timer 被系统节流时进度会短暂落后，由下面的 lerp 和
+  /// `didUpdateWidget` 的快照 snap 拉回，不需要额外测时间戳。
+  void _onProgressTimer() {
     if (!mounted) return;
-
-    final Duration delta = _lastFrameTime != null
-        ? elapsed - _lastFrameTime!
-        : Duration.zero;
-    _lastFrameTime = elapsed;
 
     if (_isDragging || _isInertia || _endOfSongSeekTimer != null) {
       return;
@@ -164,7 +169,8 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
       final double currentSpeed =
           ref.read(audioSnapshotProvider).playbackSpeed;
       final double deltaProgress =
-          (delta.inMicroseconds * currentSpeed) / widget.duration.inMicroseconds;
+          (_kScrollingFrameInterval.inMicroseconds * currentSpeed) /
+              widget.duration.inMicroseconds;
       double newProgress = _smoothProgressNotifier.value + deltaProgress;
 
       // Gently nudge towards the target progress to correct any time drift
@@ -179,11 +185,11 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
     }
   }
 
-  void _updateTickerState() {
-    // 只有滚动模式需要逐帧插值：柱子要随进度连续平移。整条模式的柱子几何
-    // 完全固定（已录进 Picture），Ticker 唯一的作用是让颜色分割线平滑移动，
-    // 却会把整个播放页（含全屏模糊层）钉在 60fps。这里让整条模式跟随引擎
-    // 快照跳动，与标准滑块的刷新节奏一致。
+  void _updateProgressDriver() {
+    // 只有滚动模式需要连续插值：柱子要随进度平移。整条模式的柱子几何
+    // 完全固定（已录进 Picture），跟随引擎快照跳动即可。
+    // 启动的是 Timer 而非 Ticker —— 后者会每帧 scheduleFrame，把整个播放页
+    // 钉在 60fps（与 notifier 实际写几次无关）。
     if (widget.isScrolling &&
         widget.isPlaying &&
         !_isDragging &&
@@ -192,15 +198,13 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
         !_suspendedForBackground &&
         !widget.isWindowMinimized &&
         !widget.isTransitioning) {
-      if (!_ticker!.isActive) {
-        _lastFrameTime = null;
-        _ticker!.start();
-      }
+      _progressTimer ??= Timer.periodic(
+        _kScrollingFrameInterval,
+        (_) => _onProgressTimer(),
+      );
     } else {
-      if (_ticker!.isActive) {
-        _ticker!.stop();
-        _lastFrameTime = null;
-      }
+      _progressTimer?.cancel();
+      _progressTimer = null;
     }
   }
 
@@ -215,7 +219,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
       if (!mounted) return;
       _endOfSongSeekTimer = null;
       widget.onSeek(1.0);
-      _updateTickerState();
+      _updateProgressDriver();
     });
   }
 
@@ -326,7 +330,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
       _scheduleEndOfSongSeek();
     } else {
       widget.onSeek(_smoothProgressNotifier.value);
-      _updateTickerState();
+      _updateProgressDriver();
     }
   }
 
@@ -348,13 +352,13 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
         (!isDesktop && state == AppLifecycleState.inactive)) {
       if (!_suspendedForBackground) {
         _suspendedForBackground = true;
-        _updateTickerState();
+        _updateProgressDriver();
       }
     } else if (state == AppLifecycleState.resumed ||
         (isDesktop && state == AppLifecycleState.inactive)) {
       if (_suspendedForBackground) {
         _suspendedForBackground = false;
-        _updateTickerState();
+        _updateProgressDriver();
       }
     }
   }
@@ -439,7 +443,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
       }
     }
 
-    // 整条模式不跑 Ticker，播放头必须在这里跟随引擎快照。上面的
+    // 整条模式没有插值驱动，播放头必须在这里跟随引擎快照。上面的
     // snapThreshold 会把正常播放的小步进（约 200ms / 曲长）全部挡掉，
     // 缺了这段，分割线会永久停在换曲时的位置。
     if (!widget.isScrolling &&
@@ -449,7 +453,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
       _smoothProgressNotifier.value = widget.progress.clamp(0.0, 1.0);
     }
 
-    _updateTickerState();
+    _updateProgressDriver();
   }
 
   @override
@@ -522,7 +526,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
                 _smoothProgressNotifier.value =
                     _smoothProgressNotifier.value.clamp(0.0, 1.0);
               }
-              _updateTickerState();
+              _updateProgressDriver();
             },
             onHorizontalDragUpdate: (details) {
               final double deltaX = details.localPosition.dx - _dragStartX;
@@ -567,7 +571,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
                 _isDragging = false;
                 widget.onSeek(_smoothProgressNotifier.value);
                 _hoverProgressNotifier.value = null;
-                _updateTickerState();
+                _updateProgressDriver();
               }
             },
             onHorizontalDragCancel: () {
@@ -576,7 +580,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
               _isDragging = false;
               widget.onSeek(_smoothProgressNotifier.value);
               _hoverProgressNotifier.value = null;
-              _updateTickerState();
+              _updateProgressDriver();
             },
             onTapDown: (details) {
               final bool wasInteracting =
@@ -591,7 +595,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
                 _smoothProgressNotifier.value = newProgress;
               } else if (wasInteracting) {
                 widget.onSeek(_smoothProgressNotifier.value);
-                _updateTickerState();
+                _updateProgressDriver();
               }
             },
             onLongPressStart: isLongPressEnabled

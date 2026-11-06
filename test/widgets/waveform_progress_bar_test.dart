@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
@@ -418,7 +419,7 @@ void main() {
   );
 
   testWidgets(
-    'scrolling waveform still runs the ticker for continuous translation',
+    'scrolling waveform keeps advancing under the timer driver',
     (WidgetTester tester) async {
       final testAudio = _TestAudioService();
       SharedPreferences.setMockInitialValues({});
@@ -454,11 +455,175 @@ void main() {
         ),
       );
 
-      // 滚动模式的柱子需要逐帧平移，Ticker 不能被误停。
+      // 滚动模式的柱子需要连续平移，低频驱动不能被误停。
       for (int i = 0; i < 12; i++) {
         await tester.pump(const Duration(milliseconds: 16));
       }
       expect(_waveformPainter(tester).progress, greaterThan(0.3));
+    },
+  );
+
+  testWidgets(
+    'scrolling waveform emits one frame per timer period (~30fps)',
+    (WidgetTester tester) async {
+      final testAudio = _TestAudioService();
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            audioServiceProvider.overrideWith((ref) => testAudio),
+            audioServiceStateProvider.overrideWith(() => testAudio),
+            settingsServiceProvider.overrideWith((ref) => settings),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 300,
+                  height: 80,
+                  child: WaveformProgressBar(
+                    waveform: List.generate(100, (i) => 0.5),
+                    progress: 0.3,
+                    // 短曲目把「按真实时间累加 delta」与「跳过帧丢掉 delta」
+                    // 的差异放大到可断言的量级。
+                    duration: const Duration(seconds: 20),
+                    isPlaying: true,
+                    isScrolling: true,
+                    onScrubbing: (_) {},
+                    onSeek: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // notifier 跨 rebuild 是同一个实例，监听它能数出真正触发 repaint 的次数。
+      final notifier = _waveformPainter(tester).progressNotifier!;
+      int repaintCount = 0;
+      notifier.addListener(() => repaintCount++);
+
+      // 推进 60 帧 × 16ms ≈ 960ms；Timer 周期 33ms，应约 29 次出帧。
+      for (int i = 0; i < 60; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      expect(repaintCount, greaterThan(15)); // 周期被拖到 1s 时只剩 1 次
+      expect(repaintCount, lessThan(35)); // 退回 60fps 会是 60
+
+      // 每次回调按固定周期推进，进度应与真实时间同阶。
+      final double gained = _waveformPainter(tester).progress - 0.3;
+      expect(gained, greaterThan(0.015));
+      expect(gained, lessThan(0.05));
+    },
+  );
+
+  testWidgets(
+    'scrolling waveform still snaps to a seek while repaint is throttled',
+    (WidgetTester tester) async {
+      final testAudio = _TestAudioService();
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
+      double currentProgress = 0.3;
+      StateSetter? rebuildProgress;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            audioServiceProvider.overrideWith((ref) => testAudio),
+            audioServiceStateProvider.overrideWith(() => testAudio),
+            settingsServiceProvider.overrideWith((ref) => settings),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 300,
+                  height: 80,
+                  child: StatefulBuilder(
+                    builder: (context, setState) {
+                      rebuildProgress = setState;
+                      return WaveformProgressBar(
+                        waveform: List.generate(100, (i) => 0.5),
+                        progress: currentProgress,
+                        duration: const Duration(seconds: 200),
+                        isPlaying: true,
+                        isScrolling: true,
+                        onScrubbing: (_) {},
+                        onSeek: (_) {},
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // 先让限流跑起来（此时下一次 Ticker 回调可能正处于被跳过的帧）。
+      for (int i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      // 跳转属于 didUpdateWidget 的直接同步，不应被 33ms 门控挡住。
+      currentProgress = 0.6;
+      rebuildProgress!(() {});
+      await tester.pump();
+      expect(_waveformPainter(tester).progress, closeTo(0.6, 1e-9));
+    },
+  );
+
+  testWidgets(
+    'scrolling waveform does not keep a vsync ticker active',
+    (WidgetTester tester) async {
+      final testAudio = _TestAudioService();
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            audioServiceProvider.overrideWith((ref) => testAudio),
+            audioServiceStateProvider.overrideWith(() => testAudio),
+            settingsServiceProvider.overrideWith((ref) => settings),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 300,
+                  height: 80,
+                  child: WaveformProgressBar(
+                    waveform: List.generate(100, (i) => 0.5),
+                    progress: 0.3,
+                    duration: const Duration(seconds: 200),
+                    isPlaying: true,
+                    isScrolling: true,
+                    onScrubbing: (_) {},
+                    onSeek: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // 让 Timer 至少触发一次，树进入稳定态。
+      await tester.pump(const Duration(milliseconds: 33));
+
+      // Ticker.start() 会注册 transient frame callback 并每帧续期。滚动波形
+      // 必须一个都不注册：一旦回到 Ticker，哪怕回调里什么都不做，引擎仍会
+      // 60fps 整帧合成 —— 实测把发布周期调到 1s，GPU 依旧是十几。
+      expect(SchedulerBinding.instance.transientCallbackCount, 0);
     },
   );
 }
