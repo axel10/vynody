@@ -525,16 +525,49 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     super.dispose();
   }
 
+  /// 临时诊断：把窗口事件、窗口真实状态、最小化 provider 与生命周期状态
+  /// 打在一行里，用来核对「最小化时 Flutter 到底报了什么」。
+  void _logWindowEvent(String event) {
+    unawaited(_describeWindowEvent(event));
+  }
+
+  Future<void> _describeWindowEvent(String event) async {
+    bool minimized = false;
+    bool visible = true;
+    try {
+      minimized = await windowManager.isMinimized();
+      visible = await windowManager.isVisible();
+    } catch (_) {
+      // 窗口管理器查询失败不影响诊断，直接按未知值输出。
+    }
+    if (!mounted) return;
+    AppLog.log(
+      '[IdleProbe] window event=$event '
+      'isMinimized=$minimized isVisible=$visible '
+      'provider=${ref.read(isWindowMinimizedProvider.notifier).state} '
+      'lifecycle=${WidgetsBinding.instance.lifecycleState}',
+      mirrorToConsole: true,
+    );
+  }
+
   @override
   void onWindowMinimize() {
     ref.read(isWindowMinimizedProvider.notifier).state = true;
     debugPrint('[main_layout] Window minimized');
+    _logWindowEvent('minimize');
   }
 
   @override
   void onWindowRestore() {
     ref.read(isWindowMinimizedProvider.notifier).state = false;
     debugPrint('[main_layout] Window restored');
+    _logWindowEvent('restore');
+  }
+
+  @override
+  void onWindowBlur() {
+    debugPrint('[main_layout] Window blurred');
+    _logWindowEvent('blur');
   }
 
   @override
@@ -545,6 +578,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       settings.isRegularWindowMaximized = true;
     }
     debugPrint('[main_layout] Window maximized');
+    _logWindowEvent('maximize');
   }
 
   @override
@@ -555,12 +589,29 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       settings.isRegularWindowMaximized = false;
     }
     debugPrint('[main_layout] Window unmaximized');
+    _logWindowEvent('unmaximize');
   }
 
   @override
   void onWindowFocus() {
-    ref.read(isWindowMinimizedProvider.notifier).state = false;
+    // 托盘 / 远程控制恢复时 focus 可能先于 restore 到达。只有确认窗口
+    // 确实不再处于最小化状态才复位，否则会把刚生效的后台节流误解除。
+    if (ref.read(isWindowMinimizedProvider.notifier).state) {
+      unawaited(_clearMinimizedOnRealFocus());
+    }
     debugPrint('[main_layout] Window focused');
+    _logWindowEvent('focus');
+  }
+
+  Future<void> _clearMinimizedOnRealFocus() async {
+    bool minimized;
+    try {
+      minimized = await windowManager.isMinimized();
+    } catch (_) {
+      return;
+    }
+    if (!mounted || minimized) return;
+    ref.read(isWindowMinimizedProvider.notifier).state = false;
   }
 
   @override

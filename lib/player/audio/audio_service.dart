@@ -26,6 +26,7 @@ import 'package:vynody/player/settings/theme_color_helper.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
 import 'package:vynody/player/settings/visualizer_options_service.dart';
 import 'package:vynody/player/audio/playback_queue_processor.dart';
+import 'package:vynody/player/audio/ui_notify_throttle.dart';
 import 'package:vynody/player/audio/waveform_service.dart';
 import 'package:vynody/player/platform/windows_integration_service.dart';
 import 'package:vynody/player/platform/android_integration_service.dart';
@@ -323,6 +324,13 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool _isProUnlocked = false;
   bool _isWindowMinimized = false;
   bool _isAppBackgrounded = false;
+  /// 与 audio_core 的 position tick 同开关的 UI 通知节流标记。
+  /// Rust 引擎的 statusStream 每 500ms 无条件推一条，窗口不可见时它仍会
+  /// 走 _handlePlayerChanges -> _notifyIfNeeded -> state = snapshot，
+  /// 于是整棵 UI 每 500ms rebuild 一次并出一帧（GPU 常驻 1%+）。
+  bool _uiNotificationsThrottled = false;
+  int _skippedUiNotifications = 0;
+  DateTime _lastThrottledNotifyLogAt = DateTime.fromMillisecondsSinceEpoch(0);
   AppLifecycleListener? _lifecycleListener;
   bool _initialVolumeApplied = false;
   bool _showVolumeHudForLastVolumeChange = true;
@@ -444,14 +452,18 @@ class AudioService extends Notifier<AudioSnapshot> {
             (state == AppLifecycleState.paused ||
             state == AppLifecycleState.hidden ||
             (!isDesktop && state == AppLifecycleState.inactive));
+        AppLog.log(
+          '[IdleProbe] audio lifecycle -> $state '
+          'isDesktop=$isDesktop backgrounded=$nextBackgrounded '
+          'windowMinimized=$_isWindowMinimized',
+          mirrorToConsole: true,
+        );
         if (_isAppBackgrounded != nextBackgrounded) {
           _isAppBackgrounded = nextBackgrounded;
-          _updateEffectiveVisualizerState();
-          _updatePlaybackSessionAutoSaveTimer();
-          final shouldThrottle =
-              _isAppBackgrounded && !settingsService.enableDesktopLyrics;
-          _player.setBackgroundThrottled(shouldThrottle);
-          if (_isAppBackgrounded) {
+           _updateEffectiveVisualizerState();
+           _updatePlaybackSessionAutoSaveTimer();
+           _syncBackgroundThrottle();
+           if (_isAppBackgrounded) {
             unawaited(_persistPlaybackSession());
           } else {
             if (_queue.isNotEmpty &&
@@ -484,10 +496,12 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     ref.listen<bool>(isWindowMinimizedProvider, (previous, next) {
       _isWindowMinimized = next;
-      _updateEffectiveVisualizerState();
-      final shouldThrottle =
-          _isWindowMinimized && !settingsService.enableDesktopLyrics;
-      _player.setBackgroundThrottled(shouldThrottle);
+      AppLog.log(
+        '[IdleProbe] isWindowMinimizedProvider $previous -> $next',
+        mirrorToConsole: true,
+      );
+       _updateEffectiveVisualizerState();
+       _syncBackgroundThrottle();
     });
 
     ref.listen<bool>(isProUnlockedProvider, (previous, isUnlocked) {
@@ -619,11 +633,9 @@ class AudioService extends Notifier<AudioSnapshot> {
           (Platform.isWindows || Platform.isLinux || Platform.isMacOS) &&
           settingsService.enableDesktopLyrics;
       if (_lastDesktopLyricsEnabled != desktopLyricsEnabled) {
-        _lastDesktopLyricsEnabled = desktopLyricsEnabled;
-        final shouldThrottle =
-            (_isAppBackgrounded || _isWindowMinimized) && !desktopLyricsEnabled;
-        _player.setBackgroundThrottled(shouldThrottle);
-        if (desktopLyricsEnabled) {
+         _lastDesktopLyricsEnabled = desktopLyricsEnabled;
+         _syncBackgroundThrottle();
+         if (desktopLyricsEnabled) {
           ensureLyricsLoadedForCurrentSong();
         }
       }
@@ -1995,6 +2007,29 @@ class AudioService extends Notifier<AudioSnapshot> {
     );
   }
 
+  /// 后台节流的唯一入口：audio_core 的 position tick 与本侧的 UI 通知必须
+  /// 同开关。只停 tick 不停通知的话，Rust 的 500ms statusStream 仍会把
+  /// 整棵 UI 拉起来 rebuild 出帧。
+  void _syncBackgroundThrottle() {
+    final shouldThrottle =
+        (_isAppBackgrounded || _isWindowMinimized) &&
+        !_lastDesktopLyricsEnabled;
+    final changed = _uiNotificationsThrottled != shouldThrottle;
+    _uiNotificationsThrottled = shouldThrottle;
+    _player.setBackgroundThrottled(shouldThrottle);
+    AppLog.log(
+      '[IdleProbe] uiNotifyThrottle=$shouldThrottle '
+      'backgrounded=$_isAppBackgrounded '
+      'windowMinimized=$_isWindowMinimized '
+      'desktopLyrics=$_lastDesktopLyricsEnabled',
+      mirrorToConsole: true,
+    );
+    if (changed && !shouldThrottle) {
+      // 恢复可见时立刻把最小化期间攒下的进度推给 UI，不等下一次 status。
+      _notifyIfNeeded(force: true);
+    }
+  }
+
   void _notifyIfNeeded({bool force = false}) {
     final now = DateTime.now();
     final isBufferingNow = isBuffering;
@@ -2007,15 +2042,35 @@ class AudioService extends Notifier<AudioSnapshot> {
     final positionJump = (_position - _lastNotifiedPosition)
         .abs()
         .inMilliseconds;
-    final positionChangedSignificantly = positionJump >= 120;
-    final elapsed = now.difference(_lastPlayerNotifyAt);
-    final shouldNotify =
-        force ||
-        playbackChanged ||
-        positionChangedSignificantly ||
-        (_isPlaying && elapsed >= const Duration(milliseconds: 120));
+    // 窗口不可见时纯位置推进一律不发布；播放态变化、真 seek 和
+    // force 仍立即放行，托盘 / SMTC / 恢复窗口的状态不会被拖住。
+    final shouldNotify = shouldNotifyUi(
+      force: force,
+      playbackChanged: playbackChanged,
+      positionJumpMs: positionJump,
+      elapsedSinceNotify: now.difference(_lastPlayerNotifyAt),
+      isPlaying: _isPlaying,
+      throttled: _uiNotificationsThrottled,
+    );
 
-    if (!shouldNotify) return;
+    if (!shouldNotify) {
+      if (_uiNotificationsThrottled) {
+        // 位置推进照常「消费」但不发布。否则它会相对上次通知一直累积，
+        // 2s 后就命中真 seek 阈值，退化成每 2s 一帧。
+        _lastNotifiedPosition = _position;
+        _skippedUiNotifications++;
+        if (now.difference(_lastThrottledNotifyLogAt) >=
+            const Duration(seconds: 10)) {
+          _lastThrottledNotifyLogAt = now;
+          AppLog.log(
+            '[IdleProbe] uiNotify skipped=$_skippedUiNotifications '
+            'throttled=true',
+            mirrorToConsole: true,
+          );
+        }
+      }
+      return;
+    }
 
     _lastPlayerNotifyAt = now;
     _lastNotifiedPosition = _position;
@@ -2079,6 +2134,12 @@ class AudioService extends Notifier<AudioSnapshot> {
     // 先对齐播放态再决定开关：重新开启频谱时如果正处于暂停，
     // 输出流应当以「暂停态」起表（推一帧后立刻落下停表）。
     _player.visualizer.updatePlaybackState(_position, _isPlaying);
+    AppLog.log(
+      '[IdleProbe] visualizer fftAllowed=$_isFftCaptureAllowed '
+      'backgrounded=$_isAppBackgrounded windowMinimized=$_isWindowMinimized '
+      'userEnabled=$_userVisualizerEnabled',
+      mirrorToConsole: true,
+    );
     _player.visualizer.setEnabled(_isFftCaptureAllowed);
     notifyListeners();
   }
