@@ -5,7 +5,6 @@ import 'package:path/path.dart' as p;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:oktoast/oktoast.dart';
 
@@ -24,7 +23,6 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
 import 'utils/app_log.dart';
 import 'utils/app_orientation_manager.dart';
-import 'utils/idle_frame_probe.dart';
 import 'utils/app_surface_palette.dart';
 import 'utils/memory_trace.dart';
 import 'utils/startup_profiler.dart';
@@ -496,9 +494,6 @@ class _MyAppState extends ConsumerState<MyApp>
   bool _isMaximized = false;
   bool _isFullScreen = false;
 
-  /// 最小化 / 后台时的帧率探针（临时诊断，见 [IdleFrameProbe]）。
-  final IdleFrameProbe _frameProbe = IdleFrameProbe();
-
   static const double _linuxWindowCornerRadius = 18.0;
 
   @override
@@ -514,26 +509,10 @@ class _MyAppState extends ConsumerState<MyApp>
         _syncWindowState();
       }
     }
-    _frameProbe.contextProvider = () {
-      try {
-        final bool minimized =
-            ref.read(isWindowMinimizedProvider.notifier).state;
-        final bool desktopLyrics =
-            ref.read(settingsServiceProvider).enableDesktopLyrics;
-        return 'minimized=$minimized '
-            'desktopLyrics=$desktopLyrics '
-            'lifecycle=${WidgetsBinding.instance.lifecycleState}';
-      } catch (e) {
-        // 退出过程中 ref 可能已失效，这里只影响诊断输出。
-        return 'context unavailable ($e)';
-      }
-    };
-    _frameProbe.install();
   }
 
   @override
   void dispose() {
-    _frameProbe.dispose();
     WidgetsBinding.instance.removeObserver(this);
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       windowManager.removeListener(this);
@@ -544,11 +523,6 @@ class _MyAppState extends ConsumerState<MyApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    AppLog.log(
-      '[IdleProbe] lifecycle -> $state '
-      '(minimized=${ref.read(isWindowMinimizedProvider.notifier).state})',
-      mirrorToConsole: true,
-    );
     if (state == AppLifecycleState.resumed) {
       MetadataHelper.invalidatePermissionCache();
       final license = ref.read(proLicenseServiceProvider).state;

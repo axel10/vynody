@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:audio_core/audio_core.dart' hide AppLog;
+import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
-import 'package:vynody/utils/app_log.dart';
 
 /// 柱条数量。
 const int _kBarCount = 4;
@@ -117,10 +116,6 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
       for (var i = 0; i < _smoothed.length; i++) {
         _smoothed[i] = 0.0;
       }
-      AppLog.log(
-        '[IdleProbe] equalizer animation disabled, fallback stopped',
-        mirrorToConsole: true,
-      );
       return;
     }
     if (_fftSubscription == null) _subscribeFft();
@@ -188,17 +183,9 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
     if (needsFallback) {
       if (!_fallback.isAnimating) {
         _fallback.repeat();
-        AppLog.log(
-          '[IdleProbe] equalizer sine fallback started (no fft data)',
-          mirrorToConsole: true,
-        );
       }
     } else if (_fallback.isAnimating) {
       _fallback.stop();
-      AppLog.log(
-        '[IdleProbe] equalizer sine fallback stopped',
-        mirrorToConsole: true,
-      );
     }
   }
 

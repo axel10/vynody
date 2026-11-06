@@ -4,9 +4,9 @@ import 'package:vynody/player/audio/ui_notify_throttle.dart';
 /// 回归：最小化后 Rust 的 500ms statusStream 不能再把整棵 UI 拉起来出帧。
 ///
 /// 现场证据：DevTools 时间线 28 帧里 26 帧间隔严格 ~500ms，每帧 build
-/// 12~15ms；IdleProbe 显示 `transient=0 scheduledFrame=false`，即帧不是
-/// Ticker 驱动的，而是 `AudioService.notifyListeners -> state = snapshot`
-/// 的全量 rebuild。修复落在 shouldNotifyUi 这道唯一闸上。
+/// 12~15ms；CPU profile 的完整调用栈指向
+/// `statusStream.listen -> AudioService.notifyListeners -> state = snapshot`
+/// 的全量 rebuild（当时无活跃 Ticker）。修复落在 shouldNotifyUi 这道唯一闸上。
 void main() {
   bool notify({
     bool force = false,

@@ -5,10 +5,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:audio_core/audio_core.dart' hide AppLog;
+import 'package:audio_core/audio_core.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
-import 'package:vynody/utils/app_log.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import '../l10n/app_localizations.dart';
 
@@ -245,10 +244,6 @@ class _MiniSpectrumBackgroundState
     _subscription = null;
     _subscribedAudio = null;
     _fftNotifier.value = const [];
-    AppLog.log(
-      '[IdleProbe] mini spectrum subscription cancelled',
-      mirrorToConsole: true,
-    );
   }
 
   @override
@@ -294,10 +289,6 @@ class _MiniSpectrumBackgroundState
           },
         );
         _subscribedAudio = widget.audio;
-        AppLog.log(
-          '[IdleProbe] mini spectrum subscribed',
-          mirrorToConsole: true,
-        );
       }
     }
 

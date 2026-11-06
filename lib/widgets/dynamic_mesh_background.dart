@@ -11,7 +11,6 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/settings/theme_color_helper.dart';
-import 'package:vynody/utils/app_log.dart';
 import 'package:vynody/utils/artwork_signature.dart';
 
 /// 播放页「动态流变」背景族。
@@ -130,19 +129,12 @@ class _DynamicMeshBackgroundState extends ConsumerState<DynamicMeshBackground>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final bool isActive = state == AppLifecycleState.resumed ||
         state == AppLifecycleState.inactive;
-    AppLog.log(
-      '[IdleProbe] mesh_gradient lifecycle -> $state isActive=$isActive '
-      'wasActive=$_isFlowActive',
-      mirrorToConsole: true,
-    );
     if (isActive == _isFlowActive) return;
     _isFlowActive = isActive;
     if (isActive) {
       _controller.start();
-      AppLog.log('[IdleProbe] mesh_gradient controller start', mirrorToConsole: true);
     } else {
       _controller.stop();
-      AppLog.log('[IdleProbe] mesh_gradient controller stop', mirrorToConsole: true);
     }
     setState(() {});
   }
@@ -241,11 +233,6 @@ class _MeshFlowBackgroundState extends ConsumerState<MeshFlowBackground>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final bool isActive = state == AppLifecycleState.resumed ||
         state == AppLifecycleState.inactive;
-    AppLog.log(
-      '[IdleProbe] mesh_flow lifecycle -> $state isActive=$isActive '
-      'wasActive=$_isFlowActive',
-      mirrorToConsole: true,
-    );
     if (isActive != _isFlowActive) {
       setState(() => _isFlowActive = isActive);
     }
