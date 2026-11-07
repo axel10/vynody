@@ -71,112 +71,134 @@ void main() {
     );
   }
 
-  testWidgets('收起态下在新页面从顶部下滑：顶部缓冲区不再把 Dock 展开', (tester) async {
+  testWidgets('向下滚动时位移随滚动增加（滚多少移出多少），直至最大上限', (tester) async {
     await pumpHost(tester);
-    container.read(floatingDockCollapsedProvider.notifier).setCollapsed(true);
     helper.reset(ref);
 
-    // 新页面停在顶部，手指继续往下滑：pixels 依次 10 → 30 → 80
-    scrollTo(tester, pixels: 10, dy: 10);
-    expect(
-      container.read(floatingDockCollapsedProvider),
-      isTrue,
-      reason: '上一版对 pixels <= 20 的每一帧都无条件展开，这里会先展开再收起',
-    );
+    expect(container.read(floatingDockScrollOffsetProvider), 0.0);
 
-    scrollTo(tester, pixels: 30, dy: 20);
+    // 向下滚动 30px (dy = 30)
+    scrollTo(tester, pixels: 30, dy: 30);
+    expect(container.read(floatingDockScrollOffsetProvider), 30.0);
+
+    // 继续向下滚动 50px (dy = 50)
     scrollTo(tester, pixels: 80, dy: 50);
-    expect(container.read(floatingDockCollapsedProvider), isTrue);
-  });
+    expect(container.read(floatingDockScrollOffsetProvider), 80.0);
 
-  testWidgets('收起态下从下方滚回顶部：仍然按边沿触发展开', (tester) async {
-    await pumpHost(tester);
-    container.read(floatingDockCollapsedProvider.notifier).setCollapsed(true);
-    helper.reset(ref);
-
-    scrollTo(tester, pixels: 120, dy: 40);
-    expect(container.read(floatingDockCollapsedProvider), isTrue);
-
-    scrollTo(tester, pixels: 10, dy: -110);
+    // 大幅向下滚动，位移达到最大上限 maxScrollOffset (220.0)
+    scrollTo(tester, pixels: 400, dy: 320);
     expect(
-      container.read(floatingDockCollapsedProvider),
-      isFalse,
-      reason: '越过 20px 边界回到顶部时应完整展开',
+      container.read(floatingDockScrollOffsetProvider),
+      FloatingDockScrollHelper.maxScrollOffset,
     );
   });
 
-  testWidgets('切页重置后累计距离归零，不会与上一页的滚动叠加', (tester) async {
+  testWidgets('向上滚动时位移随滚动减少，滚多少移回多少，直至原位', (tester) async {
     await pumpHost(tester);
     helper.reset(ref);
 
-    // 第一页向下滚 60px，未达 72px 阈值，Dock 仍是展开态
-    scrollTo(tester, pixels: 60, dy: 60);
-    expect(container.read(floatingDockCollapsedProvider), isFalse);
+    // 先向下滚动 150px
+    scrollTo(tester, pixels: 150, dy: 150);
+    expect(container.read(floatingDockScrollOffsetProvider), 150.0);
 
-    // 切页：清掉上一页的累计与半收起进度
-    helper.reset(ref);
+    // 向上滚动 40px (dy = -40)
+    scrollTo(tester, pixels: 110, dy: -40);
+    expect(container.read(floatingDockScrollOffsetProvider), 110.0);
 
-    // 新页面在列表中段只下滑 15px。旧版会把 60 + 15 累加成 75 直接收起
-    scrollTo(tester, pixels: 115, dy: 15);
-    expect(
-      container.read(floatingDockCollapsedProvider),
-      isFalse,
-      reason: '阈值累计不应跨页面继承',
-    );
-
-    // 清掉防抖 Timer，避免测试结束时仍有 pending timer
-    helper.reset(ref);
+    // 继续向上滚动 120px，超过剩余位移，clamp 到 0.0（原位）
+    scrollTo(tester, pixels: 50, dy: -120);
+    expect(container.read(floatingDockScrollOffsetProvider), 0.0);
   });
 
-  testWidgets('切换列表（进子目录/返回）后跨列表的 pixels 跳变不触发边沿展开', (tester) async {
+  testWidgets('方案 B：停在哪就在哪，滚动停止时不自动吸附', (tester) async {
     await pumpHost(tester);
-    container.read(floatingDockCollapsedProvider.notifier).setCollapsed(true);
     helper.reset(ref);
 
-    // 列表 A（目录页，max=1863）滚到 107，Dock 保持收起
-    scrollTo(tester, pixels: 107, dy: 7, maxScrollExtent: 1863);
-    expect(container.read(floatingDockCollapsedProvider), isTrue);
+    // 向下滚动 75px
+    scrollTo(tester, pixels: 75, dy: 75);
+    expect(container.read(floatingDockScrollOffsetProvider), 75.0);
 
-    // 进入子目录：新 Scrollable（max=603）第一条通知 px=0。
-    // run.log 实测：旧实现拿列表 A 的 107 当 prev，107>20 && 0<=20 误判为
-    // 「从下方滚回顶部」→ 展开，随后下滑满阈值又收起，即「先展开再收起」。
-    final otherScrollableContext = tester.element(
-      find.byType(MaterialApp),
-    );
-    scrollTo(
-      tester,
-      pixels: 0,
-      dy: 0,
-      maxScrollExtent: 603,
-      scrollableContext: otherScrollableContext,
-    );
-    expect(
-      container.read(floatingDockCollapsedProvider),
-      isTrue,
-      reason: '换列表后的第一条通知不应被当作滚回顶部',
+    // 触发 ScrollEndNotification，位移依然保持 75px 不变
+    helper.handleScrollNotification(
+      ScrollEndNotification(
+        metrics: FixedScrollMetrics(
+          minScrollExtent: 0,
+          maxScrollExtent: 2000,
+          pixels: 75,
+          viewportDimension: 800,
+          axisDirection: AxisDirection.down,
+          devicePixelRatio: 1.0,
+        ),
+        context: tester.element(find.byKey(const ValueKey('host'))),
+      ),
+      ref,
     );
 
-    // 同一新列表内从下方滚回顶部：边沿展开仍然生效
-    scrollTo(
-      tester,
-      pixels: 120,
-      dy: 10,
-      maxScrollExtent: 603,
-      scrollableContext: otherScrollableContext,
-    );
-    scrollTo(
-      tester,
-      pixels: 10,
-      dy: -110,
-      maxScrollExtent: 603,
-      scrollableContext: otherScrollableContext,
-    );
-    expect(
-      container.read(floatingDockCollapsedProvider),
-      isFalse,
-      reason: '同一列表内滚回顶部仍应展开',
-    );
+    expect(container.read(floatingDockScrollOffsetProvider), 75.0);
+  });
+
+  testWidgets('列表回到顶部（pixels <= 0）时无条件复位回原位', (tester) async {
+    await pumpHost(tester);
+    helper.reset(ref);
+
+    // 滚到中段，位移为 100px
+    scrollTo(tester, pixels: 200, dy: 100);
+    expect(container.read(floatingDockScrollOffsetProvider), 100.0);
+
+    // 滚回到最顶部（pixels = 0）
+    scrollTo(tester, pixels: 0, dy: -200);
+    expect(container.read(floatingDockScrollOffsetProvider), 0.0);
+  });
+
+  testWidgets('切页或 reset 时位移复位回 0.0', (tester) async {
+    await pumpHost(tester);
+    helper.reset(ref);
+
+    scrollTo(tester, pixels: 100, dy: 100);
+    expect(container.read(floatingDockScrollOffsetProvider), 100.0);
 
     helper.reset(ref);
+    expect(container.read(floatingDockScrollOffsetProvider), 0.0);
+  });
+
+  testWidgets('滚动到列表底部填充区域时Dock随滚动展开，滚到最低时正好位于原位', (tester) async {
+    await pumpHost(tester);
+    helper.reset(ref);
+
+    const maxScroll = 1000.0;
+    const maxOffset = FloatingDockScrollHelper.maxScrollOffset; // 220.0
+
+    // 1. 在列表中段向下滚动，Dock 完全移出 (offset = 220)
+    scrollTo(tester, pixels: 500, dy: 300, maxScrollExtent: maxScroll);
+    expect(container.read(floatingDockScrollOffsetProvider), maxOffset);
+
+    // 2. 滚入底部填充区域 (例如 pixels = 880，离底部还差 120px)
+    // Dock 应该向上浮现展开，offset 变为 120px
+    scrollTo(tester, pixels: 880, dy: 380, maxScrollExtent: maxScroll);
+    expect(container.read(floatingDockScrollOffsetProvider), 120.0);
+
+    // 3. 继续向下滚动到 pixels = 960 (离底部还差 40px)
+    // Dock 继续向上展开，offset 变为 40px
+    scrollTo(tester, pixels: 960, dy: 80, maxScrollExtent: maxScroll);
+    expect(container.read(floatingDockScrollOffsetProvider), 40.0);
+
+    // 4. 滚到最底端 (pixels = 1000)
+    // Dock 正好完全处于原位 (offset = 0)
+    scrollTo(tester, pixels: 1000, dy: 40, maxScrollExtent: maxScroll);
+    expect(container.read(floatingDockScrollOffsetProvider), 0.0);
+
+    // 5. 底部弹性越界 overscroll (pixels = 1050)
+    // Dock 依然稳稳停在原位 (offset = 0)
+    scrollTo(tester, pixels: 1050, dy: 50, maxScrollExtent: maxScroll);
+    expect(container.read(floatingDockScrollOffsetProvider), 0.0);
+  });
+
+  testWidgets('关闭设置开关后，滚动不再产生位移，始终保持 0.0', (tester) async {
+    await pumpHost(tester);
+    settings.enableFloatingDockScrollCollapse = false;
+    helper.reset(ref);
+
+    scrollTo(tester, pixels: 100, dy: 100);
+    expect(container.read(floatingDockScrollOffsetProvider), 0.0);
   });
 }

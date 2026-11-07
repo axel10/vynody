@@ -147,6 +147,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     final collapsePrepProgress = ref.watch(
       floatingDockCollapseProgressProvider,
     );
+    final scrollOffset = ref.watch(floatingDockScrollOffsetProvider);
     _traceDockState(isCollapsedState, showMini, collapsePrepProgress);
     final double prepScale = isCollapsed
         ? 1.0
@@ -198,14 +199,17 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
       bottom: isEffectivelyHidden
           ? -(200.0 + bottomPadding + viewInsetsBottom)
           : totalBottomOffset,
-      child: Center(
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          opacity: isEffectivelyHidden ? 0.0 : 1.0,
-          child: IgnorePointer(
-            ignoring: isEffectivelyHidden,
-            child: AnimatedScale(
+      child: Transform.translate(
+        offset: Offset(0.0, scrollOffset),
+        child: Center(
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            opacity: isEffectivelyHidden ? 0.0 : 1.0,
+            child: IgnorePointer(
+              ignoring: isEffectivelyHidden ||
+                  scrollOffset >= FloatingDockScrollHelper.maxScrollOffset,
+              child: AnimatedScale(
               scale: prepScale,
               duration: const Duration(milliseconds: 160),
               curve: Curves.easeOutCubic,
@@ -384,8 +388,9 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// 一体化平滑形变 Mini 播放器顶栏：
   /// - 展开态 (collapseProgress = 0.0)：标准两行展开 Mini 播放器，最左侧无 Tab 图标，显示上一首按钮；
