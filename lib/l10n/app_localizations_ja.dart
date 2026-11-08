@@ -5811,4 +5811,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get blurEffectDescription =>
       'ドック、ダイアログ、フローティングシートですりガラスのぼかしを使用します。無効にすると GPU 負荷が軽減され滑らかさが向上します。';
+
+  @override
+  String get lyricsBlurEffect => '歌詞のぼかし効果';
+
+  @override
+  String get lyricsBlurEffectDescription =>
+      '歌詞モードの非フォーカス行にガウスぼかしを適用します。オフにすると展開やスクロールのフレームレートが向上します。';
 }

@@ -1760,7 +1760,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -1778,7 +1779,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -2203,5 +2205,7 @@
   "miniPlayerSpectrum": "Espectro del mini reproductor",
   "miniPlayerSpectrumDescription": "Al desactivarlo, se oculta el espectro FFT detrás del mini reproductor de la barra flotante.",
   "blurEffect": "Efectos de desenfoque y cristal esmerilado",
-  "blurEffectDescription": "Usa desenfoque tipo cristal en el dock, diálogos y paneles flotantes. Desactivarlo reduce la carga de GPU y mejora la fluidez."
+  "blurEffectDescription": "Usa desenfoque tipo cristal en el dock, diálogos y paneles flotantes. Desactivarlo reduce la carga de GPU y mejora la fluidez.",
+  "lyricsBlurEffect": "Efecto de desenfoque de letras",
+  "lyricsBlurEffectDescription": "Aplica desenfoque gaussiano a las líneas no enfocadas en el modo de letras."
 }

@@ -1648,9 +1648,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                 if (!useSidebar)
                   Builder(
                     builder: (context) {
-                      final bool isDrawerFullyOpen =
-                          _isPlaybackDrawerOpen &&
-                          _playbackDrawerAnimController.value == 1.0;
+                      final bool isDrawerActive = isSmallWin ||
+                          _isPlaybackDrawerOpen ||
+                          _playbackDrawerAnimController.value > 0.0;
                       final secondaryAnimation = ModalRoute.of(
                         context,
                       )?.secondaryAnimation;
@@ -1659,7 +1659,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                         onDestinationSelected: _onDestinationSelected,
                         isPlayback: false,
                         isHidden:
-                            isDrawerFullyOpen ||
+                            isDrawerActive ||
                             hideMiniPlayerForSelection ||
                             isKeyboardVisible,
                         hideMiniPlayer:
@@ -1698,61 +1698,58 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                       right: rightDrawerWidth,
                       child: TickerMode(
                         enabled: isDrawerActive,
-                        child: Offstage(
-                          offstage: !isDrawerActive,
-                          child: ClipRect(
-                            child: AnimatedBuilder(
-                              animation: _playbackDrawerAnimController,
-                              builder: (context, child) {
-                                final double progress = isSmallWin
-                                    ? 1.0
-                                    : _playbackDrawerAnimController.value;
-                                final double screenHeight = size.height;
-                                final double offsetY = isSmallWin
-                                    ? 0.0
-                                    : ((1.0 - progress) * screenHeight).clamp(
-                                        0.0,
-                                        screenHeight,
-                                      );
+                        child: ClipRect(
+                          child: AnimatedBuilder(
+                            animation: _playbackDrawerAnimController,
+                            builder: (context, child) {
+                              final double progress = isSmallWin
+                                  ? 1.0
+                                  : _playbackDrawerAnimController.value;
+                              final double screenHeight = size.height;
+                              final double offsetY = isSmallWin
+                                  ? 0.0
+                                  : ((1.0 - progress) * screenHeight).clamp(
+                                      0.0,
+                                      screenHeight,
+                                    );
 
-                                return Transform.translate(
-                                  offset: Offset(0, offsetY),
-                                  child: child,
-                                );
-                              },
-                              child: RepaintBoundary(
-                                child: Stack(
-                                  children: [
-                                    Positioned.fill(
-                                      child: PlaybackPage(
-                                        onCollapse: _collapsePlayback,
-                                        isMouseActive: _isMouseActive,
-                                      ),
+                              return Transform.translate(
+                                offset: Offset(0, offsetY),
+                                child: child,
+                              );
+                            },
+                            child: RepaintBoundary(
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: PlaybackPage(
+                                      onCollapse: _collapsePlayback,
+                                      isMouseActive: _isMouseActive,
                                     ),
-                                    if (!useSidebar && !isSmallWin)
-                                      FloatingDockBottomBar(
-                                        // 播放页是覆盖在底层 Tab 之上的抽屉，它自己不占
-                                        // 导航位。这里沿用底层 Tab 的索引，让 Dock 高亮
-                                        // 保持与「当前路由位置」一致，而不是全部熄掉。
-                                        currentIndex: _currentIndex,
-                                        onDestinationSelected: (index) {
-                                          if (index == 1) return;
-                                          if (index == 5) {
-                                            _openSettingsPage();
-                                            return;
-                                          }
-                                          _collapsePlayback();
-                                          _selectTab(index);
-                                        },
-                                        isPlayback: true,
-                                        isHidden:
-                                            settings.isImmersiveTabBarEnabled &&
-                                            settings.isUserInactive,
-                                        hideMiniPlayer: true,
-                                        rightDrawerWidth: 0.0,
-                                      ),
-                                  ],
-                                ),
+                                  ),
+                                  if (!useSidebar && !isSmallWin)
+                                    FloatingDockBottomBar(
+                                      // 播放页是覆盖在底层 Tab 之上的抽屉，它自己不占
+                                      // 导航位。这里沿用底层 Tab 的索引，让 Dock 高亮
+                                      // 保持与「当前路由位置」一致，而不是全部熄掉。
+                                      currentIndex: _currentIndex,
+                                      onDestinationSelected: (index) {
+                                        if (index == 1) return;
+                                        if (index == 5) {
+                                          _openSettingsPage();
+                                          return;
+                                        }
+                                        _collapsePlayback();
+                                        _selectTab(index);
+                                      },
+                                      isPlayback: true,
+                                      isHidden:
+                                          settings.isImmersiveTabBarEnabled &&
+                                          settings.isUserInactive,
+                                      hideMiniPlayer: true,
+                                      rightDrawerWidth: 0.0,
+                                    ),
+                                ],
                               ),
                             ),
                           ),

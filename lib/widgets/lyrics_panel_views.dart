@@ -155,7 +155,10 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
     this.cjkFontFamily = '',
     this.showTranslation = true,
     this.showWordByWord = true,
+    this.isBlurEnabled = true,
   });
+
+  final bool isBlurEnabled;
 
   final MusicLyric? lyrics;
 
@@ -615,6 +618,7 @@ class _LyricsPanelTimedLyricsViewState
                                         (index - widget.activeIndex) <= 7);
 
                               final bool shouldBlur =
+                                  widget.isBlurEnabled &&
                                   widget.hasTimedLyrics &&
                                   widget.activeIndex >= 0 &&
                                   widget.isFocusMode &&
@@ -642,7 +646,9 @@ class _LyricsPanelTimedLyricsViewState
                               }
 
                               final Widget blurredChild;
-                              if (widget.isFocusMode && widget.hasTimedLyrics) {
+                              if (widget.isBlurEnabled &&
+                                  widget.isFocusMode &&
+                                  widget.hasTimedLyrics) {
                                 blurredChild =
                                     TweenAnimationBuilder<double>(
                                   tween: Tween<double>(

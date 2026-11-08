@@ -6073,4 +6073,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get blurEffectDescription =>
       'Verwendet Milchglas-Unschärfe auf Dock, Dialogen und schwebenden Fenstern. Die Deaktivierung reduziert den GPU-Aufwand und verbessert die Bildrate.';
+
+  @override
+  String get lyricsBlurEffect => 'Songtext-Unschärfeeffekt';
+
+  @override
+  String get lyricsBlurEffectDescription =>
+      'Wendet Gaußsche Unschärfe auf nicht fokussierte Zeilen im Songtext-Modus an.';
 }

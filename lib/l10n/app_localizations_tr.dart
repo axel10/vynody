@@ -6025,4 +6025,11 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get blurEffectDescription =>
       'Dock, iletişim kutuları ve kayan panellerde bulanıklık efekti kullanır. Kapatılması GPU yükünü azaltır ve akıcılığı artırır.';
+
+  @override
+  String get lyricsBlurEffect => 'Şarkı sözü bulanıklık efekti';
+
+  @override
+  String get lyricsBlurEffectDescription =>
+      'Şarkı sözü modundaki odaklanmamış satırlara Gauss bulanıklığı uygular.';
 }

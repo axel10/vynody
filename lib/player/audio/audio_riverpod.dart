@@ -43,6 +43,12 @@ final isBlurEffectEnabledProvider = Provider<bool>((ref) {
   return ref.watch(settingsServiceProvider.select((s) => s.isBlurEffectEnabled));
 });
 
+final isLyricsBlurEffectEnabledProvider = Provider<bool>((ref) {
+  return ref.watch(
+    settingsServiceProvider.select((s) => s.isLyricsBlurEffectEnabled),
+  );
+});
+
 @visibleForTesting
 final audioServiceStateProvider = NotifierProvider<AudioService, AudioSnapshot>(
   AudioService.new,

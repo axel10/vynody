@@ -10598,6 +10598,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'在底栏、弹窗及浮层使用毛玻璃模糊效果；关闭后可显著降低 GPU 渲染开销并提升滑动流畅度。'**
   String get blurEffectDescription;
+
+  /// No description provided for @lyricsBlurEffect.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词毛玻璃效果'**
+  String get lyricsBlurEffect;
+
+  /// No description provided for @lyricsBlurEffectDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'为歌词模式下的非聚焦行提供高斯模糊效果；关闭后可显著提升展开与滚动的帧率。'**
+  String get lyricsBlurEffectDescription;
 }
 
 class _AppLocalizationsDelegate

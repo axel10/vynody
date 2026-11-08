@@ -1859,7 +1859,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -1877,7 +1878,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -2302,5 +2304,7 @@
   "miniPlayerSpectrum": "ミニプレーヤーのスペクトラム",
   "miniPlayerSpectrumDescription": "オフにすると、フローティングドックのミニプレーヤー背面の FFT スペクトラムを表示しません。",
   "blurEffect": "すりガラス・ぼかし効果",
-  "blurEffectDescription": "ドック、ダイアログ、フローティングシートですりガラスのぼかしを使用します。無効にすると GPU 負荷が軽減され滑らかさが向上します。"
+  "blurEffectDescription": "ドック、ダイアログ、フローティングシートですりガラスのぼかしを使用します。無効にすると GPU 負荷が軽減され滑らかさが向上します。",
+  "lyricsBlurEffect": "歌詞のぼかし効果",
+  "lyricsBlurEffectDescription": "歌詞モードの非フォーカス行にガウスぼかしを適用します。オフにすると展開やスクロールのフレームレートが向上します。"
 }

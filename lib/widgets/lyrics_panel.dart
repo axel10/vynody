@@ -136,6 +136,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   bool? _lastBuiltIsTranslating;
   bool? _lastBuiltIsTransitioning;
   bool? _lastBuiltIsLowMidEnd;
+  bool? _lastBuiltIsBlurEnabled;
 
   List<LyricLine>? _lastMeasuredLines;
   MusicLyric? _lastMeasuredLyrics;
@@ -1827,6 +1828,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final showLyricsWordByWord = ref.watch(
       settingsServiceProvider.select((settings) => settings.showLyricsWordByWord),
     );
+    final isBlurEffectEnabled = ref.watch(isBlurEffectEnabledProvider);
+    final isLyricsBlurEffectEnabled = ref.watch(
+      isLyricsBlurEffectEnabledProvider,
+    );
+    final isLyricsBlurEnabled =
+        isBlurEffectEnabled && isLyricsBlurEffectEnabled;
     final textColor = widget.textColor ?? Colors.white;
     final secondaryTextColor =
         widget.secondaryTextColor ?? textColor.withValues(alpha: PlaybackPageUiTuning.appleLyricsInactiveOpacity);
@@ -2148,6 +2155,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             widget.bottomReserveDelta != _lastBuiltBottomReserveDelta ||
             showLyricsTranslation != _lastBuiltShowTranslation ||
             showLyricsWordByWord != _lastBuiltShowWordByWord ||
+            isLyricsBlurEnabled != _lastBuiltIsBlurEnabled ||
             layoutRevision != _lastBuiltLayoutRevision ||
             lyrics != _lastBuiltLyrics;
 
@@ -2181,6 +2189,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _lastBuiltBottomReserveDelta = widget.bottomReserveDelta;
           _lastBuiltShowTranslation = showLyricsTranslation;
           _lastBuiltShowWordByWord = showLyricsWordByWord;
+          _lastBuiltIsBlurEnabled = isLyricsBlurEnabled;
           _lastBuiltLayoutRevision = layoutRevision;
           _lastBuiltLyrics = lyrics;
 
@@ -2197,6 +2206,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             cjkFontFamily: lyricsCjkFont,
             showTranslation: showLyricsTranslation,
             showWordByWord: showLyricsWordByWord,
+            isBlurEnabled: isLyricsBlurEnabled,
             textColor: textColor,
             secondaryTextColor: secondaryTextColor,
             scrollController: _scrollController,

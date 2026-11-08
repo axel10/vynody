@@ -17,6 +17,7 @@ import 'package:vynody/player/library/genre_library.dart';
 import 'package:vynody/player/library/year_library.dart';
 import 'package:vynody/player/lyrics/timeline/lyrics_timeline_repository.dart';
 import 'package:vynody/utils/app_proxy_manager.dart';
+import 'package:vynody/utils/device_info_utils.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart'
     show
@@ -698,11 +699,23 @@ class SettingsService extends ChangeNotifier {
       'playing_indicator_animation';
   static const String _keyMiniPlayerSpectrum = 'mini_player_spectrum';
   static const String _keyBlurEffectEnabled = 'blur_effect_enabled';
+  static const String _keyLyricsBlurEffectEnabled =
+      'lyrics_blur_effect_enabled';
 
   /// 毛玻璃与模糊效果默认值：仅在 Apple 平台（iOS / macOS）默认开启，其余平台默认关闭以保证流畅度。
   static bool get _defaultBlurEffectEnabled =>
       defaultTargetPlatform == TargetPlatform.iOS ||
       defaultTargetPlatform == TargetPlatform.macOS;
+
+  /// 歌词面板非焦点行毛玻璃默认值：
+  /// 在 Android 平台中，中低端机型默认关闭以减轻离屏 ImageFiltered 压力；其他机型默认开启。
+  /// 在非 Android 平台上默认开启。
+  static bool get _defaultLyricsBlurEffectEnabled {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return !DevicePerformanceHelper.isLowMidEndCached;
+    }
+    return true;
+  }
 
   /// 常驻动效（正在播放图标动画 / 迷你播放器频谱）统一默认开启，不再按平台分档。
   /// 与 [_visualizerEnabledProperty] 按「移动端 / 桌面端」分档的默认口径彼此独立，
@@ -1927,6 +1940,13 @@ class SettingsService extends ChangeNotifier {
   late final _blurEffectEnabledProperty = SettingProperty<bool>(
     key: _keyBlurEffectEnabled,
     defaultValue: _defaultBlurEffectEnabled,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _lyricsBlurEffectEnabledProperty = SettingProperty<bool>(
+    key: _keyLyricsBlurEffectEnabled,
+    defaultValue: _defaultLyricsBlurEffectEnabled,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -3208,6 +3228,12 @@ class SettingsService extends ChangeNotifier {
   set isBlurEffectEnabled(bool value) =>
       _blurEffectEnabledProperty.value = value;
 
+  /// 歌词面板非焦点行毛玻璃模糊效果是否开启。
+  /// 在 Android 上中低端机型默认关闭，其余机型默认开启。
+  bool get isLyricsBlurEffectEnabled => _lyricsBlurEffectEnabledProperty.value;
+  set isLyricsBlurEffectEnabled(bool value) =>
+      _lyricsBlurEffectEnabledProperty.value = value;
+
   bool get isVisualizerEnabled => _visualizerEnabledProperty.value;
   set isVisualizerEnabled(bool value) =>
       _visualizerEnabledProperty.value = value;
@@ -3789,6 +3815,7 @@ class SettingsService extends ChangeNotifier {
   }
 
   void resetVisualizerAppearance() {
+    _lyricsBlurEffectEnabledProperty.reset();
     _visualizerStyleProperty.reset();
     _visualizerOpacityProperty.reset();
     for (final s in VisualizerStyle.values) {
@@ -4024,6 +4051,9 @@ class SettingsService extends ChangeNotifier {
 
   static Future<SettingsService> init() async {
     final prefs = await SharedPreferences.getInstance();
+    try {
+      await DevicePerformanceHelper.isLowMidEndDevice();
+    } catch (_) {}
     final secureStorage = AppSecureStorage(prefs);
     final secureApiKeys = <String, String>{};
     for (final key in _apiKeyStorageKeys) {

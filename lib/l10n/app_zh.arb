@@ -2708,7 +2708,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -2726,7 +2727,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -3993,58 +3995,131 @@
     }
   },
   "lanSyncErrorBusy": "这台设备上一次同步还没结束，请稍候",
-  "@lanSyncErrorBusy": {"description": "User tapped sync again while one is still running for the same device"},
+  "@lanSyncErrorBusy": {
+    "description": "User tapped sync again while one is still running for the same device"
+  },
   "lanSyncErrorSessionExpired": "传输会话已过期，请重试",
-  "@lanSyncErrorSessionExpired": {"description": "Chunked transfer session expired on the peer (HTTP 409)"},
+  "@lanSyncErrorSessionExpired": {
+    "description": "Chunked transfer session expired on the peer (HTTP 409)"
+  },
   "lanSyncProgressPreparing": "正在整理要同步的内容…",
-  "@lanSyncProgressPreparing": {"description": "Progress dialog: collecting what to send"},
+  "@lanSyncProgressPreparing": {
+    "description": "Progress dialog: collecting what to send"
+  },
   "lanSyncProgressTransferring": "正在传输",
-  "@lanSyncProgressTransferring": {"description": "Progress dialog: transferring data"},
+  "@lanSyncProgressTransferring": {
+    "description": "Progress dialog: transferring data"
+  },
   "lanSyncProgressWaitingPeer": "等待对方确认…",
-  "@lanSyncProgressWaitingPeer": {"description": "Progress dialog: waiting for the peer device"},
+  "@lanSyncProgressWaitingPeer": {
+    "description": "Progress dialog: waiting for the peer device"
+  },
   "lanSyncProgressImporting": "正在导入",
-  "@lanSyncProgressImporting": {"description": "Progress dialog: writing received items locally"},
+  "@lanSyncProgressImporting": {
+    "description": "Progress dialog: writing received items locally"
+  },
   "lanSyncProgressIngesting": "正在入库…",
-  "@lanSyncProgressIngesting": {"description": "Progress dialog: scanner is indexing new files"},
+  "@lanSyncProgressIngesting": {
+    "description": "Progress dialog: scanner is indexing new files"
+  },
   "lanSyncProgressCount": "{processed}/{total}",
-  "@lanSyncProgressCount": {"description": "Progress dialog: processed/total counter", "placeholders": {"processed": {"type": "int"}, "total": {"type": "int"}}},
+  "@lanSyncProgressCount": {
+    "description": "Progress dialog: processed/total counter",
+    "placeholders": {
+      "processed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "lanSyncCancel": "取消",
-  "@lanSyncCancel": {"description": "Progress dialog: cancel button"},
+  "@lanSyncCancel": {
+    "description": "Progress dialog: cancel button"
+  },
   "lanSyncCancelling": "正在取消…",
-  "@lanSyncCancelling": {"description": "Progress dialog: cancel already requested"},
+  "@lanSyncCancelling": {
+    "description": "Progress dialog: cancel already requested"
+  },
   "lanSyncCancelled": "已取消同步",
-  "@lanSyncCancelled": {"description": "Toast after the user cancels a sync"},
+  "@lanSyncCancelled": {
+    "description": "Toast after the user cancels a sync"
+  },
   "lanSyncSendingTo": "正在发送到 {device}",
-  "@lanSyncSendingTo": {"description": "Progress dialog title when sending", "placeholders": {"device": {"type": "String"}}},
+  "@lanSyncSendingTo": {
+    "description": "Progress dialog title when sending",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
   "lanSyncReceivingFrom": "正在从 {device} 接收",
-  "@lanSyncReceivingFrom": {"description": "Progress dialog title when receiving", "placeholders": {"device": {"type": "String"}}},
+  "@lanSyncReceivingFrom": {
+    "description": "Progress dialog title when receiving",
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
   "lanSyncResultTitle": "同步完成",
-  "@lanSyncResultTitle": {"description": "Result card title"},
+  "@lanSyncResultTitle": {
+    "description": "Result card title"
+  },
   "lanSyncResultPlaylists": "歌单",
-  "@lanSyncResultPlaylists": {"description": "Result card row: number of playlists"},
+  "@lanSyncResultPlaylists": {
+    "description": "Result card row: number of playlists"
+  },
   "lanSyncResultAdded": "新增",
-  "@lanSyncResultAdded": {"description": "Result card row: number of added items"},
+  "@lanSyncResultAdded": {
+    "description": "Result card row: number of added items"
+  },
   "lanSyncResultUpdated": "更新",
-  "@lanSyncResultUpdated": {"description": "Result card row: number of updated items"},
+  "@lanSyncResultUpdated": {
+    "description": "Result card row: number of updated items"
+  },
   "lanSyncResultSkipped": "跳过",
-  "@lanSyncResultSkipped": {"description": "Result card row: number of skipped items"},
+  "@lanSyncResultSkipped": {
+    "description": "Result card row: number of skipped items"
+  },
   "lanSyncResultMissing": "未匹配",
-  "@lanSyncResultMissing": {"description": "Result card row: items with no local match"},
+  "@lanSyncResultMissing": {
+    "description": "Result card row: items with no local match"
+  },
   "lanSyncResultAmbiguous": "多个候选",
-  "@lanSyncResultAmbiguous": {"description": "Result card row: items matching more than one local song"},
+  "@lanSyncResultAmbiguous": {
+    "description": "Result card row: items matching more than one local song"
+  },
   "lanSyncResultMoreSamples": "还有 {count} 条…",
-  "@lanSyncResultMoreSamples": {"description": "Result card: how many detail rows were not listed", "placeholders": {"count": {"type": "int"}}},
+  "@lanSyncResultMoreSamples": {
+    "description": "Result card: how many detail rows were not listed",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "lanSyncViewDetails": "查看详情",
-  "@lanSyncViewDetails": {"description": "SnackBar action to open the result card"},
+  "@lanSyncViewDetails": {
+    "description": "SnackBar action to open the result card"
+  },
   "lanSyncLastSync": "最近一次同步",
-  "@lanSyncLastSync": {"description": "Sharing page: last sync summary section"},
+  "@lanSyncLastSync": {
+    "description": "Sharing page: last sync summary section"
+  },
   "lanSyncLastSyncNever": "这台设备还没有同步过",
-  "@lanSyncLastSyncNever": {"description": "Sharing page: no sync recorded yet"},
+  "@lanSyncLastSyncNever": {
+    "description": "Sharing page: no sync recorded yet"
+  },
   "reduceMotionGroup": "减少动效",
   "playingIndicatorAnimation": "正在播放图标动画",
   "playingIndicatorAnimationDescription": "关闭后，当前歌曲显示静止的暂停或播放图标，不再随音乐跳动。",
   "miniPlayerSpectrum": "迷你播放器频谱动画",
   "miniPlayerSpectrumDescription": "关闭后，浮动栏迷你播放器背后的频谱不再显示。",
   "blurEffect": "毛玻璃与模糊效果",
-  "blurEffectDescription": "在底栏、弹窗及浮层使用毛玻璃模糊效果；关闭后可显著降低 GPU 渲染开销并提升滑动流畅度。"
+  "blurEffectDescription": "在底栏、弹窗及浮层使用毛玻璃模糊效果；关闭后可显著降低 GPU 渲染开销并提升滑动流畅度。",
+  "lyricsBlurEffect": "歌词毛玻璃效果",
+  "lyricsBlurEffectDescription": "为歌词模式下的非聚焦行提供高斯模糊效果；关闭后可显著提升展开与滚动的帧率。"
 }

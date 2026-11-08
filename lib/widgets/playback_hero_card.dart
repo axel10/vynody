@@ -625,6 +625,14 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
                 final bool isTransitioning =
                     (tLyrics > 0.0 && tLyrics < 1.0) ||
                     (tLand > 0.0 && tLand < 1.0);
+                if (_lyricsPanelTransitioning.value != isTransitioning) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted &&
+                        _lyricsPanelTransitioning.value != isTransitioning) {
+                      _lyricsPanelTransitioning.value = isTransitioning;
+                    }
+                  });
+                }
                 final bool isEnteringLyricsMode =
                     effectiveIsLyricsMode && (tLyrics > 0.0 && tLyrics < 1.0);
                 final bool optimize = isTransitioning && isLowMidEnd;

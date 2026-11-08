@@ -1760,7 +1760,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -1778,7 +1779,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -2203,5 +2205,7 @@
   "miniPlayerSpectrum": "Mini-Player-Spektrum",
   "miniPlayerSpectrumDescription": "Aus: Das FFT-Spektrum hinter dem Mini-Player der schwebenden Leiste wird ausgeblendet.",
   "blurEffect": "Milchglas- & Unschärfeeffekte",
-  "blurEffectDescription": "Verwendet Milchglas-Unschärfe auf Dock, Dialogen und schwebenden Fenstern. Die Deaktivierung reduziert den GPU-Aufwand und verbessert die Bildrate."
+  "blurEffectDescription": "Verwendet Milchglas-Unschärfe auf Dock, Dialogen und schwebenden Fenstern. Die Deaktivierung reduziert den GPU-Aufwand und verbessert die Bildrate.",
+  "lyricsBlurEffect": "Songtext-Unschärfeeffekt",
+  "lyricsBlurEffectDescription": "Wendet Gaußsche Unschärfe auf nicht fokussierte Zeilen im Songtext-Modus an."
 }

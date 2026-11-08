@@ -1892,7 +1892,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -1910,7 +1911,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -2335,5 +2337,7 @@
   "miniPlayerSpectrum": "Mini oynatıcı spektrumu",
   "miniPlayerSpectrumDescription": "Kapalıyken yüzen dock mini oynatıcısının arkasındaki FFT spektrumu gizlenir.",
   "blurEffect": "Buzlu cam ve bulanıklık efektleri",
-  "blurEffectDescription": "Dock, iletişim kutuları ve kayan panellerde bulanıklık efekti kullanır. Kapatılması GPU yükünü azaltır ve akıcılığı artırır."
+  "blurEffectDescription": "Dock, iletişim kutuları ve kayan panellerde bulanıklık efekti kullanır. Kapatılması GPU yükünü azaltır ve akıcılığı artırır.",
+  "lyricsBlurEffect": "Şarkı sözü bulanıklık efekti",
+  "lyricsBlurEffectDescription": "Şarkı sözü modundaki odaklanmamış satırlara Gauss bulanıklığı uygular."
 }

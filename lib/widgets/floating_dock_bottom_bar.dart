@@ -101,8 +101,6 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isPlaying = ref.watch(audioIsPlayingProvider);
     final isBuffering = ref.watch(audioIsBufferingProvider);
-    final progress = ref.watch(audioProgressProvider);
-    final position = ref.watch(audioPositionProvider);
     final duration = ref.watch(audioDurationProvider);
     final audio = ref.watch(audioServiceProvider);
     final l10n = AppLocalizations.of(context)!;
@@ -279,7 +277,6 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                                         isPlaying: isPlaying,
                                         isBuffering: isBuffering,
                                         audio: audio,
-                                        position: position,
                                         duration: duration,
                                         currentTab: currentTab,
                                         collapseProgress: t,
@@ -308,7 +305,6 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                                             child: _FloatingDockProgressBar(
                                               theme: theme,
                                               isDark: isDark,
-                                              progress: progress,
                                               isDragging: _isDragging,
                                               dragProgress: _dragProgress,
                                               onDragStart: (val) {
@@ -417,19 +413,11 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     required bool isPlaying,
     required bool isBuffering,
     required AudioService audio,
-    required Duration position,
     required Duration duration,
     required _TabItem currentTab,
     required double collapseProgress,
     bool isTablet = false,
   }) {
-    final displayPosition = _isDragging
-        ? Duration(
-            milliseconds:
-                (duration.inMilliseconds * _dragProgress.clamp(0.0, 1.0))
-                    .toInt(),
-          )
-        : position;
 
     final double prevNextIconSize = isTablet ? 26.0 : 20.0;
     final double playPauseIconSize = isTablet
@@ -711,14 +699,27 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(
-                              formatDuration(displayPosition),
-                              style: TextStyle(
-                                fontSize: isTablet ? 14.0 : 13.0,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                                color: isDark ? Colors.white : Colors.black87,
-                              ),
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final pos = _isDragging
+                                    ? Duration(
+                                        milliseconds:
+                                            (duration.inMilliseconds *
+                                                    _dragProgress.clamp(0.0, 1.0))
+                                                .toInt(),
+                                      )
+                                    : ref.watch(audioPositionProvider);
+                                return Text(
+                                  formatDuration(pos),
+                                  style: TextStyle(
+                                    fontSize: isTablet ? 14.0 : 13.0,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                    color:
+                                        isDark ? Colors.white : Colors.black87,
+                                  ),
+                                );
+                              },
                             ),
                             Text(
                               formatDuration(duration),
@@ -934,11 +935,10 @@ class _TabButton extends StatelessWidget {
 }
 
 /// 具备可拖动胶囊滑块的实时播放进度条
-class _FloatingDockProgressBar extends StatelessWidget {
+class _FloatingDockProgressBar extends ConsumerWidget {
   const _FloatingDockProgressBar({
     required this.theme,
     required this.isDark,
-    required this.progress,
     required this.isDragging,
     required this.dragProgress,
     required this.onDragStart,
@@ -949,7 +949,6 @@ class _FloatingDockProgressBar extends StatelessWidget {
 
   final ThemeData theme;
   final bool isDark;
-  final double progress;
   final bool isDragging;
   final double dragProgress;
   final ValueChanged<double> onDragStart;
@@ -968,7 +967,8 @@ class _FloatingDockProgressBar extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progress = isDragging ? dragProgress : ref.watch(audioProgressProvider);
     final effectiveProgress = (isDragging ? dragProgress : progress).clamp(
       0.0,
       1.0,

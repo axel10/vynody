@@ -5714,6 +5714,13 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get blurEffectDescription =>
       '在底栏、弹窗及浮层使用毛玻璃模糊效果；关闭后可显著降低 GPU 渲染开销并提升滑动流畅度。';
+
+  @override
+  String get lyricsBlurEffect => '歌词毛玻璃效果';
+
+  @override
+  String get lyricsBlurEffectDescription =>
+      '为歌词模式下的非聚焦行提供高斯模糊效果；关闭后可显著提升展开与滚动的帧率。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11426,4 +11433,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get blurEffectDescription =>
       '在底列、彈窗及浮層使用毛玻璃模糊效果；關閉後可顯著降低 GPU 渲染開銷並提升滑動流暢度。';
+
+  @override
+  String get lyricsBlurEffect => '歌詞毛玻璃效果';
+
+  @override
+  String get lyricsBlurEffectDescription =>
+      '為歌詞模式下的非聚焦行提供高斯模糊效果；關閉後可顯著提升展開與滾動的幀率。';
 }

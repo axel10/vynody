@@ -1492,7 +1492,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -1510,7 +1511,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -1918,5 +1920,7 @@
   "miniPlayerSpectrum": "迷你播放器頻譜動畫",
   "miniPlayerSpectrumDescription": "關閉後，浮動列迷你播放器背後的頻譜不再顯示。",
   "blurEffect": "毛玻璃與模糊效果",
-  "blurEffectDescription": "在底列、彈窗及浮層使用毛玻璃模糊效果；關閉後可顯著降低 GPU 渲染開銷並提升滑動流暢度。"
+  "blurEffectDescription": "在底列、彈窗及浮層使用毛玻璃模糊效果；關閉後可顯著降低 GPU 渲染開銷並提升滑動流暢度。",
+  "lyricsBlurEffect": "歌詞毛玻璃效果",
+  "lyricsBlurEffectDescription": "為歌詞模式下的非聚焦行提供高斯模糊效果；關閉後可顯著提升展開與滾動的幀率。"
 }

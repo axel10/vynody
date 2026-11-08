@@ -6084,4 +6084,11 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get blurEffectDescription =>
       'Usa desenfoque tipo cristal en el dock, diálogos y paneles flotantes. Desactivarlo reduce la carga de GPU y mejora la fluidez.';
+
+  @override
+  String get lyricsBlurEffect => 'Efecto de desenfoque de letras';
+
+  @override
+  String get lyricsBlurEffectDescription =>
+      'Aplica desenfoque gaussiano a las líneas no enfocadas en el modo de letras.';
 }

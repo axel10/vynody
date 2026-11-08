@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/audio/equalizer_presets.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/device_info_utils.dart';
 import 'package:vynody/utils/secure_storage.dart';
 
 void main() {
@@ -721,6 +722,49 @@ void main() {
       expect(afterReset.isPlayingIndicatorAnimationEnabled, isTrue);
       expect(afterReset.isMiniPlayerSpectrumEnabled, isTrue);
       expect(afterReset.isBlurEffectEnabled, isFalse);
+    });
+
+    test('isLyricsBlurEffectEnabled defaults based on platform and device performance tier', () async {
+      // 1. Android low-to-mid end device -> default false
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      DevicePerformanceHelper.setLowMidEndCacheForTesting(true);
+      SharedPreferences.setMockInitialValues({});
+      var prefs = await SharedPreferences.getInstance();
+      var settings = SettingsService(prefs);
+      expect(settings.isLyricsBlurEffectEnabled, isFalse);
+
+      // 2. Android high-end device -> default true
+      DevicePerformanceHelper.setLowMidEndCacheForTesting(false);
+      SharedPreferences.setMockInitialValues({});
+      prefs = await SharedPreferences.getInstance();
+      settings = SettingsService(prefs);
+      expect(settings.isLyricsBlurEffectEnabled, isTrue);
+
+      // 3. Non-Android platform (e.g. iOS / macOS / Windows) -> default true
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      DevicePerformanceHelper.setLowMidEndCacheForTesting(true); // even if cache says true, platform is not android
+      SharedPreferences.setMockInitialValues({});
+      prefs = await SharedPreferences.getInstance();
+      settings = SettingsService(prefs);
+      expect(settings.isLyricsBlurEffectEnabled, isTrue);
+
+      // 4. Persistence and reset
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      DevicePerformanceHelper.setLowMidEndCacheForTesting(true);
+      SharedPreferences.setMockInitialValues({});
+      prefs = await SharedPreferences.getInstance();
+      settings = SettingsService(prefs);
+      expect(settings.isLyricsBlurEffectEnabled, isFalse);
+      settings.isLyricsBlurEffectEnabled = true; // explicitly enable
+      var reloaded = SettingsService(prefs);
+      expect(reloaded.isLyricsBlurEffectEnabled, isTrue);
+
+      reloaded.resetVisualizerAppearance();
+      expect(reloaded.isLyricsBlurEffectEnabled, isFalse); // reset to low-end default (false)
+
+      // Clean up testing cache and override
+      DevicePerformanceHelper.setLowMidEndCacheForTesting(null);
+      debugDefaultTargetPlatformOverride = null;
     });
   });
 }

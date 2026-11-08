@@ -1760,7 +1760,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -1778,7 +1779,8 @@
     "placeholders": {
       "loaded": {
         "type": "int"
-      }, "total": {
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -2203,5 +2205,7 @@
   "miniPlayerSpectrum": "Spectre du mini lecteur",
   "miniPlayerSpectrumDescription": "Désactivé : le spectre FFT derrière le mini lecteur de la barre flottante est masqué.",
   "blurEffect": "Effets de verre dépoli et de flou",
-  "blurEffectDescription": "Utilise le flou d'arrière-plan sur le dock, les dialogues et les panneaux. Désactiver réduit la charge GPU et fluidifie l'affichage."
+  "blurEffectDescription": "Utilise le flou d'arrière-plan sur le dock, les dialogues et les panneaux. Désactiver réduit la charge GPU et fluidifie l'affichage.",
+  "lyricsBlurEffect": "Effet de flou des paroles",
+  "lyricsBlurEffectDescription": "Applique un flou gaussien aux lignes non actives en mode paroles."
 }

@@ -6085,4 +6085,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get blurEffectDescription =>
       'Utilise le flou d\'arrière-plan sur le dock, les dialogues et les panneaux. Désactiver réduit la charge GPU et fluidifie l\'affichage.';
+
+  @override
+  String get lyricsBlurEffect => 'Effet de flou des paroles';
+
+  @override
+  String get lyricsBlurEffectDescription =>
+      'Applique un flou gaussien aux lignes non actives en mode paroles.';
 }

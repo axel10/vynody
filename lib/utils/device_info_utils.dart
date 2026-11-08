@@ -5,6 +5,14 @@ import 'package:flutter/foundation.dart';
 class DevicePerformanceHelper {
   static bool? _isLowMidEndCache;
 
+  /// Returns the cached low/mid-end classification, defaulting to false if not yet evaluated.
+  static bool get isLowMidEndCached => _isLowMidEndCache ?? false;
+
+  @visibleForTesting
+  static void setLowMidEndCacheForTesting(bool? value) {
+    _isLowMidEndCache = value;
+  }
+
   /// Detects whether the current device is a low-to-mid-end Android SoC,
   /// including the Snapdragon 8s Gen series, which is known to experience lag
   /// during complex animations.

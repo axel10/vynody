@@ -5816,4 +5816,11 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get blurEffectDescription =>
       '독, 대화상자 및 플로팅 시트에 블러 효과를 사용합니다. 끄면 GPU 렌더링 부하가 줄어들고 부드러움이 향상됩니다.';
+
+  @override
+  String get lyricsBlurEffect => '가사 블러 효과';
+
+  @override
+  String get lyricsBlurEffectDescription =>
+      '가사 모드의 비포커스 라인에 가우시안 블러를 적용합니다. 끄면 전개 및 스크롤 프레임 속도가 향상됩니다.';
 }
