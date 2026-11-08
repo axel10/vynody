@@ -153,6 +153,17 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     debugPrint('[PlaybackPage][Trace] $message');
   }
 
+  void _resetDismissDragOffset() {
+    if (_dismissAnimController.isAnimating) {
+      _dismissAnimController.stop();
+    }
+    _dismissAnimController.reset();
+    _dismissAnimation = null;
+    if (_dragOffsetNotifier.value != 0.0) {
+      _dragOffsetNotifier.value = 0.0;
+    }
+  }
+
   void _triggerCollapse({bool animated = true}) {
     if (widget.onCollapse != null) {
       widget.onCollapse!(animated: animated);
@@ -202,6 +213,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
         if (!mounted) return;
         // 页面已在内部完全平移至屏幕下方，直接无动画收起外层抽屉，避免位移提前归零导致在顶部闪现
         _triggerCollapse(animated: false);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _resetDismissDragOffset();
+        });
       });
     } else {
       _dismissAnimation = Tween<double>(
@@ -1044,6 +1059,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       isWaveformEnabled: isEffectiveWaveform,
       isSmallWindowMode: settings.isSmallWindowMode,
     );
+    ref.listen<bool>(isPlaybackDrawerOpenProvider, (previous, next) {
+      if (next && _dragOffsetNotifier.value != 0.0) {
+        _resetDismissDragOffset();
+      }
+    });
     ref.listen<MusicFile?>(audioCurrentMusicProvider, (previous, next) {
       if (!mounted) return;
       if (isSmallWin) {
