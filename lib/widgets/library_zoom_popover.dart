@@ -150,7 +150,7 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
       color: Colors.transparent,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
+        child: AppBackdropFilter(
           filter: AppBlur.mediumFilter,
           child: Container(
             width: 292,

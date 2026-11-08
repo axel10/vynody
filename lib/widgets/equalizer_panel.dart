@@ -1518,7 +1518,7 @@ class _PresetPickerDialog extends ConsumerWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: BackdropFilter(
+      child: AppBackdropFilter(
         filter: AppBlur.mediumFilter,
         child: Container(
           constraints: const BoxConstraints(maxWidth: 680, maxHeight: 560),

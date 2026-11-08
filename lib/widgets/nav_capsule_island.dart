@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:vynody/utils/app_icons.dart';
 import 'package:vynody/utils/blur_constants.dart';
@@ -109,11 +108,8 @@ class NavCapsuleIsland extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: shapeRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppBlur.heavy,
-            sigmaY: AppBlur.heavy,
-          ),
+        child: AppBackdropFilter(
+          filter: AppBlur.heavyFilter,
           child: Container(
             height: kNavCapsuleHeight,
             decoration: BoxDecoration(
@@ -173,11 +169,8 @@ class NavActionsCapsule extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: shapeRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppBlur.heavy,
-            sigmaY: AppBlur.heavy,
-          ),
+        child: AppBackdropFilter(
+          filter: AppBlur.heavyFilter,
           child: Container(
             height: kNavCapsuleHeight,
             constraints: const BoxConstraints(minWidth: kNavCapsuleHeight),

@@ -95,7 +95,7 @@ class _SongRatingOverlayState extends ConsumerState<SongRatingOverlay>
         onLongPressStart: (_) {},
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
+          child: AppBackdropFilter(
             filter: AppBlur.mediumFilter,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 220),

@@ -697,6 +697,12 @@ class SettingsService extends ChangeNotifier {
   static const String _keyPlayingIndicatorAnimation =
       'playing_indicator_animation';
   static const String _keyMiniPlayerSpectrum = 'mini_player_spectrum';
+  static const String _keyBlurEffectEnabled = 'blur_effect_enabled';
+
+  /// 毛玻璃与模糊效果默认值：仅在 Apple 平台（iOS / macOS）默认开启，其余平台默认关闭以保证流畅度。
+  static bool get _defaultBlurEffectEnabled =>
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.macOS;
 
   /// 常驻动效（正在播放图标动画 / 迷你播放器频谱）统一默认开启，不再按平台分档。
   /// 与 [_visualizerEnabledProperty] 按「移动端 / 桌面端」分档的默认口径彼此独立，
@@ -1914,6 +1920,13 @@ class SettingsService extends ChangeNotifier {
   late final _miniPlayerSpectrumProperty = SettingProperty<bool>(
     key: _keyMiniPlayerSpectrum,
     defaultValue: _defaultAmbientMotionEnabled,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _blurEffectEnabledProperty = SettingProperty<bool>(
+    key: _keyBlurEffectEnabled,
+    defaultValue: _defaultBlurEffectEnabled,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -3189,6 +3202,12 @@ class SettingsService extends ChangeNotifier {
   set isMiniPlayerSpectrumEnabled(bool value) =>
       _miniPlayerSpectrumProperty.value = value;
 
+  /// 全局毛玻璃与模糊效果是否开启。
+  /// 除 Apple 平台（iOS / macOS）默认开启外，其余平台默认关闭以降低 GPU saveLayer 开销。
+  bool get isBlurEffectEnabled => _blurEffectEnabledProperty.value;
+  set isBlurEffectEnabled(bool value) =>
+      _blurEffectEnabledProperty.value = value;
+
   bool get isVisualizerEnabled => _visualizerEnabledProperty.value;
   set isVisualizerEnabled(bool value) =>
       _visualizerEnabledProperty.value = value;
@@ -3766,6 +3785,7 @@ class SettingsService extends ChangeNotifier {
   void resetMotionEffects() {
     _playingIndicatorAnimationProperty.reset();
     _miniPlayerSpectrumProperty.reset();
+    _blurEffectEnabledProperty.reset();
   }
 
   void resetVisualizerAppearance() {

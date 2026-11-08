@@ -195,7 +195,7 @@ class AppBottomSheet extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: barrierDismissible ? () => Navigator.of(context).pop() : null,
       child: blurSigma > 0
-          ? BackdropFilter(
+          ? AppBackdropFilter(
               filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
               child: Align(
                 alignment: Alignment.bottomCenter,
@@ -836,7 +836,7 @@ class _AppAdaptiveSheetState extends State<AppAdaptiveSheet>
         behavior: HitTestBehavior.opaque,
         onTap: widget.barrierDismissible ? handleClose : null,
         child: widget.blurSigma > 0
-            ? BackdropFilter(
+            ? AppBackdropFilter(
                 filter: ImageFilter.blur(
                   sigmaX: widget.blurSigma,
                   sigmaY: widget.blurSigma,

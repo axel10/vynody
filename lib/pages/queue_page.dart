@@ -695,7 +695,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
               right: 0,
               height: topBarHeight,
               child: ClipRect(
-                child: BackdropFilter(
+                child: AppBackdropFilter(
                   filter: AppBlur.heavyFilter,
                   child: Container(
                     padding: EdgeInsets.only(top: safeTopPadding),

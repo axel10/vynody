@@ -87,7 +87,7 @@ class _IncomingRemotePairDialogContentState
     final l10n = widget.l10n;
     final request = widget.request;
 
-    return BackdropFilter(
+    return AppBackdropFilter(
       filter: AppBlur.mediumFilter,
       child: AlertDialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -422,7 +422,7 @@ class _RemotePinInputDialogContentState
     final errorMessage = _getErrorMessage(l10n);
     final isDisabled = _cooldownSeconds > 0 || _isInvalidated;
 
-    return BackdropFilter(
+    return AppBackdropFilter(
       filter: AppBlur.mediumFilter,
       child: AlertDialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -619,7 +619,7 @@ class _TrustedDevicesDialogContent extends ConsumerWidget {
     final trustedDevices = ref.watch(trustedDevicesProvider);
     final remoteService = ref.read(remoteControlServiceProvider);
 
-    return BackdropFilter(
+    return AppBackdropFilter(
       filter: AppBlur.mediumFilter,
       child: AlertDialog(
         shape: RoundedRectangleBorder(

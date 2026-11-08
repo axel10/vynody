@@ -556,7 +556,7 @@ class _WindowsCapsuleButtons extends StatelessWidget {
           borderRadius: const BorderRadius.only(
             bottomLeft: Radius.circular(6),
           ),
-          child: BackdropFilter(
+          child: AppBackdropFilter(
             filter: AppBlur.mediumFilter,
             child: Container(
               height: height,
@@ -874,7 +874,7 @@ class _MacosCapsuleBar extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(13),
-        child: BackdropFilter(
+        child: AppBackdropFilter(
           filter: AppBlur.mediumFilter,
           child: Container(
             decoration: BoxDecoration(

@@ -128,7 +128,7 @@ class _RemoteControlSheetContentState
         ? 'https://${formatHostForUrl(widget.device.ip)}:${widget.device.httpPort}/api/remote/cover?t=${Uri.encodeComponent(state.title)}_${Uri.encodeComponent(state.artist)}${authToken.isNotEmpty ? '&token=${Uri.encodeComponent(authToken)}' : ''}'
         : '';
 
-    return BackdropFilter(
+    return AppBackdropFilter(
       filter: AppBlur.heavyFilter,
       child: Container(
         constraints: BoxConstraints(

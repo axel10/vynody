@@ -30,7 +30,7 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
         fileNames = request.files.map((f) => f.name).join(', ');
       }
 
-      return BackdropFilter(
+      return AppBackdropFilter(
         filter: AppBlur.mediumFilter,
         child: Consumer(
           builder: (context, ref, _) {
@@ -176,7 +176,7 @@ void showIncomingLyricsDialog(BuildContext context, IncomingLyricsRequest reques
               '${request.lyricsCount}',
             );
 
-      return BackdropFilter(
+      return AppBackdropFilter(
         filter: AppBlur.mediumFilter,
         child: AlertDialog(
           shape: RoundedRectangleBorder(
@@ -260,7 +260,7 @@ void showIncomingPlaylistDialog(
               request.songsCount,
             );
 
-      return BackdropFilter(
+      return AppBackdropFilter(
         filter: AppBlur.mediumFilter,
         child: AlertDialog(
           shape: RoundedRectangleBorder(
@@ -516,7 +516,7 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
     barrierDismissible: false,
     builder: (context) {
       final l10n = AppLocalizations.of(context)!;
-      return BackdropFilter(
+      return AppBackdropFilter(
         filter: AppBlur.mediumFilter,
         child: Consumer(
           builder: (context, ref, child) {
@@ -772,7 +772,7 @@ Future<String?> showConflictDialog(BuildContext context, String fileName) {
     barrierDismissible: false,
     builder: (context) {
       final l10n = AppLocalizations.of(context)!;
-      return BackdropFilter(
+      return AppBackdropFilter(
         filter: AppBlur.mediumFilter,
         child: AlertDialog(
           shape: RoundedRectangleBorder(

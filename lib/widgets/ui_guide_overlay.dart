@@ -115,7 +115,7 @@ class _UiGuideOverlayState extends State<UiGuideOverlay>
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _nextStep,
-            child: BackdropFilter(
+            child: AppBackdropFilter(
               filter: AppBlur.subtleFilter,
               child: Container(
                 color: Colors.black.withValues(alpha: 0.65),

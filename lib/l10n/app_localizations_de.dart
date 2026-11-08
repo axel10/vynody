@@ -6066,4 +6066,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get miniPlayerSpectrumDescription =>
       'Aus: Das FFT-Spektrum hinter dem Mini-Player der schwebenden Leiste wird ausgeblendet.';
+
+  @override
+  String get blurEffect => 'Milchglas- & Unschärfeeffekte';
+
+  @override
+  String get blurEffectDescription =>
+      'Verwendet Milchglas-Unschärfe auf Dock, Dialogen und schwebenden Fenstern. Die Deaktivierung reduziert den GPU-Aufwand und verbessert die Bildrate.';
 }

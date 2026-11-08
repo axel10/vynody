@@ -5992,4 +5992,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get miniPlayerSpectrumDescription =>
       'When off, the FFT spectrum behind the floating dock mini player is hidden.';
+
+  @override
+  String get blurEffect => 'Frosted glass & blur effects';
+
+  @override
+  String get blurEffectDescription =>
+      'Use frosted glass blur on the dock, dialogs, and floating sheets. Disabling reduces GPU render overhead and improves scrolling smoothness.';
 }

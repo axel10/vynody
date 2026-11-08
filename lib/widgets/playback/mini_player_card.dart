@@ -154,7 +154,7 @@ class MiniPlayerCard extends ConsumerWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(100),
-          child: BackdropFilter(
+          child: AppBackdropFilter(
             filter: AppBlur.heavyFilter,
             child: Container(
               decoration: AppBlur.heavyDecoration(

@@ -5804,4 +5804,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get miniPlayerSpectrumDescription =>
       'オフにすると、フローティングドックのミニプレーヤー背面の FFT スペクトラムを表示しません。';
+
+  @override
+  String get blurEffect => 'すりガラス・ぼかし効果';
+
+  @override
+  String get blurEffectDescription =>
+      'ドック、ダイアログ、フローティングシートですりガラスのぼかしを使用します。無効にすると GPU 負荷が軽減され滑らかさが向上します。';
 }

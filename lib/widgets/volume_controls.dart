@@ -67,7 +67,7 @@ class VolumeSliderOverlay extends StatelessWidget {
                             Positioned.fill(
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(24),
-                                child: BackdropFilter(
+                                child: AppBackdropFilter(
                                   filter: AppBlur.mediumFilter,
                                   child: Container(
                                     color: Colors.white.withValues(alpha: 0.15),

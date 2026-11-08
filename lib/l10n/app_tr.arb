@@ -2333,5 +2333,7 @@
   "playingIndicatorAnimation": "Oynatma göstergesi animasyonu",
   "playingIndicatorAnimationDescription": "Kapalıyken geçerli şarkı, animasyonlu ekolayzer yerine duraklat/oynat simgesini sabit olarak gösterir.",
   "miniPlayerSpectrum": "Mini oynatıcı spektrumu",
-  "miniPlayerSpectrumDescription": "Kapalıyken yüzen dock mini oynatıcısının arkasındaki FFT spektrumu gizlenir."
+  "miniPlayerSpectrumDescription": "Kapalıyken yüzen dock mini oynatıcısının arkasındaki FFT spektrumu gizlenir.",
+  "blurEffect": "Buzlu cam ve bulanıklık efektleri",
+  "blurEffectDescription": "Dock, iletişim kutuları ve kayan panellerde bulanıklık efekti kullanır. Kapatılması GPU yükünü azaltır ve akıcılığı artırır."
 }

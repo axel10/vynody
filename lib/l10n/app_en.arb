@@ -2592,5 +2592,7 @@
   "playingIndicatorAnimation": "Playing indicator animation",
   "playingIndicatorAnimationDescription": "When off, the current song shows a static pause or play icon instead of an animated equalizer.",
   "miniPlayerSpectrum": "Mini player spectrum",
-  "miniPlayerSpectrumDescription": "When off, the FFT spectrum behind the floating dock mini player is hidden."
+  "miniPlayerSpectrumDescription": "When off, the FFT spectrum behind the floating dock mini player is hidden.",
+  "blurEffect": "Frosted glass & blur effects",
+  "blurEffectDescription": "Use frosted glass blur on the dock, dialogs, and floating sheets. Disabling reduces GPU render overhead and improves scrolling smoothness."
 }

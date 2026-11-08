@@ -5809,4 +5809,11 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get miniPlayerSpectrumDescription =>
       '끄면 플로팅 독 미니 플레이어 뒤의 FFT 스펙트럼이 숨겨집니다.';
+
+  @override
+  String get blurEffect => '반투명 유리 및 블러 효과';
+
+  @override
+  String get blurEffectDescription =>
+      '독, 대화상자 및 플로팅 시트에 블러 효과를 사용합니다. 끄면 GPU 렌더링 부하가 줄어들고 부드러움이 향상됩니다.';
 }

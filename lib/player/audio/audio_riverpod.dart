@@ -39,6 +39,10 @@ final isLowMidEndDeviceProvider = Provider<bool>((ref) {
   return ref.watch(_asyncLowMidEndDeviceProvider).asData?.value ?? true;
 });
 
+final isBlurEffectEnabledProvider = Provider<bool>((ref) {
+  return ref.watch(settingsServiceProvider.select((s) => s.isBlurEffectEnabled));
+});
+
 @visibleForTesting
 final audioServiceStateProvider = NotifierProvider<AudioService, AudioSnapshot>(
   AudioService.new,

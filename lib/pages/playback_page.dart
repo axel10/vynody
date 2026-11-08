@@ -269,40 +269,34 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       message: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
           ? '收起播放页'
           : 'Collapse Playback',
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: BackdropFilter(
-          filter: AppBlur.mediumFilter,
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.25),
-                width: 0.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.10),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.25),
+            width: 0.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.10),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(22),
-                onTap: () => _triggerCollapse(animated: true),
-                child: const Center(
-                  child: Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: () => _triggerCollapse(animated: true),
+            child: const Center(
+              child: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.white,
+                size: 26,
               ),
             ),
           ),
@@ -1472,7 +1466,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                                   // 小窗队列 / 小窗歌词模式统一对整块小窗做模糊，
                                   // 上下两个面板共享同一层背景，不再做分区处理。
                                   return ClipRect(
-                                    child: BackdropFilter(
+                                    child: AppBackdropFilter(
                                       filter: AppBlur.heavyFilter,
                                       child: const SizedBox.expand(),
                                     ),
@@ -1705,19 +1699,22 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     bool? forceSmallWin,
     String? keySuffix,
   }) {
+    final Widget content;
     switch (backgroundType) {
       case 1:
-        return RepaintBoundary(
+        content = RepaintBoundary(
           key: ValueKey('mesh_gradient_bg_${keySuffix ?? 'default'}'),
           child: const DynamicMeshBackground(),
         );
+        break;
       case 4:
-        return RepaintBoundary(
+        content = RepaintBoundary(
           key: ValueKey('mesh_flow_bg_${keySuffix ?? 'default'}'),
           child: const MeshFlowBackground(),
         );
+        break;
       case 2:
-        return Container(
+        content = Container(
           key: ValueKey(
             'solid_color_bg_${settings.playbackBackgroundColor}_${keySuffix ?? 'default'}',
           ),
@@ -1725,65 +1722,71 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
           width: double.infinity,
           height: double.infinity,
         );
+        break;
       case 3:
         final path = settings.playbackBackgroundCustomImagePath;
         if (!_pathExists(path)) {
-          return Container(
+          content = Container(
             key: ValueKey('custom_image_empty_${keySuffix ?? 'default'}'),
             color: Colors.black,
             width: double.infinity,
             height: double.infinity,
           );
-        }
-        final imageWidget = Image.file(
-          File(path),
-          key: ValueKey('custom_image_bg_${path}_${keySuffix ?? 'default'}'),
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              color: Colors.black,
-              width: double.infinity,
-              height: double.infinity,
-              child: const Center(
-                child: Icon(
-                  Icons.broken_image_rounded,
-                  color: Colors.white24,
-                  size: 48,
+        } else {
+          final imageWidget = Image.file(
+            File(path),
+            key: ValueKey('custom_image_bg_${path}_${keySuffix ?? 'default'}'),
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.black,
+                width: double.infinity,
+                height: double.infinity,
+                child: const Center(
+                  child: Icon(
+                    Icons.broken_image_rounded,
+                    color: Colors.white24,
+                    size: 48,
+                  ),
                 ),
-              ),
-            );
-          },
-        );
-        final size = MediaQuery.of(context).size;
-        final bool isSmallWinValue =
-            forceSmallWin ??
-            PlaybackPageUiTuning.isSmallWindow(
-              size,
-              isWaveformEnabled: ref.read(isEffectiveWaveformEnabledProvider),
-              isSmallWindowMode: settings.isSmallWindowMode,
-            );
-        final blur = settings.playbackCustomImageBlurSigma;
-        if (blur > 0.0 && !isSmallWinValue) {
-          return ImageFiltered(
-            key: ValueKey(
-              'custom_image_bg_blurred_${path}_${keySuffix ?? 'default'}',
-            ),
-            imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-            child: Transform.scale(scale: 1.2, child: imageWidget),
+              );
+            },
           );
+          final size = MediaQuery.of(context).size;
+          final bool isSmallWinValue =
+              forceSmallWin ??
+              PlaybackPageUiTuning.isSmallWindow(
+                size,
+                isWaveformEnabled: ref.read(isEffectiveWaveformEnabledProvider),
+                isSmallWindowMode: settings.isSmallWindowMode,
+              );
+          final blur = settings.playbackCustomImageBlurSigma;
+          if (blur > 0.0 && !isSmallWinValue) {
+            content = ImageFiltered(
+              key: ValueKey(
+                'custom_image_bg_blurred_${path}_${keySuffix ?? 'default'}',
+              ),
+              imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+              child: Transform.scale(scale: 1.2, child: imageWidget),
+            );
+          } else {
+            content = Transform.scale(scale: 1.2, child: imageWidget);
+          }
         }
-        return Transform.scale(scale: 1.2, child: imageWidget);
+        break;
       case 0:
       default:
-        return _buildBlurredBackground(
+        content = _buildBlurredBackground(
           context,
           settings,
           forceSmallWin: forceSmallWin,
           keySuffix: keySuffix,
         );
+        break;
     }
+    return ExcludeSemantics(child: content);
   }
 
   Widget _buildBackgroundScrim(
@@ -1825,25 +1828,27 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     final double targetOpacity = isSmallWin ? 0.0 : (isLyricsMode ? 0.0 : 1.0);
 
     return Positioned.fill(
-      child: AnimatedOpacity(
-        duration: PlaybackHeroCardUiTuning.transitionDuration,
-        curve: Curves.fastOutSlowIn,
-        opacity: targetOpacity,
-        child: IgnorePointer(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: settings.playbackRadialGradientEnabled
-                  ? null
-                  : Colors.black.withValues(alpha: opacity),
-              gradient: settings.playbackRadialGradientEnabled
-                  ? RadialGradient(
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: opacity),
-                      ],
-                      stops: const [0.1, 1.0],
-                    )
-                  : null,
+      child: ExcludeSemantics(
+        child: AnimatedOpacity(
+          duration: PlaybackHeroCardUiTuning.transitionDuration,
+          curve: Curves.fastOutSlowIn,
+          opacity: targetOpacity,
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: settings.playbackRadialGradientEnabled
+                    ? null
+                    : Colors.black.withValues(alpha: opacity),
+                gradient: settings.playbackRadialGradientEnabled
+                    ? RadialGradient(
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: opacity),
+                        ],
+                        stops: const [0.1, 1.0],
+                      )
+                    : null,
+              ),
             ),
           ),
         ),

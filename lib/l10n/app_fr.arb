@@ -2201,5 +2201,7 @@
   "playingIndicatorAnimation": "Animation de l'indicateur de lecture",
   "playingIndicatorAnimationDescription": "Désactivée : le morceau en cours affiche une icône statique pause ou lecture au lieu de l’égaliseur animé.",
   "miniPlayerSpectrum": "Spectre du mini lecteur",
-  "miniPlayerSpectrumDescription": "Désactivé : le spectre FFT derrière le mini lecteur de la barre flottante est masqué."
+  "miniPlayerSpectrumDescription": "Désactivé : le spectre FFT derrière le mini lecteur de la barre flottante est masqué.",
+  "blurEffect": "Effets de verre dépoli et de flou",
+  "blurEffectDescription": "Utilise le flou d'arrière-plan sur le dock, les dialogues et les panneaux. Désactiver réduit la charge GPU et fluidifie l'affichage."
 }

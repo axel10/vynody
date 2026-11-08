@@ -702,6 +702,14 @@ class GeneralSection extends ConsumerWidget {
                 settings.isMiniPlayerSpectrumEnabled = value;
               },
             ),
+            SwitchListTile(
+              title: Text(l10n.blurEffect),
+              subtitle: Text(l10n.blurEffectDescription),
+              value: settings.isBlurEffectEnabled,
+              onChanged: (value) {
+                settings.isBlurEffectEnabled = value;
+              },
+            ),
           ],
         ),
         SettingsGroupCard(

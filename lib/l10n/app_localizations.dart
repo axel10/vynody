@@ -10586,6 +10586,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'关闭后，浮动栏迷你播放器背后的频谱不再显示。'**
   String get miniPlayerSpectrumDescription;
+
+  /// No description provided for @blurEffect.
+  ///
+  /// In zh, this message translates to:
+  /// **'毛玻璃与模糊效果'**
+  String get blurEffect;
+
+  /// No description provided for @blurEffectDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'在底栏、弹窗及浮层使用毛玻璃模糊效果；关闭后可显著降低 GPU 渲染开销并提升滑动流畅度。'**
+  String get blurEffectDescription;
 }
 
 class _AppLocalizationsDelegate

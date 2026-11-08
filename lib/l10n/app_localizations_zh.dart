@@ -5707,6 +5707,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get miniPlayerSpectrumDescription => '关闭后，浮动栏迷你播放器背后的频谱不再显示。';
+
+  @override
+  String get blurEffect => '毛玻璃与模糊效果';
+
+  @override
+  String get blurEffectDescription =>
+      '在底栏、弹窗及浮层使用毛玻璃模糊效果；关闭后可显著降低 GPU 渲染开销并提升滑动流畅度。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11412,4 +11419,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get miniPlayerSpectrumDescription => '關閉後，浮動列迷你播放器背後的頻譜不再顯示。';
+
+  @override
+  String get blurEffect => '毛玻璃與模糊效果';
+
+  @override
+  String get blurEffectDescription =>
+      '在底列、彈窗及浮層使用毛玻璃模糊效果；關閉後可顯著降低 GPU 渲染開銷並提升滑動流暢度。';
 }

@@ -460,4 +460,11 @@ final List<SettingSearchItem> settingsSearchRegistry = [
     title: (l10n) => l10n.miniPlayerSpectrum,
     description: (l10n) => l10n.miniPlayerSpectrumDescription,
   ),
+  SettingSearchItem(
+    id: 'general.blur_effect',
+    section: SettingsSection.general,
+    icon: Icons.blur_on_rounded,
+    title: (l10n) => l10n.blurEffect,
+    description: (l10n) => l10n.blurEffectDescription,
+  ),
 ];

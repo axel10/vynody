@@ -1,5 +1,48 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart'
+    show isBlurEffectEnabledProvider;
+
+/// 全局统一毛玻璃滤镜容器。
+///
+/// 当 [isBlurEffectEnabledProvider] 为 false 时直接返回裸 [child]，
+/// 彻底避免在关闭毛玻璃的环境中触发昂贵的 GPU [saveLayer] 离屏渲染。
+class AppBackdropFilter extends ConsumerWidget {
+  final ImageFilter filter;
+  final Widget child;
+  final bool? enabled;
+
+  const AppBackdropFilter({
+    super.key,
+    required this.filter,
+    required this.child,
+    this.enabled,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    bool isEnabled;
+    if (enabled != null) {
+      isEnabled = enabled!;
+    } else {
+      try {
+        isEnabled = ref.watch(isBlurEffectEnabledProvider);
+      } catch (_) {
+        isEnabled = true;
+      }
+    }
+
+    if (!isEnabled) {
+      return child;
+    }
+
+    return BackdropFilter(
+      filter: filter,
+      child: child,
+    );
+  }
+}
 
 /// 全局毛玻璃与模糊效果设计规范常量 (Design Tokens)
 abstract final class AppBlur {
@@ -35,30 +78,47 @@ abstract final class AppBlur {
 
   // ── 2. 背景不透明度规范 (Alpha) ──
 
-  /// 深度磨砂常驻浮层（Dock、MiniPlayer、列表顶栏）：暗色 66%，亮色 80%
-  static double heavyAlpha(bool isDark) => isDark ? 0.66 : 0.75;
+  /// 深度磨砂常驻浮层（Dock、MiniPlayer、列表顶栏）：
+  /// 开启毛玻璃时：暗色 66%，亮色 75%
+  /// 关闭毛玻璃时（非 Apple 平台默认）：暗色 94%，亮色 96%，防止背景内容透明穿透发虚
+  static double heavyAlpha(bool isDark, {bool isBlurEnabled = true}) =>
+      isBlurEnabled ? (isDark ? 0.66 : 0.75) : (isDark ? 0.94 : 0.96);
 
-  /// 对话框与表单抽屉（Sheet、Dialog）：暗色 88%，亮色 95%
-  static double dialogAlpha(bool isDark) => isDark ? 0.88 : 0.95;
+  /// 对话框与表单抽屉（Sheet、Dialog）：
+  /// 开启毛玻璃时：暗色 88%，亮色 95%
+  /// 关闭毛玻璃时：暗色 98%，亮色 98%，保持坚实纯净的底色
+  static double dialogAlpha(bool isDark, {bool isBlurEnabled = true}) =>
+      isBlurEnabled ? (isDark ? 0.88 : 0.95) : 0.98;
 
-  /// 微型角标/悬浮提示胶囊：固定 50%
-  static const double badgeAlpha = 0.50;
+  /// 微型角标/悬浮提示胶囊：开启 50%，关闭 85%
+  static double badgeAlpha({bool isBlurEnabled = true}) =>
+      isBlurEnabled ? 0.50 : 0.85;
 
   // ── 3. 颜色与微光描边 (Surface & Border) ──
 
   /// 自动适配亮暗色的常驻浮层背景色
-  static Color heavySurface(BuildContext context, {double? overrideAlpha}) {
+  static Color heavySurface(
+    BuildContext context, {
+    double? overrideAlpha,
+    bool? isBlurEnabled,
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final alpha = overrideAlpha ?? heavyAlpha(isDark);
+    final alpha = overrideAlpha ??
+        heavyAlpha(isDark, isBlurEnabled: isBlurEnabled ?? true);
     return theme.colorScheme.surface.withValues(alpha: alpha);
   }
 
   /// 自动适配亮暗色的对话框与抽屉背景色
-  static Color dialogSurface(BuildContext context, {double? overrideAlpha}) {
+  static Color dialogSurface(
+    BuildContext context, {
+    double? overrideAlpha,
+    bool? isBlurEnabled,
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final alpha = overrideAlpha ?? dialogAlpha(isDark);
+    final alpha = overrideAlpha ??
+        dialogAlpha(isDark, isBlurEnabled: isBlurEnabled ?? true);
     return isDark
         ? Colors.black.withValues(alpha: alpha)
         : theme.colorScheme.surface.withValues(alpha: alpha);

@@ -6018,4 +6018,11 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get miniPlayerSpectrumDescription =>
       'Kapalıyken yüzen dock mini oynatıcısının arkasındaki FFT spektrumu gizlenir.';
+
+  @override
+  String get blurEffect => 'Buzlu cam ve bulanıklık efektleri';
+
+  @override
+  String get blurEffectDescription =>
+      'Dock, iletişim kutuları ve kayan panellerde bulanıklık efekti kullanır. Kapatılması GPU yükünü azaltır ve akıcılığı artırır.';
 }

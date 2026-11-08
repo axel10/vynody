@@ -6078,4 +6078,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get miniPlayerSpectrumDescription =>
       'Désactivé : le spectre FFT derrière le mini lecteur de la barre flottante est masqué.';
+
+  @override
+  String get blurEffect => 'Effets de verre dépoli et de flou';
+
+  @override
+  String get blurEffectDescription =>
+      'Utilise le flou d\'arrière-plan sur le dock, les dialogues et les panneaux. Désactiver réduit la charge GPU et fluidifie l\'affichage.';
 }

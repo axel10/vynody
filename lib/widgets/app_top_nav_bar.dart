@@ -180,7 +180,7 @@ class AppTopNavBar extends StatelessWidget {
       currentChild = KeyedSubtree(
         key: const ValueKey('app_top_nav_bar_normal'),
         child: ClipRect(
-          child: BackdropFilter(
+          child: AppBackdropFilter(
             filter: AppBlur.heavyFilter,
             child: Container(
               padding: EdgeInsets.only(top: safeTopPadding),

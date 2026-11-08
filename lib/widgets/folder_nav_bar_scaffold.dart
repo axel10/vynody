@@ -369,7 +369,7 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
         final blurSigma = AppBlur.heavy * progress;
         final Widget filteredBar = (widget.isOverlay && progress > 0.01)
             ? ClipRect(
-                child: BackdropFilter(
+                child: AppBackdropFilter(
                   filter: ImageFilter.blur(
                     sigmaX: blurSigma,
                     sigmaY: blurSigma,

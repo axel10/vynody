@@ -2201,5 +2201,7 @@
   "playingIndicatorAnimation": "Animación del indicador de reproducción",
   "playingIndicatorAnimationDescription": "Al desactivarla, la canción actual muestra un icono estático de pausa o reproducción en lugar del ecualizador animado.",
   "miniPlayerSpectrum": "Espectro del mini reproductor",
-  "miniPlayerSpectrumDescription": "Al desactivarlo, se oculta el espectro FFT detrás del mini reproductor de la barra flotante."
+  "miniPlayerSpectrumDescription": "Al desactivarlo, se oculta el espectro FFT detrás del mini reproductor de la barra flotante.",
+  "blurEffect": "Efectos de desenfoque y cristal esmerilado",
+  "blurEffectDescription": "Usa desenfoque tipo cristal en el dock, diálogos y paneles flotantes. Desactivarlo reduce la carga de GPU y mejora la fluidez."
 }

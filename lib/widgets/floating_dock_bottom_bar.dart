@@ -229,24 +229,27 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(isTablet ? 32 : 28),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(
-                      sigmaX: widget.isPlayback ? 0 : AppBlur.heavy,
-                      sigmaY: widget.isPlayback ? 0 : AppBlur.heavy,
-                    ),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOutCubic,
-                      decoration: BoxDecoration(
-                        color: widget.isPlayback
-                            ? Colors.transparent
-                            : AppBlur.heavySurface(context),
-                        borderRadius: BorderRadius.circular(isTablet ? 32 : 28),
-                        border: widget.isPlayback
-                            ? null
-                            : AppBlur.glassBorder(context),
-                      ),
-                      child: TweenAnimationBuilder<double>(
+                  child: Builder(
+                    builder: (context) {
+                      final isBlurEnabled =
+                          ref.watch(isBlurEffectEnabledProvider);
+                      final content = AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        decoration: BoxDecoration(
+                          color: widget.isPlayback
+                              ? Colors.transparent
+                              : AppBlur.heavySurface(
+                                  context,
+                                  isBlurEnabled: isBlurEnabled,
+                                ),
+                          borderRadius:
+                              BorderRadius.circular(isTablet ? 32 : 28),
+                          border: widget.isPlayback
+                              ? null
+                              : AppBlur.glassBorder(context),
+                        ),
+                        child: TweenAnimationBuilder<double>(
                         duration: const Duration(milliseconds: 320),
                         curve: Curves.easeOutCubic,
                         tween: Tween<double>(
@@ -380,7 +383,15 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                           );
                         },
                       ),
-                    ),
+                    );
+                      if (widget.isPlayback) {
+                        return content;
+                      }
+                      return AppBackdropFilter(
+                        filter: AppBlur.heavyFilter,
+                        child: content,
+                      );
+                    },
                   ),
                 ),
               ),
@@ -471,19 +482,23 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                       end: _isDragging ? 5.0 : 0.0,
                     ),
                     builder: (context, blur, child) {
+                      final content = AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: _isDragging ? 0.25 : 1.0,
+                        child: IgnorePointer(
+                          ignoring: _isDragging,
+                          child: child,
+                        ),
+                      );
+                      if (blur <= 0.001) {
+                        return content;
+                      }
                       return ImageFiltered(
                         imageFilter: ImageFilter.blur(
                           sigmaX: blur,
                           sigmaY: blur,
                         ),
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 200),
-                          opacity: _isDragging ? 0.25 : 1.0,
-                          child: IgnorePointer(
-                            ignoring: _isDragging,
-                            child: child,
-                          ),
-                        ),
+                        child: content,
                       );
                     },
                     child: Row(

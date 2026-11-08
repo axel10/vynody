@@ -4044,5 +4044,7 @@
   "playingIndicatorAnimation": "正在播放图标动画",
   "playingIndicatorAnimationDescription": "关闭后，当前歌曲显示静止的暂停或播放图标，不再随音乐跳动。",
   "miniPlayerSpectrum": "迷你播放器频谱动画",
-  "miniPlayerSpectrumDescription": "关闭后，浮动栏迷你播放器背后的频谱不再显示。"
+  "miniPlayerSpectrumDescription": "关闭后，浮动栏迷你播放器背后的频谱不再显示。",
+  "blurEffect": "毛玻璃与模糊效果",
+  "blurEffectDescription": "在底栏、弹窗及浮层使用毛玻璃模糊效果；关闭后可显著降低 GPU 渲染开销并提升滑动流畅度。"
 }

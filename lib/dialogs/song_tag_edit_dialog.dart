@@ -489,7 +489,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         final hasArtwork = _hasArtwork;
-        return BackdropFilter(
+        return AppBackdropFilter(
           filter: AppBlur.mediumFilter,
           child: Container(
             decoration: AppBlur.dialogDecoration(

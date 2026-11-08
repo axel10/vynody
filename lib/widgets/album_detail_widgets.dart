@@ -165,7 +165,7 @@ class AlbumDetailNavBar extends StatelessWidget {
         final blurSigma = AppBlur.heavy * progress;
         if (progress > 0.01) {
           return ClipRect(
-            child: BackdropFilter(
+            child: AppBackdropFilter(
               filter: ImageFilter.blur(
                 sigmaX: blurSigma,
                 sigmaY: blurSigma,

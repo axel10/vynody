@@ -237,7 +237,7 @@ class RemoteMediaBadge extends StatelessWidget {
           message: tooltipText,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(borderRadius),
-            child: BackdropFilter(
+            child: AppBackdropFilter(
               filter: AppBlur.lightFilter,
               child: Container(
                 padding: padding,

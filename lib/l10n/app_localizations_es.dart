@@ -6077,4 +6077,11 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get miniPlayerSpectrumDescription =>
       'Al desactivarlo, se oculta el espectro FFT detrás del mini reproductor de la barra flotante.';
+
+  @override
+  String get blurEffect => 'Efectos de desenfoque y cristal esmerilado';
+
+  @override
+  String get blurEffectDescription =>
+      'Usa desenfoque tipo cristal en el dock, diálogos y paneles flotantes. Desactivarlo reduce la carga de GPU y mejora la fluidez.';
 }

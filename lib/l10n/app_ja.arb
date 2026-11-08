@@ -2300,5 +2300,7 @@
   "playingIndicatorAnimation": "再生中アイコンのアニメーション",
   "playingIndicatorAnimationDescription": "オフにすると、再生中の曲はアニメーション付きイコライザーの代わりに静止した一時停止／再生アイコンを表示します。",
   "miniPlayerSpectrum": "ミニプレーヤーのスペクトラム",
-  "miniPlayerSpectrumDescription": "オフにすると、フローティングドックのミニプレーヤー背面の FFT スペクトラムを表示しません。"
+  "miniPlayerSpectrumDescription": "オフにすると、フローティングドックのミニプレーヤー背面の FFT スペクトラムを表示しません。",
+  "blurEffect": "すりガラス・ぼかし効果",
+  "blurEffectDescription": "ドック、ダイアログ、フローティングシートですりガラスのぼかしを使用します。無効にすると GPU 負荷が軽減され滑らかさが向上します。"
 }

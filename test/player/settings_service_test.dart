@@ -681,6 +681,22 @@ void main() {
       }
     });
 
+    test('blurEffectEnabled defaults to true only on Apple platforms, false elsewhere', () async {
+      for (final platform in TargetPlatform.values) {
+        debugDefaultTargetPlatformOverride = platform;
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsService(prefs);
+
+        final expected = platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
+        expect(
+          settings.isBlurEffectEnabled,
+          expected,
+          reason: '$platform: blur effect expected to be $expected by default',
+        );
+      }
+    });
+
     test('explicit opt-out persists, and resetMotionEffects restores the default', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       SharedPreferences.setMockInitialValues({});
@@ -689,18 +705,22 @@ void main() {
 
       settings.isPlayingIndicatorAnimationEnabled = false;
       settings.isMiniPlayerSpectrumEnabled = false;
+      settings.isBlurEffectEnabled = true;
 
       final reloaded = SettingsService(prefs);
       expect(reloaded.isPlayingIndicatorAnimationEnabled, isFalse);
       expect(reloaded.isMiniPlayerSpectrumEnabled, isFalse);
+      expect(reloaded.isBlurEffectEnabled, isTrue);
 
       reloaded.resetMotionEffects();
       expect(reloaded.isPlayingIndicatorAnimationEnabled, isTrue);
       expect(reloaded.isMiniPlayerSpectrumEnabled, isTrue);
+      expect(reloaded.isBlurEffectEnabled, isFalse); // Android default is false
 
       final afterReset = SettingsService(prefs);
       expect(afterReset.isPlayingIndicatorAnimationEnabled, isTrue);
       expect(afterReset.isMiniPlayerSpectrumEnabled, isTrue);
+      expect(afterReset.isBlurEffectEnabled, isFalse);
     });
   });
 }

@@ -2201,5 +2201,7 @@
   "playingIndicatorAnimation": "Animation des Wiedergabe-Indikators",
   "playingIndicatorAnimationDescription": "Aus: Der aktuelle Titel zeigt statt des animierten Equalizers ein statisches Pause- oder Play-Symbol.",
   "miniPlayerSpectrum": "Mini-Player-Spektrum",
-  "miniPlayerSpectrumDescription": "Aus: Das FFT-Spektrum hinter dem Mini-Player der schwebenden Leiste wird ausgeblendet."
+  "miniPlayerSpectrumDescription": "Aus: Das FFT-Spektrum hinter dem Mini-Player der schwebenden Leiste wird ausgeblendet.",
+  "blurEffect": "Milchglas- & Unschärfeeffekte",
+  "blurEffectDescription": "Verwendet Milchglas-Unschärfe auf Dock, Dialogen und schwebenden Fenstern. Die Deaktivierung reduziert den GPU-Aufwand und verbessert die Bildrate."
 }
