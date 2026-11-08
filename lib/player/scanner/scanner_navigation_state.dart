@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:vynody/models/music_folder.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
 class ScannerNavigationState extends ChangeNotifier {
   MusicFolder? _currentFolder;
@@ -19,6 +20,7 @@ class ScannerNavigationState extends ChangeNotifier {
     _history
       ..clear()
       ..addAll(history);
+    _pruneInactiveOffsets();
     notifyListeners();
   }
 
@@ -30,16 +32,40 @@ class ScannerNavigationState extends ChangeNotifier {
   MusicFolder? popHistory() {
     if (_history.isEmpty) return null;
     final folder = _history.removeLast();
+    _pruneInactiveOffsets();
     notifyListeners();
     return folder;
   }
 
+  void _pruneInactiveOffsets() {
+    final activePaths = <String>{
+      'root',
+      if (_currentFolder != null) _currentFolder!.path,
+      for (final f in _history) f.path,
+    };
+    _scrollOffsets.removeWhere((path, _) {
+      if (path == 'root') return false;
+      return !activePaths.any((active) => ScannerPathUtils.pathsEqual(active, path));
+    });
+  }
+
   double getScrollOffset(String? path) {
-    return _scrollOffsets[path ?? 'root'] ?? 0.0;
+    final targetPath = path ?? 'root';
+    return _scrollOffsets[targetPath] ?? 0.0;
   }
 
   void setScrollOffset(String? path, double offset) {
-    _scrollOffsets[path ?? 'root'] = offset;
+    final targetPath = path ?? 'root';
+    if (targetPath != 'root') {
+      final isCurrent = _currentFolder != null &&
+          ScannerPathUtils.pathsEqual(_currentFolder!.path, targetPath);
+      final isInHistory =
+          _history.any((f) => ScannerPathUtils.pathsEqual(f.path, targetPath));
+      if (!isCurrent && !isInHistory) {
+        return;
+      }
+    }
+    _scrollOffsets[targetPath] = offset;
   }
 
   void clearScrollOffsets() {

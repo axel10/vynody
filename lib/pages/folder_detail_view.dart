@@ -427,7 +427,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 edgeOffset: headerHeight,
                 onRefresh: _handleRefresh,
                 child: CustomScrollView(
-        key: PageStorageKey<String>('folder-detail-${folder.path}'),
+        key: ValueKey<String>('folder-detail-${folder.path}'),
         controller: _localScrollController,
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),

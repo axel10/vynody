@@ -1413,7 +1413,7 @@ class _RemoteFolderBrowserPageState
       Widget mainContent;
       if (_isLoading) {
         mainContent = CustomScrollView(
-          key: PageStorageKey<String>(
+          key: ValueKey<String>(
               'webdav-browser-${widget.server.id}-$_currentPath'),
           controller: _scrollController,
           cacheExtent: 1000.0,
@@ -1450,7 +1450,7 @@ class _RemoteFolderBrowserPageState
         );
       } else if (_error != null) {
         mainContent = CustomScrollView(
-          key: PageStorageKey<String>(
+          key: ValueKey<String>(
               'webdav-browser-${widget.server.id}-$_currentPath'),
           controller: _scrollController,
           cacheExtent: 1000.0,
@@ -1508,7 +1508,7 @@ class _RemoteFolderBrowserPageState
         mainContent = RefreshIndicator(
           onRefresh: () => _loadDirectory(_currentPath, forceRefresh: true),
           child: CustomScrollView(
-            key: PageStorageKey<String>(
+            key: ValueKey<String>(
                 'webdav-browser-${widget.server.id}-$_currentPath'),
             controller: _scrollController,
             cacheExtent: 1000.0,
@@ -1542,7 +1542,7 @@ class _RemoteFolderBrowserPageState
         mainContent = RefreshIndicator(
           onRefresh: () => _loadDirectory(_currentPath, forceRefresh: true),
           child: CustomScrollView(
-            key: PageStorageKey<String>(
+            key: ValueKey<String>(
                 'webdav-browser-${widget.server.id}-$_currentPath'),
             controller: _scrollController,
             cacheExtent: 1000.0,
