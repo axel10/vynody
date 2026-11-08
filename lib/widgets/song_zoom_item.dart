@@ -38,11 +38,13 @@ class SongZoomItem extends ConsumerWidget {
     this.onTap,
     this.onLongPress,
     this.onSecondaryTapDown,
+    this.index,
     this.section,
   });
 
   final MusicFile song;
   final FolderZoomLayoutMetrics metrics;
+  final int? index;
 
   /// 本条目所属的网格段，必须与 `SliverAnimatedZoomGridDelegate.section` 一致。
   ///
@@ -139,6 +141,7 @@ class SongZoomItem extends ConsumerWidget {
       size: zoomItemThumbnailSizeFor(metrics),
       width: double.infinity,
       height: double.infinity,
+      borderRadius: BorderRadius.zero,
     );
 
     final coverWidget = ExcludeSemantics(
@@ -196,11 +199,19 @@ class SongZoomItem extends ConsumerWidget {
       }
     }
 
-    // 字体样式与平滑字号
+    // 字体样式与平滑字号（稳态滚动锁定整数字号，避免触发文字引擎重建字形图集）
     final isPortrait = metrics.isPortrait;
-    final titleSize = metrics.animatedTitleFontSize;
-    final subSize = metrics.animatedSubtitleFontSize;
-    final infoSize = metrics.animatedInfoFontSize;
+    final isTransitioning =
+        (metrics.targetZoomScale - metrics.animatedZoomScale).abs() > 1e-4;
+    final titleSize = isTransitioning
+        ? metrics.animatedTitleFontSize
+        : metrics.animatedTitleFontSize.roundToDouble();
+    final subSize = isTransitioning
+        ? metrics.animatedSubtitleFontSize
+        : metrics.animatedSubtitleFontSize.roundToDouble();
+    final infoSize = isTransitioning
+        ? metrics.animatedInfoFontSize
+        : metrics.animatedInfoFontSize.roundToDouble();
 
     final titleColor = isMissing
         ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.55)
@@ -268,6 +279,7 @@ class SongZoomItem extends ConsumerWidget {
 
     final scaffold = ZoomItemScaffold(
       metrics: metrics,
+      index: index,
       section: section,
       cover: cover,
       textColumnBuilder: (context, textWidth, textHeight) => _SongZoomContent(
@@ -304,13 +316,29 @@ class SongZoomItem extends ConsumerWidget {
       onSecondaryTapDown: onSecondaryTapDown,
     );
 
-    return DraggableSongItem(
-      song: song,
-      enabled: !isMissing && enableDrag,
-      isSelected: effectiveSelected,
-      isSelectionMode: effectiveSelectionMode,
-      selectedPaths: selectedPaths,
-      child: scaffold,
+    final String songA11yLabel = [
+      ?trackStr,
+      song.displayName,
+      artistAlbumText,
+      durationStr,
+    ].join(', ');
+
+    return Semantics(
+      container: true,
+      button: true,
+      label: songA11yLabel,
+      selected: effectiveSelectionMode ? effectiveSelected : null,
+      enabled: !isMissing,
+      child: ExcludeSemantics(
+        child: DraggableSongItem(
+          song: song,
+          enabled: !isMissing && enableDrag,
+          isSelected: effectiveSelected,
+          isSelectionMode: effectiveSelectionMode,
+          selectedPaths: selectedPaths,
+          child: scaffold,
+        ),
+      ),
     );
   }
 }

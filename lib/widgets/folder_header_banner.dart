@@ -11,7 +11,6 @@ import 'package:vynody/player/metadata/artwork_resolver.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_service_providers.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
-import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import 'folder_scan_widgets.dart';
 import 'song_thumbnail.dart';
@@ -698,7 +697,6 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
 
 /// Default cover image opacity values for light theme banner display
 const double _kLightModeCoverOpacity = 0.35;
-const double _kLightModeBlurredCoverOpacity = 0.35;
 
 /// 判定「宽/方封面」的比例阈值：≥ 该值铺满整宽，否则走模糊背景 + 内联封面。
 const double _kAspectRatioWideOrSquareThreshold = 0.85;
@@ -725,39 +723,6 @@ const double _kPortraitInlineCoverHeight = 180.0;
 /// 就凭空向下长十几像素，下面的列表跟着被顶一下。这里把两种状态都放进同一个
 /// 定高盒子里，按钮/输入框在行内居中，切换时高度不变。
 const double _kPortraitActionRowHeight = 44.0;
-
-/// 目录页 banner 背景模糊层的 sigma（单位为逻辑像素）。
-///
-/// 取 `AppBlur.heavy`(16) 的原始观感：这一层要的是「均匀的色雾」，不是「隐约
-/// 看得出封面」。低端机保留 10，仍远高于会露块的阈值（见解码宽度的说明）。
-const double _kBannerBackdropBlurSigma = 16.0;
-const double _kBannerBackdropBlurSigmaLowEnd = 10.0;
-
-/// 背景模糊层的解码宽度 = 屏幕物理宽度 × 该比例。
-///
-/// 关键约束：**放大后的单像素块尺寸必须远小于 sigma，否则高斯糊不住块边缘，
-/// 背景会呈现马赛克/色阶断层**。块尺寸（逻辑像素）= 显示宽 / 解码宽
-/// = 1 / (dpr × scale)。取值 0.5 时手机上块约 0.67dp，配合 sigma=16 完全不可见。
-///
-/// 曾一度取 0.125（块 ≈ 3dp），sigma 同时降到 6，块边界落在 2σ 以内，肉眼可见
-/// 马赛克——这条路走不通。0.5 相比原图仍把纹理像素量降一个量级以上，且高斯本身
-/// 作用在屏幕区域、与源纹理分辨率无关，过度压解码宽度换不到光栅收益。
-const double _kBannerBackdropDecodeScale = 0.5;
-const int _kBannerBackdropDecodeMinWidth = 256;
-const int _kBannerBackdropDecodeMaxWidth = 1024;
-
-/// 背景模糊层该按多宽解码（单位为物理像素，即 `Image.cacheWidth` 的语义）。
-int _bannerBackdropDecodeWidth({
-  required double logicalWidth,
-  required double devicePixelRatio,
-}) {
-  return (logicalWidth * devicePixelRatio * _kBannerBackdropDecodeScale)
-      .round()
-      .clamp(
-        _kBannerBackdropDecodeMinWidth,
-        _kBannerBackdropDecodeMaxWidth,
-      );
-}
 
 /// Decoupled Portrait Header Banner Component
 class _FolderPortraitHeaderBanner extends StatelessWidget {
@@ -976,30 +941,6 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                           ? Colors.black
                           : theme.colorScheme.surface,
                     ),
-                    if (hasImage && !isWideOrSquare) ...[
-                      Opacity(
-                        opacity: isDark ? 1.0 : _kLightModeBlurredCoverOpacity,
-                        child: ImageFiltered(
-                          imageFilter: AppBlur.filter(
-                            isLowEndDevice
-                                ? _kBannerBackdropBlurSigmaLowEnd
-                                : _kBannerBackdropBlurSigma,
-                          ),
-                          child: _buildBannerImage(
-                            fit: BoxFit.cover,
-                            alignment: Alignment.center,
-                            cacheWidth: _bannerBackdropDecodeWidth(
-                              logicalWidth: constraints.maxWidth,
-                              devicePixelRatio: devicePixelRatio,
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (isDark)
-                        Container(
-                          color: Colors.black.withValues(alpha: isWideOrSquare ? 0.25 : 0.45),
-                        ),
-                    ],
                     // Wide or Square cover extending across full width
                     if (isWideOrSquare && hasImage) ...[
                       Positioned.fill(

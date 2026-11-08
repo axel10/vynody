@@ -28,11 +28,13 @@ class FolderZoomItem extends StatelessWidget {
     this.customTitle,
     this.enableHero = true,
     this.isIndexed = false,
+    this.index,
     this.section,
   });
 
   final MusicFolder folder;
   final FolderZoomLayoutMetrics metrics;
+  final int? index;
 
   /// 本条目所属的网格段，必须与 `SliverAnimatedZoomGridDelegate.section` 一致。
   ///
@@ -85,6 +87,7 @@ class FolderZoomItem extends StatelessWidget {
         size: zoomItemThumbnailSizeFor(metrics),
         width: double.infinity,
         height: double.infinity,
+        borderRadius: BorderRadius.zero,
         fallbackWidget: defaultCoverWidget,
       );
     } else {
@@ -153,6 +156,7 @@ class FolderZoomItem extends StatelessWidget {
 
     final scaffold = ZoomItemScaffold(
       metrics: metrics,
+      index: index,
       section: section,
       cover: heroCover,
       titleText: customTitle ?? folder.name,
@@ -170,12 +174,23 @@ class FolderZoomItem extends StatelessWidget {
       fallbackLeadingWhenNoCover: fallbackLeading,
     );
 
-    return DraggableFolderItem(
-      folder: folder,
-      songsCount: songsCount,
-      representativeSong: representativeSong,
-      enabled: !isSelectionMode && !isSortMode,
-      child: scaffold,
+    final String folderA11yLabel =
+        '${customTitle ?? folder.name}, ${subtitle ?? l10n.songsCountFormat(songsCount)}';
+
+    return Semantics(
+      container: true,
+      button: true,
+      label: folderA11yLabel,
+      selected: isSelectionMode ? isSelected : null,
+      child: ExcludeSemantics(
+        child: DraggableFolderItem(
+          folder: folder,
+          songsCount: songsCount,
+          representativeSong: representativeSong,
+          enabled: !isSelectionMode && !isSortMode,
+          child: scaffold,
+        ),
+      ),
     );
   }
 }

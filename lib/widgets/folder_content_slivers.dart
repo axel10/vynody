@@ -436,6 +436,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
                     child: FolderZoomItem(
                       folder: systemFolder,
                       metrics: metrics,
+                      index: index,
                       section: section,
                       songsCount: songsCount,
                       representativeSong: representativeSong,
@@ -472,6 +473,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
                   child: FolderZoomItem(
                     folder: folder,
                     metrics: metrics,
+                    index: index,
                     section: section,
                     songsCount: songsCount,
                     representativeSong: representativeSong,
@@ -598,6 +600,7 @@ class FolderSongsSliver extends StatelessWidget {
                   key: ValueKey(file.path),
                   song: file,
                   metrics: metrics,
+                  index: fileIndex,
                   section: section,
                   isCurrent: isCurrent,
                   isPlaying: isPlaying,

@@ -403,6 +403,11 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     final radius = widget.borderRadius ?? BorderRadius.circular(4);
     final bool gaplessPlayback = widget.gaplessPlayback || _keepLastFrame;
 
+    Widget applyRadiusClip(Widget child) {
+      if (radius == BorderRadius.zero) return child;
+      return ClipRRect(borderRadius: radius, child: child);
+    }
+
     final bool hasValidRemoteUrl = _remoteArtworkUrl != null &&
         _remoteArtworkUrl!.isNotEmpty &&
         !_failedRemoteUrls.contains(_remoteArtworkUrl!);
@@ -428,9 +433,8 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         height: layoutHeight,
       );
     } else if (hasBytes) {
-      content = ClipRRect(
-        borderRadius: radius,
-        child: Image.memory(
+      content = applyRadiusClip(
+        Image.memory(
           widget.bytes!,
           width: layoutWidth,
           height: layoutHeight,
@@ -444,9 +448,8 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       );
     } else if (hasImage) {
       final file = File(imagePath);
-      content = ClipRRect(
-        borderRadius: radius,
-        child: Image.file(
+      content = applyRadiusClip(
+        Image.file(
           file,
           width: layoutWidth,
           height: layoutHeight,
@@ -474,9 +477,8 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         ),
       );
     } else if (hasValidRemoteUrl) {
-      content = ClipRRect(
-        borderRadius: radius,
-        child: Image.network(
+      content = applyRadiusClip(
+        Image.network(
           _remoteArtworkUrl!,
           width: layoutWidth,
           height: layoutHeight,
