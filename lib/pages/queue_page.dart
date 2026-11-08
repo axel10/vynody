@@ -46,6 +46,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
   Timer? _highlightTimer;
   QueueSortField _sortField = QueueSortField.title;
   bool _sortAscending = true;
+  bool _showFloatingActions = false;
 
   @override
   void initState() {
@@ -123,7 +124,15 @@ class _QueuePageState extends ConsumerState<QueuePage>
         final double itemHeight =
             getFolderListTileExtent(queueZoomScale) + 4.0;
         final double viewportHeight = _scrollController.position.viewportDimension;
-        double targetOffset = (targetIndex * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
+        final isPortrait =
+            MediaQuery.of(context).orientation == Orientation.portrait;
+        final double safeTopPadding =
+            getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
+        final double headerHeight = isPortrait ? (safeTopPadding + 70.0) : 0.0;
+        double targetOffset = headerHeight +
+            (targetIndex * itemHeight) -
+            (viewportHeight / 2) +
+            (itemHeight / 2);
         
         final maxScroll = _scrollController.position.maxScrollExtent;
         if (targetOffset < 0) {
@@ -375,11 +384,12 @@ class _QueuePageState extends ConsumerState<QueuePage>
           onPressed: canLocate ? _scrollToCurrentPlay : null,
           tooltip: l10n.locateCurrentSong,
         ),
-        LibraryZoomButton(
-          scope: LibraryZoomScope.queue,
-          iconSize: 20,
-          color: headerIconColor,
-        ),
+        if (!isPortrait)
+          LibraryZoomButton(
+            scope: LibraryZoomScope.queue,
+            iconSize: 20,
+            color: headerIconColor,
+          ),
         IconButton(
           icon: Icon(
             Icons.delete_sweep_rounded,
@@ -394,6 +404,37 @@ class _QueuePageState extends ConsumerState<QueuePage>
       ],
     );
 
+    final Widget headerContent = SizedBox(
+      height: 70.0,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: headerHorizontalPadding,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.queue,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  subtitleWidget,
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            headerActionButtons,
+          ],
+        ),
+      ),
+    );
+
     final double safeTopPadding =
         getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
     final double topBarHeight = safeTopPadding + 70.0;
@@ -401,26 +442,40 @@ class _QueuePageState extends ConsumerState<QueuePage>
     final Widget listOrEmpty;
     if (displayQueue.isEmpty) {
       listOrEmpty = Padding(
-        padding: EdgeInsets.only(top: topBarHeight),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: kFolderPageMaxWidth),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.queue_music,
-                  size: 64,
-                  color: Colors.grey.withValues(alpha: 0.5),
+        padding: EdgeInsets.only(top: isPortrait ? safeTopPadding : topBarHeight),
+        child: Column(
+          children: [
+            if (isPortrait)
+              Align(
+                alignment: Alignment.center,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: kFolderPageMaxWidth),
+                  child: headerContent,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.queueEmpty,
-                  style: const TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: kFolderPageMaxWidth),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.queue_music,
+                        size: 64,
+                        color: Colors.grey.withValues(alpha: 0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.queueEmpty,
+                        style: const TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       );
     } else {
@@ -444,8 +499,22 @@ class _QueuePageState extends ConsumerState<QueuePage>
                           scrollController: _scrollController,
                           buildDefaultDragHandles: false,
                           cacheExtent: 1000.0,
+                          header: isPortrait
+                              ? Align(
+                                  alignment: Alignment.center,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: kFolderPageMaxWidth,
+                                    ),
+                                    child: Padding(
+                                      padding: EdgeInsets.only(top: safeTopPadding),
+                                      child: headerContent,
+                                    ),
+                                  ),
+                                )
+                              : null,
                           padding: EdgeInsets.only(
-                            top: topBarHeight,
+                            top: isPortrait ? 0.0 : topBarHeight,
                             bottom: bottomOffset,
                           ),
                           itemCount: displayQueue.length,
@@ -678,6 +747,11 @@ class _QueuePageState extends ConsumerState<QueuePage>
     );
   }
 
+    final bool effectiveShowFab = isPortrait &&
+        !isSelectionMode &&
+        displayQueue.isNotEmpty &&
+        _showFloatingActions;
+
     return Scaffold(
       body: QueueFileDropTarget(
         enabled: true,
@@ -693,74 +767,159 @@ class _QueuePageState extends ConsumerState<QueuePage>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            FolderZoomGestureLayer(
-              scope: LibraryZoomScope.queue,
-              child: listOrEmpty,
+            NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification.depth == 0) {
+                  final shouldShow = notification.metrics.pixels > 70.0;
+                  if (shouldShow != _showFloatingActions) {
+                    setState(() {
+                      _showFloatingActions = shouldShow;
+                    });
+                  }
+                }
+                return false;
+              },
+              child: FolderZoomGestureLayer(
+                scope: LibraryZoomScope.queue,
+                child: listOrEmpty,
+              ),
             ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: topBarHeight,
-              child: ClipRect(
-                child: AppBackdropFilter(
-                  filter: AppBlur.heavyFilter,
-                  child: Container(
-                    padding: EdgeInsets.only(top: safeTopPadding),
-                    decoration: BoxDecoration(
-                      color: AppBlur.heavySurface(context),
-                      border: Border(
-                        bottom: BorderSide(
-                          color: theme.dividerColor.withValues(alpha: 0.12),
-                          width: 0.8,
+            if (!isPortrait)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: topBarHeight,
+                child: ClipRect(
+                  child: AppBackdropFilter(
+                    filter: AppBlur.heavyFilter,
+                    child: Container(
+                      padding: EdgeInsets.only(top: safeTopPadding),
+                      decoration: BoxDecoration(
+                        color: AppBlur.heavySurface(context),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: theme.dividerColor.withValues(alpha: 0.12),
+                            width: 0.8,
+                          ),
                         ),
                       ),
-                    ),
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: kFolderPageMaxWidth,
-                        ),
-                        child: SizedBox(
-                          height: 70.0,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: headerHorizontalPadding,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        l10n.queue,
-                                        style: theme.textTheme.headlineSmall
-                                            ?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      subtitleWidget,
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                headerActionButtons,
-                              ],
-                            ),
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: kFolderPageMaxWidth,
                           ),
+                          child: headerContent,
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
+            if (isPortrait)
+              Positioned(
+                top: safeTopPadding + 8.0,
+                right: 16.0,
+                child: IgnorePointer(
+                  ignoring: !effectiveShowFab,
+                  child: AnimatedScale(
+                    scale: effectiveShowFab ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutBack,
+                    child: AnimatedOpacity(
+                      opacity: effectiveShowFab ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Material(
+                        shape: const CircleBorder(),
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.92),
+                        elevation: 4.0,
+                        shadowColor: Colors.black.withValues(alpha: 0.28),
+                        clipBehavior: Clip.antiAlias,
+                        child: PopupMenuButton<String>(
+                          tooltip: l10n.more,
+                          padding: const EdgeInsets.all(10.0),
+                          icon: Icon(
+                            Icons.more_vert_rounded,
+                            color: theme.colorScheme.onSurface,
+                            size: 20,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          onSelected: (value) {
+                            switch (value) {
+                              case 'sort':
+                                _showSortDialog(context);
+                                break;
+                              case 'locate':
+                                _scrollToCurrentPlay();
+                                break;
+                              case 'clear':
+                                _showClearQueueDialog(context);
+                                break;
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            PopupMenuItem<String>(
+                              value: 'sort',
+                              enabled: canSort,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.sort_rounded,
+                                    size: 20,
+                                    color: canSort
+                                        ? theme.colorScheme.onSurface
+                                        : theme.disabledColor,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(l10n.sort),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'locate',
+                              enabled: canLocate,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.my_location_rounded,
+                                    size: 20,
+                                    color: canLocate
+                                        ? theme.colorScheme.onSurface
+                                        : theme.disabledColor,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(l10n.locateCurrentSong),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'clear',
+                              enabled: canClear,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.delete_sweep_rounded,
+                                    size: 20,
+                                    color: canClear
+                                        ? theme.colorScheme.onSurface
+                                        : theme.disabledColor,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(l10n.clearQueue),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             AnimatedSelectionPanel(
               isVisible: isSelectionMode,
               child: LibrarySelectionPanel(

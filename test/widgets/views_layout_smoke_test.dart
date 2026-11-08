@@ -33,6 +33,7 @@ import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/widgets/library_zoom_popover.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/widgets/draggable_album_item.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
@@ -753,6 +754,74 @@ void main() {
 
         expect(tester.takeException(), isNull);
       }
+    });
+
+    testWidgets('QueuePage - Portrait hides zoom button and shows floating more menu on scroll', (tester) async {
+      tester.view.physicalSize = const Size(390 * 2.0, 844 * 2.0);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        createTestWidget(child: const QueuePage(), logicalSize: const Size(390, 844)),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 竖屏下，视图切换按钮在顶部区域和整页中均隐藏
+      expect(find.byType(LibraryZoomButton), findsNothing);
+
+      // 未向下滚动时，浮动按钮处于隐藏状态 (scale 为 0)
+      final moreButtonFinder = find.byIcon(Icons.more_vert_rounded);
+      expect(moreButtonFinder, findsOneWidget);
+      final animatedScaleFinder = find.ancestor(
+        of: moreButtonFinder,
+        matching: find.byType(AnimatedScale),
+      );
+      final initialScale = tester.widget<AnimatedScale>(animatedScaleFinder).scale;
+      expect(initialScale, 0.0);
+
+      // 向下拖动列表以触发滚动阈值
+      await tester.drag(find.byType(ReorderableListView), const Offset(0, -200));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 滚动后浮动按钮显示 (scale 变为 1.0)
+      final scrolledScale = tester.widget<AnimatedScale>(animatedScaleFinder).scale;
+      expect(scrolledScale, 1.0);
+
+      // 点击浮动按钮弹出菜单
+      await tester.tap(moreButtonFinder);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 弹出的菜单中包含排序、定位当前播放、清空队列
+      final l10n = AppLocalizations.of(tester.element(find.byType(QueuePage)))!;
+      expect(find.text(l10n.sort), findsOneWidget);
+      expect(find.text(l10n.locateCurrentSong), findsOneWidget);
+      expect(find.text(l10n.clearQueue), findsOneWidget);
+      // 浮动菜单中不显示列表视图/网格视图缩放项
+      expect(find.text(l10n.listView), findsNothing);
+      expect(find.text(l10n.gridView), findsNothing);
+    });
+
+    testWidgets('QueuePage - Landscape displays zoom button in header and hides portrait floating menu', (tester) async {
+      tester.view.physicalSize = const Size(1280 * 2.0, 800 * 2.0);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        createTestWidget(child: const QueuePage(), logicalSize: const Size(1280, 800)),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 横屏下顶部固定区域显示视图切换按钮
+      expect(find.byType(LibraryZoomButton), findsOneWidget);
+
+      // 横屏下不渲染竖屏专用的浮动按钮
+      expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
     });
   });
 }
