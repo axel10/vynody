@@ -139,17 +139,41 @@ final audioPlaybackQueueProvider =
   AudioPlaybackQueueNotifier.new,
 );
 
-final audioRandomHistoryProvider = Provider<List<MusicFile>>((ref) {
-  return ref.watch(
-    audioSnapshotProvider.select((snapshot) => snapshot.randomHistory),
-  );
-});
+class AudioRandomHistoryNotifier extends Notifier<List<MusicFile>> {
+  @override
+  List<MusicFile> build() {
+    ref.listen<AudioSnapshot>(audioSnapshotProvider, (previous, next) {
+      if (previous == null ||
+          !listEquals(previous.randomHistory, next.randomHistory)) {
+        state = next.randomHistory;
+      }
+    });
+    return ref.read(audioSnapshotProvider).randomHistory;
+  }
+}
 
-final audioRandomQueueProvider = Provider<List<MusicFile>>((ref) {
-  return ref.watch(
-    audioSnapshotProvider.select((snapshot) => snapshot.randomQueue),
-  );
-});
+final audioRandomHistoryProvider =
+    NotifierProvider<AudioRandomHistoryNotifier, List<MusicFile>>(
+  AudioRandomHistoryNotifier.new,
+);
+
+class AudioRandomQueueNotifier extends Notifier<List<MusicFile>> {
+  @override
+  List<MusicFile> build() {
+    ref.listen<AudioSnapshot>(audioSnapshotProvider, (previous, next) {
+      if (previous == null ||
+          !listEquals(previous.randomQueue, next.randomQueue)) {
+        state = next.randomQueue;
+      }
+    });
+    return ref.read(audioSnapshotProvider).randomQueue;
+  }
+}
+
+final audioRandomQueueProvider =
+    NotifierProvider<AudioRandomQueueNotifier, List<MusicFile>>(
+  AudioRandomQueueNotifier.new,
+);
 
 final audioCurrentIndexProvider = Provider<int>((ref) {
   return ref.watch(
@@ -213,11 +237,27 @@ final audioPlaybackModeProvider = Provider<AppPlaybackMode>((ref) {
   );
 });
 
-final audioCurrentThemeColorsMapProvider = Provider<Map<String, Color>>((ref) {
-  return ref.watch(
-    audioSnapshotProvider.select((snapshot) => snapshot.currentThemeColorsMap),
-  );
-});
+class AudioCurrentThemeColorsMapNotifier
+    extends Notifier<Map<String, Color>> {
+  @override
+  Map<String, Color> build() {
+    ref.listen<AudioSnapshot>(audioSnapshotProvider, (previous, next) {
+      if (previous == null ||
+          !mapEquals(
+            previous.currentThemeColorsMap,
+            next.currentThemeColorsMap,
+          )) {
+        state = next.currentThemeColorsMap;
+      }
+    });
+    return ref.read(audioSnapshotProvider).currentThemeColorsMap;
+  }
+}
+
+final audioCurrentThemeColorsMapProvider =
+    NotifierProvider<AudioCurrentThemeColorsMapNotifier, Map<String, Color>>(
+  AudioCurrentThemeColorsMapNotifier.new,
+);
 
 final audioDynamicStartColorProvider = Provider<Color?>((ref) {
   return ref.watch(

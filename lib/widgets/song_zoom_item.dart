@@ -509,18 +509,12 @@ class _SongZoomContent extends StatelessWidget {
     final showEqualizer = isCurrent && !isMissing;
     final t = (1.0 - compactMorph).clamp(0.0, 1.0); // 0.0 = Compact, 1.0 = Standard
 
-    // 测量紧凑模式下音频信息的宽度
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: durationFormatText,
-        style: effInfoStyle.copyWith(
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
-      ),
-      textDirection: Directionality.of(context),
-      maxLines: 1,
-    )..layout();
-    final measuredInfoWidth = (textPainter.width + 2.0).ceilToDouble();
+    // 测量紧凑模式下音频信息的宽度（带 LRU 内存缓存，避免高频 build 时重复 layout）
+    final measuredInfoWidth = _measureInfoWidth(
+      durationFormatText,
+      effInfoStyle,
+      Directionality.of(context),
+    );
     final compactInfoWidth =
         math.min(measuredInfoWidth, math.max(0.0, W * 0.45));
     final compactTitleWidth =
@@ -829,4 +823,68 @@ String _fileExtensionOf(String value) {
   if (value.isEmpty) return '';
   final ext = p.extension(value);
   return ext.startsWith('.') ? ext.substring(1) : ext;
+}
+
+class _InfoWidthCacheKey {
+  const _InfoWidthCacheKey({
+    required this.text,
+    required this.fontSize,
+    required this.fontWeight,
+    required this.textDirection,
+  });
+
+  final String text;
+  final double fontSize;
+  final FontWeight? fontWeight;
+  final TextDirection textDirection;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _InfoWidthCacheKey &&
+          other.text == text &&
+          other.fontSize == fontSize &&
+          other.fontWeight == fontWeight &&
+          other.textDirection == textDirection;
+
+  @override
+  int get hashCode => Object.hash(text, fontSize, fontWeight, textDirection);
+}
+
+final _infoWidthCache = <_InfoWidthCacheKey, double>{};
+const int _kMaxInfoWidthCacheSize = 1000;
+
+double _measureInfoWidth(
+  String text,
+  TextStyle style,
+  TextDirection textDirection,
+) {
+  if (text.isEmpty) return 0.0;
+  final key = _InfoWidthCacheKey(
+    text: text,
+    fontSize: style.fontSize ?? 12.0,
+    fontWeight: style.fontWeight,
+    textDirection: textDirection,
+  );
+  final cached = _infoWidthCache[key];
+  if (cached != null) return cached;
+
+  final textPainter = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: style.copyWith(
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    ),
+    textDirection: textDirection,
+    maxLines: 1,
+  )..layout();
+  final measuredWidth = (textPainter.width + 2.0).ceilToDouble();
+  textPainter.dispose();
+
+  if (_infoWidthCache.length >= _kMaxInfoWidthCacheSize) {
+    _infoWidthCache.clear();
+  }
+  _infoWidthCache[key] = measuredWidth;
+  return measuredWidth;
 }

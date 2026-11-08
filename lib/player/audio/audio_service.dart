@@ -349,6 +349,14 @@ class AudioService extends Notifier<AudioSnapshot> {
   Color? _dynamicStartColor;
   Color? _dynamicEndColor;
   Map<String, Color> _currentThemeColorsMap = const {};
+  Map<String, Color> _unmodifiableCurrentThemeColorsMap = const {};
+
+  void _updateThemeColorsMap(Map<String, Color> colors) {
+    _currentThemeColorsMap = colors;
+    _unmodifiableCurrentThemeColorsMap = colors.isEmpty
+        ? const {}
+        : Map<String, Color>.unmodifiable(colors);
+  }
   late final WindowsIntegrationService? _windowsIntegration;
   late final AndroidIntegrationService? _androidIntegration;
   late final DarwinIntegrationService? _darwinIntegration;
@@ -958,7 +966,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (song == null) {
       _dynamicStartColor = null;
       _dynamicEndColor = null;
-      _currentThemeColorsMap = const {};
+      _updateThemeColorsMap(const {});
       notifyListeners();
       return;
     }
@@ -2336,9 +2344,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     isVisualizerEnabled: isVisualizerEnabled,
     dynamicStartColor: _dynamicStartColor,
     dynamicEndColor: _dynamicEndColor,
-    currentThemeColorsMap: Map<String, Color>.unmodifiable(
-      _currentThemeColorsMap,
-    ),
+    currentThemeColorsMap: _unmodifiableCurrentThemeColorsMap,
     isLyricsActive: isLyricsActive,
     sleepTimerRemaining: sleepTimerRemaining,
     sleepTimerDuration: sleepTimerDuration,
@@ -2741,7 +2747,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   void _applyThemeColors(Map<String, Color> colors) {
-    _currentThemeColorsMap = colors;
+    _updateThemeColorsMap(colors);
     _dynamicStartColor = colors['dominant'] ?? colors['vibrant'];
     _dynamicEndColor =
         (colors['vibrant']?.withValues(alpha: 0.8)) ?? colors['muted'];
@@ -2854,7 +2860,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         themeColorsBlob == null) {
       _dynamicStartColor = null;
       _dynamicEndColor = null;
-      _currentThemeColorsMap = const {};
+      _updateThemeColorsMap(const {});
       notifyListeners();
       return;
     }
@@ -2885,7 +2891,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (paletteBlob == null || paletteBlob.isEmpty) {
       _dynamicStartColor = null;
       _dynamicEndColor = null;
-      _currentThemeColorsMap = const {};
+      _updateThemeColorsMap(const {});
       notifyListeners();
       return;
     }

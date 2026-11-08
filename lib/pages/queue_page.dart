@@ -269,11 +269,19 @@ class _QueuePageState extends ConsumerState<QueuePage>
     final isRandomMode = ref.watch(audioIsRandomModeProvider);
     final isShuffleRandomMode = ref.watch(audioIsShuffleRandomModeProvider);
     final queue = ref.watch(audioPlaybackQueueProvider);
-    final randomHistory = ref.watch(audioRandomHistoryProvider);
-    final randomQueue = ref.watch(audioRandomQueueProvider);
+    final randomHistory = _viewIndex == 1
+        ? ref.watch(audioRandomHistoryProvider)
+        : const <MusicFile>[];
+    final randomQueue = _viewIndex == 2
+        ? ref.watch(audioRandomQueueProvider)
+        : const <MusicFile>[];
     final currentIndex = ref.watch(audioCurrentIndexProvider);
-    final historyCursor = ref.watch(audioHistoryCursorProvider);
-    final deckCursor = ref.watch(audioDeckCursorProvider);
+    final historyCursor = _viewIndex == 1
+        ? ref.watch(audioHistoryCursorProvider)
+        : null;
+    final deckCursor = _viewIndex == 2
+        ? ref.watch(audioDeckCursorProvider)
+        : null;
     final showPreview = _viewIndex == 0;
     final displayQueue = _viewIndex == 1
         ? randomHistory
