@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/widgets/app_bottom_sheet.dart';
 
@@ -264,19 +265,21 @@ void main() {
       addTearDown(() => tester.view.resetPhysicalSize());
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => ElevatedButton(
-                onPressed: () {
-                  showAppAdaptiveModal(
-                    context: context,
-                    builder: (modalCtx) => const AppAdaptiveSheet(
-                      child: Text('Live Morph Content'),
-                    ),
-                  );
-                },
-                child: const Text('Open Modal'),
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () {
+                    showAppAdaptiveModal(
+                      context: context,
+                      builder: (modalCtx) => const AppAdaptiveSheet(
+                        child: Text('Live Morph Content'),
+                      ),
+                    );
+                  },
+                  child: const Text('Open Modal'),
+                ),
               ),
             ),
           ),

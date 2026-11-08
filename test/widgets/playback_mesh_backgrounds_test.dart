@@ -8,6 +8,14 @@ import 'package:vynody/widgets/dynamic_mesh_background.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
 
+class _FakeThemeColorsMapNotifier extends AudioCurrentThemeColorsMapNotifier {
+  final Map<String, Color> _palette;
+  _FakeThemeColorsMapNotifier(this._palette);
+
+  @override
+  Map<String, Color> build() => _palette;
+}
+
 void main() {
   testWidgets('动态流变 与 动态流变 v2 都能渲染', (tester) async {
     SharedPreferences.setMockInitialValues({});
@@ -81,7 +89,9 @@ void main() {
           isProUnlockedProvider.overrideWith((ref) => true),
           audioServiceProvider.overrideWith((ref) => audioService),
           audioCurrentMusicProvider.overrideWithValue(music),
-          audioCurrentThemeColorsMapProvider.overrideWithValue(palette),
+          audioCurrentThemeColorsMapProvider.overrideWith(
+            () => _FakeThemeColorsMapNotifier(palette),
+          ),
           audioDynamicStartColorProvider.overrideWithValue(
             const Color(0xFF101828),
           ),

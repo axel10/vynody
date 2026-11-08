@@ -1,13 +1,67 @@
+import 'dart:typed_data';
+import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/audio/app_playback_mode.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/audio_service.dart';
+import 'package:vynody/player/audio/audio_snapshot.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
-import 'package:vynody/widgets/hoverable_card.dart';
 import 'package:vynody/widgets/song_zoom_item.dart';
 
+class _FakeAudioService extends AudioService {
+  @override
+  AudioSnapshot build() {
+    return AudioSnapshot(
+      isPlaying: false,
+      isTransitioning: false,
+      isLastActionNext: null,
+      currentMusic: null,
+      position: Duration.zero,
+      duration: Duration.zero,
+      volume: 1.0,
+      isMuted: false,
+      currentIndex: 0,
+      isRandomMode: false,
+      isShuffleRandomMode: false,
+      playbackMode: AppPlaybackMode.queue,
+      equalizerConfig: EqualizerConfig(
+        enabled: false,
+        bandCount: 10,
+        preampDb: 0.0,
+        bassBoostDb: 0.0,
+        bassBoostFrequencyHz: 80.0,
+        bassBoostQ: 1.0,
+        bandGainsDb: Float32List(10),
+      ),
+      currentVisualizerOptions: const VisualizerOptimizationOptions(
+        frequencyGroups: 100,
+      ),
+      historyCursor: null,
+      deckCursor: null,
+      isVisualizerEnabled: false,
+      dynamicStartColor: null,
+      dynamicEndColor: null,
+      isLyricsActive: false,
+      sleepTimerRemaining: null,
+      sleepTimerDuration: null,
+    );
+  }
+}
+
 void main() {
+  late SharedPreferences prefs;
+  final audioService = _FakeAudioService();
+
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
   testWidgets('SongZoomItem renders without overflow across all zoom tiers', (tester) async {
     const song = MusicFile(
       name: 'test_song.flac',
@@ -35,6 +89,10 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            settingsServiceProvider.overrideWith((ref) => SettingsService(prefs)),
+            audioServiceProvider.overrideWith((ref) => audioService),
+          ],
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
@@ -91,6 +149,10 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            settingsServiceProvider.overrideWith((ref) => SettingsService(prefs)),
+            audioServiceProvider.overrideWith((ref) => audioService),
+          ],
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
@@ -262,6 +324,10 @@ void main() {
     Future<void> pumpWith(FolderZoomLayoutMetrics metrics) async {
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            settingsServiceProvider.overrideWith((ref) => SettingsService(prefs)),
+            audioServiceProvider.overrideWith((ref) => audioService),
+          ],
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,

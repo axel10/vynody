@@ -507,13 +507,13 @@ void main() {
       int repaintCount = 0;
       notifier.addListener(() => repaintCount++);
 
-      // 推进 60 帧 × 16ms ≈ 960ms；Timer 周期 33ms，应约 29 次出帧。
+      // 推进 60 帧 × 16ms ≈ 960ms；Timer 周期 66ms，应约 14-15 次出帧。
       for (int i = 0; i < 60; i++) {
         await tester.pump(const Duration(milliseconds: 16));
       }
 
-      expect(repaintCount, greaterThan(15)); // 周期被拖到 1s 时只剩 1 次
-      expect(repaintCount, lessThan(35)); // 退回 60fps 会是 60
+      expect(repaintCount, greaterThan(10)); // 周期被拖到 1s 时只剩 1 次
+      expect(repaintCount, lessThan(20)); // 退回 30fps/60fps 时会 > 25
 
       // 每次回调按固定周期推进，进度应与真实时间同阶。
       final double gained = _waveformPainter(tester).progress - 0.3;
