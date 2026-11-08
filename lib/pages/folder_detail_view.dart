@@ -367,7 +367,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         widget.highlightedSongPath ?? ref.watch(songHighlightProvider);
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final theme = Theme.of(context);
-    final safeTopPadding = MediaQuery.paddingOf(context).top;
     // 订阅结构版本而不是整个 ScannerService：列表内缩略图逐张生成时
     // 只会刷新各自 SongThumbnail，不再触发整页重建。
     ref.watch(scannerServiceProvider.select((s) => s.structureRevision));
@@ -782,53 +781,23 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   ),
                 ),
               if (isPortrait)
-                Positioned(
-                  top: safeTopPadding + 8.0,
-                  left: 16.0,
-                  child: ValueListenableBuilder<bool>(
-                    valueListenable: _showFloatingActions,
-                    builder: (context, showFab, child) {
-                      final visible = !widget.isSelectionMode && showFab;
-                      return FolderFloatingActionButton(
-                        visible: visible,
-                        child: child!,
-                      );
-                    },
-                    child: IconButton(
-                      tooltip: l10n.goBack,
-                      padding: const EdgeInsets.all(10.0),
-                      icon: const Icon(
-                        kAppBackIcon,
-                        size: 20,
-                      ),
-                      onPressed: widget.onGoBack,
+                FolderFloatingHeaderBar(
+                  visibleListenable: _showFloatingActions,
+                  isSelectionMode: widget.isSelectionMode,
+                  onBack: widget.onGoBack,
+                  backTooltip: l10n.goBack,
+                  contentMaxWidth: folderPageMaxWidth,
+                  trailingAction: PopupMenuButton<String>(
+                    tooltip: l10n.more,
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: theme.colorScheme.onSurface,
+                      size: 20,
                     ),
-                  ),
-                ),
-              if (isPortrait)
-                Positioned(
-                  top: safeTopPadding + 8.0,
-                  right: 16.0,
-                  child: ValueListenableBuilder<bool>(
-                    valueListenable: _showFloatingActions,
-                    builder: (context, showFab, child) {
-                      final visible = !widget.isSelectionMode && showFab;
-                      return FolderFloatingActionButton(
-                        visible: visible,
-                        child: child!,
-                      );
-                    },
-                    child: PopupMenuButton<String>(
-                      tooltip: l10n.more,
-                      padding: const EdgeInsets.all(10.0),
-                      icon: Icon(
-                        Icons.more_vert_rounded,
-                        color: theme.colorScheme.onSurface,
-                        size: 20,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                       onSelected: (val) {
                         switch (val) {
                           case 'search':
@@ -939,7 +908,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                       ],
                     ),
                   ),
-                ),
               Positioned(
                 left: 0,
                 right: 0,

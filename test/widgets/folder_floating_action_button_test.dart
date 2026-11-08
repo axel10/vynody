@@ -139,4 +139,89 @@ void main() {
     showFabNotifier.dispose();
     scrollController.dispose();
   });
+
+  testWidgets(
+      'FolderFloatingHeaderBar renders back button and trailing action with capsule style',
+      (tester) async {
+    bool backTapped = false;
+    bool actionTapped = false;
+    final showFabNotifier = ValueNotifier<bool>(true);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              FolderFloatingHeaderBar(
+                visibleListenable: showFabNotifier,
+                onBack: () => backTapped = true,
+                trailingAction: IconButton(
+                  key: const ValueKey('trailing_action'),
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () => actionTapped = true,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Initial visible state
+    expect(find.byType(FolderFloatingHeaderBar), findsOneWidget);
+    expect(find.byType(FolderFloatingActionButton), findsNWidgets(2));
+
+    // Tap back button
+    await tester.tap(find.byType(InkWell).first);
+    await tester.pump();
+    expect(backTapped, isTrue);
+
+    // Tap trailing action
+    await tester.tap(find.byKey(const ValueKey('trailing_action')));
+    await tester.pump();
+    expect(actionTapped, isTrue);
+
+    // Verify hidden when showFabNotifier is false
+    showFabNotifier.value = false;
+    await tester.pumpAndSettle();
+
+    final ignorePointers = tester
+        .widgetList<IgnorePointer>(find.descendant(
+          of: find.byType(FolderFloatingHeaderBar),
+          matching: find.byType(IgnorePointer),
+        ))
+        .toList();
+    expect(ignorePointers.every((ip) => ip.ignoring), isTrue);
+
+    showFabNotifier.dispose();
+  });
+
+  testWidgets('FolderFloatingHeaderBar hides back button when showBack is false',
+      (tester) async {
+    final showFabNotifier = ValueNotifier<bool>(true);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              FolderFloatingHeaderBar(
+                visibleListenable: showFabNotifier,
+                showBack: false,
+                trailingAction: const IconButton(
+                  icon: Icon(Icons.more_vert),
+                  onPressed: null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Only one FolderFloatingActionButton for trailingAction
+    expect(find.byType(FolderFloatingActionButton), findsOneWidget);
+
+    showFabNotifier.dispose();
+  });
 }

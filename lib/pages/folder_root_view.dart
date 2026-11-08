@@ -574,7 +574,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
       },
     );
 
-    final safeTopPadding = MediaQuery.paddingOf(context).top;
     final theme = Theme.of(context);
 
     return AutoHideHeaderScope(
@@ -607,30 +606,22 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                 ),
               ),
             if (isPortrait)
-              Positioned(
-                top: safeTopPadding + 8.0,
-                right: 16.0,
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: _showFloatingActions,
-                  builder: (context, showFab, child) {
-                    final visible =
-                        !isRootSelectionMode && !widget.isSortMode && showFab;
-                    return FolderFloatingActionButton(
-                      visible: visible,
-                      child: child!,
-                    );
-                  },
-                  child: PopupMenuButton<String>(
-                    tooltip: l10n.more,
-                    padding: const EdgeInsets.all(10.0),
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      color: theme.colorScheme.onSurface,
-                      size: 20,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+              FolderFloatingHeaderBar(
+                visibleListenable: _showFloatingActions,
+                isSelectionMode: isRootSelectionMode || widget.isSortMode,
+                showBack: false,
+                contentMaxWidth: folderPageMaxWidth,
+                trailingAction: PopupMenuButton<String>(
+                  tooltip: l10n.more,
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    Icons.more_vert_rounded,
+                    color: theme.colorScheme.onSurface,
+                    size: 20,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                     onSelected: (val) {
                       switch (val) {
                         case 'search':
@@ -698,7 +689,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     ],
                   ),
                 ),
-              ),
             Positioned(
               left: 0,
               right: 0,

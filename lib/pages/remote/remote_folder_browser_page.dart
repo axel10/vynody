@@ -1304,7 +1304,6 @@ class _RemoteFolderBrowserPageState
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
-    final safeTopPadding = MediaQuery.paddingOf(context).top;
     final double headerHeight = FolderNavBarScaffold.getBarHeight(context);
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
       context,
@@ -1771,54 +1770,25 @@ class _RemoteFolderBrowserPageState
                   child: _buildHeaderNavBar(context, isOverlay: true),
                 ),
               ),
-            if (isPortrait && _pathSegments.isNotEmpty)
-              Positioned(
-                top: safeTopPadding + 8.0,
-                left: 16.0,
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: _showFloatingActions,
-                  builder: (context, showFab, child) {
-                    final visible = !_isSelectionMode && showFab;
-                    return FolderFloatingActionButton(
-                      visible: visible,
-                      child: child!,
-                    );
-                  },
-                  child: IconButton(
-                    tooltip: l10n.goBack,
-                    padding: const EdgeInsets.all(10.0),
-                    icon: const Icon(
-                      kAppBackIcon,
-                      size: 20,
-                    ),
-                    onPressed: _handleGoBack,
-                  ),
-                ),
-              ),
             if (isPortrait)
-              Positioned(
-                top: safeTopPadding + 8.0,
-                right: 16.0,
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: _showFloatingActions,
-                  builder: (context, showFab, child) {
-                    final visible = !_isSelectionMode && showFab;
-                    return FolderFloatingActionButton(
-                      visible: visible,
-                      child: child!,
-                    );
-                  },
-                  child: PopupMenuButton<String>(
-                    tooltip: l10n.more,
-                    padding: const EdgeInsets.all(10.0),
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      color: theme.colorScheme.onSurface,
-                      size: 20,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+              FolderFloatingHeaderBar(
+                visibleListenable: _showFloatingActions,
+                isSelectionMode: _isSelectionMode,
+                showBack: _pathSegments.isNotEmpty,
+                onBack: _handleGoBack,
+                backTooltip: l10n.goBack,
+                contentMaxWidth: folderPageMaxWidth,
+                trailingAction: PopupMenuButton<String>(
+                  tooltip: l10n.more,
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    Icons.more_vert_rounded,
+                    color: theme.colorScheme.onSurface,
+                    size: 20,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                     onSelected: (val) {
                       switch (val) {
                         case 'locate':
@@ -1905,7 +1875,6 @@ class _RemoteFolderBrowserPageState
                     ],
                   ),
                 ),
-              ),
             Positioned(
               left: 0,
               right: 0,
