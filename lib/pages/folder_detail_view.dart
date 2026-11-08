@@ -101,7 +101,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   String? _lastHighlightedPath;
   final ValueNotifier<bool> _isCoverVisible = ValueNotifier<bool>(true);
   final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
-  bool _showFloatingActions = false;
+  final ValueNotifier<bool> _showFloatingActions = ValueNotifier<bool>(false);
   int? _lastSongAnchorIndex;
   int? _lastFolderAnchorIndex;
   late final double _initialZoomScale;
@@ -217,7 +217,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   void _onScroll() {
     final offset = _localScrollController.offset;
     ref.read(scannerServiceProvider).setFolderScrollOffset(
-      _effectiveFolder.path,
+      widget.folder.path,
       offset,
     );
     final isVisible = offset < 160.0;
@@ -227,10 +227,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
       _isCoverVisible.value = isVisible;
     }
     final shouldShowFab = offset > 70.0;
-    if (shouldShowFab != _showFloatingActions) {
-      setState(() {
-        _showFloatingActions = shouldShowFab;
-      });
+    if (shouldShowFab != _showFloatingActions.value) {
+      _showFloatingActions.value = shouldShowFab;
     }
   }
 
@@ -244,6 +242,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     _breadcrumbsScrollController.dispose();
     _scrollProgress.dispose();
     _isCoverVisible.dispose();
+    _showFloatingActions.dispose();
     super.dispose();
   }
 
@@ -369,9 +368,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final theme = Theme.of(context);
     final safeTopPadding = MediaQuery.paddingOf(context).top;
-    final bool effectiveShowFab = isPortrait &&
-        !widget.isSelectionMode &&
-        _showFloatingActions;
     // 订阅结构版本而不是整个 ScannerService：列表内缩略图逐张生成时
     // 只会刷新各自 SongThumbnail，不再触发整页重建。
     ref.watch(scannerServiceProvider.select((s) => s.structureRevision));
@@ -789,8 +785,15 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 Positioned(
                   top: safeTopPadding + 8.0,
                   left: 16.0,
-                  child: FolderFloatingActionButton(
-                    visible: effectiveShowFab,
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: _showFloatingActions,
+                    builder: (context, showFab, child) {
+                      final visible = !widget.isSelectionMode && showFab;
+                      return FolderFloatingActionButton(
+                        visible: visible,
+                        child: child!,
+                      );
+                    },
                     child: IconButton(
                       tooltip: l10n.goBack,
                       padding: const EdgeInsets.all(10.0),
@@ -806,8 +809,15 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 Positioned(
                   top: safeTopPadding + 8.0,
                   right: 16.0,
-                  child: FolderFloatingActionButton(
-                    visible: effectiveShowFab,
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: _showFloatingActions,
+                    builder: (context, showFab, child) {
+                      final visible = !widget.isSelectionMode && showFab;
+                      return FolderFloatingActionButton(
+                        visible: visible,
+                        child: child!,
+                      );
+                    },
                     child: PopupMenuButton<String>(
                       tooltip: l10n.more,
                       padding: const EdgeInsets.all(10.0),

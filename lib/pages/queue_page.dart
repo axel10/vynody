@@ -46,7 +46,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
   Timer? _highlightTimer;
   QueueSortField _sortField = QueueSortField.title;
   bool _sortAscending = true;
-  bool _showFloatingActions = false;
+  final ValueNotifier<bool> _showFloatingActions = ValueNotifier<bool>(false);
 
   @override
   void initState() {
@@ -82,6 +82,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
   @override
   void dispose() {
     _scrollController.dispose();
+    _showFloatingActions.dispose();
     _highlightTimer?.cancel();
     _queueReorderController.clear();
     super.dispose();
@@ -747,11 +748,6 @@ class _QueuePageState extends ConsumerState<QueuePage>
     );
   }
 
-    final bool effectiveShowFab = isPortrait &&
-        !isSelectionMode &&
-        displayQueue.isNotEmpty &&
-        _showFloatingActions;
-
     return Scaffold(
       body: QueueFileDropTarget(
         enabled: true,
@@ -771,10 +767,8 @@ class _QueuePageState extends ConsumerState<QueuePage>
               onNotification: (notification) {
                 if (notification.depth == 0) {
                   final shouldShow = notification.metrics.pixels > 70.0;
-                  if (shouldShow != _showFloatingActions) {
-                    setState(() {
-                      _showFloatingActions = shouldShow;
-                    });
+                  if (shouldShow != _showFloatingActions.value) {
+                    _showFloatingActions.value = shouldShow;
                   }
                 }
                 return false;
@@ -821,23 +815,33 @@ class _QueuePageState extends ConsumerState<QueuePage>
               Positioned(
                 top: safeTopPadding + 8.0,
                 right: 16.0,
-                child: IgnorePointer(
-                  ignoring: !effectiveShowFab,
-                  child: AnimatedScale(
-                    scale: effectiveShowFab ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutBack,
-                    child: AnimatedOpacity(
-                      opacity: effectiveShowFab ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 200),
-                      child: Material(
-                        shape: const CircleBorder(),
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.92),
-                        elevation: 4.0,
-                        shadowColor: Colors.black.withValues(alpha: 0.28),
-                        clipBehavior: Clip.antiAlias,
-                        child: PopupMenuButton<String>(
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: _showFloatingActions,
+                  builder: (context, showFab, child) {
+                    final effectiveShowFab =
+                        !isSelectionMode && displayQueue.isNotEmpty && showFab;
+                    return IgnorePointer(
+                      ignoring: !effectiveShowFab,
+                      child: AnimatedScale(
+                        scale: effectiveShowFab ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutBack,
+                        child: AnimatedOpacity(
+                          opacity: effectiveShowFab ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 200),
+                          child: child,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Material(
+                    shape: const CircleBorder(),
+                    color: theme.colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.92),
+                    elevation: 4.0,
+                    shadowColor: Colors.black.withValues(alpha: 0.28),
+                    clipBehavior: Clip.antiAlias,
+                    child: PopupMenuButton<String>(
                           tooltip: l10n.more,
                           padding: const EdgeInsets.all(10.0),
                           icon: Icon(
@@ -918,8 +922,6 @@ class _QueuePageState extends ConsumerState<QueuePage>
                       ),
                     ),
                   ),
-                ),
-              ),
             AnimatedSelectionPanel(
               isVisible: isSelectionMode,
               child: LibrarySelectionPanel(

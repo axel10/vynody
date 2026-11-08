@@ -120,8 +120,8 @@ class _RemoteFolderBrowserPageState
   /// 挂在标题横幅上：定位当前播放时实测横幅高度，不再靠 `190.0` 估算。
   final GlobalKey _bannerMeasureKey = GlobalKey();
   final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
-  bool _isCoverVisible = true;
-  bool _showFloatingActions = false;
+  final ValueNotifier<bool> _isCoverVisible = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> _showFloatingActions = ValueNotifier<bool>(false);
   bool _isSearching = false;
   String _searchQuery = '';
   String? _highlightedSongPath;
@@ -209,16 +209,12 @@ class _RemoteFolderBrowserPageState
       final isVisible = offset < 160.0;
       final progress = (offset / 160.0).clamp(0.0, 1.0);
       _scrollProgress.value = progress;
-      if (isVisible != _isCoverVisible) {
-        setState(() {
-          _isCoverVisible = isVisible;
-        });
+      if (isVisible != _isCoverVisible.value) {
+        _isCoverVisible.value = isVisible;
       }
       final shouldShowFab = offset > 70.0;
-      if (shouldShowFab != _showFloatingActions) {
-        setState(() {
-          _showFloatingActions = shouldShowFab;
-        });
+      if (shouldShowFab != _showFloatingActions.value) {
+        _showFloatingActions.value = shouldShowFab;
       }
     }
     return false;
@@ -231,6 +227,8 @@ class _RemoteFolderBrowserPageState
     _scrollController.dispose();
     _breadcrumbsScrollController.dispose();
     _scrollProgress.dispose();
+    _isCoverVisible.dispose();
+    _showFloatingActions.dispose();
     _folderCoverSongs.dispose();
     Future.microtask(() {
       _selectionScopeNotifier.clear();
@@ -381,7 +379,7 @@ class _RemoteFolderBrowserPageState
       _scrollController.jumpTo(0);
     }
     _scrollProgress.value = 0.0;
-    _isCoverVisible = true;
+    _isCoverVisible.value = true;
   }
 
   Future<void> _startMetadataExtraction(List<WebDavFile> files, int epoch) async {
@@ -1307,9 +1305,6 @@ class _RemoteFolderBrowserPageState
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
     final safeTopPadding = MediaQuery.paddingOf(context).top;
-    final bool effectiveShowFab = isPortrait &&
-        !_isSelectionMode &&
-        _showFloatingActions;
     final double headerHeight = FolderNavBarScaffold.getBarHeight(context);
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
       context,
@@ -1780,8 +1775,15 @@ class _RemoteFolderBrowserPageState
               Positioned(
                 top: safeTopPadding + 8.0,
                 left: 16.0,
-                child: FolderFloatingActionButton(
-                  visible: effectiveShowFab,
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: _showFloatingActions,
+                  builder: (context, showFab, child) {
+                    final visible = !_isSelectionMode && showFab;
+                    return FolderFloatingActionButton(
+                      visible: visible,
+                      child: child!,
+                    );
+                  },
                   child: IconButton(
                     tooltip: l10n.goBack,
                     padding: const EdgeInsets.all(10.0),
@@ -1797,8 +1799,15 @@ class _RemoteFolderBrowserPageState
               Positioned(
                 top: safeTopPadding + 8.0,
                 right: 16.0,
-                child: FolderFloatingActionButton(
-                  visible: effectiveShowFab,
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: _showFloatingActions,
+                  builder: (context, showFab, child) {
+                    final visible = !_isSelectionMode && showFab;
+                    return FolderFloatingActionButton(
+                      visible: visible,
+                      child: child!,
+                    );
+                  },
                   child: PopupMenuButton<String>(
                     tooltip: l10n.more,
                     padding: const EdgeInsets.all(10.0),
@@ -2157,47 +2166,52 @@ class _RemoteFolderBrowserPageState
   }) {
     return KeyedSubtree(
       key: _bannerMeasureKey,
-      child: FolderHeaderBanner(
-        title: title,
-        subtitle: subtitle,
-        songsCount: audioCount,
-        totalDuration: Duration(milliseconds: totalDurationMs),
-        songPath: bannerCoverVirtualUri,
-        coverImagePath: bannerCoverThumbnailPath,
-        coverWidget: bannerCoverWidget,
-        topHeader: topHeader,
-        heroTag: 'webdav-cover-$_currentPath',
-        isHeroModeEnabled: _isCoverVisible &&
-            (ref.watch(settingsServiceProvider).folderZoomScale -
-                        _initialZoomScale)
-                    .abs() <=
-                1e-4,
-        actionButtons: [
-          FolderPlayActionButtons(
-            totalSongsCount: audioCount,
-            onPlayAll: audioCount > 0 ? () => _playFolder(shuffle: false) : () {},
-            onShufflePlay:
-                audioCount > 0 ? () => _playFolder(shuffle: true) : () {},
-          ),
-        ],
-        actionButtonsScrollable: false,
-        isSearching: _isSearching,
-        searchController: _searchController,
-        searchQuery: _searchQuery,
-        searchHintText: l10n.searchInFolderAndSubfolders,
-        onSearchQueryChanged: (val) {
-          setState(() {
-            _searchQuery = val.trim();
-          });
-        },
-        onToggleSearch: (val) {
-          setState(() {
-            _isSearching = val;
-            if (!val) {
-              _searchQuery = '';
-              _searchController.clear();
-            }
-          });
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _isCoverVisible,
+        builder: (context, isCoverVisible, _) {
+          return FolderHeaderBanner(
+            title: title,
+            subtitle: subtitle,
+            songsCount: audioCount,
+            totalDuration: Duration(milliseconds: totalDurationMs),
+            songPath: bannerCoverVirtualUri,
+            coverImagePath: bannerCoverThumbnailPath,
+            coverWidget: bannerCoverWidget,
+            topHeader: topHeader,
+            heroTag: 'webdav-cover-$_currentPath',
+            isHeroModeEnabled: isCoverVisible &&
+                (ref.watch(settingsServiceProvider).folderZoomScale -
+                            _initialZoomScale)
+                        .abs() <=
+                    1e-4,
+            actionButtons: [
+              FolderPlayActionButtons(
+                totalSongsCount: audioCount,
+                onPlayAll: audioCount > 0 ? () => _playFolder(shuffle: false) : () {},
+                onShufflePlay:
+                    audioCount > 0 ? () => _playFolder(shuffle: true) : () {},
+              ),
+            ],
+            actionButtonsScrollable: false,
+            isSearching: _isSearching,
+            searchController: _searchController,
+            searchQuery: _searchQuery,
+            searchHintText: l10n.searchInFolderAndSubfolders,
+            onSearchQueryChanged: (val) {
+              setState(() {
+                _searchQuery = val.trim();
+              });
+            },
+            onToggleSearch: (val) {
+              setState(() {
+                _isSearching = val;
+                if (!val) {
+                  _searchQuery = '';
+                  _searchController.clear();
+                }
+              });
+            },
+          );
         },
       ),
     );

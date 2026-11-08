@@ -62,4 +62,81 @@ void main() {
     final hiddenIgnorePointer = tester.widget<IgnorePointer>(ignorePointerFinder);
     expect(hiddenIgnorePointer.ignoring, isTrue);
   });
+
+  testWidgets(
+      'ValueNotifier FAB visibility toggle isolates rebuild from surrounding page',
+      (tester) async {
+    int outerBuildCount = 0;
+    final showFabNotifier = ValueNotifier<bool>(false);
+    final scrollController = ScrollController();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              outerBuildCount++;
+              return Stack(
+                children: [
+                  NotificationListener<ScrollNotification>(
+                    onNotification: (notification) {
+                      final shouldShow = notification.metrics.pixels > 70.0;
+                      if (shouldShow != showFabNotifier.value) {
+                        showFabNotifier.value = shouldShow;
+                      }
+                      return false;
+                    },
+                    child: ListView.builder(
+                      controller: scrollController,
+                      itemCount: 50,
+                      itemBuilder: (_, index) => SizedBox(
+                        height: 50,
+                        child: Text('Item $index'),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: showFabNotifier,
+                      builder: (context, visible, child) {
+                        return FolderFloatingActionButton(
+                          visible: visible,
+                          child: child!,
+                        );
+                      },
+                      child: const Icon(Icons.more_vert),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(outerBuildCount, equals(1));
+    expect(showFabNotifier.value, isFalse);
+
+    // Scroll past 70px threshold
+    scrollController.jumpTo(100);
+    await tester.pumpAndSettle();
+
+    expect(showFabNotifier.value, isTrue);
+    // Outer widget must NOT rebuild on threshold crossing
+    expect(outerBuildCount, equals(1));
+
+    // Scroll back above 70px threshold (towards top)
+    scrollController.jumpTo(20);
+    await tester.pumpAndSettle();
+
+    expect(showFabNotifier.value, isFalse);
+    // Outer widget still must NOT rebuild
+    expect(outerBuildCount, equals(1));
+
+    showFabNotifier.dispose();
+    scrollController.dispose();
+  });
 }

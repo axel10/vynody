@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
@@ -83,8 +82,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
   bool _isSearching = false;
   bool _isSearchLoading = false;
   String _searchQuery = '';
-  bool _showStatusBarOverlay = false;
-  bool _showFloatingActions = false;
+  final ValueNotifier<bool> _showFloatingActions = ValueNotifier<bool>(false);
   int? _lastRootAnchorIndex;
 
   List<MusicFile> _matchedSongs = [];
@@ -131,7 +129,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
 
   void _onScroll() {
     final offset = _localScrollController.offset;
-    final headerHeight = FolderNavBarScaffold.getBarHeight(context);
 
     ref.read(scannerServiceProvider).setFolderScrollOffset(
       'root',
@@ -141,31 +138,9 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     final progress = (offset / 160.0).clamp(0.0, 1.0);
     _scrollProgress.value = progress;
 
-    bool showOverlay = false;
-    if (offset > headerHeight) {
-      final direction = _localScrollController.position.userScrollDirection;
-      if (direction == ScrollDirection.reverse) {
-        showOverlay = true;
-      } else if (direction == ScrollDirection.forward) {
-        showOverlay = false;
-      } else {
-        showOverlay = _showStatusBarOverlay;
-      }
-    } else {
-      showOverlay = false;
-    }
-
-    if (showOverlay != _showStatusBarOverlay) {
-      setState(() {
-        _showStatusBarOverlay = showOverlay;
-      });
-    }
-
     final shouldShowFab = offset > 70.0;
-    if (shouldShowFab != _showFloatingActions) {
-      setState(() {
-        _showFloatingActions = shouldShowFab;
-      });
+    if (shouldShowFab != _showFloatingActions.value) {
+      _showFloatingActions.value = shouldShowFab;
     }
   }
 
@@ -177,6 +152,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     _localScrollController.removeListener(_onScroll);
     _localScrollController.dispose();
     _scrollProgress.dispose();
+    _showFloatingActions.dispose();
     super.dispose();
   }
 
@@ -599,10 +575,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     );
 
     final safeTopPadding = MediaQuery.paddingOf(context).top;
-    final bool effectiveShowFab = isPortrait &&
-        !isRootSelectionMode &&
-        !widget.isSortMode &&
-        _showFloatingActions;
     final theme = Theme.of(context);
 
     return AutoHideHeaderScope(
@@ -638,8 +610,16 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               Positioned(
                 top: safeTopPadding + 8.0,
                 right: 16.0,
-                child: FolderFloatingActionButton(
-                  visible: effectiveShowFab,
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: _showFloatingActions,
+                  builder: (context, showFab, child) {
+                    final visible =
+                        !isRootSelectionMode && !widget.isSortMode && showFab;
+                    return FolderFloatingActionButton(
+                      visible: visible,
+                      child: child!,
+                    );
+                  },
                   child: PopupMenuButton<String>(
                     tooltip: l10n.more,
                     padding: const EdgeInsets.all(10.0),
