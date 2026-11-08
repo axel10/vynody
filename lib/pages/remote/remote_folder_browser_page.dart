@@ -47,6 +47,8 @@ import '../../utils/song_locator_helper.dart';
 import '../../widgets/folder_header_nav_bar.dart';
 import '../../widgets/folder_scan_widgets.dart';
 import '../../widgets/auto_hide_header.dart';
+import '../../widgets/folder_floating_action_button.dart';
+import '../../utils/app_icons.dart';
 
 /// 同一页里两段网格各自的身份（与 `SliverAnimatedZoomGridDelegate.section` 对齐）。
 ///
@@ -119,6 +121,7 @@ class _RemoteFolderBrowserPageState
   final GlobalKey _bannerMeasureKey = GlobalKey();
   final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
   bool _isCoverVisible = true;
+  bool _showFloatingActions = false;
   bool _isSearching = false;
   String _searchQuery = '';
   String? _highlightedSongPath;
@@ -209,6 +212,12 @@ class _RemoteFolderBrowserPageState
       if (isVisible != _isCoverVisible) {
         setState(() {
           _isCoverVisible = isVisible;
+        });
+      }
+      final shouldShowFab = offset > 70.0;
+      if (shouldShowFab != _showFloatingActions) {
+        setState(() {
+          _showFloatingActions = shouldShowFab;
         });
       }
     }
@@ -1297,6 +1306,10 @@ class _RemoteFolderBrowserPageState
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
+    final safeTopPadding = MediaQuery.paddingOf(context).top;
+    final bool effectiveShowFab = isPortrait &&
+        !_isSelectionMode &&
+        _showFloatingActions;
     final double headerHeight = FolderNavBarScaffold.getBarHeight(context);
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
       context,
@@ -1433,7 +1446,9 @@ class _RemoteFolderBrowserPageState
                 bannerCoverThumbnailPath: bannerCoverThumbnailPath,
                 bannerCoverVirtualUri: bannerCoverVirtualUri,
                 bannerCoverWidget: bannerCoverWidget,
-                topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
+                topHeader: isPortrait
+                    ? _buildBannerBreadcrumbs(context, headerHeight)
+                    : null,
               ),
             ),
             const SliverFillRemaining(
@@ -1470,7 +1485,9 @@ class _RemoteFolderBrowserPageState
                 bannerCoverThumbnailPath: bannerCoverThumbnailPath,
                 bannerCoverVirtualUri: bannerCoverVirtualUri,
                 bannerCoverWidget: bannerCoverWidget,
-                topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
+                topHeader: isPortrait
+                    ? _buildBannerBreadcrumbs(context, headerHeight)
+                    : null,
               ),
             ),
             SliverFillRemaining(
@@ -1528,7 +1545,9 @@ class _RemoteFolderBrowserPageState
                   bannerCoverThumbnailPath: bannerCoverThumbnailPath,
                   bannerCoverVirtualUri: bannerCoverVirtualUri,
                   bannerCoverWidget: bannerCoverWidget,
-                  topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
+                  topHeader: isPortrait
+                    ? _buildBannerBreadcrumbs(context, headerHeight)
+                    : null,
                 ),
               ),
               SliverFillRemaining(
@@ -1562,7 +1581,9 @@ class _RemoteFolderBrowserPageState
                   bannerCoverThumbnailPath: bannerCoverThumbnailPath,
                   bannerCoverVirtualUri: bannerCoverVirtualUri,
                   bannerCoverWidget: bannerCoverWidget,
-                  topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
+                  topHeader: isPortrait
+                    ? _buildBannerBreadcrumbs(context, headerHeight)
+                    : null,
                 ),
               ),
               if (noSearchResults)
@@ -1745,15 +1766,137 @@ class _RemoteFolderBrowserPageState
                 ),
               ),
             ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: AutoHideHeader(
-                isVisible: isHeaderVisible,
-                child: _buildHeaderNavBar(context, isOverlay: true),
+            if (!isPortrait)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: AutoHideHeader(
+                  isVisible: isHeaderVisible,
+                  child: _buildHeaderNavBar(context, isOverlay: true),
+                ),
               ),
-            ),
+            if (isPortrait && _pathSegments.isNotEmpty)
+              Positioned(
+                top: safeTopPadding + 8.0,
+                left: 16.0,
+                child: FolderFloatingActionButton(
+                  visible: effectiveShowFab,
+                  child: IconButton(
+                    tooltip: l10n.goBack,
+                    padding: const EdgeInsets.all(10.0),
+                    icon: const Icon(
+                      kAppBackIcon,
+                      size: 20,
+                    ),
+                    onPressed: _handleGoBack,
+                  ),
+                ),
+              ),
+            if (isPortrait)
+              Positioned(
+                top: safeTopPadding + 8.0,
+                right: 16.0,
+                child: FolderFloatingActionButton(
+                  visible: effectiveShowFab,
+                  child: PopupMenuButton<String>(
+                    tooltip: l10n.more,
+                    padding: const EdgeInsets.all(10.0),
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: theme.colorScheme.onSurface,
+                      size: 20,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    onSelected: (val) {
+                      switch (val) {
+                        case 'locate':
+                          _locateCurrentSong();
+                          break;
+                        case 'sort':
+                          _showSortDialog(context);
+                          break;
+                        case 'view_mode':
+                          showFolderZoomPopover(context);
+                          break;
+                        case 'refresh':
+                          _loadDirectory(_currentPath, forceRefresh: true);
+                          break;
+                        case 'downloads':
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const RemoteDownloadManagerPage(),
+                            ),
+                          );
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      if (currentMusic != null)
+                        PopupMenuItem(
+                          value: 'locate',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.my_location_rounded, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.locateCurrentSong),
+                            ],
+                          ),
+                        ),
+                      PopupMenuItem(
+                        value: 'sort',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.sort_rounded, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.sortBy),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'view_mode',
+                        child: Row(
+                          children: [
+                            ZoomTierIcon(
+                              zoomScale: settings.folderZoomScale,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              isFolderZoomGrid(settings.folderZoomScale)
+                                  ? l10n.gridView
+                                  : l10n.listView,
+                            ),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'refresh',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.refresh_rounded, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.refresh),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'downloads',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.download_rounded, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.downloadManager),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             Positioned(
               left: 0,
               right: 0,
@@ -2056,6 +2199,77 @@ class _RemoteFolderBrowserPageState
             }
           });
         },
+      ),
+    );
+  }
+
+  Widget _buildBannerBreadcrumbs(BuildContext context, double headerHeight) {
+    final style = FolderNavBarStyle.overlay(context);
+    final l10n = AppLocalizations.of(context)!;
+    final breadcrumbItems = _buildBreadcrumbItems(style);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final settings = ref.watch(settingsServiceProvider);
+    final activeDownloadsCount = ref.watch(activeDownloadsCountProvider);
+    final actions = _buildHeaderActions(
+      context,
+      style,
+      l10n,
+      currentMusic,
+      settings,
+      activeDownloadsCount,
+    );
+    final canGoBack = _pathSegments.isNotEmpty;
+
+    const bannerHorizontalInsetCompensation = -8.0;
+
+    return SizedBox(
+      height: headerHeight,
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: FolderNavBarScaffold.getContentTopInset(context),
+          ),
+          child: Transform.translate(
+            offset: const Offset(bannerHorizontalInsetCompensation, 0),
+            child: Row(
+              children: [
+                if (canGoBack) ...[
+                  FolderBreadcrumbItem(
+                    style: style,
+                    icon: kAppBackIcon,
+                    iconSize: 22,
+                    tooltip: l10n.goBack,
+                    onTap: _handleGoBack,
+                  ),
+                  FolderBreadcrumbSeparator(style: style),
+                ],
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        controller: _breadcrumbsScrollController,
+                        scrollDirection: Axis.horizontal,
+                        reverse: true,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: constraints.maxWidth,
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Row(children: breadcrumbItems),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                actions,
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

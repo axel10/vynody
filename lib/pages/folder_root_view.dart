@@ -27,6 +27,8 @@ import '../dialogs/add_edit_remote_server_dialog.dart';
 import '../utils/selection_utils.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/auto_hide_header.dart';
+import '../widgets/folder_floating_action_button.dart';
+import '../widgets/folder_scan_widgets.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 
@@ -82,6 +84,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
   bool _isSearchLoading = false;
   String _searchQuery = '';
   bool _showStatusBarOverlay = false;
+  bool _showFloatingActions = false;
   int? _lastRootAnchorIndex;
 
   List<MusicFile> _matchedSongs = [];
@@ -155,6 +158,13 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     if (showOverlay != _showStatusBarOverlay) {
       setState(() {
         _showStatusBarOverlay = showOverlay;
+      });
+    }
+
+    final shouldShowFab = offset > 70.0;
+    if (shouldShowFab != _showFloatingActions) {
+      setState(() {
+        _showFloatingActions = shouldShowFab;
       });
     }
   }
@@ -588,6 +598,13 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
       },
     );
 
+    final safeTopPadding = MediaQuery.paddingOf(context).top;
+    final bool effectiveShowFab = isPortrait &&
+        !isRootSelectionMode &&
+        !widget.isSortMode &&
+        _showFloatingActions;
+    final theme = Theme.of(context);
+
     return AutoHideHeaderScope(
       enabled: false,
       forceVisible:
@@ -601,21 +618,107 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                 child: rootList,
               ),
             ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: AutoHideHeader(
-                isVisible: isHeaderVisible,
-                child: _buildRootTopHeader(
-                  context,
-                  isOverlay: true,
-                  totalSongsCount: totalSongsCount,
-                  onPlayAll: () => _handlePlayAll(l10n),
-                  onShufflePlay: () => _handleShufflePlay(l10n),
+            if (!isPortrait)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: AutoHideHeader(
+                  isVisible: isHeaderVisible,
+                  child: _buildRootTopHeader(
+                    context,
+                    isOverlay: true,
+                    totalSongsCount: totalSongsCount,
+                    onPlayAll: () => _handlePlayAll(l10n),
+                    onShufflePlay: () => _handleShufflePlay(l10n),
+                  ),
                 ),
               ),
-            ),
+            if (isPortrait)
+              Positioned(
+                top: safeTopPadding + 8.0,
+                right: 16.0,
+                child: FolderFloatingActionButton(
+                  visible: effectiveShowFab,
+                  child: PopupMenuButton<String>(
+                    tooltip: l10n.more,
+                    padding: const EdgeInsets.all(10.0),
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: theme.colorScheme.onSurface,
+                      size: 20,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    onSelected: (val) {
+                      switch (val) {
+                        case 'search':
+                          _handleSearchAction();
+                          break;
+                        case 'sort':
+                          widget.onToggleSortMode();
+                          break;
+                        case 'locate':
+                          widget.onLocateCurrentSong?.call();
+                          break;
+                        case 'refresh':
+                          _handleRefresh();
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'search',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.search_rounded, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.search),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'sort',
+                        child: Row(
+                          children: [
+                            Icon(
+                              widget.isSortMode
+                                  ? Icons.check_rounded
+                                  : Icons.sort,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(l10n.sort),
+                          ],
+                        ),
+                      ),
+                      if (currentMusic != null &&
+                          widget.onLocateCurrentSong != null)
+                        PopupMenuItem(
+                          value: 'locate',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.my_location_rounded, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.locateCurrentSong),
+                            ],
+                          ),
+                        ),
+                      PopupMenuItem(
+                        value: 'refresh',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.refresh_rounded, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.refresh),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             Positioned(
               left: 0,
               right: 0,
@@ -716,10 +819,11 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     );
   }
 
-  /// 竖屏下面包屑嵌进 Banner 顶部，随内容一起滚动；固定层只留右侧操作。
+  /// 竖屏下面包屑嵌进 Banner 顶部，随内容一起滚动。
   Widget _buildBannerBreadcrumbs(BuildContext context, double headerHeight) {
     final style = FolderNavBarStyle.overlay(context);
     final l10n = AppLocalizations.of(context)!;
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
     // Banner 内容左内边距 16，固定顶栏是 8；向左补偿这 8px 才能和顶栏对齐
     const bannerHorizontalInsetCompensation = -8.0;
     return SizedBox(
@@ -733,7 +837,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
           child: Transform.translate(
             offset: const Offset(bannerHorizontalInsetCompensation, 0),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 FolderBreadcrumbItem(
                   style: style,
@@ -745,6 +848,71 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                 FolderBreadcrumbItem(
                   style: style,
                   label: l10n.scanDirectory,
+                ),
+                const Spacer(),
+                FolderScanSpinner(style: style),
+                FolderNavActionMenu<String>(
+                  style: style,
+                  onSelected: (value) {
+                    if (value == 'search') {
+                      _handleSearchAction();
+                    } else if (value == 'locate') {
+                      widget.onLocateCurrentSong?.call();
+                    } else if (value == 'refresh') {
+                      _handleRefresh();
+                    } else if (value == 'sort') {
+                      widget.onToggleSortMode();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'search',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search_rounded, size: 20),
+                          const SizedBox(width: 12),
+                          Text(l10n.search),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'sort',
+                      child: Row(
+                        children: [
+                          Icon(
+                            widget.isSortMode
+                                ? Icons.check_rounded
+                                : Icons.sort,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(l10n.sort),
+                        ],
+                      ),
+                    ),
+                    if (currentMusic != null &&
+                        widget.onLocateCurrentSong != null)
+                      PopupMenuItem(
+                        value: 'locate',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.my_location_rounded, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.locateCurrentSong),
+                          ],
+                        ),
+                      ),
+                    PopupMenuItem(
+                      value: 'refresh',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.refresh_rounded, size: 20),
+                          const SizedBox(width: 12),
+                          Text(l10n.refresh),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

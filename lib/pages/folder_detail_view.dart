@@ -26,6 +26,9 @@ import '../widgets/folder_content_slivers.dart';
 import '../widgets/folder_zoom_gesture_layer.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/auto_hide_header.dart';
+import '../widgets/folder_floating_action_button.dart';
+import '../widgets/folder_scan_widgets.dart';
+import '../utils/app_icons.dart';
 
 /// 同一页里两段网格各自的身份（与 `SliverAnimatedZoomGridDelegate.section` 对齐）。
 ///
@@ -98,6 +101,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   String? _lastHighlightedPath;
   final ValueNotifier<bool> _isCoverVisible = ValueNotifier<bool>(true);
   final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
+  bool _showFloatingActions = false;
   int? _lastSongAnchorIndex;
   int? _lastFolderAnchorIndex;
   late final double _initialZoomScale;
@@ -221,6 +225,12 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     _scrollProgress.value = progress;
     if (isVisible != _isCoverVisible.value) {
       _isCoverVisible.value = isVisible;
+    }
+    final shouldShowFab = offset > 70.0;
+    if (shouldShowFab != _showFloatingActions) {
+      setState(() {
+        _showFloatingActions = shouldShowFab;
+      });
     }
   }
 
@@ -357,6 +367,11 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final activeHighlightedSongPath =
         widget.highlightedSongPath ?? ref.watch(songHighlightProvider);
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final theme = Theme.of(context);
+    final safeTopPadding = MediaQuery.paddingOf(context).top;
+    final bool effectiveShowFab = isPortrait &&
+        !widget.isSelectionMode &&
+        _showFloatingActions;
     // 订阅结构版本而不是整个 ScannerService：列表内缩略图逐张生成时
     // 只会刷新各自 SongThumbnail，不再触发整页重建。
     ref.watch(scannerServiceProvider.select((s) => s.structureRevision));
@@ -452,7 +467,14 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   representativeSong: representativeSong,
                   coverImagePath: representativeSong?.thumbnailPath ?? representativeCoverPath,
                   thumbnailSize: zoomItemThumbnailSizeFor(metrics),
-                  topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
+                  topHeader: isPortrait
+                      ? _buildBannerBreadcrumbs(
+                          context,
+                          folder,
+                          scanner,
+                          headerHeight,
+                        )
+                      : null,
                   coverWidget: () {
                     final defaultCover = SizedBox(
                       width: 100,
@@ -753,15 +775,161 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   ),
                 ],
               ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: AutoHideHeader(
-                  isVisible: isHeaderVisible,
-                  child: _buildBreadcrumbs(folder, scanner, isOverlay: true),
+              if (!isPortrait)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: AutoHideHeader(
+                    isVisible: isHeaderVisible,
+                    child: _buildBreadcrumbs(folder, scanner, isOverlay: true),
+                  ),
                 ),
-              ),
+              if (isPortrait)
+                Positioned(
+                  top: safeTopPadding + 8.0,
+                  left: 16.0,
+                  child: FolderFloatingActionButton(
+                    visible: effectiveShowFab,
+                    child: IconButton(
+                      tooltip: l10n.goBack,
+                      padding: const EdgeInsets.all(10.0),
+                      icon: const Icon(
+                        kAppBackIcon,
+                        size: 20,
+                      ),
+                      onPressed: widget.onGoBack,
+                    ),
+                  ),
+                ),
+              if (isPortrait)
+                Positioned(
+                  top: safeTopPadding + 8.0,
+                  right: 16.0,
+                  child: FolderFloatingActionButton(
+                    visible: effectiveShowFab,
+                    child: PopupMenuButton<String>(
+                      tooltip: l10n.more,
+                      padding: const EdgeInsets.all(10.0),
+                      icon: Icon(
+                        Icons.more_vert_rounded,
+                        color: theme.colorScheme.onSurface,
+                        size: 20,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      onSelected: (val) {
+                        switch (val) {
+                          case 'search':
+                            _handleSearchAction();
+                            break;
+                          case 'locate':
+                            widget.onLocateCurrentSong?.call();
+                            break;
+                          case 'refresh':
+                            _handleRefresh();
+                            break;
+                          case 'sort':
+                            _showSortDialog(context, scanner);
+                            break;
+                          case 'view_mode':
+                            showFolderZoomPopover(context);
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'search',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.search_rounded, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.search),
+                            ],
+                          ),
+                        ),
+                        if (currentMusic != null &&
+                            widget.onLocateCurrentSong != null)
+                          PopupMenuItem(
+                            value: 'locate',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.my_location_rounded, size: 20),
+                                const SizedBox(width: 12),
+                                Text(l10n.locateCurrentSong),
+                              ],
+                            ),
+                          ),
+                        PopupMenuItem(
+                          value: 'refresh',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.refresh_rounded, size: 20),
+                              const SizedBox(width: 12),
+                              Text(l10n.refresh),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'sort',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.sort,
+                                size: 20,
+                                color: scanner.hasSortOverrideForFolder(
+                                  _effectiveFolder.path,
+                                )
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                l10n.sort,
+                                style: scanner.hasSortOverrideForFolder(
+                                  _effectiveFolder.path,
+                                )
+                                    ? TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        fontWeight: FontWeight.bold,
+                                      )
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'view_mode',
+                          child: Row(
+                            children: [
+                              ZoomTierIcon(
+                                zoomScale: ref.watch(
+                                  settingsServiceProvider
+                                      .select((s) => s.folderZoomScale),
+                                ),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                isFolderZoomGrid(
+                                  ref.watch(
+                                    settingsServiceProvider
+                                        .select((s) => s.folderZoomScale),
+                                  ),
+                                )
+                                    ? l10n.gridView
+                                    : l10n.listView,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               Positioned(
                 left: 0,
                 right: 0,
@@ -928,6 +1096,204 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         onSearch: _handleSearchAction,
         totalSongsCount: current.allSongs.length,
         isSearching: _isSearching,
+      ),
+    );
+  }
+
+  Widget _buildBannerBreadcrumbs(
+    BuildContext context,
+    MusicFolder current,
+    ScannerService scanner,
+    double headerHeight,
+  ) {
+    final style = FolderNavBarStyle.overlay(context);
+    final l10n = AppLocalizations.of(context)!;
+    final history = widget.navigationHistory ?? scanner.navigationHistory;
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final zoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.folderZoomScale),
+    );
+    final isSortOverridden = scanner.hasSortOverrideForFolder(current.path);
+
+    final List<Widget> items = [];
+
+    // 首页图标
+    items.add(
+      FolderBreadcrumbItem(
+        style: style,
+        icon: Icons.home_rounded,
+        tooltip: l10n.scanDirectory,
+        onTap: () {
+          scanner.setNavigationState(null, []);
+        },
+      ),
+    );
+    items.add(FolderBreadcrumbSeparator(style: style));
+
+    // 历史路径
+    for (int i = 0; i < history.length; i++) {
+      final h = history[i];
+      items.add(
+        FolderBreadcrumbItem(
+          style: style,
+          label: h.name,
+          onTap: () {
+            scanner.setNavigationState(
+              h,
+              history.sublist(0, i),
+            );
+          },
+        ),
+      );
+      items.add(FolderBreadcrumbSeparator(style: style));
+    }
+
+    // 当前目录名
+    items.add(
+      FolderBreadcrumbItem(
+        style: style,
+        label: current.name,
+      ),
+    );
+
+    // Banner 内容左内边距 16，补偿 -8px 与顶栏视觉对齐
+    const bannerHorizontalInsetCompensation = -8.0;
+
+    return SizedBox(
+      height: headerHeight,
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: FolderNavBarScaffold.getContentTopInset(context),
+          ),
+          child: Transform.translate(
+            offset: const Offset(bannerHorizontalInsetCompensation, 0),
+            child: Row(
+              children: [
+                FolderBreadcrumbItem(
+                  style: style,
+                  icon: kAppBackIcon,
+                  iconSize: 22,
+                  tooltip: l10n.goBack,
+                  onTap: widget.onGoBack,
+                ),
+                FolderBreadcrumbSeparator(style: style),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        controller: _breadcrumbsScrollController,
+                        scrollDirection: Axis.horizontal,
+                        reverse: true,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: constraints.maxWidth,
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Row(children: items),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FolderScanSpinner(style: style),
+                FolderNavActionMenu<String>(
+                  style: style,
+                  onSelected: (value) {
+                    if (value == 'search') {
+                      _handleSearchAction();
+                    } else if (value == 'locate') {
+                      widget.onLocateCurrentSong?.call();
+                    } else if (value == 'refresh') {
+                      _handleRefresh();
+                    } else if (value == 'sort') {
+                      _showSortDialog(context, scanner);
+                    } else if (value == 'view_mode') {
+                      showFolderZoomPopover(context);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'search',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search_rounded, size: 20),
+                          const SizedBox(width: 12),
+                          Text(l10n.search),
+                        ],
+                      ),
+                    ),
+                    if (currentMusic != null &&
+                        widget.onLocateCurrentSong != null)
+                      PopupMenuItem(
+                        value: 'locate',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.my_location_rounded, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.locateCurrentSong),
+                          ],
+                        ),
+                      ),
+                    PopupMenuItem(
+                      value: 'refresh',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.refresh_rounded, size: 20),
+                          const SizedBox(width: 12),
+                          Text(l10n.refresh),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'sort',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.sort,
+                            size: 20,
+                            color: isSortOverridden
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            l10n.sort,
+                            style: isSortOverridden
+                                ? TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  )
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'view_mode',
+                      child: Row(
+                        children: [
+                          ZoomTierIcon(zoomScale: zoomScale, size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            isFolderZoomGrid(zoomScale)
+                                ? l10n.gridView
+                                : l10n.listView,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
