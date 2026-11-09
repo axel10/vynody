@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
@@ -24,6 +25,7 @@ import '../widgets/mini_player_wrapper.dart';
 import '../widgets/playlist_context_menu.dart';
 import '../widgets/playlist_cover.dart';
 import '../widgets/song_zoom_item.dart';
+import '../widgets/zoom_reorder_ui.dart';
 import '../player/platform/right_queue_drawer_controller.dart';
 import 'main_layout_riverpod.dart';
 
@@ -46,6 +48,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.playlist;
 
   late final ScrollController _scrollController;
+  final ZoomReorderController _reorderController = ZoomReorderController();
   bool _isPastTop = false;
 
   @override
@@ -64,6 +67,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
       '[NavTrace] PlaylistDetailPage.dispose: playlist="${widget.playlist.name}" (id=${widget.playlist.id})',
       mirrorToConsole: true,
     );
+    _reorderController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -95,6 +99,15 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    // 退出多选整理态时收掉可能还在进行的拖拽，避免浮层与状态机卡住。
+    ref.listen(librarySelectionScopeProvider, (previous, next) {
+      if (previous == LibrarySelectionScope.playlist &&
+          next != LibrarySelectionScope.playlist) {
+        _reorderController.cancelDrag();
+      }
+    });
+
     final theme = Theme.of(context);
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
@@ -282,7 +295,10 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
       ),
     ];
 
-    Widget buildSongSlivers(FolderZoomLayoutMetrics metrics) {
+    Widget buildSongSlivers(
+      FolderZoomLayoutMetrics metrics,
+      double contentWidth,
+    ) {
       if (activePlaylist.songs.isEmpty) {
         return SliverToBoxAdapter(
           child: Padding(
@@ -311,162 +327,86 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
       }
 
       final isPlaying = ref.watch(audioIsPlayingProvider);
-      final isGrid = metrics.gridMorph > 0.05;
-
-      if (!isGrid) {
-        // 列表模式：支持拖拽重排与缩放
-        return SliverReorderableList(
-          itemCount: activePlaylist.songs.length,
-          onReorder: (oldIndex, newIndex) {
-            if (newIndex > oldIndex) newIndex--;
-            reorderSelection(oldIndex, newIndex);
-            playlistService.reorderSongsInPlaylist(
-              activePlaylist.id,
-              oldIndex,
-              newIndex,
-            );
-          },
-          itemBuilder: (context, index) {
-            final song = activePlaylist.songs[index];
-            final isCurrent = currentMusic?.path == song.path;
-            final isSelected = isSongSelected(song.path);
-
-            return Align(
-              key: ValueKey('${song.path}_$index'),
-              alignment: Alignment.center,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: kFolderPageMaxWidth,
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isPortrait ? 8 : 16,
-                  ),
-                  child: SizedBox(
-                    height: metrics.animatedListExtent,
-                    child: SongZoomItem(
-                      song: song,
-                      metrics: metrics,
-                      isCurrent: isCurrent,
-                      isPlaying: isPlaying && isCurrent,
-                      isSelected: isSelected,
-                      isSelectionMode: isSelectionMode,
-                      selectedPaths: selectedSongPaths,
-                      dragHandle: isSelectionMode
-                          ? ReorderableDragStartListener(
-                              index: index,
-                              child: const MouseRegion(
-                                cursor: SystemMouseCursors.grab,
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 4.0,
-                                  ),
-                                  child: Icon(Icons.drag_handle_rounded),
-                                ),
-                              ),
-                            )
-                          : null,
-                      onTap: () {
-                        handleSongTap(
-                          index: index,
-                          songPath: song.path,
-                          allSongs: activePlaylist.songs,
-                          onNormalTap: () {
-                            audio.playPlaylist(
-                              activePlaylist.songs,
-                              initialIndex: index,
-                              source: PlaybackSource(
-                                type: PlaybackSourceType.playlist,
-                                id: activePlaylist.id,
-                                name: activePlaylist.name,
-                              ),
-                            );
-                          },
-                        );
-                      },
-                      onLongPress: () {
-                        lastAnchorIndex = index;
-                        if (!isSelectionMode) {
-                          enterSongSelectionMode(song.path);
-                        }
-                      },
-                      onSecondaryTapDown: (details) {
-                        if (!isSelectionMode) {
-                          showSongContextMenu(
-                            context,
-                            details.globalPosition,
-                            song: song,
-                            songs: activePlaylist.songs,
-                            onMultiSelect: () =>
-                                enterSongSelectionMode(song.path),
-                            onRemoveFromPlaylist: () {
-                              playlistService.removeSongsFromPlaylist(
-                                activePlaylist.id,
-                                [index],
-                              );
-                            },
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      }
-
-      // 网格模式：缩放网格卡片
       final hPad = folderContentHorizontalPadding(
         isPortrait: isPortrait,
         gridMorph: metrics.gridMorph,
       );
+      final gridWidth = contentWidth - 2 * hPad;
 
-      return SliverPadding(
-        padding: EdgeInsets.only(left: hPad, right: hPad),
-        sliver: SliverGrid(
-          gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
-          delegate: SliverChildBuilderDelegate((context, index) {
-            final song = activePlaylist.songs[index];
-            final isCurrent = currentMusic?.path == song.path;
-            final isSelected = isSongSelected(song.path);
+      if (isSelectionMode) {
+        final selectedIndices = <int>{
+          for (var i = 0; i < activePlaylist.songs.length; i++)
+            if (isSongSelected(activePlaylist.songs[i].path)) i,
+        };
 
-            return SongZoomItem(
-              key: ValueKey(song.path),
-              song: song,
-              metrics: metrics,
-              isCurrent: isCurrent,
-              isPlaying: isPlaying && isCurrent,
-              isSelected: isSelected,
-              isSelectionMode: isSelectionMode,
-              selectedPaths: selectedSongPaths,
-              onTap: () {
-                handleSongTap(
-                  index: index,
-                  songPath: song.path,
-                  allSongs: activePlaylist.songs,
-                  onNormalTap: () {
-                    audio.playPlaylist(
-                      activePlaylist.songs,
-                      initialIndex: index,
-                      source: PlaybackSource(
-                        type: PlaybackSourceType.playlist,
-                        id: activePlaylist.id,
-                        name: activePlaylist.name,
-                      ),
-                    );
-                  },
-                );
-              },
-              onLongPress: () {
-                lastAnchorIndex = index;
-                if (!isSelectionMode) {
-                  enterSongSelectionMode(song.path);
-                }
-              },
-              onSecondaryTapDown: (details) {
-                if (!isSelectionMode) {
+        return SliverPadding(
+          padding: EdgeInsets.only(
+            left: hPad,
+            right: hPad,
+            top: isPortrait ? 8.0 : 16.0,
+            bottom: MiniPlayerUiTuning.getListBottomPadding(
+              context,
+              hasPlayingMusic: currentMusic != null,
+              isSelectionMode: true,
+            ),
+          ),
+          sliver: ZoomReorderableSliverGrid(
+            metrics: metrics,
+            width: gridWidth,
+            itemCount: activePlaylist.songs.length,
+            itemKeyBuilder: (index) =>
+                ValueKey('${activePlaylist.songs[index].path}_$index'),
+            controller: _reorderController,
+            selectedIndices: selectedIndices,
+            showHandles: true,
+            handleChild: buildZoomReorderHandle(context),
+            previewBuilder: (context, _, count) =>
+                buildZoomReorderPreview(
+                  context,
+                  icon: Icons.music_note_rounded,
+                  count: count,
+                ),
+            onReorder: (draggedIndices, insertIndex) {
+              final reordered = ZoomReorderController.applyReorder(
+                activePlaylist.songs,
+                draggedIndices,
+                insertIndex,
+              );
+              unawaited(
+                playlistService.updateSongsInPlaylist(
+                  activePlaylist.id,
+                  reordered,
+                ),
+              );
+            },
+            itemBuilder: (context, index) {
+              final song = activePlaylist.songs[index];
+              final isCurrent = currentMusic?.path == song.path;
+              final isSelected = isSongSelected(song.path);
+
+              return SongZoomItem(
+                song: song,
+                metrics: metrics,
+                index: index,
+                isCurrent: isCurrent,
+                isPlaying: isPlaying && isCurrent,
+                isSelected: isSelected,
+                isSelectionMode: true,
+                selectedPaths: selectedSongPaths,
+                enableDrag: false,
+                onTap: () {
+                  handleSongTap(
+                    index: index,
+                    songPath: song.path,
+                    allSongs: activePlaylist.songs,
+                    onNormalTap: () => toggleSongSelection(song.path),
+                  );
+                },
+                onLongPress: () {
+                  lastAnchorIndex = index;
+                  toggleSongSelection(song.path);
+                },
+                onSecondaryTapDown: (details) {
                   showSongContextMenu(
                     context,
                     details.globalPosition,
@@ -480,7 +420,69 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                       );
                     },
                   );
-                }
+                },
+              );
+            },
+          ),
+        );
+      }
+
+      return SliverPadding(
+        padding: EdgeInsets.only(
+          left: hPad,
+          right: hPad,
+          top: isPortrait ? 8.0 : 16.0,
+          bottom: MiniPlayerUiTuning.getListBottomPadding(
+            context,
+            hasPlayingMusic: currentMusic != null,
+            isSelectionMode: false,
+          ),
+        ),
+        sliver: SliverGrid(
+          gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final song = activePlaylist.songs[index];
+            final isCurrent = currentMusic?.path == song.path;
+
+            return SongZoomItem(
+              key: ValueKey('${song.path}_$index'),
+              song: song,
+              metrics: metrics,
+              index: index,
+              isCurrent: isCurrent,
+              isPlaying: isPlaying && isCurrent,
+              isSelected: false,
+              isSelectionMode: false,
+              enableDrag: true,
+              onTap: () {
+                audio.playPlaylist(
+                  activePlaylist.songs,
+                  initialIndex: index,
+                  source: PlaybackSource(
+                    type: PlaybackSourceType.playlist,
+                    id: activePlaylist.id,
+                    name: activePlaylist.name,
+                  ),
+                );
+              },
+              onLongPress: () {
+                lastAnchorIndex = index;
+                enterSongSelectionMode(song.path);
+              },
+              onSecondaryTapDown: (details) {
+                showSongContextMenu(
+                  context,
+                  details.globalPosition,
+                  song: song,
+                  songs: activePlaylist.songs,
+                  onMultiSelect: () => enterSongSelectionMode(song.path),
+                  onRemoveFromPlaylist: () {
+                    playlistService.removeSongsFromPlaylist(
+                      activePlaylist.id,
+                      [index],
+                    );
+                  },
+                );
               },
             );
           }, childCount: activePlaylist.songs.length),
@@ -489,6 +491,8 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
     }
 
     final Widget scrollBody = FolderZoomGestureLayer(
+      reorderActive: _reorderController.reorderActive,
+      zoomGesturesEnabled: !isSelectionMode,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final contentWidth = math.min(
@@ -538,17 +542,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                                 ),
                               ),
                       ),
-                      SliverPadding(
-                        padding: EdgeInsets.only(
-                          top: isPortrait ? 8.0 : 16.0,
-                          bottom: MiniPlayerUiTuning.getListBottomPadding(
-                            context,
-                            hasPlayingMusic: currentMusic != null,
-                            isSelectionMode: isSelectionMode,
-                          ),
-                        ),
-                        sliver: buildSongSlivers(metrics),
-                      ),
+                      buildSongSlivers(metrics, contentWidth),
                     ],
                   ),
                 ),
@@ -567,6 +561,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
           return;
         }
         if (isSelectionMode) {
+          _reorderController.cancelDrag();
           cancelSongSelection();
         }
       },
@@ -613,7 +608,10 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                       allSongs: activePlaylist.songs,
                       onToggleSelectAll: () =>
                           toggleSelectAllSongs(activePlaylist.songs),
-                      onCancel: cancelSongSelection,
+                      onCancel: () {
+                        _reorderController.cancelDrag();
+                        cancelSongSelection();
+                      },
                       deleteLabel: l10n.removeFromPlaylist,
                       onDelete: () async {
                         final toRemove = <int>[];

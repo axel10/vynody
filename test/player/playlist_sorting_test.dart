@@ -62,6 +62,35 @@ void main() {
       expect(remaining, equals(['pl-c', 'pl-a', 'pl-b']));
     });
 
+    test('PlaylistService updateSongsInPlaylist updates song order in playlist', () async {
+      final service = PlaylistService();
+      final pl = Playlist(
+        id: 'pl-songs',
+        name: 'Songs Playlist',
+        songs: const [
+          MusicFile(path: '/music/1.mp3', name: '1.mp3'),
+          MusicFile(path: '/music/2.mp3', name: '2.mp3'),
+          MusicFile(path: '/music/3.mp3', name: '3.mp3'),
+        ],
+      );
+
+      await service.addPlaylist(pl);
+
+      final reorderedSongs = [
+        pl.songs[2],
+        pl.songs[0],
+        pl.songs[1],
+      ];
+
+      await service.updateSongsInPlaylist('pl-songs', reorderedSongs);
+
+      final updated = service.playlists.firstWhere((p) => p.id == 'pl-songs');
+      expect(
+        updated.songs.map((s) => s.path).toList(),
+        equals(['/music/3.mp3', '/music/1.mp3', '/music/2.mp3']),
+      );
+    });
+
     test('PlaylistService sortPlaylists sorts by name ascending and descending', () async {
       final service = PlaylistService();
       final pl1 = Playlist(id: 'pl-1', name: 'Zebra');

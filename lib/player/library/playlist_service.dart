@@ -702,6 +702,22 @@ class PlaylistService extends ChangeNotifier {
     await _savePlaylists();
   }
 
+  /// 批量更新/重新排序播放列表中的歌曲
+  Future<void> updateSongsInPlaylist(
+    String playlistId,
+    List<MusicFile> newSongs,
+  ) async {
+    final index = _playlists.indexWhere((p) => p.id == playlistId);
+    if (index != -1) {
+      _playlists[index] = _playlists[index].copyWith(
+        songs: List<MusicFile>.of(newSongs),
+      );
+      _playlists[index].updatedAt = DateTime.now();
+      notifyListeners();
+      await _savePlaylists();
+    }
+  }
+
   /// 重新排序播放列表中的歌曲
   Future<void> reorderSongsInPlaylist(
     String playlistId,

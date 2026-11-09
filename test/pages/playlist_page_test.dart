@@ -64,6 +64,20 @@ class _TestPlaylistService extends PlaylistService {
   }
 
   @override
+  Future<void> updateSongsInPlaylist(
+    String playlistId,
+    List<MusicFile> newSongs,
+  ) async {
+    final index = _customPlaylists.indexWhere((p) => p.id == playlistId);
+    if (index != -1) {
+      _customPlaylists[index] = _customPlaylists[index].copyWith(
+        songs: newSongs,
+      );
+      notifyListeners();
+    }
+  }
+
+  @override
   Future<void> reorderPlaylists(List<Playlist> newPlaylists) async {
     _customPlaylists
       ..clear()
@@ -341,6 +355,66 @@ void main() {
     expect(find.byIcon(Icons.drag_handle_rounded), findsWidgets);
 
     // There should be exactly 2 handles (for p1 and p2), since favorites at index 0 is locked
+    expect(find.byIcon(Icons.drag_handle_rounded), findsNWidgets(2));
+  });
+
+  testWidgets(
+      'PlaylistDetailPage shows reorder drag handles for songs in multi-selection mode',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final playlist = await playlistService.createPlaylist('测试歌单');
+    await playlistService.addSongsToPlaylist(playlist.id, [
+      const MusicFile(
+        path: '/test/music/song1.mp3',
+        name: 'song1.mp3',
+        title: '曲目1',
+        artist: '歌手1',
+      ),
+      const MusicFile(
+        path: '/test/music/song2.mp3',
+        name: 'song2.mp3',
+        title: '曲目2',
+        artist: '歌手2',
+      ),
+    ]);
+
+    final container = ProviderContainer(
+      overrides: [
+        settingsServiceProvider.overrideWith((ref) => settingsService),
+        audioServiceProvider.overrideWith((ref) => audioService),
+        audioSnapshotProvider.overrideWith((ref) => snapshot),
+        audioCurrentMusicProvider.overrideWith((ref) => null),
+        scannerServiceProvider.overrideWith((ref) => scannerService),
+        playlistServiceProvider.overrideWith((ref) => playlistService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(buildTestWidget(container: container));
+    await tester.pumpAndSettle();
+
+    // Open detail page
+    await tester.tap(find.text('测试歌单'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PlaylistDetailPage), findsOneWidget);
+    expect(find.text('曲目1'), findsOneWidget);
+    expect(find.text('曲目2'), findsOneWidget);
+
+    // In normal mode, no reorder handles are present
+    expect(find.byIcon(Icons.drag_handle_rounded), findsNothing);
+
+    // Long press on 曲目1 to enter multi-selection mode
+    await tester.longPress(find.text('曲目1'));
+    await tester.pumpAndSettle();
+
+    // Reorder drag handles should now appear for both songs
     expect(find.byIcon(Icons.drag_handle_rounded), findsNWidgets(2));
   });
 }
