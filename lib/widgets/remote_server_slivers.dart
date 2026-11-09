@@ -393,10 +393,10 @@ class RemoteServersSliver extends ConsumerWidget {
                   isSelected: selectedServerIds.contains(server.id),
                   isSelectionMode: true,
                   onTap: () => onToggleServerSelection(server.id),
-                  onContextMenu: (position) {
+                  onSecondaryTapDown: (details) {
                     showRemoteServerContextMenu(
                       context: context,
-                      position: position,
+                      position: details.globalPosition,
                       server: server,
                       ref: ref,
                       isMultiSelectMode: true,
@@ -445,10 +445,10 @@ class RemoteServersSliver extends ConsumerWidget {
                   isProUnlocked: isProUnlocked,
                   onTap: () => onOpenServer(server),
                   onLongPress: () => onToggleServerSelection(server.id),
-                  onContextMenu: (position) {
+                  onSecondaryTapDown: (details) {
                     showRemoteServerContextMenu(
                       context: context,
-                      position: position,
+                      position: details.globalPosition,
                       server: server,
                       ref: ref,
                       onMultiSelect: () =>
