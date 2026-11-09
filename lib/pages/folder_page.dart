@@ -250,7 +250,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
         _selectedFolderPaths.clear();
         _selectedRootPaths.clear();
         _setFolderSelectionMode(false);
-        _librarySelectionScopeController.clear();
+        _librarySelectionScopeController.setScope(LibrarySelectionScope.cloudServer);
       } else if (!_selectedServerIds.remove(id)) {
         _selectedServerIds.add(id);
       }
@@ -262,6 +262,10 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       _isCloudServerSelectionMode = false;
       _selectedServerIds.clear();
     });
+    if (ref.read(librarySelectionScopeProvider) ==
+        LibrarySelectionScope.cloudServer) {
+      _librarySelectionScopeController.clear();
+    }
   }
 
   void _selectAllCloudServers(Iterable<String> ids) {

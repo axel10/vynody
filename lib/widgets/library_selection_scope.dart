@@ -11,6 +11,7 @@ enum LibrarySelectionScope {
   queue,
   folder,
   folderRoot,
+  cloudServer,
   artist,
   album,
   genre,

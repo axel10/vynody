@@ -8,6 +8,7 @@ import '../player/remote/remote_server_models.dart';
 import '../player/remote/remote_server_riverpod.dart';
 import 'folder_layout_utils.dart';
 import 'app_context_menu.dart';
+import 'library_selection_panel.dart';
 import 'pro/pro_badge.dart';
 import '../player/pro/pro_license_service.dart';
 import '../player/pro/pro_models.dart';
@@ -1166,7 +1167,7 @@ Widget buildRemoteServerReorderPreview(BuildContext context, int count) {
 /// 云端媒体库多选整理态的底部操作面板。
 ///
 /// 只有「全选 / 编辑 / 删除 / 退出」四项；编辑仅单选可用、删除仅在有选中时可用，
-/// 用 `onPressed == null` 交给 Flutter 自动置灰，不自己画禁用态。
+/// 底层直接复用 [LibrarySelectionPanel]，保证全应用多选体验与视觉规范统一。
 class CloudServerSelectionPanel extends StatelessWidget {
   const CloudServerSelectionPanel({
     super.key,
@@ -1187,70 +1188,29 @@ class CloudServerSelectionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final errorColor = theme.colorScheme.error;
-    return Material(
-      elevation: 8,
-      borderRadius: BorderRadius.circular(20),
-      color: theme.colorScheme.surfaceContainerHighest,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 8, 8, 10),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Text(
-                    '${l10n.multiSelect}  ·  $selectedCount / $totalCount',
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  tooltip: l10n.exitMultiSelect,
-                  onPressed: onCancel,
-                  icon: const Icon(Icons.close_rounded, size: 20),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-            Wrap(
-              spacing: 2,
-              children: <Widget>[
-                TextButton.icon(
-                  onPressed: onSelectAll,
-                  icon: const Icon(Icons.select_all_rounded, size: 18),
-                  label: Text(l10n.selectAll),
-                ),
-                TextButton.icon(
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_rounded, size: 18),
-                  label: Text(l10n.edit),
-                ),
-                TextButton.icon(
-                  onPressed: onDelete,
-                  icon: Icon(
-                    Icons.delete_outline_rounded,
-                    size: 18,
-                    color: onDelete == null ? null : errorColor,
-                  ),
-                  label: Text(
-                    l10n.delete,
-                    style: onDelete == null
-                        ? null
-                        : TextStyle(color: errorColor),
-                  ),
-                ),
-              ],
-            ),
-          ],
+    final isAllSelected = selectedCount == totalCount && totalCount > 0;
+    return LibrarySelectionPanel(
+      title: '${l10n.multiSelect}  ·  $selectedCount / $totalCount',
+      onCancel: onCancel,
+      customActions: [
+        SelectionActionItem(
+          icon: isAllSelected ? Icons.deselect_rounded : Icons.select_all_rounded,
+          label: isAllSelected ? l10n.deselectAll : l10n.selectAll,
+          onPressed: onSelectAll,
         ),
-      ),
+        SelectionActionItem(
+          icon: Icons.edit_rounded,
+          label: l10n.edit,
+          onPressed: onEdit,
+        ),
+        SelectionActionItem(
+          icon: Icons.delete_outline_rounded,
+          label: l10n.delete,
+          onPressed: onDelete,
+          isDestructive: true,
+        ),
+      ],
     );
   }
 }

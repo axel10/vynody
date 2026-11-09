@@ -779,70 +779,84 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                   ).animate(animation);
                   return SlideTransition(position: offsetAnimation, child: child);
                 },
-                child: isRootSelectionMode
+                child: widget.isCloudServerSelectionMode
                     ? LibrarySelectionPanel(
-                        key: const ValueKey('root-selection-panel'),
-                        selectedSongs: selectedRootSongs,
-                        allSongs: allRootSongs,
-                        title: selectionLabel,
-                        isSelectionEmpty: widget.selectedRootPaths.isEmpty,
-                        isAllSelected: widget.selectedRootPaths.length == rootFolders.length && rootFolders.isNotEmpty,
-                        hideSongProperties: true,
-                        onToggleSelectAll: () {
-                          final isAllSelected =
-                              widget.selectedRootPaths.length == rootFolders.length;
-                          if (isAllSelected) {
-                            for (final f in rootFolders) {
-                              widget.onToggleRootSelection(f.path);
-                            }
-                          } else {
-                            for (final f in rootFolders) {
-                              if (!widget.selectedRootPaths.contains(f.path)) {
-                                widget.onToggleRootSelection(f.path);
-                              }
-                            }
-                          }
-                        },
-                        onCancel: widget.onToggleRootSelectionMode,
-                        onDelete: widget.selectedRootPaths.isEmpty
-                            ? null
-                            : widget.onDeleteSelectedRootFolders,
-                        deleteLabel: l10n.delete,
-                        onOpenLocation: widget.selectedRootPaths.length == 1
-                            ? () => openFolderLocation(widget.selectedRootPaths.first)
-                            : null,
-                        openLocationLabel: l10n.openFolderLocation,
+                        key: const ValueKey('cloud-server-selection-panel'),
+                        title:
+                            '${l10n.multiSelect}  ·  ${widget.selectedServerIds.length} / ${matchedRemoteServers.length}',
+                        onCancel: widget.onExitCloudServerSelection,
+                        customActions: [
+                          SelectionActionItem(
+                            icon: (widget.selectedServerIds.length ==
+                                        matchedRemoteServers.length &&
+                                    matchedRemoteServers.isNotEmpty)
+                                ? Icons.deselect_rounded
+                                : Icons.select_all_rounded,
+                            label: (widget.selectedServerIds.length ==
+                                        matchedRemoteServers.length &&
+                                    matchedRemoteServers.isNotEmpty)
+                                ? l10n.deselectAll
+                                : l10n.selectAll,
+                            onPressed: () => widget.onSelectAllCloudServers(
+                              matchedRemoteServers.map((s) => s.id),
+                            ),
+                          ),
+                          SelectionActionItem(
+                            icon: Icons.edit_rounded,
+                            label: l10n.edit,
+                            onPressed: widget.selectedServerIds.length == 1
+                                ? _editSelectedCloudServer
+                                : null,
+                          ),
+                          SelectionActionItem(
+                            icon: Icons.delete_outline_rounded,
+                            label: l10n.delete,
+                            onPressed: widget.selectedServerIds.isEmpty
+                                ? null
+                                : () => unawaited(_deleteSelectedCloudServers()),
+                            isDestructive: true,
+                          ),
+                        ],
                       )
-                    : const SizedBox.shrink(
-                        key: ValueKey('root-selection-panel-hidden'),
-                      ),
+                    : (isRootSelectionMode
+                        ? LibrarySelectionPanel(
+                            key: const ValueKey('root-selection-panel'),
+                            selectedSongs: selectedRootSongs,
+                            allSongs: allRootSongs,
+                            title: selectionLabel,
+                            isSelectionEmpty: widget.selectedRootPaths.isEmpty,
+                            isAllSelected: widget.selectedRootPaths.length == rootFolders.length && rootFolders.isNotEmpty,
+                            hideSongProperties: true,
+                            onToggleSelectAll: () {
+                              final isAllSelected =
+                                  widget.selectedRootPaths.length == rootFolders.length;
+                              if (isAllSelected) {
+                                for (final f in rootFolders) {
+                                  widget.onToggleRootSelection(f.path);
+                                }
+                              } else {
+                                for (final f in rootFolders) {
+                                  if (!widget.selectedRootPaths.contains(f.path)) {
+                                    widget.onToggleRootSelection(f.path);
+                                  }
+                                }
+                              }
+                            },
+                            onCancel: widget.onToggleRootSelectionMode,
+                            onDelete: widget.selectedRootPaths.isEmpty
+                                ? null
+                                : widget.onDeleteSelectedRootFolders,
+                            deleteLabel: l10n.delete,
+                            onOpenLocation: widget.selectedRootPaths.length == 1
+                                ? () => openFolderLocation(widget.selectedRootPaths.first)
+                                : null,
+                            openLocationLabel: l10n.openFolderLocation,
+                          )
+                        : const SizedBox.shrink(
+                            key: ValueKey('selection-panel-hidden'),
+                          )),
               ),
             ),
-            if (widget.isCloudServerSelectionMode)
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 24 + MediaQuery.of(context).padding.bottom,
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 420),
-                    child: CloudServerSelectionPanel(
-                      selectedCount: widget.selectedServerIds.length,
-                      totalCount: matchedRemoteServers.length,
-                      onSelectAll: () => widget.onSelectAllCloudServers(
-                        matchedRemoteServers.map((s) => s.id),
-                      ),
-                      onEdit: widget.selectedServerIds.length == 1
-                          ? _editSelectedCloudServer
-                          : null,
-                      onDelete: widget.selectedServerIds.isEmpty
-                          ? null
-                          : () => unawaited(_deleteSelectedCloudServers()),
-                      onCancel: widget.onExitCloudServerSelection,
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),

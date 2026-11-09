@@ -10,16 +10,20 @@ import 'package:vynody/dialogs/song_details_dialog.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
-import 'package:vynody/utils/app_orientation_manager.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'generic_selection_panel.dart';
 
-class LibrarySelectionPanel extends ConsumerStatefulWidget {
+export 'generic_selection_panel.dart' show SelectionActionItem, GenericSelectionPanel;
+
+class LibrarySelectionPanel extends ConsumerWidget {
   const LibrarySelectionPanel({
     super.key,
-    required this.selectedSongs,
-    required this.allSongs,
-    required this.onToggleSelectAll,
+    this.selectedSongs = const [],
+    this.allSongs = const [],
+    this.onToggleSelectAll,
     required this.onCancel,
+    this.customActions,
+    this.columns,
     this.onDelete,
     this.deleteLabel,
     this.title,
@@ -49,8 +53,10 @@ class LibrarySelectionPanel extends ConsumerStatefulWidget {
 
   final List<MusicFile> selectedSongs;
   final List<MusicFile> allSongs;
-  final VoidCallback onToggleSelectAll;
+  final VoidCallback? onToggleSelectAll;
   final VoidCallback onCancel;
+  final List<SelectionActionItem>? customActions;
+  final int? columns;
   final VoidCallback? onDelete;
   final String? deleteLabel;
   final String? title;
@@ -83,198 +89,158 @@ class LibrarySelectionPanel extends ConsumerStatefulWidget {
   final bool? hasSelectableItems;
 
   @override
-  ConsumerState<LibrarySelectionPanel> createState() =>
-      _LibrarySelectionPanelState();
-}
-
-class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
-  final ScrollController _scrollController = ScrollController();
-
-  static const double _singleRowHeight = 58.0;
-  static const double _rowSpacing = 8.0;
-  static const double _maxVisibleRows = 2.0;
-  static const double _maxActionAreaHeight =
-      (_singleRowHeight * _maxVisibleRows) +
-      (_rowSpacing * (_maxVisibleRows - 1));
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+
+    if (customActions != null) {
+      return GenericSelectionPanel(
+        title: title ?? l10n.selectedSongs(selectedSongs.length),
+        onCancel: onCancel,
+        actions: customActions!,
+        columns: columns,
+      );
+    }
+
     final audio = ref.read(audioServiceProvider);
     final playlistService = ref.read(playlistServiceProvider);
 
-    final isAllSelected = widget.isAllSelected ??
-        (widget.selectedSongs.length == widget.allSongs.length &&
-            widget.allSongs.isNotEmpty);
-    // 「全选」能不能点，只看有没有可选对象。原先这里必须同时满足
-    // allSongs 非空，在歌单页那种「实体多选、歌曲平铺数可能为 0」的场景下会把
-    // 按钮误灰（比如库里只剩空歌单）。
-    final canSelectAll = widget.hasSelectableItems ??
-        (widget.allSongs.isNotEmpty || widget.isAllSelected != null);
-    final isSongSelectionEmpty = widget.selectedSongs.isEmpty;
-    final isEmpty = widget.isSelectionEmpty ?? isSongSelectionEmpty;
-    final isSingleSelected = !isEmpty && widget.selectedSongs.length == 1;
+    final effectiveIsAllSelected = isAllSelected ??
+        (selectedSongs.length == allSongs.length && allSongs.isNotEmpty);
+    final canSelectAll = hasSelectableItems ??
+        (allSongs.isNotEmpty || isAllSelected != null);
+    final isSongSelectionEmpty = selectedSongs.isEmpty;
+    final isEmpty = isSelectionEmpty ?? isSongSelectionEmpty;
+    final isSingleSelected = !isEmpty && selectedSongs.length == 1;
 
-    final isRemote = widget.selectedSongs.isNotEmpty &&
-        RemoteMediaResolver.isRemoteUri(widget.selectedSongs.first.path);
+    final isRemote = selectedSongs.isNotEmpty &&
+        RemoteMediaResolver.isRemoteUri(selectedSongs.first.path);
     final hasFilePath = isSingleSelected &&
-        widget.selectedSongs.isNotEmpty &&
-        widget.selectedSongs.first.path.trim().isNotEmpty &&
+        selectedSongs.isNotEmpty &&
+        selectedSongs.first.path.trim().isNotEmpty &&
         !isRemote;
     final canOpenLocation =
         (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
-        (widget.onOpenLocation != null || hasFilePath);
+        (onOpenLocation != null || hasFilePath);
 
-    final selectAllText = isAllSelected ? l10n.deselectAll : l10n.selectAll;
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    final selectAllText = effectiveIsAllSelected ? l10n.deselectAll : l10n.selectAll;
 
-    final primaryRow = Row(
-      children: [
-        Expanded(
-          child: _buildSelectionActionButton(
-            context: context,
-            icon: isAllSelected ? Icons.deselect : Icons.select_all,
-            label: selectAllText,
-            onPressed: canSelectAll ? widget.onToggleSelectAll : null,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildSelectionActionButton(
-            context: context,
-            icon: Icons.queue_play_next_rounded,
-            label: l10n.playNext,
-            onPressed: (isEmpty || (widget.onPlayNext == null && isSongSelectionEmpty))
-                ? null
-                : () async {
-                    if (widget.onPlayNext != null) {
-                      widget.onPlayNext!();
-                    } else {
-                      await audio.enqueueNext(widget.selectedSongs);
-                      widget.onCancel();
-                    }
-                  },
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildSelectionActionButton(
-            context: context,
-            icon: Icons.queue_music_rounded,
-            label: l10n.addToQueue,
-            onPressed: (isEmpty || (widget.onAddToQueue == null && isSongSelectionEmpty))
-                ? null
-                : () async {
-                    if (widget.onAddToQueue != null) {
-                      widget.onAddToQueue!();
-                    } else {
-                      await audio.appendToQueue(widget.selectedSongs);
-                      widget.onCancel();
-                    }
-                  },
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildSelectionActionButton(
-            context: context,
-            icon: Icons.playlist_add_rounded,
-            label: l10n.addToPlaylist,
-            onPressed: (isEmpty || (widget.onAddToPlaylist == null && isSongSelectionEmpty))
-                ? null
-                : () async {
-                    if (widget.onAddToPlaylist != null) {
-                      widget.onAddToPlaylist!();
-                    } else {
-                      await showAddSongsToPlaylistDialog(
-                        context,
-                        playlistService,
-                        widget.selectedSongs,
-                      );
-                      widget.onCancel();
-                    }
-                  },
-          ),
-        ),
-      ],
-    );
+    final actions = <SelectionActionItem>[
+      // 1. 全选 / 取消全选
+      SelectionActionItem(
+        icon: effectiveIsAllSelected ? Icons.deselect : Icons.select_all,
+        label: selectAllText,
+        onPressed: (canSelectAll && onToggleSelectAll != null) ? onToggleSelectAll : null,
+      ),
+      // 2. 播放下一首
+      SelectionActionItem(
+        icon: Icons.queue_play_next_rounded,
+        label: l10n.playNext,
+        onPressed: (isEmpty || (onPlayNext == null && isSongSelectionEmpty))
+            ? null
+            : () async {
+                if (onPlayNext != null) {
+                  onPlayNext!();
+                } else {
+                  await audio.enqueueNext(selectedSongs);
+                  onCancel();
+                }
+              },
+      ),
+      // 3. 添加到队列
+      SelectionActionItem(
+        icon: Icons.queue_music_rounded,
+        label: l10n.addToQueue,
+        onPressed: (isEmpty || (onAddToQueue == null && isSongSelectionEmpty))
+            ? null
+            : () async {
+                if (onAddToQueue != null) {
+                  onAddToQueue!();
+                } else {
+                  await audio.appendToQueue(selectedSongs);
+                  onCancel();
+                }
+              },
+      ),
+      // 4. 添加到歌单
+      SelectionActionItem(
+        icon: Icons.playlist_add_rounded,
+        label: l10n.addToPlaylist,
+        onPressed: (isEmpty || (onAddToPlaylist == null && isSongSelectionEmpty))
+            ? null
+            : () async {
+                if (onAddToPlaylist != null) {
+                  onAddToPlaylist!();
+                } else {
+                  await showAddSongsToPlaylistDialog(
+                    context,
+                    playlistService,
+                    selectedSongs,
+                  );
+                  onCancel();
+                }
+              },
+      ),
+    ];
 
-    final List<Widget> secondaryActionRows = [];
-    if (!widget.hideSecondaryActions) {
-      final secondaryActions = <Widget>[];
-
-      // 两套二次动作的差别只有「收藏 / 云收藏」这两项要不要换成歌曲属性行；
-      // 其后的编辑标签、定位文件（或导入歌词）、收录进媒体库、下载、删除、转码
-      // 完全一致，所以只写一份，避免两边一改一漏。
-      if (!widget.replaceFavoritesWithSongDetails) {
-        secondaryActions.add(
-          _buildSelectionActionButton(
-            context: context,
+    if (!hideSecondaryActions) {
+      if (!replaceFavoritesWithSongDetails) {
+        actions.add(
+          SelectionActionItem(
             icon: Icons.favorite_rounded,
-            label: widget.favoritesLabel ??
-                (widget.onAddToCloudFavorites != null
+            label: favoritesLabel ??
+                (onAddToCloudFavorites != null
                     ? l10n.addToLocalFavorites
                     : l10n.addToFavorites),
-            onPressed:
-                (isEmpty || (widget.onAddToFavorites == null && isSongSelectionEmpty))
-                    ? null
-                    : () async {
-                        if (widget.onAddToFavorites != null) {
-                          widget.onAddToFavorites!();
-                        } else {
-                          await playlistService.addSongsToPlaylist(
-                            PlaylistService.favoritePlaylistId,
-                            widget.selectedSongs,
-                          );
-                          if (context.mounted) {
-                            AppSnackBar.show(
-                              context,
-                              ref,
-                              SnackBar(
-                                content: Text(
-                                  l10n.addedToPlaylist(
-                                    widget.selectedSongs.length,
-                                    l10n.favorites,
-                                  ),
-                                ),
+            onPressed: (isEmpty || (onAddToFavorites == null && isSongSelectionEmpty))
+                ? null
+                : () async {
+                    if (onAddToFavorites != null) {
+                      onAddToFavorites!();
+                    } else {
+                      await playlistService.addSongsToPlaylist(
+                        PlaylistService.favoritePlaylistId,
+                        selectedSongs,
+                      );
+                      if (context.mounted) {
+                        AppSnackBar.show(
+                          context,
+                          ref,
+                          SnackBar(
+                            content: Text(
+                              l10n.addedToPlaylist(
+                                selectedSongs.length,
+                                l10n.favorites,
                               ),
-                            );
-                          }
-                          widget.onCancel();
-                        }
-                      },
+                            ),
+                          ),
+                        );
+                      }
+                      onCancel();
+                    }
+                  },
           ),
         );
-        if (widget.onAddToCloudFavorites != null) {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: widget.cloudFavoritesIcon ?? Icons.cloud_done_rounded,
-              label: widget.cloudFavoritesLabel ?? l10n.addToCloudFavorites,
-              onPressed: isEmpty ? null : widget.onAddToCloudFavorites,
+
+        if (onAddToCloudFavorites != null) {
+          actions.add(
+            SelectionActionItem(
+              icon: cloudFavoritesIcon ?? Icons.cloud_done_rounded,
+              label: cloudFavoritesLabel ?? l10n.addToCloudFavorites,
+              onPressed: isEmpty ? null : onAddToCloudFavorites,
             ),
           );
         }
       }
 
-      if (!widget.hideSongProperties) {
-        secondaryActions.add(
-          _buildSelectionActionButton(
-            context: context,
+      if (!hideSongProperties) {
+        actions.add(
+          SelectionActionItem(
             icon: Icons.info_outline_rounded,
             label: l10n.songProperties,
             onPressed: isSingleSelected
                 ? () => showSongDetailsDialog(
                       context,
-                      widget.selectedSongs.first,
+                      selectedSongs.first,
                     )
                 : null,
           ),
@@ -284,24 +250,23 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
       final canEditTags = !isEmpty &&
           !isSongSelectionEmpty &&
           !isRemote &&
-          widget.selectedSongs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
-      secondaryActions.add(
-        _buildSelectionActionButton(
-          context: context,
+          selectedSongs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
+      actions.add(
+        SelectionActionItem(
           icon: Icons.edit_note_rounded,
           label: l10n.editTagsAction,
           onPressed: canEditTags
               ? () async {
-                  if (widget.onEditTags != null) {
-                    widget.onEditTags!();
+                  if (onEditTags != null) {
+                    onEditTags!();
                   } else {
                     final result = await showSongTagEditSheet(
                       context,
-                      songs: widget.selectedSongs,
+                      songs: selectedSongs,
                     );
                     if (result != null && context.mounted) {
                       await applySongTagEditResult(context, ref, result);
-                      widget.onCancel();
+                      onCancel();
                     }
                   }
                 }
@@ -309,270 +274,101 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
         ),
       );
 
-      secondaryActions.add(
+      actions.add(
         (Platform.isWindows || Platform.isMacOS || Platform.isLinux)
-            ? _buildSelectionActionButton(
-                context: context,
+            ? SelectionActionItem(
                 icon: Icons.folder_open_rounded,
-                label: widget.openLocationLabel ?? l10n.openFileLocation,
+                label: openLocationLabel ?? l10n.openFileLocation,
                 onPressed: canOpenLocation
                     ? () async {
-                        if (widget.onOpenLocation != null) {
-                          widget.onOpenLocation!();
+                        if (onOpenLocation != null) {
+                          onOpenLocation!();
                         } else {
                           await openSongFileLocation(
-                            widget.selectedSongs.first.path,
+                            selectedSongs.first.path,
                           );
                         }
-                        widget.onCancel();
+                        onCancel();
                       }
                     : null,
               )
-            : _buildSelectionActionButton(
-                context: context,
+            : SelectionActionItem(
                 icon: Icons.lyrics_outlined,
                 label: l10n.importLyrics,
                 onPressed: isSingleSelected
                     ? () async {
-                        if (widget.onImportLyrics != null) {
-                          widget.onImportLyrics!();
+                        if (onImportLyrics != null) {
+                          onImportLyrics!();
                         } else {
                           await importLyricsForSong(
                             context,
                             ref,
-                            widget.selectedSongs.first,
+                            selectedSongs.first,
                           );
                         }
-                        widget.onCancel();
+                        onCancel();
                       }
                     : null,
               ),
       );
 
-      if (widget.onAddToMediaLibrary != null) {
-        secondaryActions.add(
-          _buildSelectionActionButton(
-            context: context,
+      if (onAddToMediaLibrary != null) {
+        actions.add(
+          SelectionActionItem(
             icon: Icons.library_add_rounded,
-            label: widget.addToMediaLibraryLabel ?? l10n.addToMediaLibrary,
-            onPressed: isEmpty ? null : widget.onAddToMediaLibrary,
+            label: addToMediaLibraryLabel ?? l10n.addToMediaLibrary,
+            onPressed: isEmpty ? null : onAddToMediaLibrary,
           ),
         );
       }
-      if (widget.onDownload != null) {
-        secondaryActions.add(
-          _buildSelectionActionButton(
-            context: context,
+
+      if (onDownload != null) {
+        actions.add(
+          SelectionActionItem(
             icon: Icons.download_rounded,
             label: l10n.download,
-            onPressed: isEmpty ? null : widget.onDownload,
+            onPressed: isEmpty ? null : onDownload,
           ),
         );
       }
-      if (widget.onDelete != null) {
-        secondaryActions.add(
-          _buildSelectionActionButton(
-            context: context,
+
+      if (onDelete != null) {
+        actions.add(
+          SelectionActionItem(
             icon: Icons.delete_outline_rounded,
-            label: widget.deleteLabel ?? l10n.delete,
-            onPressed: isEmpty ? null : widget.onDelete,
+            label: deleteLabel ?? l10n.delete,
+            onPressed: isEmpty ? null : onDelete,
             isDestructive: true,
           ),
         );
       }
 
-      secondaryActions.add(
-        _buildSelectionActionButton(
-          context: context,
+      actions.add(
+        SelectionActionItem(
           icon: Icons.sync_rounded,
           label: l10n.transcodeAction,
-          onPressed: (isEmpty || (widget.onTranscode == null && isSongSelectionEmpty))
+          onPressed: (isEmpty || (onTranscode == null && isSongSelectionEmpty))
               ? null
               : () async {
-                  if (widget.onTranscode != null) {
-                    widget.onTranscode!();
+                  if (onTranscode != null) {
+                    onTranscode!();
                   } else {
                     await showTranscodeDialog(
                       context,
-                      songs: widget.selectedSongs,
+                      songs: selectedSongs,
                     );
-                    widget.onCancel();
+                    onCancel();
                   }
                 },
         ),
       );
-
-
-      for (var i = 0; i < secondaryActions.length; i += 4) {
-        final chunk = secondaryActions.sublist(
-          i,
-          i + 4 > secondaryActions.length ? secondaryActions.length : i + 4,
-        );
-        while (chunk.length < 4) {
-          chunk.add(const SizedBox.shrink());
-        }
-        secondaryActionRows.add(
-          Row(
-            children: [
-              Expanded(child: chunk[0]),
-              const SizedBox(width: 8),
-              Expanded(child: chunk[1]),
-              const SizedBox(width: 8),
-              Expanded(child: chunk[2]),
-              const SizedBox(width: 8),
-              Expanded(child: chunk[3]),
-            ],
-          ),
-        );
-      }
     }
 
-    final allActionRows = <Widget>[
-      primaryRow,
-      ...secondaryActionRows,
-    ];
-
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
-    final isTablet = MediaQuery.sizeOf(context).shortestSide >=
-        AppOrientationManager.tabletShortestSideBreakpoint;
-
-    final double safeBottom;
-    if (isTablet) {
-      safeBottom = bottomPadding > 0 ? (bottomPadding + 8.0) : 28.0;
-    } else if (isIOS) {
-      safeBottom = bottomPadding > 0
-          ? (bottomPadding - 14.0).clamp(12.0, double.infinity)
-          : 12.0;
-    } else {
-      safeBottom = bottomPadding > 0 ? bottomPadding : 12.0;
-    }
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, safeBottom),
-      child: SafeArea(
-        top: false,
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: isLandscape ? 620 : 372),
-            child: Material(
-              elevation: 16,
-              color: theme.colorScheme.surface,
-              shadowColor: Colors.black26,
-              borderRadius: BorderRadius.circular(24),
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header row
-                    Row(
-                      children: [
-                        const SizedBox(width: 8),
-                        Text(
-                          widget.title ??
-                              l10n.selectedSongs(widget.selectedSongs.length),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: widget.onCancel,
-                          tooltip: l10n.cancel,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxHeight: _maxActionAreaHeight,
-                      ),
-                      child: Scrollbar(
-                        controller: _scrollController,
-                        thumbVisibility: allActionRows.length > 2,
-                        child: SingleChildScrollView(
-                          controller: _scrollController,
-                          physics: allActionRows.length > 2
-                              ? const BouncingScrollPhysics(
-                                  parent: AlwaysScrollableScrollPhysics(),
-                                )
-                              : const NeverScrollableScrollPhysics(),
-                          padding: EdgeInsets.only(
-                            right: allActionRows.length > 2 ? 6.0 : 0.0,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              for (var i = 0; i < allActionRows.length; i++) ...[
-                                if (i > 0) const SizedBox(height: _rowSpacing),
-                                allActionRows[i],
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSelectionActionButton({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required VoidCallback? onPressed,
-    Color? iconColor,
-    bool isDestructive = false,
-  }) {
-    final theme = Theme.of(context);
-    final isEnabled = onPressed != null;
-    final effectiveIconColor = iconColor ??
-        (isDestructive
-            ? theme.colorScheme.error
-            : theme.colorScheme.onSurface);
-    return SizedBox(
-      height: _singleRowHeight,
-      child: Opacity(
-        opacity: isEnabled ? 1.0 : 0.38,
-        child: TextButton(
-          onPressed: onPressed,
-          style: TextButton.styleFrom(
-            foregroundColor: isDestructive
-                ? theme.colorScheme.error
-                : theme.colorScheme.onSurface,
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 22, color: effectiveIconColor),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return GenericSelectionPanel(
+      title: title ?? l10n.selectedSongs(selectedSongs.length),
+      onCancel: onCancel,
+      actions: actions,
+      columns: 4,
     );
   }
 }
