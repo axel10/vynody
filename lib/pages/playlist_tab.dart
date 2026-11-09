@@ -11,7 +11,12 @@ import '../player/audio/playback_source.dart';
 import '../player/library/playlist_service.dart';
 import '../utils/app_log.dart';
 import '../utils/app_snack_bar.dart';
+import '../utils/drop_data_utils.dart';
 import '../utils/file_selector_helper.dart';
+import '../utils/playlist_name.dart';
+import '../widgets/drag/drag_cover.dart';
+import '../widgets/drag/drag_payload.dart';
+import '../widgets/drag/drag_preview_card.dart';
 import '../widgets/draggable_playlist_item.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_zoom_gesture_layer.dart';
@@ -435,15 +440,16 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                             gridMorph: metrics.gridMorph,
                           );
 
-                          final isSortable =
-                              isSelectionMode && _searchQuery.isEmpty;
+                          final isSortable = _searchQuery.isEmpty;
                           final hasFavoriteAt0 = playlists.isNotEmpty &&
                               playlists.first.id ==
                                   PlaylistService.favoritePlaylistId;
-                          final selectedIndices = <int>{
-                            for (var i = 0; i < playlists.length; i++)
-                              if (isSelected(playlists[i].id)) i,
-                          };
+                          final selectedIndices = isSelectionMode
+                              ? <int>{
+                                  for (var i = 0; i < playlists.length; i++)
+                                    if (isSelected(playlists[i].id)) i,
+                                }
+                              : const <int>{};
 
                           final contentWidth = width - 2 * hPad;
 
@@ -470,7 +476,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                                     lockedIndices:
                                         hasFavoriteAt0 ? const {0} : const {},
                                     minInsertIndex: hasFavoriteAt0 ? 1 : 0,
-                                    showHandles: true,
+                                    showHandles: isSelectionMode,
                                     handleChild:
                                         buildZoomReorderHandle(context),
                                     previewBuilder: (context, _, count) =>
@@ -479,6 +485,97 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                                           icon: Icons.queue_music_rounded,
                                           count: count,
                                         ),
+                                    directDragPreviewBuilder:
+                                        (context, index, selectedIndices) {
+                                      final pl = playlists[index];
+                                      final l10n = AppLocalizations.of(context)!;
+                                      final playlistName =
+                                          localizedPlaylistName(context, pl);
+                                      final isFavorite = pl.id ==
+                                          PlaylistService.favoritePlaylistId;
+                                      final count = selectedIndices.length;
+                                      final isBatch = count > 1;
+
+                                      if (isBatch) {
+                                        return AppDraggablePreviewCard(
+                                          title: playlistName,
+                                          subtitle: l10n
+                                              .selectedPlaylistsCount(count),
+                                          defaultIcon: isFavorite
+                                              ? Icons.favorite_rounded
+                                              : Icons.queue_music_rounded,
+                                          badgeText: '$count',
+                                          count: count,
+                                          isBatch: true,
+                                        );
+                                      }
+
+                                      final representative =
+                                          pl.songs.firstWhereOrNull(
+                                                (s) =>
+                                                    (s.thumbnailPath != null &&
+                                                        s.thumbnailPath!
+                                                            .isNotEmpty) ||
+                                                    (s.artworkPath != null &&
+                                                        s.artworkPath!
+                                                            .isNotEmpty),
+                                              ) ??
+                                              pl.songs.firstOrNull;
+
+                                      final coverPath = representative != null
+                                          ? resolveDragCoverPath(
+                                              thumbnailPath:
+                                                  representative.thumbnailPath,
+                                              artworkPath:
+                                                  representative.artworkPath,
+                                            )
+                                          : null;
+
+                                      final songCount = pl.songs.length;
+                                      return AppDraggablePreviewCard(
+                                        title: playlistName,
+                                        subtitle: songCount > 0
+                                            ? l10n.songsCountFormat(songCount)
+                                            : null,
+                                        imagePath: coverPath,
+                                        defaultIcon: isFavorite
+                                            ? Icons.favorite_rounded
+                                            : Icons.queue_music_rounded,
+                                        badgeText: songCount > 0
+                                            ? l10n.songsCountFormat(songCount)
+                                            : null,
+                                        count: songCount > 0 ? songCount : 1,
+                                      );
+                                    },
+                                    itemDragItemBuilder: (
+                                      index,
+                                      pickedIndices,
+                                      localData, [
+                                      request,
+                                    ]) {
+                                      if (request != null) {
+                                        DropDataUtils.trackInternalDrag(
+                                          request.session,
+                                        );
+                                      }
+                                      final isBatch = isSelectionMode &&
+                                          selectedIndices.contains(index);
+                                      if (isBatch) {
+                                        final batch = [
+                                          for (final i in selectedIndices)
+                                            playlists[i],
+                                        ];
+                                        return SongPathsPayload.flattened(
+                                          batch.map((p) => p.songs),
+                                        ).toDragItem();
+                                      }
+                                      final pl = playlists[index];
+                                      return SongPathsPayload(
+                                        paths: [
+                                          for (final song in pl.songs) song.path,
+                                        ],
+                                      ).toDragItem();
+                                    },
                                     onReorder: (draggedIndices, insertIndex) {
                                       final reordered =
                                           ZoomReorderController.applyReorder(
@@ -506,8 +603,8 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                                         metrics: metrics,
                                         index: index,
                                         isSelected: isPlSelected,
-                                        isSelectionMode: true,
-                                        enableHero: false,
+                                        isSelectionMode: isSelectionMode,
+                                        enableHero: !isSelectionMode,
                                         onTap: () {
                                           handleItemTap(
                                             index: index,
@@ -515,13 +612,22 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                                             allKeys: playlists
                                                 .map((p) => p.id)
                                                 .toList(),
-                                            onNormalTap: () =>
-                                                toggleSelection(pl.id),
+                                            onNormalTap: () {
+                                              if (isSelectionMode) {
+                                                toggleSelection(pl.id);
+                                              } else {
+                                                _openPlaylistDetail(pl);
+                                              }
+                                            },
                                           );
                                         },
                                         onLongPress: () {
                                           lastAnchorIndex = index;
-                                          toggleSelection(pl.id);
+                                          if (isSelectionMode) {
+                                            toggleSelection(pl.id);
+                                          } else {
+                                            enterSelectionMode(pl.id);
+                                          }
                                         },
                                         onSecondaryTapDown: (details) {
                                           showPlaylistContextMenu(

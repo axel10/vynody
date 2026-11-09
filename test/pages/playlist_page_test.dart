@@ -12,6 +12,7 @@ import 'package:vynody/pages/playlist_detail_page.dart';
 import 'package:vynody/pages/playlist_tab.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/playlist_service.dart';
+import 'package:zoomable_sliver_grid/zoomable_sliver_grid.dart';
 
 import '../widgets/helpers/mobile_screenshot_harness.dart' hide Playlist;
 
@@ -416,5 +417,148 @@ void main() {
 
     // Reorder drag handles should now appear for both songs
     expect(find.byIcon(Icons.drag_handle_rounded), findsNWidgets(2));
+  });
+
+  testWidgets(
+      'PlaylistDetailPage uses ZoomReorderableSliverGrid with direct drag in normal and multi-selection modes',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final playlist = await playlistService.createPlaylist('拖拽测试歌单');
+    await playlistService.addSongsToPlaylist(playlist.id, [
+      const MusicFile(
+        path: '/test/music/song1.mp3',
+        name: 'song1.mp3',
+        title: '曲目1',
+        artist: '歌手1',
+      ),
+      const MusicFile(
+        path: '/test/music/song2.mp3',
+        name: 'song2.mp3',
+        title: '曲目2',
+        artist: '歌手2',
+      ),
+    ]);
+
+    final container = ProviderContainer(
+      overrides: [
+        settingsServiceProvider.overrideWith((ref) => settingsService),
+        audioServiceProvider.overrideWith((ref) => audioService),
+        audioSnapshotProvider.overrideWith((ref) => snapshot),
+        audioCurrentMusicProvider.overrideWith((ref) => null),
+        scannerServiceProvider.overrideWith((ref) => scannerService),
+        playlistServiceProvider.overrideWith((ref) => playlistService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(buildTestWidget(container: container));
+    await tester.pumpAndSettle();
+
+    // Open detail page
+    await tester.tap(find.text('拖拽测试歌单'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PlaylistDetailPage), findsOneWidget);
+
+    // Normal mode: ZoomReorderableSliverGrid is active without visible handles
+    final normalGrid = tester.widget<ZoomReorderableSliverGrid>(
+      find.byType(ZoomReorderableSliverGrid),
+    );
+    expect(normalGrid.showHandles, isFalse);
+    expect(normalGrid.enableDirectDrag, isTrue);
+    expect(normalGrid.itemDragItemBuilder, isNotNull);
+    expect(normalGrid.directDragPreviewBuilder, isNotNull);
+
+    // Trigger itemDragItemBuilder for single item
+    final singleItem = await normalGrid.itemDragItemBuilder!(
+      0,
+      {0},
+      {},
+    );
+    expect(singleItem, isNotNull);
+    expect(singleItem.localData, containsPair('paths', ['/test/music/song1.mp3']));
+
+    // Long press to enter multi-selection
+    await tester.longPress(find.text('曲目1'));
+    await tester.pumpAndSettle();
+
+    final multiSelectGrid = tester.widget<ZoomReorderableSliverGrid>(
+      find.byType(ZoomReorderableSliverGrid),
+    );
+    expect(multiSelectGrid.showHandles, isTrue);
+    expect(multiSelectGrid.enableDirectDrag, isTrue);
+
+    // Trigger itemDragItemBuilder for batch selection
+    final batchItem = await multiSelectGrid.itemDragItemBuilder!(
+      0,
+      {0},
+      {},
+    );
+    expect(batchItem, isNotNull);
+    expect(batchItem.localData, containsPair('paths', ['/test/music/song1.mp3']));
+  });
+
+  testWidgets(
+      'PlaylistTab uses ZoomReorderableSliverGrid with direct drag in normal mode',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final fav = Playlist(id: PlaylistService.favoritePlaylistId, name: '收藏');
+    final p1 = await playlistService.createPlaylist('摇滚歌单');
+    await playlistService.reorderPlaylists([fav, p1]);
+    await playlistService.addSongsToPlaylist(p1.id, [
+      const MusicFile(
+        path: '/test/music/rock.mp3',
+        name: 'rock.mp3',
+        title: 'Rock Song',
+      ),
+    ]);
+
+    final container = ProviderContainer(
+      overrides: [
+        settingsServiceProvider.overrideWith((ref) => settingsService),
+        audioServiceProvider.overrideWith((ref) => audioService),
+        audioSnapshotProvider.overrideWith((ref) => snapshot),
+        audioCurrentMusicProvider.overrideWith((ref) => null),
+        scannerServiceProvider.overrideWith((ref) => scannerService),
+        playlistServiceProvider.overrideWith((ref) => playlistService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(buildTestWidget(container: container));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PlaylistTab), findsOneWidget);
+
+    final grid = tester.widget<ZoomReorderableSliverGrid>(
+      find.byType(ZoomReorderableSliverGrid),
+    );
+    expect(grid.showHandles, isFalse);
+    expect(grid.enableDirectDrag, isTrue);
+    expect(grid.lockedIndices, contains(0));
+    expect(grid.minInsertIndex, 1);
+    expect(grid.itemDragItemBuilder, isNotNull);
+    expect(grid.directDragPreviewBuilder, isNotNull);
+
+    // Test dragging playlist at index 1 extracts its songs
+    final dragItem = await grid.itemDragItemBuilder!(
+      1,
+      {1},
+      {},
+    );
+    expect(dragItem, isNotNull);
+    expect(dragItem.localData, containsPair('paths', ['/test/music/rock.mp3']));
   });
 }

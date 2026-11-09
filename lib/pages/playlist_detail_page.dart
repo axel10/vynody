@@ -27,6 +27,10 @@ import '../widgets/playlist_cover.dart';
 import '../widgets/song_zoom_item.dart';
 import '../widgets/zoom_reorder_ui.dart';
 import '../player/platform/right_queue_drawer_controller.dart';
+import '../utils/drop_data_utils.dart';
+import '../widgets/drag/drag_cover.dart';
+import '../widgets/drag/drag_payload.dart';
+import '../widgets/drag/drag_preview_card.dart';
 import 'main_layout_riverpod.dart';
 
 /// 播放列表详情页（第二级页面）
@@ -333,99 +337,12 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
       );
       final gridWidth = contentWidth - 2 * hPad;
 
-      if (isSelectionMode) {
-        final selectedIndices = <int>{
-          for (var i = 0; i < activePlaylist.songs.length; i++)
-            if (isSongSelected(activePlaylist.songs[i].path)) i,
-        };
-
-        return SliverPadding(
-          padding: EdgeInsets.only(
-            left: hPad,
-            right: hPad,
-            top: isPortrait ? 8.0 : 16.0,
-            bottom: MiniPlayerUiTuning.getListBottomPadding(
-              context,
-              hasPlayingMusic: currentMusic != null,
-              isSelectionMode: true,
-            ),
-          ),
-          sliver: ZoomReorderableSliverGrid(
-            metrics: metrics,
-            width: gridWidth,
-            itemCount: activePlaylist.songs.length,
-            itemKeyBuilder: (index) =>
-                ValueKey('${activePlaylist.songs[index].path}_$index'),
-            controller: _reorderController,
-            selectedIndices: selectedIndices,
-            showHandles: true,
-            handleChild: buildZoomReorderHandle(context),
-            previewBuilder: (context, _, count) =>
-                buildZoomReorderPreview(
-                  context,
-                  icon: Icons.music_note_rounded,
-                  count: count,
-                ),
-            onReorder: (draggedIndices, insertIndex) {
-              final reordered = ZoomReorderController.applyReorder(
-                activePlaylist.songs,
-                draggedIndices,
-                insertIndex,
-              );
-              unawaited(
-                playlistService.updateSongsInPlaylist(
-                  activePlaylist.id,
-                  reordered,
-                ),
-              );
-            },
-            itemBuilder: (context, index) {
-              final song = activePlaylist.songs[index];
-              final isCurrent = currentMusic?.path == song.path;
-              final isSelected = isSongSelected(song.path);
-
-              return SongZoomItem(
-                song: song,
-                metrics: metrics,
-                index: index,
-                isCurrent: isCurrent,
-                isPlaying: isPlaying && isCurrent,
-                isSelected: isSelected,
-                isSelectionMode: true,
-                selectedPaths: selectedSongPaths,
-                enableDrag: false,
-                onTap: () {
-                  handleSongTap(
-                    index: index,
-                    songPath: song.path,
-                    allSongs: activePlaylist.songs,
-                    onNormalTap: () => toggleSongSelection(song.path),
-                  );
-                },
-                onLongPress: () {
-                  lastAnchorIndex = index;
-                  toggleSongSelection(song.path);
-                },
-                onSecondaryTapDown: (details) {
-                  showSongContextMenu(
-                    context,
-                    details.globalPosition,
-                    song: song,
-                    songs: activePlaylist.songs,
-                    onMultiSelect: () => enterSongSelectionMode(song.path),
-                    onRemoveFromPlaylist: () {
-                      playlistService.removeSongsFromPlaylist(
-                        activePlaylist.id,
-                        [index],
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          ),
-        );
-      }
+      final selectedIndices = isSelectionMode
+          ? <int>{
+              for (var i = 0; i < activePlaylist.songs.length; i++)
+                if (isSongSelected(activePlaylist.songs[i].path)) i,
+            }
+          : const <int>{};
 
       return SliverPadding(
         padding: EdgeInsets.only(
@@ -435,14 +352,77 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
           bottom: MiniPlayerUiTuning.getListBottomPadding(
             context,
             hasPlayingMusic: currentMusic != null,
-            isSelectionMode: false,
+            isSelectionMode: isSelectionMode,
           ),
         ),
-        sliver: SliverGrid(
-          gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
-          delegate: SliverChildBuilderDelegate((context, index) {
+        sliver: ZoomReorderableSliverGrid(
+          metrics: metrics,
+          width: gridWidth,
+          itemCount: activePlaylist.songs.length,
+          itemKeyBuilder: (index) =>
+              ValueKey('${activePlaylist.songs[index].path}_$index'),
+          controller: _reorderController,
+          selectedIndices: selectedIndices,
+          showHandles: isSelectionMode,
+          handleChild: buildZoomReorderHandle(context),
+          previewBuilder: (context, _, count) => buildZoomReorderPreview(
+            context,
+            icon: Icons.music_note_rounded,
+            count: count,
+          ),
+          directDragPreviewBuilder: (context, index, selectedIndices) {
+            final song = activePlaylist.songs[index];
+            final count = selectedIndices.length;
+            final isBatch = count > 1;
+            final l10n = AppLocalizations.of(context)!;
+            return AppDraggablePreviewCard(
+              title: song.displayName,
+              subtitle: isBatch
+                  ? l10n.selectedSongs(count)
+                  : (song.artist?.isNotEmpty == true
+                      ? song.artist!
+                      : l10n.unknownArtist),
+              imagePath: resolveDragCoverPath(
+                thumbnailPath: song.thumbnailPath,
+                artworkPath: song.artworkPath,
+              ),
+              defaultIcon: Icons.music_note_rounded,
+              isBatch: isBatch,
+              count: count,
+            );
+          },
+          itemDragItemBuilder: (index, pickedIndices, localData, [request]) {
+            if (request != null) {
+              DropDataUtils.trackInternalDrag(request.session);
+            }
+            final song = activePlaylist.songs[index];
+            final List<String> dragPaths;
+            if (isSelectionMode && selectedIndices.contains(index)) {
+              dragPaths = [
+                for (final i in selectedIndices) activePlaylist.songs[i].path,
+              ];
+            } else {
+              dragPaths = [song.path];
+            }
+            return SongPathsPayload(paths: dragPaths).toDragItem();
+          },
+          onReorder: (draggedIndices, insertIndex) {
+            final reordered = ZoomReorderController.applyReorder(
+              activePlaylist.songs,
+              draggedIndices,
+              insertIndex,
+            );
+            unawaited(
+              playlistService.updateSongsInPlaylist(
+                activePlaylist.id,
+                reordered,
+              ),
+            );
+          },
+          itemBuilder: (context, index) {
             final song = activePlaylist.songs[index];
             final isCurrent = currentMusic?.path == song.path;
+            final isSelected = isSelectionMode && isSongSelected(song.path);
 
             return SongZoomItem(
               key: ValueKey('${song.path}_$index'),
@@ -451,23 +431,37 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
               index: index,
               isCurrent: isCurrent,
               isPlaying: isPlaying && isCurrent,
-              isSelected: false,
-              isSelectionMode: false,
-              enableDrag: true,
+              isSelected: isSelected,
+              isSelectionMode: isSelectionMode,
+              selectedPaths: selectedSongPaths,
+              enableDrag: false,
               onTap: () {
-                audio.playPlaylist(
-                  activePlaylist.songs,
-                  initialIndex: index,
-                  source: PlaybackSource(
-                    type: PlaybackSourceType.playlist,
-                    id: activePlaylist.id,
-                    name: activePlaylist.name,
-                  ),
-                );
+                if (isSelectionMode) {
+                  handleSongTap(
+                    index: index,
+                    songPath: song.path,
+                    allSongs: activePlaylist.songs,
+                    onNormalTap: () => toggleSongSelection(song.path),
+                  );
+                } else {
+                  audio.playPlaylist(
+                    activePlaylist.songs,
+                    initialIndex: index,
+                    source: PlaybackSource(
+                      type: PlaybackSourceType.playlist,
+                      id: activePlaylist.id,
+                      name: activePlaylist.name,
+                    ),
+                  );
+                }
               },
               onLongPress: () {
                 lastAnchorIndex = index;
-                enterSongSelectionMode(song.path);
+                if (isSelectionMode) {
+                  toggleSongSelection(song.path);
+                } else {
+                  enterSongSelectionMode(song.path);
+                }
               },
               onSecondaryTapDown: (details) {
                 showSongContextMenu(
@@ -485,7 +479,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                 );
               },
             );
-          }, childCount: activePlaylist.songs.length),
+          },
         ),
       );
     }
