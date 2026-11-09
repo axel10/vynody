@@ -1,8 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
+import 'package:vynody/utils/drop_data_utils.dart';
+import 'drag/drag_cover.dart';
+import 'drag/drag_payload.dart';
+import 'drag/drag_preview_card.dart';
 import 'folder_layout_utils.dart';
 import 'folder_zoom_item.dart';
 import 'song_zoom_item.dart';
@@ -183,10 +188,10 @@ class FolderSubfoldersSliver extends StatelessWidget {
       builder: (context, metrics) {
         final isGrid = metrics.isGridTarget;
 
-        // 多选整理态：条目右上角出现排序手柄，列表档与网格档共用同一个
-        // 可重排网格。槽位几何与 SliverAnimatedZoomGridDelegate 同源
-        // （ZoomReorderGeometry 取权重最大的目标层），两档表现一致。
-        if (isRoot && isSelectionMode) {
+        // 根目录视图（无论多选还是普通浏览）：只要持有可重排控制器，列表档与网格档
+        // 均共用同一个可重排网格，在桌面端支持鼠标直接拖拽重排与跨组件投递到队列抽屉。
+        // 多选模式下显示条目右上角的排序手柄。槽位几何与 SliverAnimatedZoomGridDelegate 同源。
+        if (isRoot && reorderController != null) {
           final hPad = isGrid
               ? kGridHorizontalPadding
               : folderContentHorizontalPadding(
@@ -230,10 +235,81 @@ class FolderSubfoldersSliver extends StatelessWidget {
               selectedIndices: selectedIndices,
               lockedIndices: lockedIndices,
               minInsertIndex: showSystemMedia ? 1 : 0,
-              showHandles: true,
+              showHandles: isSelectionMode,
               handleChild: buildFolderReorderHandle(context),
               previewBuilder: (context, _, count) =>
                   buildFolderReorderPreview(context, count),
+              directDragPreviewBuilder: (context, index, selectedIndices) {
+                final folder = items[index];
+                final l10n = AppLocalizations.of(context)!;
+                final isSystemFolder = folder.path == 'system';
+                final count = selectedIndices.length;
+                final isBatch = count > 1;
+                final songsCount = scanner.getSongCountForFolder(folder);
+                final representative =
+                    scanner.getRepresentativeSongForFolder(folder);
+
+                if (isBatch) {
+                  return AppDraggablePreviewCard(
+                    title: folder.name,
+                    subtitle: l10n.selectedFolders(count),
+                    defaultIcon: isSystemFolder
+                        ? Icons.library_music_rounded
+                        : Icons.folder_rounded,
+                    badgeText: '$count',
+                    count: count,
+                    isBatch: true,
+                  );
+                }
+
+                return AppDraggablePreviewCard(
+                  title: folder.name,
+                  subtitle:
+                      isSystemFolder ? l10n.systemMediaLibrary : folder.path,
+                  imagePath: resolveDragCoverPath(
+                    thumbnailPath: representative?.thumbnailPath,
+                    artworkPath: representative?.artworkPath,
+                  ),
+                  defaultIcon: isSystemFolder
+                      ? Icons.library_music_rounded
+                      : Icons.folder_rounded,
+                  badgeText:
+                      songsCount > 0 ? l10n.songsCountFormat(songsCount) : null,
+                  count: songsCount > 0 ? songsCount : 1,
+                );
+              },
+              itemDragItemBuilder:
+                  (index, pickedIndices, localData, [request]) {
+                if (request != null) {
+                  DropDataUtils.trackInternalDrag(request.session);
+                }
+                final folder = items[index];
+                if (folder.path == 'system') {
+                  return DragItem(localData: localData);
+                }
+
+                final isBatch =
+                    isSelectionMode && selectedIndices.contains(index);
+                if (isBatch) {
+                  final batch = [
+                    for (final i in selectedIndices) items[i],
+                  ];
+                  final allSongs = <String>[
+                    for (final f in batch)
+                      if (f.path != 'system')
+                        for (final s in f.allSongs) s.path,
+                  ];
+                  return FolderDragPayload(
+                    folderPath: folder.path,
+                    songPaths: allSongs,
+                  ).toDragItem();
+                }
+
+                return FolderDragPayload(
+                  folderPath: folder.path,
+                  songPaths: [for (final s in folder.allSongs) s.path],
+                ).toDragItem();
+              },
               onReorder: (draggedIndices, insertIndex) {
                 final reordered = ZoomReorderController.applyReorder(
                   items,
@@ -249,22 +325,42 @@ class FolderSubfoldersSliver extends StatelessWidget {
               itemBuilder: (context, index) {
                 final folder = items[index];
                 if (folder.path == 'system') {
+                  final songsCount =
+                      scanner.getSongCountForFolder(systemFolder);
+                  final representativeSong =
+                      scanner.getRepresentativeSongForFolder(systemFolder);
+
                   return FolderZoomItem(
+                    key: const ValueKey('folder_system'),
                     folder: systemFolder,
                     metrics: metrics,
                     index: index,
                     section: section,
-                    songsCount: scanner.getSongCountForFolder(systemFolder),
-                    representativeSong:
-                        scanner.getRepresentativeSongForFolder(systemFolder),
+                    songsCount: songsCount,
+                    representativeSong: representativeSong,
                     subtitle: hasPermission ? null : systemMediaSubtitle,
                     isSortMode: true,
-                    onTap: null,
+                    onTap: isSelectionMode
+                        ? null
+                        : () async {
+                            if (!hasPermission) {
+                              await scanner.checkAndRequestPermissions();
+                            }
+                            if (context.mounted) {
+                              onNavigateTo(systemFolder);
+                            }
+                          },
                   );
                 }
+                final folderIndex = showSystemMedia ? index - 1 : index;
                 final isSelected = selectedFolderPaths.contains(folder.path);
                 final isAvailable = scanner.isRootPathAvailable(folder.path);
+                final representativeSong =
+                    scanner.getRepresentativeSongForFolder(folder);
+                final songsCount = scanner.getSongCountForFolder(folder);
+
                 return AnimatedOpacity(
+                  key: ValueKey('folder_${folder.path}'),
                   opacity: isAvailable ? 1.0 : 0.45,
                   duration: const Duration(milliseconds: 180),
                   child: FolderZoomItem(
@@ -272,23 +368,30 @@ class FolderSubfoldersSliver extends StatelessWidget {
                     metrics: metrics,
                     index: index,
                     section: section,
-                    songsCount: scanner.getSongCountForFolder(folder),
-                    representativeSong:
-                        scanner.getRepresentativeSongForFolder(folder),
+                    songsCount: songsCount,
+                    representativeSong: representativeSong,
                     isSelected: isSelected,
-                    // 复用现成的多选视觉：网格态 checkbox 在左上角，
-                    // 与右上角的 ZoomReorderHandle 不冲突。
-                    isSelectionMode: true,
+                    isSelectionMode: isSelectionMode,
                     isSortMode: true,
                     onTap: () {
-                      final folderIndex =
-                          showSystemMedia ? index - 1 : index;
                       if (onFolderTap != null) {
                         onFolderTap!(folder, folderIndex);
-                      } else {
+                      } else if (isSelectionMode) {
                         onToggleFolderSelection?.call(folder.path);
+                      } else if (isAvailable) {
+                        onNavigateTo(folder);
                       }
                     },
+                    onLongPress: onFolderLongPress != null
+                        ? () => onFolderLongPress!(folder, folderIndex)
+                        : () {
+                            if (!isSelectionMode) {
+                              onToggleSelectionMode?.call();
+                              onToggleFolderSelection?.call(folder.path);
+                            } else {
+                              onToggleFolderSelection?.call(folder.path);
+                            }
+                          },
                     onSecondaryTapDown: (details) {
                       onShowFolderContextMenu?.call(
                         folder,

@@ -13,6 +13,8 @@ import 'pro/pro_badge.dart';
 import 'zoom_reorder_ui.dart';
 import '../player/pro/pro_license_service.dart';
 import '../player/pro/pro_models.dart';
+import '../utils/drop_data_utils.dart';
+import 'drag/drag_preview_card.dart';
 
 /// Shows a context menu or bottom sheet for a remote media server (Browse, Edit, Delete).
 Future<void> showRemoteServerContextMenu({
@@ -339,10 +341,10 @@ class RemoteServersSliver extends ConsumerWidget {
       builder: (context, metrics) {
         final isGrid = metrics.isGridTarget;
 
-        // 多选整理态：列表档与网格档共用同一个可重排网格，槽位几何与
-        // SliverAnimatedZoomGridDelegate 同源。width 必须传内容宽度
-        // （扣掉外层 SliverPadding），否则卡片宽 32px、插入位判定错位。
-        if (isSelectionMode) {
+        // 云端媒体库：只要持有可重排控制器，列表档与网格档均共用同一个可重排网格，
+        // 在桌面端支持鼠标直接拖拽排序（无需进入多选模式，且不发布歌曲载荷到队列抽屉）。
+        // 多选模式下显示条目右上角的手柄。槽位几何与 SliverAnimatedZoomGridDelegate 同源。
+        if (reorderController != null) {
           final hPad = isGrid
               ? kGridHorizontalPadding
               : folderContentHorizontalPadding(
@@ -370,10 +372,57 @@ class RemoteServersSliver extends ConsumerWidget {
               section: section,
               controller: reorderController,
               selectedIndices: selectedIndices,
-              showHandles: true,
+              showHandles: isSelectionMode,
               handleChild: buildRemoteServerReorderHandle(context),
               previewBuilder: (context, _, count) =>
                   buildRemoteServerReorderPreview(context, count),
+              directDragPreviewBuilder: (context, index, selectedIndices) {
+                final server = servers[index];
+                final count = selectedIndices.length;
+                final isBatch = count > 1;
+
+                final isSubsonic = server.type == RemoteServerType.subsonic;
+                final isJellyfin = server.type == RemoteServerType.jellyfin;
+                final isSmb = server.type == RemoteServerType.smb;
+
+                final serverIcon = isSubsonic
+                    ? Icons.library_music_rounded
+                    : (isJellyfin
+                        ? Icons.movie_filter_outlined
+                        : (isSmb
+                            ? Icons.dns_outlined
+                            : Icons.cloud_queue_rounded));
+
+                final typeLabel = isSubsonic
+                    ? 'Navidrome'
+                    : (isJellyfin ? 'Jellyfin' : (isSmb ? 'SMB' : 'WebDAV'));
+
+                if (isBatch) {
+                  return AppDraggablePreviewCard(
+                    title: server.name,
+                    subtitle: '$count',
+                    defaultIcon: Icons.cloud_queue_rounded,
+                    badgeText: '$count',
+                    count: count,
+                    isBatch: true,
+                  );
+                }
+
+                return AppDraggablePreviewCard(
+                  title: server.name,
+                  subtitle: '$typeLabel • ${server.url}',
+                  defaultIcon: serverIcon,
+                  count: 1,
+                );
+              },
+              itemDragItemBuilder:
+                  (index, pickedIndices, localData, [request]) {
+                if (request != null) {
+                  DropDataUtils.trackInternalDrag(request.session);
+                }
+                // 云端媒体库仅支持在列表内直接拖拽排序，不向队列抽屉等外部目标发布歌曲/文件载荷。
+                return DragItem(localData: localData);
+              },
               onReorder: (draggedIndices, insertIndex) {
                 final reordered = ZoomReorderController.applyReorder(
                   servers,
@@ -387,22 +436,28 @@ class RemoteServersSliver extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final server = servers[index];
                 return RemoteServerZoomItem(
+                  key: ValueKey('server_${server.id}'),
                   server: server,
                   metrics: metrics,
                   section: section,
                   index: index,
                   isProUnlocked: isProUnlocked,
                   isSelected: selectedServerIds.contains(server.id),
-                  isSelectionMode: true,
-                  onTap: () => onToggleServerSelection(server.id),
+                  isSelectionMode: isSelectionMode,
+                  onTap: isSelectionMode
+                      ? () => onToggleServerSelection(server.id)
+                      : () => onOpenServer(server),
+                  onLongPress: () => onToggleServerSelection(server.id),
                   onSecondaryTapDown: (details) {
                     showRemoteServerContextMenu(
                       context: context,
                       position: details.globalPosition,
                       server: server,
                       ref: ref,
-                      isMultiSelectMode: true,
-                      onMultiSelect: onExitSelectionMode,
+                      isMultiSelectMode: isSelectionMode,
+                      onMultiSelect: isSelectionMode
+                          ? onExitSelectionMode
+                          : () => onToggleServerSelection(server.id),
                     );
                   },
                 );

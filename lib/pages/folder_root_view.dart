@@ -555,7 +555,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             isRoot: true,
             isSelectionMode: isRootSelectionMode,
             selectedFolderPaths: widget.selectedRootPaths,
-            reorderController: _reorderController,
+            reorderController: _searchQuery.isEmpty ? _reorderController : null,
             showSystemMedia: Platform.isAndroid && _searchQuery.isEmpty,
             hasPermission: hasPermission,
             systemMediaTitle: l10n.systemMediaLibrary,
@@ -610,7 +610,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               selectedServerIds: widget.selectedServerIds,
               onToggleServerSelection: widget.onToggleServerSelection,
               onExitSelectionMode: widget.onExitCloudServerSelection,
-              reorderController: _cloudServerReorderController,
+              reorderController:
+                  _searchQuery.isEmpty ? _cloudServerReorderController : null,
               crossAxisExtent: crossAxisExtent,
               onOpenServer: (server) => _openRemoteServer(context, server),
               bottomPadding: remoteServersBottomPadding,

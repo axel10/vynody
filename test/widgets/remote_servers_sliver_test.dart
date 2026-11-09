@@ -5,7 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
+import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/widgets/remote_server_slivers.dart';
+import 'package:vynody/widgets/zoom_reorder_ui.dart';
+import 'package:zoomable_sliver_grid/zoomable_sliver_grid.dart';
 
 void main() {
   final server = RemoteServer(
@@ -17,13 +20,27 @@ void main() {
     createdAt: DateTime(2025, 1, 1),
   );
 
+  final server2 = RemoteServer(
+    id: 'server_2',
+    name: 'My Navidrome Server',
+    type: RemoteServerType.subsonic,
+    url: 'https://example.com/subsonic',
+    username: 'user2',
+    createdAt: DateTime(2025, 1, 2),
+  );
+
   Widget buildTestWidget({
     required void Function(String) onToggleServerSelection,
     bool isSelectionMode = false,
+    ZoomReorderController? reorderController,
+    List<RemoteServer>? serversList,
   }) {
     return ProviderScope(
       overrides: [
         isProUnlockedProvider.overrideWithValue(true),
+        remoteServersProvider.overrideWith(
+          () => _TestRemoteServersNotifier(serversList ?? [server, server2]),
+        ),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -32,9 +49,10 @@ void main() {
           body: CustomScrollView(
             slivers: [
               RemoteServersSliver(
-                servers: [server],
+                servers: serversList ?? [server, server2],
                 zoomScale: 0.0,
                 isSelectionMode: isSelectionMode,
+                reorderController: reorderController,
                 onToggleServerSelection: onToggleServerSelection,
                 onExitSelectionMode: () {},
                 onOpenServer: (_) {},
@@ -117,4 +135,71 @@ void main() {
     expect(find.text(l10n.browseServer), findsOneWidget);
     expect(find.text(l10n.editRemoteServer), findsOneWidget);
   });
+
+  testWidgets('非多选态下持有 reorderController 使用 ZoomReorderableSliverGrid 但隐藏手柄', (tester) async {
+    final controller = ZoomReorderController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      buildTestWidget(
+        onToggleServerSelection: (_) {},
+        isSelectionMode: false,
+        reorderController: controller,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 挂载了可重排网格
+    expect(find.byType(ZoomReorderableSliverGrid), findsOneWidget);
+    // 普通态下不显示手柄（保持界面干净）
+    expect(find.byType(ZoomReorderHandle), findsNothing);
+
+    final grid = tester.widget<ZoomReorderableSliverGrid>(
+      find.byType(ZoomReorderableSliverGrid),
+    );
+    expect(grid.showHandles, isFalse);
+    expect(grid.enableDirectDrag, isTrue);
+
+    // 验证 itemDragItemBuilder 不向外提供 paths/files 载荷（不拖到队列抽屉）
+    final dragItem = await grid.itemDragItemBuilder!(0, {0}, <String, dynamic>{});
+    expect(dragItem.localData, isA<Map<String, dynamic>>());
+    final localData = dragItem.localData as Map<String, dynamic>;
+    expect(localData.containsKey('paths'), isFalse);
+    expect(localData.containsKey('path'), isFalse);
+  });
+
+  testWidgets('多选态下持有 reorderController 显示手柄', (tester) async {
+    final controller = ZoomReorderController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      buildTestWidget(
+        onToggleServerSelection: (_) {},
+        isSelectionMode: true,
+        reorderController: controller,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ZoomReorderableSliverGrid), findsOneWidget);
+    expect(find.byType(ZoomReorderHandle), findsNWidgets(2));
+
+    final grid = tester.widget<ZoomReorderableSliverGrid>(
+      find.byType(ZoomReorderableSliverGrid),
+    );
+    expect(grid.showHandles, isTrue);
+  });
+}
+
+class _TestRemoteServersNotifier extends RemoteServersNotifier {
+  final List<RemoteServer> _initial;
+  _TestRemoteServersNotifier(this._initial);
+
+  @override
+  Future<List<RemoteServer>> build() async => _initial;
+
+  @override
+  Future<void> reorderServers(List<RemoteServer> reordered) async {
+    state = AsyncData(reordered);
+  }
 }
