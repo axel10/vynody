@@ -63,7 +63,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
     this.navigationHistory = const [],
     this.onGoBack,
     this.onLocateCurrentSong,
-    required this.onSortPressed,
+    this.onSortPressed,
     this.isSortActive = false,
     this.isSortHighlighted = false,
     this.onClearAllSelection,
@@ -83,7 +83,9 @@ class FolderHeaderNavBar extends ConsumerWidget {
   final List<MusicFolder> navigationHistory;
   final VoidCallback? onGoBack;
   final VoidCallback? onLocateCurrentSong;
-  final VoidCallback onSortPressed;
+  /// 传 null 表示本页没有独立排序入口（排序并入多选态），
+  /// 此时顶栏的排序按钮与菜单里的排序项都不渲染。
+  final VoidCallback? onSortPressed;
 
   /// 排序按钮处于「进行中的模式」（根目录拖拽排序）：图标换成对勾，带底色
   final bool isSortActive;
@@ -224,7 +226,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
               } else if (value == 'refresh') {
                 onRefresh?.call();
               } else if (value == 'sort') {
-                onSortPressed();
+                onSortPressed?.call();
               } else if (value == 'view_mode') {
                 showFolderZoomPopover(context);
               }
@@ -316,30 +318,31 @@ class FolderHeaderNavBar extends ConsumerWidget {
                     ],
                   ),
                 ),
-              PopupMenuItem(
-                value: 'sort',
-                child: Row(
-                  children: [
-                    Icon(
-                      isSortActive ? Icons.check_rounded : Icons.sort,
-                      size: 20,
-                      color: _sortHighlighted
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      l10n.sort,
-                      style: _sortHighlighted
-                          ? TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                            )
-                          : null,
-                    ),
-                  ],
+              if (onSortPressed != null)
+                PopupMenuItem(
+                  value: 'sort',
+                  child: Row(
+                    children: [
+                      Icon(
+                        isSortActive ? Icons.check_rounded : Icons.sort,
+                        size: 20,
+                        color: _sortHighlighted
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        l10n.sort,
+                        style: _sortHighlighted
+                            ? TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              )
+                            : null,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               PopupMenuItem(
                 value: 'view_mode',
                 child: Row(
@@ -436,20 +439,21 @@ class FolderHeaderNavBar extends ConsumerWidget {
             ),
           ],
           FolderZoomNavButton(style: style),
-          FolderNavIconButton(
-            style: style,
-            tooltip: l10n.sort,
-            isSelected: isSortActive,
-            icon: Icon(
-              isSortActive ? Icons.check_rounded : Icons.sort,
-              size: 20,
-              color: _sortHighlighted
-                  ? Theme.of(context).colorScheme.primary
-                  : style.iconColor,
-              shadows: _sortHighlighted ? null : style.shadows,
+          if (onSortPressed != null)
+            FolderNavIconButton(
+              style: style,
+              tooltip: l10n.sort,
+              isSelected: isSortActive,
+              icon: Icon(
+                isSortActive ? Icons.check_rounded : Icons.sort,
+                size: 20,
+                color: _sortHighlighted
+                    ? Theme.of(context).colorScheme.primary
+                    : style.iconColor,
+                shadows: _sortHighlighted ? null : style.shadows,
+              ),
+              onPressed: onSortPressed!,
             ),
-            onPressed: onSortPressed,
-          ),
           if (onRefresh != null)
             FolderNavIconButton(
               style: style,

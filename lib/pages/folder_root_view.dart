@@ -44,12 +44,15 @@ class FolderRootView extends ConsumerStatefulWidget {
     super.key,
     required this.onOpenPlayback,
     required this.isSelectionMode,
-    this.isSortMode = false,
     required this.selectedRootPaths,
+    this.isCloudServerSelectionMode = false,
+    this.selectedServerIds = const <String>{},
+    required this.onToggleServerSelection,
+    required this.onExitCloudServerSelection,
+    required this.onSelectAllCloudServers,
     required this.onPickFolder,
     required this.onToggleRootSelection,
     required this.onToggleRootSelectionMode,
-    required this.onToggleSortMode,
     required this.onDeleteSelectedRootFolders,
     required this.onNavigateTo,
     this.onLocateCurrentSong,
@@ -59,12 +62,18 @@ class FolderRootView extends ConsumerStatefulWidget {
 
   final Future<void> Function()? onOpenPlayback;
   final bool isSelectionMode;
-  final bool isSortMode;
   final Set<String> selectedRootPaths;
+
+  /// 云端媒体库段独立的多选整理态（与根目录多选互斥，由页面统一持有）。
+  final bool isCloudServerSelectionMode;
+  final Set<String> selectedServerIds;
+  final void Function(String) onToggleServerSelection;
+  final VoidCallback onExitCloudServerSelection;
+  final void Function(Iterable<String>) onSelectAllCloudServers;
+
   final VoidCallback onPickFolder;
   final void Function(String) onToggleRootSelection;
   final VoidCallback onToggleRootSelectionMode;
-  final VoidCallback onToggleSortMode;
   final Future<void> Function() onDeleteSelectedRootFolders;
   final void Function(MusicFolder) onNavigateTo;
   final VoidCallback? onLocateCurrentSong;
@@ -84,6 +93,15 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
   String _searchQuery = '';
   final ValueNotifier<bool> _showFloatingActions = ValueNotifier<bool>(false);
   int? _lastRootAnchorIndex;
+
+  /// 多选整理态的重排状态机。只在本页内共享（手势层与根目录文件夹段在
+  /// 同一个 build 里），不进 `FoldersPageState`。
+  final ZoomReorderController _reorderController = ZoomReorderController();
+
+  /// 云端媒体库段单独一个状态机：两个可重排网格不能共用，
+  /// `_syncController()` 每帧会覆盖 itemCount / selectedIndices / geometry。
+  final ZoomReorderController _cloudServerReorderController =
+      ZoomReorderController();
 
   List<MusicFile> _matchedSongs = [];
   List<MusicFolder> _matchedFolders = [];
@@ -127,6 +145,64 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     _localScrollController.addListener(_onScroll);
   }
 
+  @override
+  void didUpdateWidget(covariant FolderRootView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isCloudServerSelectionMode &&
+        !widget.isCloudServerSelectionMode) {
+      _cloudServerReorderController.cancelDrag();
+    }
+  }
+
+  /// 全量服务器列表：删除 / 编辑按 id 操作，不能被当前搜索过滤影响。
+  List<RemoteServer> get _allCloudServers =>
+      ref.read(remoteServersProvider).asData?.value ?? const <RemoteServer>[];
+
+  void _editSelectedCloudServer() {
+    if (widget.selectedServerIds.length != 1) return;
+    final id = widget.selectedServerIds.single;
+    for (final server in _allCloudServers) {
+      if (server.id == id) {
+        AddEditRemoteServerDialog.show(context, server: server, ref: ref);
+        return;
+      }
+    }
+  }
+
+  Future<void> _deleteSelectedCloudServers() async {
+    final ids = widget.selectedServerIds.toSet();
+    if (ids.isEmpty) return;
+    final targets =
+        _allCloudServers.where((s) => ids.contains(s.id)).toList();
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.delete),
+        content: Text(
+          '${targets.isEmpty ? '${ids.length}' : targets.map((s) => s.name).join('、')}'
+          '\n\n${l10n.deleteServerConfirm}',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: theme.colorScheme.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    await ref.read(remoteServersProvider.notifier).deleteServers(ids);
+    if (!mounted) return;
+    widget.onExitCloudServerSelection();
+  }
+
   void _onScroll() {
     final offset = _localScrollController.offset;
 
@@ -153,6 +229,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     _localScrollController.dispose();
     _scrollProgress.dispose();
     _showFloatingActions.dispose();
+    _reorderController.dispose();
+    _cloudServerReorderController.dispose();
     super.dispose();
   }
 
@@ -238,6 +316,13 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     final isRootSelectionMode =
         ref.watch(librarySelectionScopeProvider) ==
         LibrarySelectionScope.folderRoot;
+    // 退出多选整理态时收掉可能还在进行的拖拽，避免浮层与状态机卡住。
+    ref.listen(librarySelectionScopeProvider, (previous, next) {
+      if (previous == LibrarySelectionScope.folderRoot &&
+          next != LibrarySelectionScope.folderRoot) {
+        _reorderController.cancelDrag();
+      }
+    });
     final remoteServers =
         ref.watch(remoteServersProvider).asData?.value ?? [];
     final hasPermission = ref.watch(
@@ -336,6 +421,9 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
       builder: (context, constraints) {
         final double crossAxisExtent = constraints.maxWidth;
         return FolderZoomGestureLayer(
+          reorderActive: _reorderController.reorderActive,
+          zoomGesturesEnabled:
+              !isRootSelectionMode && !widget.isCloudServerSelectionMode,
           child: FolderZoomSliverBuilder(
             zoomScale: snapFolderZoomScale(settings.folderZoomScale),
             width: crossAxisExtent,
@@ -466,8 +554,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             scanner: scanner,
             isRoot: true,
             isSelectionMode: isRootSelectionMode,
-            isSortMode: widget.isSortMode,
             selectedFolderPaths: widget.selectedRootPaths,
+            reorderController: _reorderController,
             showSystemMedia: Platform.isAndroid && _searchQuery.isEmpty,
             hasPermission: hasPermission,
             systemMediaTitle: l10n.systemMediaLibrary,
@@ -518,7 +606,11 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               servers: matchedRemoteServers,
               zoomScale: settings.folderZoomScale,
               section: _kRemoteServerSection,
-              isSortMode: widget.isSortMode,
+              isSelectionMode: widget.isCloudServerSelectionMode,
+              selectedServerIds: widget.selectedServerIds,
+              onToggleServerSelection: widget.onToggleServerSelection,
+              onExitSelectionMode: widget.onExitCloudServerSelection,
+              reorderController: _cloudServerReorderController,
               crossAxisExtent: crossAxisExtent,
               onOpenServer: (server) => _openRemoteServer(context, server),
               bottomPadding: remoteServersBottomPadding,
@@ -579,7 +671,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     return AutoHideHeaderScope(
       enabled: false,
       forceVisible:
-          isRootSelectionMode || widget.isSortMode || _searchQuery.isNotEmpty,
+          isRootSelectionMode || _searchQuery.isNotEmpty,
       builder: (context, isHeaderVisible) => Scaffold(
         body: Stack(
           children: [
@@ -608,7 +700,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             if (isPortrait)
               FolderFloatingHeaderBar(
                 visibleListenable: _showFloatingActions,
-                isSelectionMode: isRootSelectionMode || widget.isSortMode,
+                isSelectionMode: isRootSelectionMode,
                 showBack: false,
                 contentMaxWidth: folderPageMaxWidth,
                 trailingAction: PopupMenuButton<String>(
@@ -627,9 +719,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                         case 'search':
                           _handleSearchAction();
                           break;
-                        case 'sort':
-                          widget.onToggleSortMode();
-                          break;
                         case 'locate':
                           widget.onLocateCurrentSong?.call();
                           break;
@@ -646,21 +735,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                             const Icon(Icons.search_rounded, size: 20),
                             const SizedBox(width: 12),
                             Text(l10n.search),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'sort',
-                        child: Row(
-                          children: [
-                            Icon(
-                              widget.isSortMode
-                                  ? Icons.check_rounded
-                                  : Icons.sort,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(l10n.sort),
                           ],
                         ),
                       ),
@@ -744,41 +818,27 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                       ),
               ),
             ),
-            if (widget.isSortMode && !isRootSelectionMode)
+            if (widget.isCloudServerSelectionMode)
               Positioned(
-                left: 0,
-                right: 0,
+                left: 16,
+                right: 16,
                 bottom: 24 + MediaQuery.of(context).padding.bottom,
                 child: Center(
-                  child: Material(
-                    elevation: 8,
-                    borderRadius: BorderRadius.circular(24),
-                    color: Theme.of(context).colorScheme.primary,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(24),
-                      onTap: widget.onToggleSortMode,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_rounded,
-                              size: 18,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              l10n.done,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: CloudServerSelectionPanel(
+                      selectedCount: widget.selectedServerIds.length,
+                      totalCount: matchedRemoteServers.length,
+                      onSelectAll: () => widget.onSelectAllCloudServers(
+                        matchedRemoteServers.map((s) => s.id),
                       ),
+                      onEdit: widget.selectedServerIds.length == 1
+                          ? _editSelectedCloudServer
+                          : null,
+                      onDelete: widget.selectedServerIds.isEmpty
+                          ? null
+                          : () => unawaited(_deleteSelectedCloudServers()),
+                      onCancel: widget.onExitCloudServerSelection,
                     ),
                   ),
                 ),
@@ -830,8 +890,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                       widget.onLocateCurrentSong?.call();
                     } else if (value == 'refresh') {
                       _handleRefresh();
-                    } else if (value == 'sort') {
-                      widget.onToggleSortMode();
                     }
                   },
                   itemBuilder: (context) => [
@@ -842,21 +900,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                           const Icon(Icons.search_rounded, size: 20),
                           const SizedBox(width: 12),
                           Text(l10n.search),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'sort',
-                      child: Row(
-                        children: [
-                          Icon(
-                            widget.isSortMode
-                                ? Icons.check_rounded
-                                : Icons.sort,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(l10n.sort),
                         ],
                       ),
                     ),
@@ -967,8 +1010,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         isOverlay: isOverlay,
         scrollProgress: _scrollProgress,
         onLocateCurrentSong: widget.onLocateCurrentSong,
-        onSortPressed: widget.onToggleSortMode,
-        isSortActive: widget.isSortMode,
         onRefresh: _handleRefresh,
         // 竖屏面包屑在 Banner 里；横屏仍由顶栏承载
         hideBreadcrumbs: isPortrait,

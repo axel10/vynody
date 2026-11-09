@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
-import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../dialogs/add_edit_remote_server_dialog.dart';
 import '../l10n/app_localizations.dart';
@@ -19,6 +18,8 @@ Future<void> showRemoteServerContextMenu({
   required Offset position,
   required RemoteServer server,
   required WidgetRef ref,
+  VoidCallback? onMultiSelect,
+  bool isMultiSelectMode = false,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final theme = Theme.of(context);
@@ -66,6 +67,17 @@ Future<void> showRemoteServerContextMenu({
         icon: Icons.edit_rounded,
       ),
     ],
+    // 没传回调的调用方不该看到一个点了没反应的「多选」项。
+    if (onMultiSelect != null)
+      [
+        ContextMenuAction(
+          value: isMultiSelectMode ? 'exit_multi_select' : 'multi_select',
+          label: isMultiSelectMode ? l10n.exitMultiSelect : l10n.multiSelect,
+          icon: isMultiSelectMode
+              ? Icons.close_rounded
+              : Icons.checklist_rounded,
+        ),
+      ],
     [
       ContextMenuAction(
         value: 'delete',
@@ -129,6 +141,9 @@ Future<void> showRemoteServerContextMenu({
         password: pwd ?? '',
       ),
     );
+  } else if (selected == 'multi_select' ||
+      selected == 'exit_multi_select') {
+    onMultiSelect?.call();
   } else if (selected == 'edit') {
     AddEditRemoteServerDialog.show(context, server: server, ref: ref);
   } else if (selected == 'delete') {
@@ -276,7 +291,11 @@ class RemoteServersSectionHeaderSliver extends StatelessWidget {
 class RemoteServersSliver extends ConsumerWidget {
   final List<RemoteServer> servers;
   final double zoomScale;
-  final bool isSortMode;
+  final bool isSelectionMode;
+  final Set<String> selectedServerIds;
+  final void Function(String) onToggleServerSelection;
+  final VoidCallback onExitSelectionMode;
+  final ZoomReorderController? reorderController;
   final void Function(RemoteServer server) onOpenServer;
   final double bottomPadding;
   final double? crossAxisExtent;
@@ -288,7 +307,11 @@ class RemoteServersSliver extends ConsumerWidget {
     super.key,
     required this.servers,
     required this.zoomScale,
-    this.isSortMode = false,
+    this.isSelectionMode = false,
+    this.selectedServerIds = const <String>{},
+    required this.onToggleServerSelection,
+    required this.onExitSelectionMode,
+    this.reorderController,
     required this.onOpenServer,
     this.bottomPadding = 160.0,
     this.crossAxisExtent,
@@ -314,120 +337,75 @@ class RemoteServersSliver extends ConsumerWidget {
       builder: (context, metrics) {
         final isGrid = metrics.isGridTarget;
 
-        if (isSortMode) {
-          if (isGrid) {
-            final crossAxisCount = metrics.targetGridCols;
-            final childAspectRatio = metrics.targetChildAspectRatio;
+        // 多选整理态：列表档与网格档共用同一个可重排网格，槽位几何与
+        // SliverAnimatedZoomGridDelegate 同源。width 必须传内容宽度
+        // （扣掉外层 SliverPadding），否则卡片宽 32px、插入位判定错位。
+        if (isSelectionMode) {
+          final hPad = isGrid
+              ? kGridHorizontalPadding
+              : folderContentHorizontalPadding(
+                  isPortrait: isPortrait,
+                  gridMorph: 0.0,
+                );
+          final contentWidth = width - hPad * 2;
+          final selectedIndices = <int>{
+            for (var i = 0; i < servers.length; i++)
+              if (selectedServerIds.contains(servers[i].id)) i,
+          };
 
-            return SliverPadding(
-              padding: EdgeInsets.only(
-                top: 8,
-                bottom: bottomPadding,
-                left: kGridHorizontalPadding,
-                right: kGridHorizontalPadding,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: ReorderableBuilder(
-                  onReorder: (ReorderedListFunction reorderedListFunction) {
-                    final reordered =
-                        reorderedListFunction(servers) as List<RemoteServer>;
-                    ref
-                        .read(remoteServersProvider.notifier)
-                        .reorderServers(reordered);
-                  },
-                  builder: (children) {
-                    return GridView(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: kGridCrossAxisSpacing,
-                        mainAxisSpacing: kGridMainAxisSpacing,
-                        childAspectRatio: childAspectRatio,
-                      ),
-                      children: children,
-                    );
-                  },
-                  children: servers.map((server) {
-                    return RemoteServerZoomItem(
-                      key: ValueKey('sort_server_${server.id}'),
+          return SliverPadding(
+            padding: EdgeInsets.only(
+              top: isGrid ? 8.0 : 0.0,
+              bottom: bottomPadding,
+              left: hPad,
+              right: hPad,
+            ),
+            sliver: ZoomReorderableSliverGrid(
+              metrics: metrics,
+              width: contentWidth,
+              itemCount: servers.length,
+              section: section,
+              controller: reorderController,
+              selectedIndices: selectedIndices,
+              showHandles: true,
+              handleChild: buildRemoteServerReorderHandle(context),
+              previewBuilder: (context, _, count) =>
+                  buildRemoteServerReorderPreview(context, count),
+              onReorder: (draggedIndices, insertIndex) {
+                final reordered = ZoomReorderController.applyReorder(
+                  servers,
+                  draggedIndices,
+                  insertIndex,
+                );
+                ref
+                    .read(remoteServersProvider.notifier)
+                    .reorderServers(reordered);
+              },
+              itemBuilder: (context, index) {
+                final server = servers[index];
+                return RemoteServerZoomItem(
+                  server: server,
+                  metrics: metrics,
+                  section: section,
+                  index: index,
+                  isProUnlocked: isProUnlocked,
+                  isSelected: selectedServerIds.contains(server.id),
+                  isSelectionMode: true,
+                  onTap: () => onToggleServerSelection(server.id),
+                  onContextMenu: (position) {
+                    showRemoteServerContextMenu(
+                      context: context,
+                      position: position,
                       server: server,
-                      metrics: metrics,
-                      isProUnlocked: isProUnlocked,
-                      isSortMode: true,
-                      onTap: null,
-                      onContextMenu: (position) {
-                        showRemoteServerContextMenu(
-                          context: context,
-                          position: position,
-                          server: server,
-                          ref: ref,
-                        );
-                      },
+                      ref: ref,
+                      isMultiSelectMode: true,
+                      onMultiSelect: onExitSelectionMode,
                     );
-                  }).toList(),
-                ),
-              ),
-            );
-          } else {
-            return SliverPadding(
-              padding: EdgeInsets.only(
-                top: 0,
-                bottom: bottomPadding,
-                left: isPortrait ? 4 : 8,
-                right: isPortrait ? 4 : 8,
-              ),
-              sliver: SliverReorderableList(
-                itemCount: servers.length,
-                onReorderItem: (oldIndex, newIndex) {
-                  final reordered = List<RemoteServer>.from(servers);
-                  final item = reordered.removeAt(oldIndex);
-                  reordered.insert(newIndex, item);
-                  ref
-                      .read(remoteServersProvider.notifier)
-                      .reorderServers(reordered);
-                },
-                itemBuilder: (context, index) {
-                  final server = servers[index];
-                  return ReorderableDelayedDragStartListener(
-                    key: ValueKey('sort_server_${server.id}'),
-                    index: index,
-                    child: SizedBox(
-                      height: metrics.animatedListExtent,
-                      child: RemoteServerZoomItem(
-                        server: server,
-                        metrics: metrics,
-                        isProUnlocked: isProUnlocked,
-                        isSortMode: true,
-                        trailing: ReorderableDragStartListener(
-                          index: index,
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Icon(
-                              Icons.drag_handle_rounded,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant
-                                  .withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ),
-                        onTap: null,
-                        onContextMenu: (position) {
-                          showRemoteServerContextMenu(
-                            context: context,
-                            position: position,
-                            server: server,
-                            ref: ref,
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-            );
-          }
+                  },
+                );
+              },
+            ),
+          );
         }
 
         // Unified SliverGrid for both List Mode (`gridMorph = 0.0`) and Grid Mode (`gridMorph = 1.0`)
@@ -462,15 +440,18 @@ class RemoteServersSliver extends ConsumerWidget {
                   server: server,
                   metrics: metrics,
                   section: section,
+                  index: index,
                   isProUnlocked: isProUnlocked,
-                  isSortMode: false,
                   onTap: () => onOpenServer(server),
+                  onLongPress: () => onToggleServerSelection(server.id),
                   onContextMenu: (position) {
                     showRemoteServerContextMenu(
                       context: context,
                       position: position,
                       server: server,
                       ref: ref,
+                      onMultiSelect: () =>
+                          onToggleServerSelection(server.id),
                     );
                   },
                 );
@@ -490,7 +471,9 @@ class RemoteServerZoomItem extends StatelessWidget {
   final RemoteServer server;
   final FolderZoomLayoutMetrics metrics;
   final bool isProUnlocked;
-  final bool isSortMode;
+  final bool isSelected;
+  final bool isSelectionMode;
+  final int? index;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final void Function(LongPressStartDetails)? onLongPressStart;
@@ -506,7 +489,9 @@ class RemoteServerZoomItem extends StatelessWidget {
     required this.server,
     required this.metrics,
     this.isProUnlocked = true,
-    this.isSortMode = false,
+    this.isSelected = false,
+    this.isSelectionMode = false,
+    this.index,
     this.onTap,
     this.onLongPress,
     this.onLongPressStart,
@@ -723,10 +708,59 @@ class RemoteServerZoomItem extends StatelessWidget {
     final double listTrailingEstimatedWidth =
         trailing != null ? 48.0 : (!isProUnlocked ? 130.0 : 90.0);
 
-    return ZoomItemScaffold(
+    // 多选整理态：封面层叠遮罩 + 复选框，位置与 ZoomItemCover 一致
+    // （列表态居中、网格态左上角），避开右上角的排序手柄。
+    final Widget cover;
+    if (isSelectionMode) {
+      cover = ClipRRect(
+        borderRadius: coverRadius,
+        child: Stack(
+          fit: StackFit.expand,
+          children: <Widget>[
+            coverStack,
+            Positioned.fill(
+              child: ColoredBox(
+                color: isSelected
+                    ? theme.colorScheme.primaryContainer
+                        .withValues(alpha: 0.42)
+                    : Colors.black.withValues(alpha: 0.28),
+              ),
+            ),
+            Align(
+              alignment: Alignment.lerp(
+                Alignment.center,
+                Alignment.topLeft,
+                gridMorph,
+              )!,
+              child: Padding(
+                padding: EdgeInsets.all(lerpDouble(0.0, 8.0, gridMorph)!),
+                child: SizedBox(
+                  width: 30,
+                  height: 30,
+                  child: Checkbox(
+                    value: isSelected,
+                    onChanged: (_) => onTap?.call(),
+                    fillColor: WidgetStateProperty.all(Colors.white),
+                    checkColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      cover = coverStack;
+    }
+
+    final scaffold = ZoomItemScaffold(
       metrics: metrics,
       section: section,
-      cover: coverStack,
+      index: index,
+      cover: cover,
       titleText: server.name,
       subtitleText: server.url.isEmpty ? typeLabel : server.url,
       trailing: listTrailingWidget,
@@ -737,6 +771,7 @@ class RemoteServerZoomItem extends StatelessWidget {
       onSecondaryTapDown: onSecondaryTapDown,
       onContextMenu: onContextMenu,
     );
+    return scaffold;
   }
 }
 
@@ -1085,6 +1120,135 @@ class RemoteServerListTile extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 多选整理态下条目右上角的排序手柄图标。
+Widget buildRemoteServerReorderHandle(BuildContext context) {
+  return Icon(
+    Icons.drag_handle_rounded,
+    size: 18,
+    color: Theme.of(context).colorScheme.primary,
+  );
+}
+
+/// 多条已选云服务器收拢成合集时的拖拽浮层。
+Widget buildRemoteServerReorderPreview(BuildContext context, int count) {
+  final theme = Theme.of(context);
+  return Material(
+    elevation: 8,
+    borderRadius: BorderRadius.circular(14),
+    color: theme.colorScheme.surfaceContainerHighest,
+    child: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            Icons.cloud_queue_rounded,
+            color: theme.colorScheme.primary,
+            size: 28,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$count',
+            style: theme.textTheme.titleMedium
+                ?.copyWith(color: theme.colorScheme.primary),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// 云端媒体库多选整理态的底部操作面板。
+///
+/// 只有「全选 / 编辑 / 删除 / 退出」四项；编辑仅单选可用、删除仅在有选中时可用，
+/// 用 `onPressed == null` 交给 Flutter 自动置灰，不自己画禁用态。
+class CloudServerSelectionPanel extends StatelessWidget {
+  const CloudServerSelectionPanel({
+    super.key,
+    required this.selectedCount,
+    required this.totalCount,
+    required this.onSelectAll,
+    required this.onDelete,
+    required this.onEdit,
+    required this.onCancel,
+  });
+
+  final int selectedCount;
+  final int totalCount;
+  final VoidCallback onSelectAll;
+  final VoidCallback? onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final errorColor = theme.colorScheme.error;
+    return Material(
+      elevation: 8,
+      borderRadius: BorderRadius.circular(20),
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 8, 8, 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Text(
+                    '${l10n.multiSelect}  ·  $selectedCount / $totalCount',
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: l10n.exitMultiSelect,
+                  onPressed: onCancel,
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+            Wrap(
+              spacing: 2,
+              children: <Widget>[
+                TextButton.icon(
+                  onPressed: onSelectAll,
+                  icon: const Icon(Icons.select_all_rounded, size: 18),
+                  label: Text(l10n.selectAll),
+                ),
+                TextButton.icon(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_rounded, size: 18),
+                  label: Text(l10n.edit),
+                ),
+                TextButton.icon(
+                  onPressed: onDelete,
+                  icon: Icon(
+                    Icons.delete_outline_rounded,
+                    size: 18,
+                    color: onDelete == null ? null : errorColor,
+                  ),
+                  label: Text(
+                    l10n.delete,
+                    style: onDelete == null
+                        ? null
+                        : TextStyle(color: errorColor),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

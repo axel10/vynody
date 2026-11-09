@@ -39,10 +39,13 @@ class FoldersPage extends ConsumerStatefulWidget {
 
 class FoldersPageState extends ConsumerState<FoldersPage> {
   bool _isSelectionMode = false;
-  bool _isRootSortMode = false;
   final Set<String> _selectedSongPaths = {};
   final Set<String> _selectedFolderPaths = {};
   final Set<String> _selectedRootPaths = {};
+
+  /// 云端媒体库段的多选整理态（与根目录多选互斥）。
+  bool _isCloudServerSelectionMode = false;
+  final Set<String> _selectedServerIds = <String>{};
   ScannerService? _scanner;
   late final LibrarySelectionScopeController _librarySelectionScopeController;
   late final HeroController _heroController;
@@ -68,10 +71,8 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
   }
 
   bool handleBackPressed() {
-    if (_isRootSortMode) {
-      setState(() {
-        _isRootSortMode = false;
-      });
+    if (_isCloudServerSelectionMode) {
+      _exitCloudServerSelection();
       return true;
     }
     if (_isSelectionMode ||
@@ -218,40 +219,60 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     );
   }
 
-  void _toggleRootSortMode() {
-    setState(() {
-      _isRootSortMode = !_isRootSortMode;
-      if (_isRootSortMode) {
-        _isSelectionMode = false;
-        _selectedSongPaths.clear();
-        _selectedFolderPaths.clear();
-        _selectedRootPaths.clear();
-        _setFolderSelectionMode(false);
-        _librarySelectionScopeController.clear();
-      }
-    });
-  }
-
   void _toggleRootSelectionMode() {
-    if (_isRootSortMode) {
-      setState(() {
-        _isRootSortMode = false;
-      });
-    }
     final enabled =
         ref.read(librarySelectionScopeProvider) !=
         LibrarySelectionScope.folderRoot;
     _librarySelectionScopeController.setScope(
       enabled ? LibrarySelectionScope.folderRoot : LibrarySelectionScope.none,
     );
-    if (!enabled) {
-      setState(() {
+    setState(() {
+      // 两个整理态共用页面底部区域，必须互斥，否则选择面板会叠在一起。
+      _isCloudServerSelectionMode = false;
+      _selectedServerIds.clear();
+      if (!enabled) {
         _selectedRootPaths.clear();
-      });
-    }
+      }
+    });
   }
 
-  void _clearAllSelection({bool clearSortMode = true}) {
+  /// 右键「多选」与长按共用：未进入整理态时先进入并选中该服务器。
+  void _toggleCloudServerSelection(String id) {
+    setState(() {
+      if (!_isCloudServerSelectionMode) {
+        _isCloudServerSelectionMode = true;
+        _selectedServerIds
+          ..clear()
+          ..add(id);
+        // 与根目录多选互斥。
+        _isSelectionMode = false;
+        _selectedSongPaths.clear();
+        _selectedFolderPaths.clear();
+        _selectedRootPaths.clear();
+        _setFolderSelectionMode(false);
+        _librarySelectionScopeController.clear();
+      } else if (!_selectedServerIds.remove(id)) {
+        _selectedServerIds.add(id);
+      }
+    });
+  }
+
+  void _exitCloudServerSelection() {
+    setState(() {
+      _isCloudServerSelectionMode = false;
+      _selectedServerIds.clear();
+    });
+  }
+
+  void _selectAllCloudServers(Iterable<String> ids) {
+    setState(() {
+      _selectedServerIds
+        ..clear()
+        ..addAll(ids);
+    });
+  }
+
+  void _clearAllSelection() {
     final shouldClearSongSelection =
         _isSelectionMode ||
         _selectedSongPaths.isNotEmpty ||
@@ -263,7 +284,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
         isRootSelectionMode || _selectedRootPaths.isNotEmpty;
     if (!shouldClearSongSelection &&
         !shouldClearRootSelection &&
-        (!clearSortMode || !_isRootSortMode)) {
+        !_isCloudServerSelectionMode) {
       return;
     }
 
@@ -272,9 +293,8 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       _selectedSongPaths.clear();
       _selectedFolderPaths.clear();
       _selectedRootPaths.clear();
-      if (clearSortMode) {
-        _isRootSortMode = false;
-      }
+      _isCloudServerSelectionMode = false;
+      _selectedServerIds.clear();
     });
     _setFolderSelectionMode(false);
     _librarySelectionScopeController.clear();
@@ -462,12 +482,15 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
         child: FolderRootView(
           onOpenPlayback: widget.onOpenPlayback,
           isSelectionMode: _isSelectionMode,
-          isSortMode: _isRootSortMode,
           selectedRootPaths: _selectedRootPaths,
+          isCloudServerSelectionMode: _isCloudServerSelectionMode,
+          selectedServerIds: _selectedServerIds,
+          onToggleServerSelection: _toggleCloudServerSelection,
+          onExitCloudServerSelection: _exitCloudServerSelection,
+          onSelectAllCloudServers: _selectAllCloudServers,
           onPickFolder: () => MusicFoldersDialog.show(context),
           onToggleRootSelection: _toggleRootSelection,
           onToggleRootSelectionMode: _toggleRootSelectionMode,
-          onToggleSortMode: _toggleRootSortMode,
           onDeleteSelectedRootFolders: () =>
               _deleteSelectedRootFolders(scanner),
           onNavigateTo: (folder) => _navigateTo(folder, scanner),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -42,10 +43,18 @@ class FolderZoomGestureLayer extends ConsumerStatefulWidget {
     super.key,
     required this.child,
     this.scope = LibraryZoomScope.folder,
+    this.reorderActive,
+    this.zoomGesturesEnabled = true,
   });
 
   final Widget child;
   final LibraryZoomScope scope;
+
+  /// 拖拽排序进行中为 true。传 `ZoomReorderController.reorderActive` 即可。
+  final ValueListenable<bool>? reorderActive;
+
+  /// 整段禁用缩放手势（例如排序模式下槽位几何不应换档）。
+  final bool zoomGesturesEnabled;
 
   @override
   ConsumerState<FolderZoomGestureLayer> createState() =>
@@ -81,8 +90,13 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
   int _wheelBurstDirection = 0;
   bool _wheelBurstStepped = false;
 
+  /// 拖拽重排期间、或调用方整段禁用时，任何写档位的路径都必须停住：
+  /// `ZoomReorderGeometry` 只按目标层算槽位，换档会让插入位判定失效。
+  bool get _isZoomLocked =>
+      !widget.zoomGesturesEnabled || (widget.reorderActive?.value ?? false);
+
   void _stepTier(int steps, {bool haptic = false}) {
-    if (steps == 0) return;
+    if (steps == 0 || _isZoomLocked) return;
     final settings = ref.read(settingsServiceProvider);
     final current = settings.zoomScaleFor(widget.scope);
     final stepped = stepFolderZoomScale(current, steps);
@@ -95,6 +109,7 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
   }
 
   void _commitPinchTier(double newScale) {
+    if (_isZoomLocked) return;
     final settings = ref.read(settingsServiceProvider);
     final current = settings.zoomScaleFor(widget.scope);
     final next = widget.scope.clampZoomScale(newScale);
@@ -118,6 +133,7 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
   // ── 键鼠 / 触控板滚轮 ────────────────────────────────────────────────
 
   void _handlePointerSignal(PointerSignalEvent event) {
+    if (_isZoomLocked) return;
     if (event is! PointerScrollEvent) return;
     if (!isZoomModifierPressed) return;
 
@@ -181,7 +197,7 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
   ///
   /// 统一在这里做「偏离够大才激活」的判断，避免每条路径各写一遍又写歪。
   void _pushPinchScale(double scale) {
-    if (_pinchController.isEnding) return;
+    if (_isZoomLocked || _pinchController.isEnding) return;
     if (!_pinchController.isActive) {
       if ((scale - 1.0).abs() < _kPinchActivateRatio) return;
       _startPinchGesture();

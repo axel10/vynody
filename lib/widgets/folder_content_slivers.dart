@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
@@ -111,8 +110,12 @@ class FolderSubfoldersSliver extends StatelessWidget {
   final double zoomScale;
   final ScannerService scanner;
   final bool isSelectionMode;
-  final bool isSortMode;
   final Set<String> selectedFolderPaths;
+
+  /// 多选整理态专用的重排状态机（由页面持有，缩放手势层也用同一个冻结闸）。
+  /// 勾选集合直接复用 [selectedFolderPaths]，不再另起一套状态。
+  final ZoomReorderController? reorderController;
+
   final bool isRoot;
   final bool showSystemMedia;
   final bool hasPermission;
@@ -139,8 +142,8 @@ class FolderSubfoldersSliver extends StatelessWidget {
     required this.zoomScale,
     required this.scanner,
     this.isSelectionMode = false,
-    this.isSortMode = false,
     this.selectedFolderPaths = const {},
+    this.reorderController,
     this.isRoot = false,
     this.showSystemMedia = false,
     this.hasPermission = true,
@@ -179,214 +182,123 @@ class FolderSubfoldersSliver extends StatelessWidget {
       builder: (context, metrics) {
         final isGrid = metrics.isGridTarget;
 
-        // Reorderable mode for root folders
-        if (isRoot && isSortMode && !isSelectionMode) {
-          if (isGrid) {
-            final crossAxisCount = metrics.targetGridCols;
-            final childAspectRatio = metrics.targetChildAspectRatio;
-
-            final List<MusicFolder> allFoldersWithSystem = [];
-            final systemFolder = scanner.systemMediaFolder ??
-                MusicFolder(
-                  path: 'system',
-                  name: systemMediaTitle ?? '',
+        // 多选整理态：条目右上角出现排序手柄，列表档与网格档共用同一个
+        // 可重排网格。槽位几何与 SliverAnimatedZoomGridDelegate 同源
+        // （ZoomReorderGeometry 取权重最大的目标层），两档表现一致。
+        if (isRoot && isSelectionMode) {
+          final hPad = isGrid
+              ? kGridHorizontalPadding
+              : folderContentHorizontalPadding(
+                  isPortrait: isPortrait,
+                  gridMorph: 0.0,
                 );
-            if (showSystemMedia) {
-              allFoldersWithSystem.add(systemFolder);
-            }
-            allFoldersWithSystem.addAll(folders);
+          // ZoomReorderGeometry.from 把传入宽度直接当 contentWidth，
+          // 必须扣掉外层 SliverPadding，否则卡片宽 32px、插入位判定错位；
+          // 这样也正好与 delegate 的 usableWidth 对齐（originOffsetX 为 0）。
+          final contentWidth = width - hPad * 2;
 
-            return SliverPadding(
-              padding: EdgeInsets.only(
-                top: 8,
-                bottom: paddingBottom,
-                left: kGridHorizontalPadding,
-                right: kGridHorizontalPadding,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: ReorderableBuilder(
-                  lockedIndices: showSystemMedia ? const [0] : const [],
-                  nonDraggableIndices: showSystemMedia ? const [0] : const [],
-                  onReorder: (ReorderedListFunction reorderedListFunction) {
-                    final reordered =
-                        reorderedListFunction(allFoldersWithSystem)
-                            as List<MusicFolder>;
-                    final realFolders = showSystemMedia
-                        ? reordered.where((f) => f.path != 'system').toList()
-                        : reordered;
-                    final newPaths = realFolders.map((f) => f.path).toList();
-                    unawaited(scanner.reorderRootPaths(newPaths));
-                  },
-                  builder: (children) {
-                    return GridView(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: kGridCrossAxisSpacing,
-                        mainAxisSpacing: kGridMainAxisSpacing,
-                        childAspectRatio: childAspectRatio,
-                      ),
-                      children: children,
-                    );
-                  },
-                  children: allFoldersWithSystem.map((folder) {
-                    if (folder.path == 'system') {
-                      final songsCount =
-                          scanner.getSongCountForFolder(systemFolder);
-                      final representativeSong =
-                          scanner.getRepresentativeSongForFolder(systemFolder);
+          final systemFolder = scanner.systemMediaFolder ??
+              MusicFolder(path: 'system', name: systemMediaTitle ?? '');
+          final items = <MusicFolder>[
+            if (showSystemMedia) systemFolder,
+            ...folders,
+          ];
+          final lockedIndices =
+              showSystemMedia ? const <int>{0} : const <int>{};
+          final selectedIndices = <int>{
+            for (var i = 0; i < items.length; i++)
+              if (!lockedIndices.contains(i) &&
+                  selectedFolderPaths.contains(items[i].path))
+                i,
+          };
 
-                      return AnimatedOpacity(
-                        key: const ValueKey('folder_system'),
-                        opacity: 1.0,
-                        duration: const Duration(milliseconds: 180),
-                        child: FolderZoomItem(
-                          folder: systemFolder,
-                          metrics: metrics,
-                          songsCount: songsCount,
-                          representativeSong: representativeSong,
-                          subtitle: hasPermission ? null : systemMediaSubtitle,
-                          isSortMode: true,
-                          onTap: null,
-                        ),
-                      );
-                    }
-
-                    final isAvailable =
-                        scanner.isRootPathAvailable(folder.path);
-                    final representativeSong =
-                        scanner.getRepresentativeSongForFolder(folder);
-                    final songsCount = scanner.getSongCountForFolder(folder);
-
-                    return AnimatedOpacity(
-                      key: ValueKey('folder_${folder.path}'),
-                      opacity: isAvailable ? 1.0 : 0.45,
-                      duration: const Duration(milliseconds: 180),
-                      child: FolderZoomItem(
-                        folder: folder,
-                        metrics: metrics,
-                        songsCount: songsCount,
-                        representativeSong: representativeSong,
-                        isSelected: false,
-                        isSelectionMode: false,
-                        isSortMode: true,
-                        onTap: null,
-                        onSecondaryTapDown: (details) {
-                          onShowFolderContextMenu?.call(
-                            folder,
-                            details.globalPosition,
-                            isRoot: isRoot,
-                          );
-                        },
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            );
-          } else {
-            return SliverPadding(
-              padding: EdgeInsets.only(
-                top: isRoot ? 0 : 8,
-                bottom: paddingBottom,
-                left: isPortrait ? 4 : 8,
-                right: isPortrait ? 4 : 8,
-              ),
-              sliver: SliverReorderableList(
-                itemCount: totalItemCount,
-                onReorder: (oldIndex, newIndex) {
-                  if (showSystemMedia && (oldIndex == 0 || newIndex == 0)) {
-                    return;
-                  }
-                  final realOld = showSystemMedia ? oldIndex - 1 : oldIndex;
-                  var realNew = showSystemMedia ? newIndex - 1 : newIndex;
-                  if (realNew > realOld) realNew--;
-                  unawaited(scanner.moveRootPath(realOld, realNew));
-                },
-                itemBuilder: (context, index) {
-                  if (showSystemMedia && index == 0) {
-                    final systemFolder = scanner.systemMediaFolder ??
-                        MusicFolder(
-                          path: 'system',
-                          name: systemMediaTitle ?? '',
-                        );
-                    final songsCount =
-                        scanner.getSongCountForFolder(systemFolder);
-                    final representativeSong =
-                        scanner.getRepresentativeSongForFolder(systemFolder);
-
-                    return ReorderableDelayedDragStartListener(
-                      key: const ValueKey('folder_system'),
-                      index: index,
-                      enabled: false,
-                      child: SizedBox(
-                        height: metrics.animatedListExtent,
-                        child: FolderZoomItem(
-                          folder: systemFolder,
-                          metrics: metrics,
-                          songsCount: songsCount,
-                          representativeSong: representativeSong,
-                          subtitle:
-                              hasPermission ? null : systemMediaSubtitle,
-                          onTap: null,
-                        ),
-                      ),
-                    );
-                  }
-
-                  final folderIndex = showSystemMedia ? index - 1 : index;
-                  final folder = folders[folderIndex];
-                  final isAvailable = scanner.isRootPathAvailable(folder.path);
-                  final representativeSong =
-                      scanner.getRepresentativeSongForFolder(folder);
-                  final songsCount = scanner.getSongCountForFolder(folder);
-
-                  return ReorderableDelayedDragStartListener(
-                    key: ValueKey('sort_folder_${folder.path}'),
+          return SliverPadding(
+            padding: EdgeInsets.only(
+              top: isGrid ? 8.0 : (isRoot ? 0.0 : 8.0),
+              bottom: paddingBottom,
+              left: hPad,
+              right: hPad,
+            ),
+            sliver: ZoomReorderableSliverGrid(
+              metrics: metrics,
+              width: contentWidth,
+              itemCount: items.length,
+              section: section,
+              controller: reorderController,
+              selectedIndices: selectedIndices,
+              lockedIndices: lockedIndices,
+              minInsertIndex: showSystemMedia ? 1 : 0,
+              showHandles: true,
+              handleChild: buildFolderReorderHandle(context),
+              previewBuilder: (context, _, count) =>
+                  buildFolderReorderPreview(context, count),
+              onReorder: (draggedIndices, insertIndex) {
+                final reordered = ZoomReorderController.applyReorder(
+                  items,
+                  draggedIndices,
+                  insertIndex,
+                );
+                final newPaths = reordered
+                    .where((f) => f.path != 'system')
+                    .map((f) => f.path)
+                    .toList();
+                unawaited(scanner.reorderRootPaths(newPaths));
+              },
+              itemBuilder: (context, index) {
+                final folder = items[index];
+                if (folder.path == 'system') {
+                  return FolderZoomItem(
+                    folder: systemFolder,
+                    metrics: metrics,
                     index: index,
-                    child: AnimatedOpacity(
-                      opacity: isAvailable ? 1.0 : 0.45,
-                      duration: const Duration(milliseconds: 180),
-                      child: SizedBox(
-                        height: metrics.animatedListExtent,
-                        child: FolderZoomItem(
-                          folder: folder,
-                          metrics: metrics,
-                          songsCount: songsCount,
-                          representativeSong: representativeSong,
-                          isSelected: false,
-                            isSelectionMode: false,
-                            isSortMode: true,
-                            onTap: null,
-                            trailing: ReorderableDragStartListener(
-                              index: index,
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Icon(
-                                  Icons.drag_handle_rounded,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant
-                                      .withValues(alpha: 0.7),
-                                ),
-                              ),
-                            ),
-                            onSecondaryTapDown: (details) {
-                              onShowFolderContextMenu?.call(
-                                folder,
-                                details.globalPosition,
-                                isRoot: isRoot,
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    );
-                },
-              ),
-            );
-          }
+                    section: section,
+                    songsCount: scanner.getSongCountForFolder(systemFolder),
+                    representativeSong:
+                        scanner.getRepresentativeSongForFolder(systemFolder),
+                    subtitle: hasPermission ? null : systemMediaSubtitle,
+                    isSortMode: true,
+                    onTap: null,
+                  );
+                }
+                final isSelected = selectedFolderPaths.contains(folder.path);
+                final isAvailable = scanner.isRootPathAvailable(folder.path);
+                return AnimatedOpacity(
+                  opacity: isAvailable ? 1.0 : 0.45,
+                  duration: const Duration(milliseconds: 180),
+                  child: FolderZoomItem(
+                    folder: folder,
+                    metrics: metrics,
+                    index: index,
+                    section: section,
+                    songsCount: scanner.getSongCountForFolder(folder),
+                    representativeSong:
+                        scanner.getRepresentativeSongForFolder(folder),
+                    isSelected: isSelected,
+                    // 复用现成的多选视觉：网格态 checkbox 在左上角，
+                    // 与右上角的 ZoomReorderHandle 不冲突。
+                    isSelectionMode: true,
+                    isSortMode: true,
+                    onTap: () {
+                      final folderIndex =
+                          showSystemMedia ? index - 1 : index;
+                      if (onFolderTap != null) {
+                        onFolderTap!(folder, folderIndex);
+                      } else {
+                        onToggleFolderSelection?.call(folder.path);
+                      }
+                    },
+                    onSecondaryTapDown: (details) {
+                      onShowFolderContextMenu?.call(
+                        folder,
+                        details.globalPosition,
+                        isRoot: isRoot,
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          );
         }
 
         // Unified SliverGrid for both List Mode (`gridMorph = 0.0`) and Grid Mode (`gridMorph = 1.0`)
@@ -479,7 +391,6 @@ class FolderSubfoldersSliver extends StatelessWidget {
                     representativeSong: representativeSong,
                     isSelected: isSelected,
                     isSelectionMode: isSelectionMode,
-                    isSortMode: isSortMode,
                     onTap: onFolderTap != null
                         ? (isAvailable || isSelectionMode
                             ? () => onFolderTap?.call(folder, folderIndex)
@@ -492,7 +403,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
                     onLongPress: onFolderLongPress != null
                         ? () => onFolderLongPress?.call(folder, folderIndex)
                         : () {
-                            if (!isSelectionMode && !isSortMode) {
+                            if (!isSelectionMode) {
                               onToggleSelectionMode?.call();
                               onToggleFolderSelection?.call(folder.path);
                             } else if (isSelectionMode) {
@@ -622,4 +533,44 @@ class FolderSongsSliver extends StatelessWidget {
       },
     );
   }
+}
+
+/// 多选整理态下条目右上角的排序手柄图标。
+Widget buildFolderReorderHandle(BuildContext context) {
+  return Icon(
+    Icons.drag_handle_rounded,
+    size: 18,
+    color: Theme.of(context).colorScheme.primary,
+  );
+}
+
+/// 排序模式下「多条已选根目录合成合集」的拖拽浮层。
+///
+/// 浮层尺寸由 `ZoomReorderGeometry.rectForSlot(0)` 决定，这里只负责内容；
+/// 用 [Center] 作根，在 tight 约束下会铺满整个浮层槽位。
+Widget buildFolderReorderPreview(BuildContext context, int count) {
+  final theme = Theme.of(context);
+  return Material(
+    elevation: 8,
+    borderRadius: BorderRadius.circular(14),
+    color: theme.colorScheme.surfaceContainerHighest,
+    child: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            Icons.folder_rounded,
+            color: theme.colorScheme.primary,
+            size: 28,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$count',
+            style: theme.textTheme.titleMedium
+                ?.copyWith(color: theme.colorScheme.primary),
+          ),
+        ],
+      ),
+    ),
+  );
 }

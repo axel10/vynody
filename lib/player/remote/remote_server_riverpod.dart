@@ -44,22 +44,29 @@ class RemoteServersNotifier extends AsyncNotifier<List<RemoteServer>> {
     state = AsyncData(updatedList);
   }
 
-  Future<void> deleteServer(String serverId) async {
+  Future<void> deleteServer(String serverId) => deleteServers(<String>[serverId]);
+
+  /// 批量删除：只更新一次 state，避免逐个删时列表反复重建。
+  Future<void> deleteServers(Iterable<String> serverIds) async {
+    final ids = serverIds.toSet();
+    if (ids.isEmpty) return;
     final storage = await ref.read(remoteServerStorageProvider.future);
-    await storage.deleteServer(serverId);
+    for (final id in ids) {
+      await storage.deleteServer(id);
+      try {
+        await ref
+            .read(remoteDirectoryScannerProvider)
+            .removeServerFromDatabase(id);
+      } catch (_) {}
 
-    try {
-      await ref.read(remoteDirectoryScannerProvider).removeServerFromDatabase(serverId);
-    } catch (_) {}
-
-    final activeSession = ref.read(activeRemoteSessionProvider);
-    if (activeSession?.server.id == serverId) {
-      ref.read(activeRemoteSessionProvider.notifier).clear();
+      final activeSession = ref.read(activeRemoteSessionProvider);
+      if (activeSession?.server.id == id) {
+        ref.read(activeRemoteSessionProvider.notifier).clear();
+      }
     }
 
     final currentList = state.asData?.value ?? [];
-    final updatedList = currentList.where((s) => s.id != serverId).toList();
-    state = AsyncData(updatedList);
+    state = AsyncData(currentList.where((s) => !ids.contains(s.id)).toList());
   }
 
   Future<void> reorderServers(List<RemoteServer> reorderedServers) async {
