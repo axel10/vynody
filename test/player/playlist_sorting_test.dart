@@ -38,6 +38,30 @@ void main() {
       expect(reordered, equals(['pl-b', 'pl-c', 'pl-a']));
     });
 
+    test('PlaylistService reorderPlaylists batch changes order with favorites locked at top', () async {
+      final service = PlaylistService();
+      final plA = Playlist(id: 'pl-a', name: 'Alpha');
+      final plB = Playlist(id: 'pl-b', name: 'Beta');
+      final plC = Playlist(id: 'pl-c', name: 'Gamma');
+
+      await service.addPlaylist(plA);
+      await service.addPlaylist(plB);
+      await service.addPlaylist(plC);
+
+      // Attempt to reorder placing plC, plB, plA, and favorites
+      final customList = [plC, plA, plB, ...service.playlists.where((p) => p.id == PlaylistService.favoritePlaylistId)];
+      await service.reorderPlaylists(customList);
+
+      // Favorite must always be forced to index 0
+      expect(service.playlists.first.id, equals(PlaylistService.favoritePlaylistId));
+
+      final remaining = service.playlists
+          .where((p) => p.id.startsWith('pl-'))
+          .map((p) => p.id)
+          .toList();
+      expect(remaining, equals(['pl-c', 'pl-a', 'pl-b']));
+    });
+
     test('PlaylistService sortPlaylists sorts by name ascending and descending', () async {
       final service = PlaylistService();
       final pl1 = Playlist(id: 'pl-1', name: 'Zebra');
@@ -60,9 +84,8 @@ void main() {
           .toList();
       expect(sortedAsc, equals(['Apple', 'Mango', 'Zebra']));
 
-      // Built-in favorites & default should still be at top
-      expect(service.playlists.first.id, equals('default'));
-      expect(service.playlists[1].id, equals(PlaylistService.favoritePlaylistId));
+      // Built-in favorites should still be at top
+      expect(service.playlists.first.id, equals(PlaylistService.favoritePlaylistId));
 
       // Sort by Name Descending
       await service.sortPlaylists(

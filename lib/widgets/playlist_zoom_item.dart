@@ -13,6 +13,8 @@ class PlaylistZoomItem extends StatelessWidget {
     super.key,
     required this.playlist,
     required this.metrics,
+    this.index,
+    this.section,
     this.isSelected = false,
     this.isSelectionMode = false,
     this.enableHero = true,
@@ -29,6 +31,8 @@ class PlaylistZoomItem extends StatelessWidget {
 
   final Playlist playlist;
   final FolderZoomLayoutMetrics metrics;
+  final int? index;
+  final Object? section;
   final bool isSelected;
   final bool isSelectionMode;
   final bool enableHero;
@@ -96,6 +100,8 @@ class PlaylistZoomItem extends StatelessWidget {
 
     return ZoomItemScaffold(
       metrics: metrics,
+      index: index,
+      section: section,
       cover: cover,
       titleText: localizedPlaylistName(context, playlist),
       subtitleText: subtitleText ?? l10n.songCount(playlist.songs.length),

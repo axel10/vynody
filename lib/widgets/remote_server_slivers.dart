@@ -10,6 +10,7 @@ import 'folder_layout_utils.dart';
 import 'app_context_menu.dart';
 import 'library_selection_panel.dart';
 import 'pro/pro_badge.dart';
+import 'zoom_reorder_ui.dart';
 import '../player/pro/pro_license_service.dart';
 import '../player/pro/pro_models.dart';
 
@@ -1130,38 +1131,15 @@ class RemoteServerListTile extends StatelessWidget {
 
 /// 多选整理态下条目右上角的排序手柄图标。
 Widget buildRemoteServerReorderHandle(BuildContext context) {
-  return Icon(
-    Icons.drag_handle_rounded,
-    size: 18,
-    color: Theme.of(context).colorScheme.primary,
-  );
+  return buildZoomReorderHandle(context);
 }
 
 /// 多条已选云服务器收拢成合集时的拖拽浮层。
 Widget buildRemoteServerReorderPreview(BuildContext context, int count) {
-  final theme = Theme.of(context);
-  return Material(
-    elevation: 8,
-    borderRadius: BorderRadius.circular(14),
-    color: theme.colorScheme.surfaceContainerHighest,
-    child: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(
-            Icons.cloud_queue_rounded,
-            color: theme.colorScheme.primary,
-            size: 28,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$count',
-            style: theme.textTheme.titleMedium
-                ?.copyWith(color: theme.colorScheme.primary),
-          ),
-        ],
-      ),
-    ),
+  return buildZoomReorderPreview(
+    context,
+    icon: Icons.cloud_queue_rounded,
+    count: count,
   );
 }
 

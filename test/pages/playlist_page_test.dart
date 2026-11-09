@@ -62,6 +62,14 @@ class _TestPlaylistService extends PlaylistService {
       notifyListeners();
     }
   }
+
+  @override
+  Future<void> reorderPlaylists(List<Playlist> newPlaylists) async {
+    _customPlaylists
+      ..clear()
+      ..addAll(newPlaylists);
+    notifyListeners();
+  }
 }
 
 void main() {
@@ -289,5 +297,50 @@ void main() {
     expect(find.text('曲目B'), findsOneWidget);
     expect(find.text('曲目A'), findsNothing);
     expect(container.read(selectedPlaylistIdProvider), playlistB.id);
+  });
+
+  testWidgets(
+      'PlaylistTab shows reorder drag handles in multi-selection mode and locks favorites',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    // Create favorite playlist at index 0 and two custom playlists
+    final fav = Playlist(id: PlaylistService.favoritePlaylistId, name: '收藏');
+    final p1 = await playlistService.createPlaylist('歌单1');
+    final p2 = await playlistService.createPlaylist('歌单2');
+    await playlistService.reorderPlaylists([fav, p1, p2]);
+
+    final container = ProviderContainer(
+      overrides: [
+        settingsServiceProvider.overrideWith((ref) => settingsService),
+        audioServiceProvider.overrideWith((ref) => audioService),
+        audioSnapshotProvider.overrideWith((ref) => snapshot),
+        audioCurrentMusicProvider.overrideWith((ref) => null),
+        scannerServiceProvider.overrideWith((ref) => scannerService),
+        playlistServiceProvider.overrideWith((ref) => playlistService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(buildTestWidget(container: container));
+    await tester.pumpAndSettle();
+
+    // In normal mode, no drag_handle_rounded icons should be present
+    expect(find.byIcon(Icons.drag_handle_rounded), findsNothing);
+
+    // Long press '歌单1' to enter multi-selection mode
+    await tester.longPress(find.text('歌单1'));
+    await tester.pumpAndSettle();
+
+    // Reorder drag handles should now appear for custom playlists
+    expect(find.byIcon(Icons.drag_handle_rounded), findsWidgets);
+
+    // There should be exactly 2 handles (for p1 and p2), since favorites at index 0 is locked
+    expect(find.byIcon(Icons.drag_handle_rounded), findsNWidgets(2));
   });
 }

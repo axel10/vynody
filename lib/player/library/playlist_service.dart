@@ -174,22 +174,24 @@ class PlaylistService extends ChangeNotifier {
     if (_disposed) return;
     await _healCorruptedIosPlaylistSongPaths();
     if (_disposed) return;
-    // 确保内置列表始终存在，并保持在普通列表之后。
-    final hasDefault = _playlists.any((p) => p.id == 'default');
+    // 确保收藏与默认列表始终存在，且收藏固定在首位。
     final hasFavorites = _playlists.any((p) => p.id == favoritePlaylistId);
-
-    if (!hasDefault) {
-      _playlists.insert(0, Playlist(id: 'default', name: '默认列表'));
-    }
     if (!hasFavorites) {
-      final favoriteIndex = _playlists.indexWhere((p) => p.id == 'default');
-      final insertIndex = favoriteIndex == -1
-          ? _playlists.length
-          : favoriteIndex + 1;
       _playlists.insert(
-        insertIndex,
+        0,
         Playlist(id: favoritePlaylistId, name: '收藏'),
       );
+    } else {
+      final favIdx = _playlists.indexWhere((p) => p.id == favoritePlaylistId);
+      if (favIdx > 0) {
+        final fav = _playlists.removeAt(favIdx);
+        _playlists.insert(0, fav);
+      }
+    }
+
+    final hasDefault = _playlists.any((p) => p.id == 'default');
+    if (!hasDefault) {
+      _playlists.add(Playlist(id: 'default', name: '默认列表'));
     }
 
     if (_playlists.isNotEmpty &&
@@ -630,11 +632,26 @@ class PlaylistService extends ChangeNotifier {
     }
   }
 
+  /// 批量重新排序播放列表 (拖拽排序 / 多选整理)
+  Future<void> reorderPlaylists(List<Playlist> newPlaylists) async {
+    _playlists
+      ..clear()
+      ..addAll(newPlaylists);
+    // 确保收藏列表固定在首位
+    final favIdx = _playlists.indexWhere((p) => p.id == favoritePlaylistId);
+    if (favIdx > 0) {
+      final fav = _playlists.removeAt(favIdx);
+      _playlists.insert(0, fav);
+    }
+    notifyListeners();
+    await _savePlaylists();
+  }
+
   /// 按规则排序播放列表
   Future<void> sortPlaylists({
     required PlaylistSortField field,
     required bool ascending,
-    bool pinFavoritesAndDefault = true,
+    bool pinFavorites = true,
   }) async {
     if (field == PlaylistSortField.custom) return;
 
@@ -642,19 +659,12 @@ class PlaylistService extends ChangeNotifier {
     final List<Playlist> normal = [];
 
     for (final p in _playlists) {
-      if (pinFavoritesAndDefault &&
-          (p.id == favoritePlaylistId || p.id == 'default')) {
+      if (pinFavorites && p.id == favoritePlaylistId) {
         pinned.add(p);
       } else {
         normal.add(p);
       }
     }
-
-    pinned.sort((a, b) {
-      if (a.id == 'default') return -1;
-      if (b.id == 'default') return 1;
-      return 0;
-    });
 
     int Function(Playlist, Playlist) comparator;
     switch (field) {

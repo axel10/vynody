@@ -6,6 +6,7 @@ import 'package:vynody/player/scanner/scanner_service.dart';
 import 'folder_layout_utils.dart';
 import 'folder_zoom_item.dart';
 import 'song_zoom_item.dart';
+import 'zoom_reorder_ui.dart';
 
 /// Renders an empty search results placeholder sliver.
 class FolderEmptySearchResultsSliver extends StatelessWidget {
@@ -538,40 +539,14 @@ class FolderSongsSliver extends StatelessWidget {
 
 /// 多选整理态下条目右上角的排序手柄图标。
 Widget buildFolderReorderHandle(BuildContext context) {
-  return Icon(
-    Icons.drag_handle_rounded,
-    size: 18,
-    color: Theme.of(context).colorScheme.primary,
-  );
+  return buildZoomReorderHandle(context);
 }
 
 /// 排序模式下「多条已选根目录合成合集」的拖拽浮层。
-///
-/// 浮层尺寸由 `ZoomReorderGeometry.rectForSlot(0)` 决定，这里只负责内容；
-/// 用 [Center] 作根，在 tight 约束下会铺满整个浮层槽位。
 Widget buildFolderReorderPreview(BuildContext context, int count) {
-  final theme = Theme.of(context);
-  return Material(
-    elevation: 8,
-    borderRadius: BorderRadius.circular(14),
-    color: theme.colorScheme.surfaceContainerHighest,
-    child: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(
-            Icons.folder_rounded,
-            color: theme.colorScheme.primary,
-            size: 28,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$count',
-            style: theme.textTheme.titleMedium
-                ?.copyWith(color: theme.colorScheme.primary),
-          ),
-        ],
-      ),
-    ),
+  return buildZoomReorderPreview(
+    context,
+    icon: Icons.folder_rounded,
+    count: count,
   );
 }

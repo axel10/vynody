@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +22,7 @@ import '../widgets/library_toolbar_buttons.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/playlist_context_menu.dart';
 import '../widgets/playlist_zoom_item.dart';
+import '../widgets/zoom_reorder_ui.dart';
 import 'main_layout_riverpod.dart';
 import 'playlist_detail_page.dart';
 
@@ -51,6 +54,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
 
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+  final ZoomReorderController _reorderController = ZoomReorderController();
   String _searchQuery = '';
   PlaylistSortField _sortField = PlaylistSortField.updatedAt;
   bool _sortAscending = false;
@@ -76,6 +80,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
 
   @override
   void dispose() {
+    _reorderController.dispose();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -315,6 +320,15 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
     });
 
     final l10n = AppLocalizations.of(context)!;
+
+    // 退出多选整理态时收掉可能还在进行的拖拽，避免浮层与状态机卡住。
+    ref.listen(librarySelectionScopeProvider, (previous, next) {
+      if (previous == LibrarySelectionScope.playlist &&
+          next != LibrarySelectionScope.playlist) {
+        _reorderController.cancelDrag();
+      }
+    });
+
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final playlistService = ref.watch(playlistServiceProvider);
@@ -341,6 +355,8 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
       child: Stack(
         children: [
           FolderZoomGestureLayer(
+            reorderActive: _reorderController.reorderActive,
+            zoomGesturesEnabled: !isSelectionMode,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
@@ -419,6 +435,18 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                             gridMorph: metrics.gridMorph,
                           );
 
+                          final isSortable =
+                              isSelectionMode && _searchQuery.isEmpty;
+                          final hasFavoriteAt0 = playlists.isNotEmpty &&
+                              playlists.first.id ==
+                                  PlaylistService.favoritePlaylistId;
+                          final selectedIndices = <int>{
+                            for (var i = 0; i < playlists.length; i++)
+                              if (isSelected(playlists[i].id)) i,
+                          };
+
+                          final contentWidth = width - 2 * hPad;
+
                           return SliverPadding(
                             padding: EdgeInsets.only(
                               left: hPad,
@@ -430,79 +458,174 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                                 isSelectionMode: isSelectionMode,
                               ),
                             ),
-                            sliver: SliverGrid(
-                              gridDelegate: SliverAnimatedZoomGridDelegate(
-                                metrics: metrics,
-                              ),
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                index,
-                              ) {
-                                final pl = playlists[index];
-                                final isPlSelected = isSelected(pl.id);
-                                final selectedPlaylistsList = isSelectionMode
-                                    ? playlists
-                                          .where((p) => isSelected(p.id))
-                                          .toList()
-                                    : null;
-
-                                return DraggablePlaylistItem(
-                                  playlist: pl,
-                                  isSelectionMode: isSelectionMode,
-                                  isSelected: isPlSelected,
-                                  selectedPlaylists: selectedPlaylistsList,
-                                  child: PlaylistZoomItem(
-                                    playlist: pl,
+                            sliver: isSortable
+                                ? ZoomReorderableSliverGrid(
                                     metrics: metrics,
-                                    isSelected: isPlSelected,
-                                    isSelectionMode: isSelectionMode,
-                                    enableHero: true,
-                                    onTap: () {
-                                      handleItemTap(
-                                        index: index,
-                                        itemKey: pl.id,
-                                        allKeys: playlists
-                                            .map((p) => p.id)
-                                            .toList(),
-                                        onNormalTap: () =>
-                                            _openPlaylistDetail(pl),
+                                    width: contentWidth,
+                                    itemCount: playlists.length,
+                                    itemKeyBuilder: (index) =>
+                                        ValueKey<String>(playlists[index].id),
+                                    controller: _reorderController,
+                                    selectedIndices: selectedIndices,
+                                    lockedIndices:
+                                        hasFavoriteAt0 ? const {0} : const {},
+                                    minInsertIndex: hasFavoriteAt0 ? 1 : 0,
+                                    showHandles: true,
+                                    handleChild:
+                                        buildZoomReorderHandle(context),
+                                    previewBuilder: (context, _, count) =>
+                                        buildZoomReorderPreview(
+                                          context,
+                                          icon: Icons.queue_music_rounded,
+                                          count: count,
+                                        ),
+                                    onReorder: (draggedIndices, insertIndex) {
+                                      final reordered =
+                                          ZoomReorderController.applyReorder(
+                                        playlists,
+                                        draggedIndices,
+                                        insertIndex,
+                                      );
+                                      settings.playlistSortField =
+                                          PlaylistSortField.custom;
+                                      setState(() {
+                                        _sortField = PlaylistSortField.custom;
+                                      });
+                                      unawaited(
+                                        playlistService.reorderPlaylists(
+                                          reordered,
+                                        ),
                                       );
                                     },
-                                    onLongPress: () {
-                                      lastAnchorIndex = index;
-                                      if (isSelectionMode) {
-                                        toggleSelection(pl.id);
-                                      } else {
-                                        enterSelectionMode(pl.id);
-                                      }
+                                    itemBuilder: (context, index) {
+                                      final pl = playlists[index];
+                                      final isPlSelected = isSelected(pl.id);
+
+                                      return PlaylistZoomItem(
+                                        playlist: pl,
+                                        metrics: metrics,
+                                        index: index,
+                                        isSelected: isPlSelected,
+                                        isSelectionMode: true,
+                                        enableHero: false,
+                                        onTap: () {
+                                          handleItemTap(
+                                            index: index,
+                                            itemKey: pl.id,
+                                            allKeys: playlists
+                                                .map((p) => p.id)
+                                                .toList(),
+                                            onNormalTap: () =>
+                                                toggleSelection(pl.id),
+                                          );
+                                        },
+                                        onLongPress: () {
+                                          lastAnchorIndex = index;
+                                          toggleSelection(pl.id);
+                                        },
+                                        onSecondaryTapDown: (details) {
+                                          showPlaylistContextMenu(
+                                            context: context,
+                                            globalPosition:
+                                                details.globalPosition,
+                                            ref: ref,
+                                            playlist: pl,
+                                            onMultiSelect: (id) =>
+                                                enterSelectionMode(id),
+                                            onViewDetails: () =>
+                                                _openPlaylistDetail(pl),
+                                          );
+                                        },
+                                        onPlay: () => audio.playPlaylist(
+                                          pl.songs,
+                                          source: PlaybackSource(
+                                            type: PlaybackSourceType.playlist,
+                                            id: pl.id,
+                                            name: pl.name,
+                                          ),
+                                        ),
+                                      );
                                     },
-                                    onSecondaryTapDown: (details) {
-                                      if (!isSelectionMode) {
-                                        showPlaylistContextMenu(
-                                          context: context,
-                                          globalPosition:
-                                              details.globalPosition,
-                                          ref: ref,
-                                          playlist: pl,
-                                          onMultiSelect: (id) =>
-                                              enterSelectionMode(id),
-                                          onViewDetails: () =>
-                                              _openPlaylistDetail(pl),
-                                        );
-                                      }
-                                    },
-                                    onPlay: () => audio.playPlaylist(
-                                      pl.songs,
-                                      source: PlaybackSource(
-                                        type: PlaybackSourceType.playlist,
-                                        id: pl.id,
-                                        name: pl.name,
-                                      ),
+                                  )
+                                : SliverGrid(
+                                    gridDelegate:
+                                        SliverAnimatedZoomGridDelegate(
+                                      metrics: metrics,
                                     ),
+                                    delegate: SliverChildBuilderDelegate((
+                                      context,
+                                      index,
+                                    ) {
+                                      final pl = playlists[index];
+                                      final isPlSelected = isSelected(pl.id);
+                                      final selectedPlaylistsList =
+                                          isSelectionMode
+                                              ? playlists
+                                                  .where(
+                                                    (p) => isSelected(p.id),
+                                                  )
+                                                  .toList()
+                                              : null;
+
+                                      return DraggablePlaylistItem(
+                                        playlist: pl,
+                                        isSelectionMode: isSelectionMode,
+                                        isSelected: isPlSelected,
+                                        selectedPlaylists:
+                                            selectedPlaylistsList,
+                                        child: PlaylistZoomItem(
+                                          playlist: pl,
+                                          metrics: metrics,
+                                          index: index,
+                                          isSelected: isPlSelected,
+                                          isSelectionMode: isSelectionMode,
+                                          enableHero: true,
+                                          onTap: () {
+                                            handleItemTap(
+                                              index: index,
+                                              itemKey: pl.id,
+                                              allKeys: playlists
+                                                  .map((p) => p.id)
+                                                  .toList(),
+                                              onNormalTap: () =>
+                                                  _openPlaylistDetail(pl),
+                                            );
+                                          },
+                                          onLongPress: () {
+                                            lastAnchorIndex = index;
+                                            if (isSelectionMode) {
+                                              toggleSelection(pl.id);
+                                            } else {
+                                              enterSelectionMode(pl.id);
+                                            }
+                                          },
+                                          onSecondaryTapDown: (details) {
+                                            if (!isSelectionMode) {
+                                              showPlaylistContextMenu(
+                                                context: context,
+                                                globalPosition:
+                                                    details.globalPosition,
+                                                ref: ref,
+                                                playlist: pl,
+                                                onMultiSelect: (id) =>
+                                                    enterSelectionMode(id),
+                                                onViewDetails: () =>
+                                                    _openPlaylistDetail(pl),
+                                              );
+                                            }
+                                          },
+                                          onPlay: () => audio.playPlaylist(
+                                            pl.songs,
+                                            source: PlaybackSource(
+                                              type: PlaybackSourceType.playlist,
+                                              id: pl.id,
+                                              name: pl.name,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }, childCount: playlists.length),
                                   ),
-                                );
-                              }, childCount: playlists.length),
-                            ),
                           );
                         },
                       ),
@@ -555,7 +678,10 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
               hasSelectableItems: playlists.isNotEmpty,
               onToggleSelectAll: () =>
                   toggleSelectAll(playlists.map((p) => p.id)),
-              onCancel: cancelSelection,
+              onCancel: () {
+                _reorderController.cancelDrag();
+                cancelSelection();
+              },
               deleteLabel: l10n.deletePlaylists,
               onDelete: isCustomPlaylists.isNotEmpty
                   ? () async {
