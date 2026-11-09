@@ -51,7 +51,10 @@ class DragSource extends StatelessWidget {
         DropDataUtils.trackInternalDrag(request.session);
         return buildPayload().toDragItem();
       },
-      dragBuilder: (context, child) => buildPreview(context),
+      dragBuilder: (context, child) => SnapshotSettings(
+        constraintsTransform: (constraints) => const BoxConstraints(),
+        child: buildPreview(context),
+      ),
       child: DraggableWidget(
         hitTestBehavior: HitTestBehavior.translucent,
         child: child,
