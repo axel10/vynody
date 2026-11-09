@@ -59,6 +59,34 @@ void main() {
     expect(deleteButton.onPressed, isNull);
   });
 
+  testWidgets('GenericSelectionPanel defaults to 4 columns and pads remaining slots when actions < 4', (tester) async {
+    final threeActions = [
+      SelectionActionItem(icon: Icons.select_all, label: '全选', onPressed: () {}),
+      SelectionActionItem(icon: Icons.edit, label: '编辑', onPressed: () {}),
+      SelectionActionItem(icon: Icons.delete, label: '删除', onPressed: () {}),
+    ];
+
+    await tester.pumpWidget(
+      _wrap(
+        GenericSelectionPanel(
+          title: '已选 1 项',
+          onCancel: () {},
+          actions: threeActions,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 默认排布为 4 列，整行应包含 4 个 Expanded（3 个操作按钮 + 1 个占位）
+    final expandedWidgets = tester.widgetList<Expanded>(
+      find.descendant(
+        of: find.byType(Row).last,
+        matching: find.byType(Expanded),
+      ),
+    );
+    expect(expandedWidgets.length, 4);
+  });
+
   testWidgets('GenericSelectionPanel shows scrollbar when actions exceed 2 rows', (tester) async {
     final manyActions = List.generate(
       12,

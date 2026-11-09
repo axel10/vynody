@@ -215,5 +215,48 @@ void main() {
       equals(const EdgeInsets.fromLTRB(16, 0, 16, 20.0)),
     );
   });
+
+  testWidgets(
+      'LibrarySelectionPanel with customActions defaults to 4 columns',
+      (tester) async {
+    final customActions = [
+      SelectionActionItem(icon: Icons.select_all, label: '全选', onPressed: () {}),
+      SelectionActionItem(icon: Icons.edit, label: '编辑', onPressed: () {}),
+      SelectionActionItem(icon: Icons.delete, label: '删除', onPressed: () {}),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
+          home: Scaffold(
+            body: LibrarySelectionPanel(
+              customActions: customActions,
+              onCancel: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final genericPanel = tester.widget<GenericSelectionPanel>(
+      find.descendant(
+        of: find.byType(LibrarySelectionPanel),
+        matching: find.byType(GenericSelectionPanel),
+      ),
+    );
+    expect(genericPanel.columns, 4);
+
+    final expandedWidgets = tester.widgetList<Expanded>(
+      find.descendant(
+        of: find.byType(Row).last,
+        matching: find.byType(Expanded),
+      ),
+    );
+    expect(expandedWidgets.length, 4);
+  });
 }
 

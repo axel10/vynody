@@ -44,9 +44,7 @@ class GenericSelectionPanel extends StatefulWidget {
   /// 操作按钮列表。
   final List<SelectionActionItem> actions;
 
-  /// 每行显示的列数。不传时：
-  /// - 若动作总数 ≤ 4，则自动等分（如 3 个动作各占 1/3 宽度）；
-  /// - 若动作总数 > 4，则默认按 4 列网格排布。
+  /// 每行显示的列数。不传时默认按 4 列网格排布，不足 4 列时末尾留空。
   final int? columns;
 
   @override
@@ -76,8 +74,7 @@ class _GenericSelectionPanelState extends State<GenericSelectionPanel> {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
-    final int columnCount = widget.columns ??
-        (widget.actions.length <= 4 ? (widget.actions.isEmpty ? 1 : widget.actions.length) : 4);
+    final int columnCount = widget.columns ?? 4;
 
     final actionRows = <Widget>[];
     for (var i = 0; i < widget.actions.length; i += columnCount) {

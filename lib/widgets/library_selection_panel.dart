@@ -97,7 +97,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
         title: title ?? l10n.selectedSongs(selectedSongs.length),
         onCancel: onCancel,
         actions: customActions!,
-        columns: columns,
+        columns: columns ?? 4,
       );
     }
 
@@ -368,7 +368,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
       title: title ?? l10n.selectedSongs(selectedSongs.length),
       onCancel: onCancel,
       actions: actions,
-      columns: 4,
+      columns: columns ?? 4,
     );
   }
 }
