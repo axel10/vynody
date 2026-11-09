@@ -125,12 +125,11 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
         ) ??
         widget.playlist;
 
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
-    final isLandscape = !isPortrait;
-    final double leftPadding = isLandscape
-        ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width))
-        : 0.0;
+    final size = MediaQuery.sizeOf(context);
+    final isLandscape = ref.watch(isEffectiveLandscapeProvider(size));
+    final isPortrait = !isLandscape;
+    final double leftPadding =
+        ref.watch(effectiveSidebarRailWidthProvider(size));
 
     final selectedSongs = isSelectionMode
         ? getSelectedSongs(activePlaylist.songs)

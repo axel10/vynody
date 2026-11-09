@@ -217,10 +217,10 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
     final theme = Theme.of(context);
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
     final mediaSize = MediaQuery.sizeOf(context);
-    final bool isShortLandscape = !isPortrait && (mediaSize.height < 500);
+    final isLandscape = ref.watch(isEffectiveLandscapeProvider(mediaSize));
+    final isPortrait = !isLandscape;
+    final bool isShortLandscape = isLandscape && (mediaSize.height < 500);
     final double leftColWidth = (mediaSize.width * 0.36).clamp(240.0, 310.0);
     final modalRoute = ModalRoute.of(context);
     final bool isRoutePopping = _isPopping ||
@@ -535,12 +535,9 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
       ],
     );
 
-    final isLandscape = !isPortrait;
-    final bool isCoverFlowImmersive = ref.watch(isCoverFlowImmersiveActiveProvider);
-    final double leftPadding =
-        (isLandscape && !isCoverFlowImmersive && !isShortLandscape)
-            ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width))
-            : 0.0;
+    final double leftPadding = isShortLandscape
+        ? 0.0
+        : ref.watch(effectiveSidebarRailWidthProvider(mediaSize));
 
     final page = NotificationListener<ScrollNotification>(
       onNotification: (notification) {

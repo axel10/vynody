@@ -6,7 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/pro/pro_license_service.dart';
+import 'package:vynody/pages/main_layout_riverpod.dart';
 import 'package:vynody/utils/layout_constants.dart';
+import 'package:vynody/widgets/playback_ui_tuning.dart';
 
 const double kDefaultRegularMinWindowWidth = 400.0;
 const double kDefaultRegularMinWindowHeight = 650.0;
@@ -270,3 +273,38 @@ final sidebarRailWidthProvider = Provider.family<double, double>((ref, windowWid
 /// 标记是否正在拖拽 Rail 栏边缘
 final isDraggingSidebarRailProvider =
     NotifierProvider<DraggingStateNotifier, bool>(DraggingStateNotifier.new);
+
+/// 当前主内容区是否处于有效横屏模式的响应式 Provider（输入当前窗口 Size）
+/// 考虑了：桌面端小窗模式、以及桌面端展开右侧抽屉后扣减的有效宽度
+final isEffectiveLandscapeProvider =
+    Provider.family<bool, Size>((ref, windowSize) {
+  final isDesktop =
+      !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+  final isSmallWin = PlaybackPageUiTuning.isSmallWindow(
+    windowSize,
+    isWaveformEnabled: ref.watch(isEffectiveWaveformEnabledProvider),
+    isSmallWindowMode:
+        ref.watch(settingsServiceProvider.select((s) => s.isSmallWindowMode)),
+  );
+  if (isSmallWin) return false;
+  final bool isDrawerOpen = isDesktop && ref.watch(rightQueueDrawerProvider);
+  final double rightDrawerWidth =
+      isDrawerOpen ? ref.watch(rightQueueDrawerWidthProvider) : 0.0;
+  final double effectiveWidth = windowSize.width - rightDrawerWidth;
+  return effectiveWidth > windowSize.height;
+});
+
+/// 当前左侧 Rail 栏实际有效避让宽度的响应式 Provider（输入当前窗口 Size）
+/// 仅当主内容区处于有效横屏且未处于 CoverFlow 沉浸全屏时，才返回 Rail 栏宽度；
+/// 其余情况（竖屏、Dock 栏模式、全屏沉浸等）返回 0.0
+final effectiveSidebarRailWidthProvider =
+    Provider.family<double, Size>((ref, windowSize) {
+  final isLandscape = ref.watch(isEffectiveLandscapeProvider(windowSize));
+  final isCoverFlowImmersive =
+      isLandscape && ref.watch(isCoverFlowImmersiveActiveProvider);
+  final useSidebar = isLandscape && !isCoverFlowImmersive;
+  if (!useSidebar) {
+    return 0.0;
+  }
+  return ref.watch(sidebarRailWidthProvider(windowSize.width));
+});

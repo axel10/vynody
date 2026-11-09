@@ -184,15 +184,15 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
     return MaterialPageRoute<void>(
       settings: const RouteSettings(name: 'library_dashboard'),
       builder: (context) {
-        final isLandscape =
-            MediaQuery.of(context).orientation == Orientation.landscape;
+        final size = MediaQuery.sizeOf(context);
+        final isLandscape = ref.watch(isEffectiveLandscapeProvider(size));
         final double safeTop = getTitleBarTopPadding(
           context,
           defaultWindowPadding: isLandscape ? 32.0 : 36.0,
         );
         final double topPadding = isLandscape ? (safeTop + 8.0) : safeTop;
         final double leftPadding =
-            isLandscape ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width)) : 0.0;
+            ref.watch(effectiveSidebarRailWidthProvider(size));
 
         return LibraryDashboardView(
           contentTopPadding: topPadding,
@@ -408,11 +408,11 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final orientation = MediaQuery.of(context).orientation;
-    final bool isLandscape = orientation == Orientation.landscape;
+    final size = MediaQuery.sizeOf(context);
+    final bool isLandscape = ref.watch(isEffectiveLandscapeProvider(size));
 
     final double railWidth =
-        isLandscape ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width)) : 0.0;
+        ref.watch(effectiveSidebarRailWidthProvider(size));
     final double headerHeight = AppTopNavBar.getBarHeight(context);
 
     final int? activeIndex = ref.watch(libraryActiveTabIndexProvider);
@@ -557,16 +557,15 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
   Widget _buildSubTabRoot(int index) {
     return Builder(
       builder: (tabContext) {
-        final bool isLandscape =
-            MediaQuery.of(tabContext).orientation == Orientation.landscape;
+        final size = MediaQuery.sizeOf(tabContext);
+        final bool isLandscape = ref.watch(isEffectiveLandscapeProvider(size));
         final double safeTop = getTitleBarTopPadding(
           tabContext,
           defaultWindowPadding: isLandscape ? 32.0 : 36.0,
         );
         final double topPadding = isLandscape ? (safeTop + 8.0) : safeTop;
-        final double leftPadding = isLandscape
-            ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(tabContext).size.width))
-            : 0.0;
+        final double leftPadding =
+            ref.watch(effectiveSidebarRailWidthProvider(size));
         return LibrarySubHostScope(
           onBack: _handleSubHostBack,
           topPadding: topPadding,

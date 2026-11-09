@@ -62,10 +62,9 @@ class _DetailPageShellState extends ConsumerState<DetailPageShell> {
   @override
   Widget build(BuildContext context) {
     final double barHeight = DetailPageShell.getBarHeight(context);
-    final bool isLandscape =
-        MediaQuery.orientationOf(context) == Orientation.landscape;
+    final size = MediaQuery.sizeOf(context);
     final double leftPadding =
-        isLandscape ? ref.watch(sidebarRailWidthProvider(MediaQuery.sizeOf(context).width)) : 0.0;
+        ref.watch(effectiveSidebarRailWidthProvider(size));
 
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
