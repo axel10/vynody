@@ -1706,16 +1706,22 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     final updatedRoots = [..._roots.rootPaths];
     final movedPath = updatedRoots.removeAt(oldIndex);
     updatedRoots.insert(newIndex, movedPath);
-    await _roots.setRootPaths(updatedRoots);
+    _roots.updateRootPathsInMemory(updatedRoots);
     _rebuildDisplayedRootFolders();
     notifyListeners();
+
+    await _roots.saveRootPaths();
+    await _roots.refreshRootWatchers();
     _restartFullRootScan();
   }
 
   Future<void> reorderRootPaths(List<String> newOrder) async {
-    await _roots.setRootPaths(newOrder);
+    _roots.updateRootPathsInMemory(newOrder);
     _rebuildDisplayedRootFolders();
     notifyListeners();
+
+    await _roots.saveRootPaths();
+    await _roots.refreshRootWatchers();
     _restartFullRootScan();
   }
 

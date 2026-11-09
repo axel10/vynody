@@ -179,6 +179,19 @@ void main() {
       expect(normalizedList.length, 1);
       expect(normalizedList.first, withoutPrivate);
     });
+
+    test('updateRootPathsInMemory synchronously updates rootPaths and notifies mutation', () {
+      var mutated = false;
+      final roots = ScannerServiceRoots(
+        isDisposed: () => false,
+        onPathChanged: (_) {},
+        onRootsMutated: () => mutated = true,
+      );
+
+      roots.updateRootPathsInMemory(['/music/b', '/music/a']);
+      expect(roots.rootPaths, ['/music/b', '/music/a']);
+      expect(mutated, isTrue);
+    });
   });
 }
 

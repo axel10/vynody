@@ -104,13 +104,17 @@ class ScannerServiceRoots {
     ScannerPathUtils.setExternalRoots(_rootPaths);
   }
 
-  Future<void> setRootPaths(Iterable<String> paths) async {
+  void updateRootPathsInMemory(Iterable<String> paths) {
     final normalizedRoots = ScannerPathUtils.normalizeDeclaredRootPaths(paths);
     _rootPaths
       ..clear()
       ..addAll(normalizedRoots);
     ScannerPathUtils.setExternalRoots(_rootPaths);
     _onRootsMutated?.call();
+  }
+
+  Future<void> setRootPaths(Iterable<String> paths) async {
+    updateRootPathsInMemory(paths);
     await saveRootPaths();
     await refreshRootWatchers();
   }

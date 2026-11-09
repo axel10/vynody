@@ -223,6 +223,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
               metrics: metrics,
               width: contentWidth,
               itemCount: items.length,
+              itemKeyBuilder: (index) => ValueKey<String>(items[index].path),
               section: section,
               controller: reorderController,
               selectedIndices: selectedIndices,

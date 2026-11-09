@@ -365,6 +365,7 @@ class RemoteServersSliver extends ConsumerWidget {
               metrics: metrics,
               width: contentWidth,
               itemCount: servers.length,
+              itemKeyBuilder: (index) => ValueKey<String>(servers[index].id),
               section: section,
               controller: reorderController,
               selectedIndices: selectedIndices,
