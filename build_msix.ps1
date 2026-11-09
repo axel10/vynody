@@ -12,6 +12,38 @@ if ($args -contains "--Local" -or $args -contains "--Sign" -or $args -contains "
 # Clean up debug JIT cache (kernel_blob.bin ~105MB) from previous flutter run
 Remove-Item -Force -ErrorAction SilentlyContinue "build/flutter_assets/kernel_blob.bin", "build/windows/x64/runner/Release/data/flutter_assets/kernel_blob.bin"
 
+# Resolve LASTFM_SECRET if not explicitly set in current shell session
+if (-not $env:LASTFM_SECRET) {
+    $userEnv = [Environment]::GetEnvironmentVariable("LASTFM_SECRET", "User")
+    if ($userEnv) {
+        $env:LASTFM_SECRET = $userEnv
+    } else {
+        $machineEnv = [Environment]::GetEnvironmentVariable("LASTFM_SECRET", "Machine")
+        if ($machineEnv) {
+            $env:LASTFM_SECRET = $machineEnv
+        }
+    }
+}
+
+if (-not $env:LASTFM_SECRET) {
+    $envFiles = @(".env", ".env.local")
+    foreach ($file in $envFiles) {
+        if (Test-Path $file) {
+            $match = Get-Content $file | Where-Object { $_ -match '^\s*LASTFM_SECRET\s*=' } | Select-Object -Last 1
+            if ($match) {
+                $env:LASTFM_SECRET = ($match -replace '^\s*LASTFM_SECRET\s*=\s*', '').Trim(' "''')
+                break
+            }
+        }
+    }
+}
+
+if ($env:LASTFM_SECRET) {
+    Write-Host "[MSIX Build] Injected LASTFM_SECRET into build." -ForegroundColor Green
+} else {
+    Write-Warning "[MSIX Build] LASTFM_SECRET is not set! Scrobbling will be disabled in this MSIX build."
+}
+
 Write-Host "Building Windows application in release mode..." -ForegroundColor Cyan
 flutter build windows --release --no-tree-shake-icons --dart-define=CHANNEL=store --dart-define=LASTFM_SECRET="$env:LASTFM_SECRET"
 if ($LASTEXITCODE -ne 0) {

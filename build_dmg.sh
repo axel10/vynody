@@ -43,6 +43,29 @@ xcodebuild -resolvePackageDependencies \
   -clonedSourcePackagesDirPath build/macos/SourcePackages
 
 echo -e "${BLUE}==> 5. Building macOS Release application...${NC}"
+
+# Resolve LASTFM_SECRET if not already set
+if [ -z "$LASTFM_SECRET" ]; then
+    extract_env() {
+        key="$1"
+        file="$2"
+        if [ -f "$file" ]; then
+            grep -E "^[[:space:]]*${key}=" "$file" 2>/dev/null | tail -n 1 | cut -d '=' -f 2- | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//" | tr -d '\r\n'
+        fi
+    }
+    if [ -f ".env" ]; then
+        LASTFM_SECRET=$(extract_env "LASTFM_SECRET" ".env")
+    fi
+    if [ -z "$LASTFM_SECRET" ] && [ -f ".env.local" ]; then
+        LASTFM_SECRET=$(extract_env "LASTFM_SECRET" ".env.local")
+    fi
+fi
+
+if [ -n "$LASTFM_SECRET" ]; then
+    echo -e "${GREEN}[DMG Build] Injected LASTFM_SECRET into build.${NC}"
+else
+    echo -e "${RED}[DMG Build] Warning: LASTFM_SECRET is not set. Last.fm scrobbling will be disabled.${NC}"
+fi
 CODE_SIGN_STYLE="Manual" \
 CODE_SIGN_IDENTITY="-" \
 DEVELOPMENT_TEAM="" \
