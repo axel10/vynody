@@ -417,4 +417,65 @@ void main() {
     expect(hostBarOpacity(), 0.0);
     expect(tester.takeException(), isNull);
   });
+
+  // 回归：进入三级详情页（如播放列表详情、专辑详情）时，二级宿主 PopScope.canPop
+  // 必须变为 false。否则在 iOS 上外层 CupertinoPageRoute 的侧滑返回手势会抢先
+  // 响应，导致侧滑直接退回媒体库首页，跳过了二级列表页。
+  testWidgets('打开详情页时宿主 PopScope.canPop 为 false，返回事件只退详情页不退宿主', (tester) async {
+    setSurface(tester, const Size(430, 932));
+    final container = createContainer();
+    final keys = List<GlobalKey<NavigatorState>>.generate(
+      9,
+      (index) => GlobalKey<NavigatorState>(debugLabel: 'test_library_tab_$index'),
+    );
+
+    await tester.pumpWidget(
+      wrap(
+        container,
+        Navigator(
+          onGenerateRoute: (_) => MaterialPageRoute<void>(
+            builder: (_) => LibrarySubHostPage(tabNavigatorKeys: keys),
+          ),
+        ),
+      ),
+    );
+    await settle(tester);
+
+    bool subHostCanPop() => (tester
+            .widgetList(find.byWidgetPredicate((w) => w is PopScope))
+            .first as PopScope)
+        .canPop;
+
+    // 根页面且非多选态时，宿主允许 pop
+    expect(subHostCanPop(), isTrue, reason: '根分类无子路由且非多选态时，宿主允许 pop');
+
+    // 进入「专辑」分类并推入详情页
+    container.read(libraryActiveTabIndexProvider.notifier).set(4);
+    await settle(tester);
+    await tester.tap(find.byType(AlbumZoomItem).first);
+    await settle(tester);
+
+    expect(find.byType(AlbumDetailPage), findsOneWidget);
+    expect(keys[4].currentState!.canPop(), isTrue);
+
+    // 进详情页后，宿主 PopScope 的 canPop 必须变为 false，禁用外层 CupertinoPageRoute 侧滑手势
+    expect(
+      subHostCanPop(),
+      isFalse,
+      reason: '详情页在栈内时，宿主 PopScope 必须禁止 pop，避免外层侧滑返回直接跳过二级列表退出宿主',
+    );
+
+    // 外层 Navigator 收到返回请求（例如侧滑手势或返回分发）时，因 canPop 为 false，
+    // 不会出栈二级宿主，而是触发 onPopInvokedWithResult 委托内层 Navigator 出栈
+    final hostContext = tester.element(find.byType(LibrarySubHostPage));
+    await Navigator.of(hostContext).maybePop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlbumDetailPage), findsNothing);
+    expect(find.byType(AlbumsTab), findsOneWidget);
+    expect(keys[4].currentState!.canPop(), isFalse);
+
+    // 退出详情页后，宿主 PopScope.canPop 恢复为 true
+    expect(subHostCanPop(), isTrue, reason: '退出详情页后，宿主恢复允许 pop');
+  });
 }

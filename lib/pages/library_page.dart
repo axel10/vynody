@@ -540,11 +540,22 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     // 根节点类型会从 AutoHideHeaderScope 变成 PopScope，Flutter 会销毁并重建整棵子树：
     // 各子 tab 的 State 连同选中项一起被 dispose，mixin 的 dispose 又会 clear 共享的多选状态，
     // 于是表现为「一进入多选就立刻退出」。
+    //
+    // 此外：当前分类压有三级详情页（tabHasChildRoute 为 true）时，外层宿主路由绝不能
+    // 直接出栈，必须将 canPop 置为 false。这在 iOS 上会自动禁用外层 CupertinoPageRoute
+    // 的侧滑返回手势，让渡给内层详情页的原生侧滑返回；在收到未 pop 的返回通知时，
+    // 优先将事件分发给出栈内层详情页。
     return PopScope(
-      canPop: !isSelectionActive,
+      canPop: !isSelectionActive && !tabHasChildRoute,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        ref.read(librarySelectionStateProvider.notifier).clear();
+        if (isSelectionActive) {
+          ref.read(librarySelectionStateProvider.notifier).clear();
+          return;
+        }
+        if (tabHasChildRoute) {
+          _tabNavigatorKeys[clampedIndex].currentState?.maybePop();
+        }
       },
       child: scaffold,
     );
