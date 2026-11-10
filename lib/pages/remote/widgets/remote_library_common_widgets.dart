@@ -3,6 +3,40 @@ import '../../../l10n/app_localizations.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/layout_constants.dart';
 
+/// 分类页页头在普通布局里的插槽。
+///
+/// 页头（`LibraryCategoryHeader`）自带 16 的左右内边距与 8 的上下内边距，
+/// 外层若再套一份 [RemoteContentConstraint] 的 16，标题与网格左边缘会差 16px，
+/// 和本地库的二级页对不齐。这里只补「与下方内容之间」的间距。
+class RemotePageHeaderSlot extends StatelessWidget {
+  const RemotePageHeaderSlot({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// [RemotePageHeaderSlot] 的 Sliver 版本。
+class SliverRemotePageHeaderSlot extends StatelessWidget {
+  const SliverRemotePageHeaderSlot({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(child: RemotePageHeaderSlot(child: child));
+  }
+}
+
 /// 统一步调的远程媒体库内容宽度约束容器
 class RemoteContentConstraint extends StatelessWidget {
   final Widget child;

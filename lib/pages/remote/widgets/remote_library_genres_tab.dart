@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../widgets/library_action_bar.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_library_playback.dart';
 import '../../../widgets/folder_layout_utils.dart';
@@ -23,6 +24,13 @@ class RemoteLibraryGenresView extends ConsumerStatefulWidget {
   final Future<void> Function() onRefresh;
   final double bottomOffset;
 
+  /// 页头大标题与返回概览页（与本地流派页同形）。
+  final String? title;
+  final VoidCallback? onBack;
+
+  /// 库级动作（定位当前播放、下载管理器），由父页统一提供。
+  final List<LibraryToolbarAction> trailingActions;
+
   const RemoteLibraryGenresView({
     super.key,
     required this.server,
@@ -32,6 +40,9 @@ class RemoteLibraryGenresView extends ConsumerStatefulWidget {
     required this.error,
     required this.onRefresh,
     this.bottomOffset = 0.0,
+    this.title,
+    this.onBack,
+    this.trailingActions = const <LibraryToolbarAction>[],
   });
 
   @override
@@ -136,15 +147,7 @@ class _RemoteLibraryGenresViewState
     if (widget.genres.isEmpty) {
       return Column(
         children: [
-          RemoteContentConstraint(
-            padding: const EdgeInsets.fromLTRB(
-              kGridHorizontalPadding,
-              8,
-              kGridHorizontalPadding,
-              12,
-            ),
-            child: toolbar,
-          ),
+          RemotePageHeaderSlot(child: toolbar),
           Expanded(
             child: Center(
               child: Text(
@@ -169,15 +172,8 @@ class _RemoteLibraryGenresViewState
                 width: 330,
                 child: Column(
                   children: [
-                    RemoteContentConstraint(
-                      padding: const EdgeInsets.fromLTRB(
-                        kGridHorizontalPadding,
-                        8,
-                        kGridHorizontalPadding,
-                        8,
-                      ),
-                      maxWidth: 330,
-                      child: toolbar,
+                    RemotePageHeaderSlot(
+                      child: _buildToolbar(context, l10n, narrow: true),
                     ),
                     Expanded(
                       child: _buildGenreList(
@@ -215,15 +211,7 @@ class _RemoteLibraryGenresViewState
 
         return Column(
           children: [
-            RemoteContentConstraint(
-              padding: const EdgeInsets.fromLTRB(
-                kGridHorizontalPadding,
-                8,
-                kGridHorizontalPadding,
-                8,
-              ),
-              child: toolbar,
-            ),
+            RemotePageHeaderSlot(child: toolbar),
             Expanded(
               child: _buildGenreList(
                 visible,
@@ -307,7 +295,13 @@ class _RemoteLibraryGenresViewState
     );
   }
 
-  Widget _buildToolbar(BuildContext context, AppLocalizations l10n) {
+  /// [narrow] 为真时强制折行布局：横屏主从分栏的左栏只有 330 宽，
+  /// 按屏幕朝向判宽屏会把搜索框与全部动作挤进一行而溢出。
+  Widget _buildToolbar(
+    BuildContext context,
+    AppLocalizations l10n, {
+    bool narrow = false,
+  }) {
     final sortOptions = <RemoteSortOption>[
       RemoteSortOption(
         value: 'name_true',
@@ -344,6 +338,10 @@ class _RemoteLibraryGenresViewState
         _searchController.clear();
         setState(() => _searchQuery = '');
       },
+      title: widget.title,
+      onBack: widget.onBack,
+      forceNarrow: narrow,
+      trailingActions: widget.trailingActions,
       onPlayAll: _visibleGenres.isEmpty ? null : () => _playAllVisible(),
       onShufflePlay:
           _visibleGenres.isEmpty ? null : () => _playAllVisible(shuffle: true),

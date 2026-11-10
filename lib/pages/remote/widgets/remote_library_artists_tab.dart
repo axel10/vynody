@@ -2,11 +2,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../widgets/library_action_bar.dart';
 import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
+import '../../../utils/app_icons.dart';
 import '../../../widgets/draggable_remote_artist_item.dart';
 import '../../../widgets/folder_layout_utils.dart';
 import '../../../widgets/folder_zoom_gesture_layer.dart';
@@ -31,6 +33,14 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
   final void Function(String field, bool asc) onSortChanged;
   final int? totalCount;
 
+  /// 页头大标题与返回概览页（与本地艺术家页同形）。
+  /// 横屏主从分栏时由 `compact` 形态把它渲染在左栏顶部。
+  final String? title;
+  final VoidCallback? onBack;
+
+  /// 库级动作（定位当前播放、下载管理器），由父页统一提供。
+  final List<LibraryToolbarAction> trailingActions;
+
   /// 播放全部 / 随机播放：播放当前列出的这些艺术家的歌。
   final VoidCallback? onPlayAll;
   final VoidCallback? onShufflePlay;
@@ -52,6 +62,9 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
     required this.sortField,
     required this.onSortChanged,
     this.totalCount,
+    this.title,
+    this.onBack,
+    this.trailingActions = const <LibraryToolbarAction>[],
     this.onPlayAll,
     this.onShufflePlay,
     this.compact = false,
@@ -106,6 +119,37 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // 横屏没有 Rail 入口时，左栏顶部是唯一的返回路径：必须有返回键。
+          // 标题用左栏能容纳的字号，与本地艺术家页的主从分栏同形。
+          if (title != null) ...[
+            Row(
+              children: [
+                if (onBack != null) ...[
+                  libraryToolbarIconButton(
+                    icon: kAppBackIcon,
+                    iconSize: LibraryToolbarMetrics.backIconSize,
+                    tooltip: l10n.goBack,
+                    onPressed: onBack,
+                  ),
+                  const SizedBox(
+                    width: LibraryToolbarMetrics.backTitleSpacing,
+                  ),
+                ],
+                Expanded(
+                  child: Text(
+                    title!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
           LibrarySearchField(
             controller: searchController,
             focusNode: searchFocusNode,
@@ -165,6 +209,9 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
     }
 
     return RemoteLibraryActionBar(
+      title: title,
+      onBack: onBack,
+      trailingActions: trailingActions,
       searchController: searchController,
       searchFocusNode: searchFocusNode,
       searchQuery: searchQuery,
@@ -298,15 +345,7 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
         );
 
         final toolbarSliver = toolbar != null
-            ? SliverRemoteContentConstraint(
-                padding: const EdgeInsets.fromLTRB(
-                  kGridHorizontalPadding,
-                  8,
-                  kGridHorizontalPadding,
-                  12,
-                ),
-                child: toolbar!,
-              )
+            ? SliverRemotePageHeaderSlot(child: toolbar!)
             : null;
 
         return FolderZoomGestureLayer(
@@ -318,15 +357,7 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
                   ? Column(
                       children: [
                         if (toolbar != null)
-                          RemoteContentConstraint(
-                            padding: const EdgeInsets.fromLTRB(
-                              kGridHorizontalPadding,
-                              8,
-                              kGridHorizontalPadding,
-                              12,
-                            ),
-                            child: toolbar!,
-                          ),
+                          RemotePageHeaderSlot(child: toolbar!),
                         Expanded(
                           child: Center(
                             child: Text(

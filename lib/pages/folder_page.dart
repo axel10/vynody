@@ -51,6 +51,11 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
   late final HeroController _heroController;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
+  /// 远程库内部的「概览 / 二级分类」两级路由要优先于外层页面栈被返回键处理，
+  /// 否则在分类页按返回会直接退掉整个远程库。
+  final GlobalKey<RemoteLibraryPageState> _remoteLibraryPageKey =
+      GlobalKey<RemoteLibraryPageState>();
+
   /// 临时埋点：只在「刚点进目录」的 2 秒窗口内打印超时帧，
   /// 用来区分掉帧发生在 build（同步计算）还是 raster（图片解码 / 模糊）。
   TimingsCallback? _frameTimingsCallback;
@@ -80,6 +85,9 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
         _selectedFolderPaths.isNotEmpty ||
         _selectedRootPaths.isNotEmpty) {
       _clearAllSelection();
+      return true;
+    }
+    if (_remoteLibraryPageKey.currentState?.handleBackPressed() ?? false) {
       return true;
     }
     if (_navigatorKey.currentState?.canPop() ?? false) {
@@ -638,6 +646,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
           _buildPage(
             key: ValueKey('remote-page-${activeRemoteSession.server.id}'),
             child: RemoteLibraryPage(
+              key: _remoteLibraryPageKey,
               server: activeRemoteSession.server,
               password: activeRemoteSession.password,
               initialTabIndex: activeRemoteSession.initialTabIndex,

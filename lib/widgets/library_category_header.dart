@@ -22,6 +22,7 @@ class LibraryCategoryHeader extends ConsumerWidget {
     this.countLabel,
     required this.isWide,
     required this.searchController,
+    this.searchFocusNode,
     required this.searchQuery,
     required this.onSearchChanged,
     required this.onSearchCleared,
@@ -43,6 +44,11 @@ class LibraryCategoryHeader extends ConsumerWidget {
   final String? countLabel;
   final bool isWide;
   final TextEditingController searchController;
+
+  /// 搜索框焦点节点。远程各 tab 需要「切到该分类时保持输入焦点」，
+  /// 本地页头原先没有暴露，这里补上并透传给 [LibraryActionBar]。
+  final FocusNode? searchFocusNode;
+
   final String searchQuery;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onSearchCleared;
@@ -128,6 +134,7 @@ class LibraryCategoryHeader extends ConsumerWidget {
               isWide: true,
               leading: largeTitleBlock,
               searchController: searchController,
+              searchFocusNode: searchFocusNode,
               searchQuery: searchQuery,
               onSearchChanged: onSearchChanged,
               onSearchCleared: onSearchCleared,
@@ -149,6 +156,7 @@ class LibraryCategoryHeader extends ConsumerWidget {
                 LibraryActionBar(
                   isWide: false,
                   searchController: searchController,
+                  searchFocusNode: searchFocusNode,
                   searchQuery: searchQuery,
                   onSearchChanged: onSearchChanged,
                   onSearchCleared: onSearchCleared,

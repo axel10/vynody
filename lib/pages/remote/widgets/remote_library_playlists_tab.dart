@@ -44,6 +44,13 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
   final VoidCallback onSortPressed;
   final int? totalCount;
 
+  /// 页头大标题与返回概览页（与本地歌单页同形）。
+  final String? title;
+  final VoidCallback? onBack;
+
+  /// 库级动作（定位当前播放、下载管理器），由父页统一提供。
+  final List<LibraryToolbarAction> trailingActions;
+
   /// 播放全部 / 随机播放：播放当前列出的这些歌单里的歌。
   final VoidCallback? onPlayAll;
   final VoidCallback? onShufflePlay;
@@ -56,6 +63,9 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
     required this.onCreatePlaylist,
     required this.onSortPressed,
     this.totalCount,
+    this.title,
+    this.onBack,
+    this.trailingActions = const <LibraryToolbarAction>[],
     this.onPlayAll,
     this.onShufflePlay,
   });
@@ -66,6 +76,9 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
     return RemoteLibraryActionBar(
+      title: title,
+      onBack: onBack,
+      trailingActions: trailingActions,
       searchController: searchController,
       searchQuery: searchController.text,
       searchHintText: l10n.searchPlaylists,
@@ -457,17 +470,7 @@ class _RemoteLibraryPlaylistsViewState
     final isPortrait =
         MediaQuery.orientationOf(context) == Orientation.portrait;
     final toolbarSliver = widget.toolbar != null
-        ? SliverRemoteContentConstraint(
-            // 与本地歌单页同宽：这一页没有单列上限，铺满内容区。
-            maxWidth: kFolderPageMaxWidth,
-            padding: const EdgeInsets.fromLTRB(
-              kGridHorizontalPadding,
-              8,
-              kGridHorizontalPadding,
-              4,
-            ),
-            child: widget.toolbar!,
-          )
+        ? SliverRemotePageHeaderSlot(child: widget.toolbar!)
         : null;
 
     return RefreshIndicator(

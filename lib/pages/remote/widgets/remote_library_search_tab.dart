@@ -8,6 +8,7 @@ import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/remote_server_riverpod.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
+import '../../../widgets/library_large_title.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import 'remote_library_common_widgets.dart';
 import 'remote_library_toolbar_widgets.dart';
@@ -18,34 +19,60 @@ class RemoteLibrarySearchToolbar extends StatelessWidget {
   final bool isSearching;
   final VoidCallback onClearSearch;
 
+  /// 页头标题与返回概览页。搜索是独立子页，与本地各分类页一样需要
+  /// 一个大标题行来承载返回入口。
+  final String? title;
+  final VoidCallback? onBack;
+
   const RemoteLibrarySearchToolbar({
     super.key,
     required this.searchController,
     required this.onSearchChanged,
     required this.isSearching,
     required this.onClearSearch,
+    this.title,
+    this.onBack,
   });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: RemoteSearchBar(
-        controller: searchController,
-        hintText: l10n.searchRemoteHint,
-        searchQuery: searchController.text,
-        onChanged: onSearchChanged,
-        onClear: onClearSearch,
-        trailing: isSearching
-            ? const UnconstrainedBox(
-                child: SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
-            : null,
+      // 搜索页没有 `LibraryCategoryHeader` 那层自带 16 的容器，
+      // 水平内边距要自己给，否则标题与搜索框会贴到屏幕边缘。
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (title != null) ...[
+            LibraryLargeTitle(
+              title: title!,
+              showBackButton: onBack != null,
+              onBack: onBack,
+            ),
+            const SizedBox(height: 8),
+          ],
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: RemoteSearchBar(
+              controller: searchController,
+              hintText: l10n.searchRemoteHint,
+              searchQuery: searchController.text,
+              onChanged: onSearchChanged,
+              onClear: onClearSearch,
+              trailing: isSearching
+                  ? const UnconstrainedBox(
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : null,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -513,11 +540,7 @@ class RemoteLibrarySearchView extends ConsumerWidget {
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          if (toolbar != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: toolbar!,
-            ),
+          if (toolbar != null) RemotePageHeaderSlot(child: toolbar!),
           Expanded(
             child: isEmpty
                 ? Center(

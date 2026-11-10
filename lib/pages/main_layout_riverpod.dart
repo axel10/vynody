@@ -182,6 +182,29 @@ final libraryActiveTabIndexProvider =
       LibraryActiveTabIndexNotifier.new,
     );
 
+/// 远程媒体库二级分类的当前索引。
+///
+/// 与 [libraryActiveTabIndexProvider] 同构：`null` = 停在远程库概览页，
+/// 其余为 `[0, 5]`（专辑 / 艺术家 / 流派 / 歌曲 / 播放列表 / 搜索）。
+///
+/// 这是 Rail 与远程库页面之间**唯一**的跨层信号：Rail 点击只改这里，
+/// 页面 `ref.listen` 到非空值就切到对应子分类，Rail 再点主项则置 null 回概览。
+class RemoteLibraryActiveTabIndexNotifier extends Notifier<int?> {
+  @override
+  int? build() => null;
+
+  void set(int? value) {
+    if (state != value) {
+      state = value;
+    }
+  }
+}
+
+final remoteLibraryActiveTabIndexProvider =
+    NotifierProvider<RemoteLibraryActiveTabIndexNotifier, int?>(
+      RemoteLibraryActiveTabIndexNotifier.new,
+    );
+
 class SelectedGenreKeyNotifier extends Notifier<String?> {
   @override
   String? build() => null;

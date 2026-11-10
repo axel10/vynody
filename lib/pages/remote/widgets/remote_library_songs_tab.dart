@@ -40,6 +40,13 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
   final VoidCallback? onDownloadAll;
   final String? countLabel;
 
+  /// 页头大标题与返回概览页（与本地歌曲/已评分页同形）。
+  final String? title;
+  final VoidCallback? onBack;
+
+  /// 库级动作（定位当前播放、下载管理器），由父页统一提供。
+  final List<LibraryToolbarAction> trailingActions;
+
   const RemoteLibrarySongsToolbar({
     super.key,
     required this.searchController,
@@ -54,6 +61,9 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
     this.onShufflePlay,
     this.onDownloadAll,
     this.countLabel,
+    this.title,
+    this.onBack,
+    this.trailingActions = const <LibraryToolbarAction>[],
   });
 
   RemoteLibrarySongsToolbar copyWith({
@@ -64,6 +74,9 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
   }) {
     return RemoteLibrarySongsToolbar(
       key: key,
+      title: title,
+      onBack: onBack,
+      trailingActions: trailingActions,
       searchController: searchController,
       searchFocusNode: searchFocusNode,
       searchQuery: searchQuery,
@@ -83,6 +96,9 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return RemoteLibraryActionBar(
+      title: title,
+      onBack: onBack,
+      trailingActions: trailingActions,
       searchController: searchController,
       searchFocusNode: searchFocusNode,
       searchQuery: searchQuery,
@@ -290,14 +306,7 @@ class _RemoteLibrarySongsViewState
       settingsServiceProvider.select((s) => s.songZoomScale),
     );
 
-    final headerSliver = SliverRemoteContentConstraint(
-      maxWidth: kFolderPageMaxWidth,
-      padding: const EdgeInsets.fromLTRB(
-        kGridHorizontalPadding,
-        6,
-        kGridHorizontalPadding,
-        8,
-      ),
+    final headerSliver = SliverRemotePageHeaderSlot(
       child: _buildHeader(context),
     );
 

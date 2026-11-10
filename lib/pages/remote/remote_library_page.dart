@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../player/metadata/metadata_database.dart';
@@ -13,9 +15,12 @@ import '../../widgets/mini_player_wrapper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../player/remote/services/remote_download_service.dart';
 import '../../widgets/library_selection_scope.dart';
+import '../main_layout_riverpod.dart';
+import '../../player/remote/remote_library_navigation.dart';
+import '../../widgets/library_action_bar.dart';
 import 'remote_download_manager_page.dart';
-import 'widgets/remote_library_header_bottom.dart';
-import 'widgets/remote_library_common_widgets.dart';
+import 'remote_library_dashboard_view.dart';
+import 'remote_library_sub_host_page.dart';
 import 'widgets/remote_library_selection_actions.dart';
 import 'widgets/remote_song_selection_panel.dart';
 import 'widgets/remote_library_albums_tab.dart';
@@ -29,7 +34,6 @@ import '../../utils/remote_library_playback.dart';
 import '../../utils/app_icons.dart';
 import '../../utils/layout_constants.dart';
 import '../../dialogs/sort_options_dialog.dart';
-import '../../widgets/locate_song_button.dart';
 
 class RemoteLibraryPage extends ConsumerStatefulWidget {
   final RemoteServer server;
@@ -46,13 +50,23 @@ class RemoteLibraryPage extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<RemoteLibraryPage> createState() =>
-      _RemoteLibraryPageState();
+  ConsumerState<RemoteLibraryPage> createState() => RemoteLibraryPageState();
 }
 
-class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+/// 公开供宿主页（`FoldersPage`）分发系统返回键。
+class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
+  /// 概览页 / 二级分类宿主这两级路由的局部导航器。
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>(
+    debugLabel: 'remote_library',
+  );
+
+  /// 每个二级分类一条独立导航域，详情页压在自己分类里，切分类不出栈。
+  late final List<GlobalKey<NavigatorState>> _tabNavigatorKeys =
+      List<GlobalKey<NavigatorState>>.generate(
+        6,
+        (i) => GlobalKey<NavigatorState>(debugLabel: 'remote_library_tab_$i'),
+      );
+
   late final RemoteMediaLibraryClient _client;
 
   // Albums state
@@ -160,6 +174,16 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   bool get _isArtistSelectionMode => _selectedArtistIds.isNotEmpty;
   bool get _isPlaylistSelectionMode => _selectedPlaylistIds.isNotEmpty;
   bool get _isSongSelectionMode => _selectedSongPaths.isNotEmpty;
+  /// 搜索分类的索引（专辑 0 / 艺术家 1 / 流派 2 / 歌曲 3 / 播放列表 4 / 搜索 5）。
+  static const int _kSearchTabIndex = 5;
+
+  /// 当前二级分类索引。`null` = 停在概览页，此时回退到构造时指定的首个分类。
+  int get _currentTabIndex =>
+      (ref.read(remoteLibraryActiveTabIndexProvider) ??
+              widget.initialTabIndex ??
+              0)
+          .clamp(0, 5);
+
   bool get _isSelectionMode =>
       _isAlbumSelectionMode ||
       _isArtistSelectionMode ||
@@ -379,7 +403,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   /// 歌单 Tab → 各 `歌单/曲目`；歌曲 Tab → `专辑/曲目`；
   /// 搜索 Tab → 勾艺术家走艺术家，勾专辑 / 歌曲走专辑。
   Future<List<RemoteDownloadBatch>> _fetchSelectedDownloadBatches() {
-    final songsSource = _tabController.index == 4 ? _searchedSongs : _songs;
+    final songsSource = _currentTabIndex == _kSearchTabIndex ? _searchedSongs : _songs;
     return RemoteLibrarySelectionActions.fetchSelectedBatches(
       server: widget.server,
       password: widget.password,
@@ -646,12 +670,6 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
             widget.initialTabIndex! < 6)
         ? widget.initialTabIndex!
         : 0;
-    _tabController = TabController(
-      length: 6,
-      vsync: this,
-      initialIndex: initialIndex,
-    );
-    _tabController.addListener(_handleTabChanged);
     _client = RemoteMediaLibraryClient.create(
       server: widget.server,
       password: widget.password,
@@ -732,15 +750,6 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     });
   }
 
-  /// 再次请求加载态使用的分类图标（与各标签页自身的加载视图保持一致）
-  IconData get _reloadingContentIcon => switch (_tabController.index) {
-        1 => Icons.mic_rounded,
-        2 => Icons.style_rounded,
-        3 => Icons.music_note_rounded,
-        4 => Icons.queue_music_rounded,
-        _ => Icons.album_rounded,
-      };
-
   void _beginContentReload() {
     if (!mounted || _isReloadingContent) return;
     setState(() {
@@ -755,28 +764,6 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     });
   }
 
-  void _handleTabChanged() {
-    // 切页时旧分类的请求结果不再影响当前视图，顺带收掉加载遮罩
-    _isReloadingContent = false;
-    _cancelSelection();
-    if (mounted) {
-      setState(() {});
-    }
-    if (_tabController.indexIsChanging) return;
-    final newIndex = _tabController.index;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final activeSession = ref.read(activeRemoteSessionProvider);
-      if (activeSession != null &&
-          activeSession.server.id == widget.server.id &&
-          activeSession.initialTabIndex != newIndex) {
-        ref
-            .read(activeRemoteSessionProvider.notifier)
-            .updateInitialTabIndex(newIndex);
-      }
-    });
-  }
-
   LibrarySelectionScopeController? _selectionScopeController;
 
   @override
@@ -787,22 +774,6 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   }
 
   @override
-  void reassemble() {
-    super.reassemble();
-    if (_tabController.length != 6) {
-      final oldIndex = _tabController.index.clamp(0, 5);
-      _tabController.removeListener(_handleTabChanged);
-      _tabController.dispose();
-      _tabController = TabController(
-        length: 6,
-        vsync: this,
-        initialIndex: oldIndex,
-      );
-      _tabController.addListener(_handleTabChanged);
-    }
-  }
-
-  @override
   void dispose() {
     if (_isSelectionMode) {
       final controller = _selectionScopeController;
@@ -810,8 +781,6 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
         controller?.clear();
       });
     }
-    _tabController.removeListener(_handleTabChanged);
-    _tabController.dispose();
     _albumSearchController.dispose();
     _albumSearchFocusNode.dispose();
     _artistSearchController.dispose();
@@ -1597,6 +1566,495 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // 概览页 / 二级分类宿主
+  // ---------------------------------------------------------------------------
+
+  static const String _kDashboardRoute = 'remote_library_dashboard';
+  static const String _kSubHostRoute = 'remote_library_sub_host';
+
+  /// 注意传的是 [builder] 而不是已构造好的 Widget：route 内容的构建必须延迟
+  /// 到每帧真正需要时，否则首帧之后的数据更新（五个 loader 陆续回来）
+  /// 永远到不了页面 —— 构建一次就冻结成实例了。
+  Route<void> _remoteRoute(WidgetBuilder builder, RouteSettings settings) {
+    if (Platform.isIOS || Platform.isMacOS) {
+      return CupertinoPageRoute<void>(
+        settings: settings,
+        builder: builder,
+      );
+    }
+    return MaterialPageRoute<void>(
+      settings: settings,
+      builder: builder,
+    );
+  }
+
+  List<Route<void>> _initialRoutes() {
+    final routes = <Route<void>>[
+      _remoteRoute(
+        (context) => _buildDashboard(),
+        const RouteSettings(name: _kDashboardRoute),
+      ),
+    ];
+    final index = widget.initialTabIndex;
+    if (index != null && index >= 0 && index < 6) {
+      routes.add(
+        _remoteRoute(
+          (context) => _buildSubHost(),
+          const RouteSettings(name: _kSubHostRoute),
+        ),
+      );
+    }
+    return routes;
+  }
+
+  /// 进入某个二级分类。
+  ///
+  /// 只写 provider —— 进退栈由 build 里的 `ref.listen` 统一处理，
+  /// 这样 Rail（三期）点同一个 provider 也能走同一条路径，不会出现两套入口。
+  void _openTab(int index) {
+    ref.read(remoteLibraryActiveTabIndexProvider.notifier).set(index);
+  }
+
+  void _closeSubHost() {
+    ref.read(remoteLibraryActiveTabIndexProvider.notifier).set(null);
+  }
+
+  List<Map<String, dynamic>> _recentAlbums(int limit) {
+    final list = List<Map<String, dynamic>>.from(_albums);
+    list.sort((a, b) {
+      final ca = a['created']?.toString() ?? '';
+      final cb = b['created']?.toString() ?? '';
+      return cb.compareTo(ca);
+    });
+    return list.take(limit).toList();
+  }
+
+  Future<void> _refreshAll() async {
+    _beginContentReload();
+    await Future.wait<void>([
+      _loadAlbums(forceRefresh: true),
+      _loadArtists(forceRefresh: true),
+      _loadGenres(forceRefresh: true),
+      _loadSongs(forceRefresh: true),
+      _loadPlaylists(forceRefresh: true),
+    ]);
+    _endContentReload();
+  }
+
+  void _refreshTab(int index) {
+    switch (index) {
+      case 0:
+        unawaited(_loadAlbums(forceRefresh: true));
+        break;
+      case 1:
+        unawaited(_loadArtists(forceRefresh: true));
+        break;
+      case 2:
+        unawaited(_loadGenres(forceRefresh: true));
+        break;
+      case 3:
+        unawaited(_loadSongs(forceRefresh: true));
+        break;
+      case 4:
+        unawaited(_loadPlaylists(forceRefresh: true));
+        break;
+      case _kSearchTabIndex:
+        if (_searchController.text.isNotEmpty) {
+          _onSearchChanged(_searchController.text);
+        }
+        break;
+    }
+  }
+
+  Widget _buildDashboard() {
+    final l10n = AppLocalizations.of(context)!;
+    final favorites = _albums
+        .where((a) => a['starred'] != null || a['isFavorite'] == true)
+        .take(12)
+        .toList();
+
+    return RemoteLibraryDashboardView(
+      server: widget.server,
+      password: widget.password,
+      albumCount: _albums.length,
+      artistCount: _artists.length,
+      songCount: _songs.length,
+      playlistCount: _playlists.length,
+      recentAlbums: _recentAlbums(12),
+      favoriteAlbums: favorites,
+      onNavigateToTab: _openTab,
+      onOpenAlbum: (albumId, albumName) => RemoteLibraryNavUtils.openAlbum(
+        context,
+        ref,
+        server: widget.server,
+        password: widget.password,
+        albumId: albumId,
+        albumName: albumName,
+      ),
+      onRefresh: _refreshAll,
+      onShuffleAll: () => _playRemoteEntities(
+        kind: RemoteLibraryEntityKind.album,
+        entities: _getFilteredAlbums(),
+        sourceSuffix: 'dashboard',
+        sourceName: l10n.albums,
+        shuffle: true,
+      ),
+    );
+  }
+
+  Widget _buildSubHost() {
+    final l10n = AppLocalizations.of(context)!;
+    return RemoteLibrarySubHostPage(
+      titles: [
+        l10n.albums,
+        l10n.artists,
+        l10n.genres,
+        l10n.songs,
+        l10n.playlists,
+        l10n.search,
+      ],
+      initialIndex: widget.initialTabIndex,
+      navigatorKeys: _tabNavigatorKeys,
+      onBack: _closeSubHost,
+      onRefresh: _refreshTab,
+      onPopBlocked: _cancelSelection,
+      selectionPanel: _buildSelectionPanel(),
+      tabs: [
+        (context) => _buildAlbumsTab(),
+        (context) => _buildArtistsTab(),
+        (context) => _buildGenresTab(),
+        (context) => _buildSongsTab(),
+        (context) => _buildPlaylistsTab(),
+        (context) => _buildSearchTab(),
+      ],
+    );
+  }
+
+  /// 库级动作：定位当前播放、下载管理器。
+  ///
+  /// 挂在各分类页头的动作行末尾 —— 原先只在二级宿主的浮动胶囊里，
+  /// 页头固定后必须在列表顶部就能点到。
+  List<LibraryToolbarAction> get _headerTrailingActions {
+    final l10n = AppLocalizations.of(context)!;
+    final activeCount = ref.watch(activeDownloadsCountProvider);
+    return [
+      LibraryToolbarAction(
+        icon: Icons.my_location_rounded,
+        label: l10n.locateCurrentSong,
+        onPressed: _locateCurrentSong,
+      ),
+      LibraryToolbarAction(
+        icon: Icons.download_rounded,
+        label: l10n.downloadManager,
+        showBadge: activeCount > 0,
+        onPressed: () {
+          Navigator.of(context, rootNavigator: true).push(
+            MaterialPageRoute(
+              builder: (_) => const RemoteDownloadManagerPage(),
+            ),
+          );
+        },
+      ),
+    ];
+  }
+
+  /// 列表底部避让（迷你播放器 / 多选面板）。
+  double get _listBottomOffset {
+    final hasPlayingMusic = ref.watch(
+      audioCurrentMusicProvider.select((music) => music != null),
+    );
+    return MiniPlayerUiTuning.getListBottomPadding(
+      context,
+      hasPlayingMusic: hasPlayingMusic,
+      isSelectionMode: _isSelectionMode,
+      selectionPanelHeight: 220.0,
+    );
+  }
+
+  Widget _buildAlbumsTab() {
+    return RemoteLibraryAlbumsView(
+      toolbar: _buildAlbumsToolbar(),
+      server: widget.server,
+      password: widget.password,
+      albums: _getFilteredAlbums(),
+      isLoading: _isLoadingAlbums,
+      error: _albumsError,
+      onRefresh: () => _loadAlbums(forceRefresh: true),
+      searchQuery: _albumSearchQuery,
+      bottomOffset: _listBottomOffset,
+      isSelectionMode: _isAlbumSelectionMode,
+      selectedAlbumIds: _selectedAlbumIds,
+      lastAlbumAnchorIndex: _lastAlbumAnchorIndex,
+      onSetSelection: _setAlbumSelection,
+      onToggleSelection: _toggleAlbumSelection,
+      onUpdateAnchor: (a) => setState(() => _lastAlbumAnchorIndex = a),
+      onPlayAlbumDirectly: (id, title) =>
+          RemoteLibrarySelectionActions.playAlbumDirectly(
+            context: context,
+            ref: ref,
+            server: widget.server,
+            password: widget.password,
+            albumId: id,
+            albumTitle: title,
+          ),
+    );
+  }
+
+  Widget _buildArtistsTab() {
+    return RemoteLibraryArtistsView(
+      toolbar: _buildArtistsToolbar(),
+      landscapeToolbar: _buildArtistsToolbar(compact: true),
+      server: widget.server,
+      password: widget.password,
+      artists: _getFilteredArtists(),
+      starredArtistIds: _starredArtistIds,
+      selectedArtistId: _selectedArtistId,
+      isLoading: _isLoadingArtists,
+      error: _artistsError,
+      onRefresh: () => _loadArtists(forceRefresh: true),
+      searchQuery: _artistSearchQuery,
+      bottomOffset: _listBottomOffset,
+      isSelectionMode: _isArtistSelectionMode,
+      selectedArtistIds: _selectedArtistIds,
+      lastArtistAnchorIndex: _lastArtistAnchorIndex,
+      onSelectArtistId: (id) {
+        setState(() {
+          _selectedArtistId = id;
+        });
+        ref
+            .read(activeRemoteSessionProvider.notifier)
+            .updateNavidromeArtists(selectedArtistId: id);
+      },
+      onSetSelection: _setArtistSelection,
+      onToggleSelection: _toggleArtistSelection,
+      onUpdateAnchor: (a) => setState(() => _lastArtistAnchorIndex = a),
+    );
+  }
+
+  Widget _buildGenresTab() {
+    return RemoteLibraryGenresView(
+      title: AppLocalizations.of(context)!.genres,
+      onBack: _closeSubHost,
+      trailingActions: _headerTrailingActions,
+      server: widget.server,
+      password: widget.password,
+      genres: _genres,
+      isLoading: _isLoadingGenres,
+      error: _genresError,
+      onRefresh: () => _loadGenres(forceRefresh: true),
+      bottomOffset: _listBottomOffset,
+    );
+  }
+
+  Widget _buildSongsTab() {
+    return RemoteLibrarySongsView(
+      toolbar: _buildSongsToolbar(),
+      server: widget.server,
+      password: widget.password,
+      songs: _getFilteredSongs(),
+      totalServerSongsCount: _songs.length,
+      starredSongIds: _starredSongIds,
+      isLoading: _isLoadingSongs,
+      isLoadingMore: _isLoadingMoreSongs,
+      hasMore: _hasMoreSongs,
+      error: _songsError,
+      onRefresh: () => _loadSongs(forceRefresh: true),
+      onLoadMore: () => _loadSongs(loadMore: true),
+      searchQuery: _songSearchQuery,
+      bottomOffset: _listBottomOffset,
+      isSelectionMode: _isSongSelectionMode,
+      selectedSongPaths: _selectedSongPaths,
+      lastSongAnchorIndex: _lastSongAnchorIndex,
+      onSetSelection: _setSongSelection,
+      onToggleSelection: _toggleSongSelection,
+      onUpdateAnchor: (a) => setState(() => _lastSongAnchorIndex = a),
+      onToggleStar: _toggleSongStar,
+    );
+  }
+
+  Widget _buildPlaylistsTab() {
+    return RemoteLibraryPlaylistsView(
+      toolbar: _buildPlaylistsToolbar(),
+      server: widget.server,
+      password: widget.password,
+      playlists: _getFilteredPlaylists(),
+      selectedPlaylistId: _selectedPlaylistId,
+      isLoading: _isLoadingPlaylists,
+      error: _playlistsError,
+      onRefresh: () => _loadPlaylists(forceRefresh: true),
+      searchQuery: _playlistSearchQuery,
+      bottomOffset: _listBottomOffset,
+      isSelectionMode: _isPlaylistSelectionMode,
+      selectedPlaylistIds: _selectedPlaylistIds,
+      lastPlaylistAnchorIndex: _lastPlaylistAnchorIndex,
+      onSelectPlaylistId: (id) {
+        setState(() {
+          _selectedPlaylistId = id;
+        });
+        ref
+            .read(activeRemoteSessionProvider.notifier)
+            .updateNavidromePlaylists(selectedPlaylistId: id);
+      },
+      onSetSelection: _setPlaylistSelection,
+      onToggleSelection: _togglePlaylistSelection,
+      onUpdateAnchor: (a) => setState(() => _lastPlaylistAnchorIndex = a),
+      sortField: _playlistSortField,
+      sortAscending: _playlistSortAscending,
+    );
+  }
+
+  Widget _buildSearchTab() {
+    return RemoteLibrarySearchView(
+      toolbar: _buildSearchToolbar(),
+      server: widget.server,
+      password: widget.password,
+      searchController: _searchController,
+      searchedSongs: _searchedSongs,
+      searchedAlbums: _searchedAlbums,
+      searchedArtists: _searchedArtists,
+      isSearching: _isSearching,
+      bottomOffset: _listBottomOffset,
+      isArtistSelectionMode: _isArtistSelectionMode,
+      isAlbumSelectionMode: _isAlbumSelectionMode,
+      isSongSelectionMode: _isSongSelectionMode,
+      selectedArtistIds: _selectedArtistIds,
+      selectedAlbumIds: _selectedAlbumIds,
+      selectedSongPaths: _selectedSongPaths,
+      lastSongAnchorIndex: _lastSongAnchorIndex,
+      onSetSongSelection: _setSongSelection,
+      onToggleSongSelection: _toggleSongSelection,
+      onUpdateSongAnchor: (a) => setState(() => _lastSongAnchorIndex = a),
+      onToggleArtistSelection: _toggleArtistSelection,
+      onToggleAlbumSelection: _toggleAlbumSelection,
+    );
+  }
+
+  Widget? _buildSelectionPanel() {
+    final l10n = AppLocalizations.of(context)!;
+
+    String? panelTitle;
+    VoidCallback? panelToggleSelectAll;
+    bool? panelIsAllSelected;
+    VoidCallback? panelDelete;
+    String? panelDeleteLabel;
+
+    if (_isAlbumSelectionMode) {
+      final filteredAlbums = _currentTabIndex == _kSearchTabIndex
+          ? _searchedAlbums
+          : _getFilteredAlbums();
+      panelTitle = l10n.selectedAlbumsCount(_selectedAlbumIds.length);
+      panelToggleSelectAll = () => _toggleSelectAllAlbums(filteredAlbums);
+      panelIsAllSelected =
+          _selectedAlbumIds.length == filteredAlbums.length &&
+          filteredAlbums.isNotEmpty;
+    } else if (_isArtistSelectionMode) {
+      final filteredArtists = _currentTabIndex == _kSearchTabIndex
+          ? _searchedArtists
+          : _getFilteredArtists();
+      panelTitle = l10n.selectedArtistsCount(_selectedArtistIds.length);
+      panelToggleSelectAll = () => _toggleSelectAllArtists(filteredArtists);
+      panelIsAllSelected =
+          _selectedArtistIds.length == filteredArtists.length &&
+          filteredArtists.isNotEmpty;
+    } else if (_isPlaylistSelectionMode) {
+      final filteredPlaylists = _getFilteredPlaylists();
+      panelTitle = l10n.selectedPlaylistsCount(_selectedPlaylistIds.length);
+      panelToggleSelectAll = () => _toggleSelectAllPlaylists(filteredPlaylists);
+      panelIsAllSelected =
+          _selectedPlaylistIds.length == filteredPlaylists.length &&
+          filteredPlaylists.isNotEmpty;
+      panelDelete = () =>
+          RemoteLibrarySelectionActions.handleBatchDeletePlaylists(
+            server: widget.server,
+            password: widget.password,
+            selectedPlaylistIds: _selectedPlaylistIds,
+            onClearSelection: _cancelSelection,
+            onReloadPlaylists: () => _loadPlaylists(forceRefresh: true),
+            context: context,
+            ref: ref,
+          );
+      panelDeleteLabel = l10n.deletePlaylist;
+    } else if (_isSongSelectionMode) {
+      final songs = _currentTabIndex == _kSearchTabIndex
+          ? _searchedSongs
+          : _getFilteredSongs();
+      panelTitle = l10n.selectedSongs(_selectedSongPaths.length);
+      panelToggleSelectAll = () => _toggleSelectAllSongs(songs);
+      panelIsAllSelected =
+          _selectedSongPaths.length == songs.length && songs.isNotEmpty;
+    }
+
+    return AnimatedSelectionPanel(
+      isVisible: _isSelectionMode,
+      child: RemoteSongSelectionPanel(
+        panelKey: ValueKey(
+          'navidrome-library-selection-panel-$_currentTabIndex',
+        ),
+        actions: RemoteSelectionActions.library,
+        server: widget.server,
+        password: widget.password,
+        selectedSongs: _isSongSelectionMode
+            ? (_currentTabIndex == _kSearchTabIndex
+                      ? _searchedSongs
+                      : _songs)
+                  .where((s) => _selectedSongPaths.contains(s.path))
+                  .toList()
+            : const [],
+        allSongs: _isSongSelectionMode
+            ? (_currentTabIndex == _kSearchTabIndex ? _searchedSongs : _songs)
+            : const [],
+        title: panelTitle,
+        isSelectionEmpty: !_isSelectionMode,
+        isAllSelected: panelIsAllSelected,
+        onToggleSelectAll: panelToggleSelectAll ?? () {},
+        onFetchSongs: _fetchSelectedSongs,
+        onClearSelection: _cancelSelection,
+        selectedAlbumIds: _isAlbumSelectionMode ? _selectedAlbumIds : null,
+        selectedArtistIds: _isArtistSelectionMode ? _selectedArtistIds : null,
+        onStarredChanged: (starredIds) {
+          setState(() {
+            _starredSongIds.addAll(starredIds);
+          });
+          ref
+              .read(activeRemoteSessionProvider.notifier)
+              .updateNavidromeSongs(starredSongIds: _starredSongIds);
+        },
+        onStarredArtistsChanged: (starredIds) {
+          setState(() {
+            _starredArtistIds.addAll(starredIds);
+          });
+          ref
+              .read(activeRemoteSessionProvider.notifier)
+              .updateNavidromeArtists(starredArtistIds: _starredArtistIds);
+        },
+        onDownload: () => RemoteLibrarySelectionActions.handleBatchDownload(
+          context: context,
+          ref: ref,
+          server: widget.server,
+          password: widget.password,
+          onFetchBatches: _fetchSelectedDownloadBatches,
+          onClearSelection: _cancelSelection,
+        ),
+        onDelete: panelDelete,
+        deleteLabel: panelDeleteLabel,
+      ),
+    );
+  }
+
+  /// 系统返回键的第一站：停在二级分类就先退回概览页。
+  ///
+  /// 返回 false 表示已经停在概览页，交给宿主继续处理（清会话 / 退一级 tab）。
+  /// 与本地库 `LibraryPageState.handleBackPressed()` 同一套分发约定。
+  bool handleBackPressed() {
+    final nav = _navigatorKey.currentState;
+    if (nav != null && nav.canPop()) {
+      _closeSubHost();
+      return true;
+    }
+    return false;
+  }
+
   void _handleBack() {
     ref.read(activeRemoteSessionProvider.notifier).clear();
     if (Navigator.of(context).canPop()) {
@@ -1714,66 +2172,27 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
 
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    // 只关心「有没有在放」，不关心放的是哪首：收窄订阅，切歌不再重建整页。
-    final hasPlayingMusic = ref.watch(
-      audioCurrentMusicProvider.select((music) => music != null),
-    );
-    final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
-      context,
-      hasPlayingMusic: hasPlayingMusic,
-      isSelectionMode: _isSelectionMode,
-      selectionPanelHeight: 220.0,
-    );
-
-    String? panelTitle;
-    VoidCallback? panelToggleSelectAll;
-    bool? panelIsAllSelected;
-    VoidCallback? panelDelete;
-    String? panelDeleteLabel;
-
-    if (_isAlbumSelectionMode) {
-      final filteredAlbums = _tabController.index == 4
-          ? _searchedAlbums
-          : _getFilteredAlbums();
-      panelTitle = l10n.selectedAlbumsCount(_selectedAlbumIds.length);
-      panelToggleSelectAll = () => _toggleSelectAllAlbums(filteredAlbums);
-      panelIsAllSelected = _selectedAlbumIds.length == filteredAlbums.length &&
-          filteredAlbums.isNotEmpty;
-    } else if (_isArtistSelectionMode) {
-      final filteredArtists = _tabController.index == 4
-          ? _searchedArtists
-          : _getFilteredArtists();
-      panelTitle = l10n.selectedArtistsCount(_selectedArtistIds.length);
-      panelToggleSelectAll = () => _toggleSelectAllArtists(filteredArtists);
-      panelIsAllSelected =
-          _selectedArtistIds.length == filteredArtists.length &&
-              filteredArtists.isNotEmpty;
-    } else if (_isPlaylistSelectionMode) {
-      final filteredPlaylists = _getFilteredPlaylists();
-      panelTitle = l10n.selectedPlaylistsCount(_selectedPlaylistIds.length);
-      panelToggleSelectAll =
-          () => _toggleSelectAllPlaylists(filteredPlaylists);
-      panelIsAllSelected =
-          _selectedPlaylistIds.length == filteredPlaylists.length &&
-              filteredPlaylists.isNotEmpty;
-      panelDelete = () => RemoteLibrarySelectionActions.handleBatchDeletePlaylists(
-            server: widget.server,
-            password: widget.password,
-            selectedPlaylistIds: _selectedPlaylistIds,
-            onClearSelection: _cancelSelection,
-            onReloadPlaylists: () => _loadPlaylists(forceRefresh: true),
-            context: context,
-            ref: ref,
-          );
-      panelDeleteLabel = l10n.deletePlaylist;
-    } else if (_isSongSelectionMode) {
-      final songs =
-          _tabController.index == 4 ? _searchedSongs : _getFilteredSongs();
-      panelTitle = l10n.selectedSongs(_selectedSongPaths.length);
-      panelToggleSelectAll = () => _toggleSelectAllSongs(songs);
-      panelIsAllSelected =
-          _selectedSongPaths.length == songs.length && songs.isNotEmpty;
-    }
+    // 二级分类的进退栈统一在这里响应：概览页卡片、Rail（三期）、
+    // 深链都只写 provider，只有这一处产生导航动作。
+    ref.listen<int?>(remoteLibraryActiveTabIndexProvider, (previous, next) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final nav = _navigatorKey.currentState;
+        if (nav == null) return;
+        if (next != null) {
+          if (!nav.canPop()) {
+            nav.push(
+              _remoteRoute(
+                (context) => _buildSubHost(),
+                const RouteSettings(name: _kSubHostRoute),
+              ),
+            );
+          }
+        } else if (nav.canPop()) {
+          nav.pop();
+        }
+      });
+    });
 
     final bool hasConnectionError = _connectionError != null &&
         _albums.isEmpty &&
@@ -1883,399 +2302,16 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
         ),
       );
     } else {
-      final isLandscape = MediaQuery.sizeOf(context).width >= 750;
-
-      final headerTitle = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(widget.server.name),
-          Text(
-            widget.server.type == RemoteServerType.jellyfin
-                ? 'Jellyfin'
-                : 'Navidrome / Subsonic',
-            style: TextStyle(
-              fontSize: 11,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      );
-
-      final headerActions = [
-        LocateSongIconButton(
-          tooltip: l10n.locateCurrentSong,
-          onPressed: _locateCurrentSong,
-        ),
-        IconButton(
-          icon: const Icon(Icons.refresh_rounded, size: 20),
-          tooltip: l10n.refresh,
-          onPressed: () {
-            switch (_tabController.index) {
-              case 0:
-                _loadAlbums(forceRefresh: true);
-                break;
-              case 1:
-                _loadArtists(forceRefresh: true);
-                break;
-              case 2:
-                _loadGenres(forceRefresh: true);
-                break;
-              case 3:
-                _loadSongs(forceRefresh: true);
-                break;
-              case 4:
-                _loadPlaylists(forceRefresh: true);
-                break;
-              case 5:
-                if (_searchController.text.isNotEmpty) {
-                  _onSearchChanged(_searchController.text);
-                }
-                break;
-            }
-          },
-        ),
-        Consumer(
-          builder: (context, ref, child) {
-            final activeCount = ref.watch(activeDownloadsCountProvider);
-            return IconButton(
-              icon: Badge(
-                isLabelVisible: activeCount > 0,
-                label: Text('$activeCount'),
-                child: const Icon(Icons.download_rounded, size: 20),
-              ),
-              tooltip: l10n.downloadManager,
-              onPressed: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) => const RemoteDownloadManagerPage(),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ];
-
-      final headerBottom = RemoteLibraryHeaderBottom(
-        tabBar: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabAlignment: TabAlignment.center,
-          splashBorderRadius: BorderRadius.circular(20),
-          dividerColor: Colors.transparent,
-          indicatorSize: TabBarIndicatorSize.tab,
-          indicator: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: theme.colorScheme.primaryContainer,
-          ),
-          labelColor: theme.colorScheme.onPrimaryContainer,
-          unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-          labelStyle: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.normal,
-          ),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 4,
-          ),
-          tabs: [
-            Tab(text: l10n.albums, height: 32),
-            Tab(text: l10n.artists, height: 32),
-            Tab(text: l10n.genres, height: 32),
-            Tab(text: l10n.songs, height: 32),
-            Tab(text: l10n.playlists, height: 32),
-            Tab(text: l10n.search, height: 32),
-          ],
+      content = Navigator(
+        key: _navigatorKey,
+        onGenerateInitialRoutes: (navigator, initialRoute) => _initialRoutes(),
+        onGenerateRoute: (settings) => _remoteRoute(
+          (context) => settings.name == _kSubHostRoute
+              ? _buildSubHost()
+              : _buildDashboard(),
+          settings,
         ),
       );
-
-      final tabBarView = TabBarView(
-        controller: _tabController,
-        children: [
-          RemoteLibraryAlbumsView(
-            toolbar: _buildAlbumsToolbar(),
-            server: widget.server,
-            password: widget.password,
-            albums: _getFilteredAlbums(),
-            isLoading: _isLoadingAlbums,
-            error: _albumsError,
-            onRefresh: () => _loadAlbums(forceRefresh: true),
-            searchQuery: _albumSearchQuery,
-            bottomOffset: bottomOffset,
-            isSelectionMode: _isAlbumSelectionMode,
-            selectedAlbumIds: _selectedAlbumIds,
-            lastAlbumAnchorIndex: _lastAlbumAnchorIndex,
-            onSetSelection: _setAlbumSelection,
-            onToggleSelection: _toggleAlbumSelection,
-            onUpdateAnchor: (a) => setState(() => _lastAlbumAnchorIndex = a),
-            onPlayAlbumDirectly: (id, title) =>
-                RemoteLibrarySelectionActions.playAlbumDirectly(
-              context: context,
-              ref: ref,
-              server: widget.server,
-              password: widget.password,
-              albumId: id,
-              albumTitle: title,
-            ),
-          ),
-          RemoteLibraryArtistsView(
-            toolbar: _buildArtistsToolbar(),
-            landscapeToolbar: _buildArtistsToolbar(compact: true),
-            server: widget.server,
-            password: widget.password,
-            artists: _getFilteredArtists(),
-            starredArtistIds: _starredArtistIds,
-            selectedArtistId: _selectedArtistId,
-            isLoading: _isLoadingArtists,
-            error: _artistsError,
-            onRefresh: () => _loadArtists(forceRefresh: true),
-            searchQuery: _artistSearchQuery,
-            bottomOffset: bottomOffset,
-            isSelectionMode: _isArtistSelectionMode,
-            selectedArtistIds: _selectedArtistIds,
-            lastArtistAnchorIndex: _lastArtistAnchorIndex,
-            onSelectArtistId: (id) {
-              setState(() {
-                _selectedArtistId = id;
-              });
-              ref
-                  .read(activeRemoteSessionProvider.notifier)
-                  .updateNavidromeArtists(
-                    selectedArtistId: id,
-                  );
-            },
-            onSetSelection: _setArtistSelection,
-            onToggleSelection: _toggleArtistSelection,
-            onUpdateAnchor: (a) =>
-                setState(() => _lastArtistAnchorIndex = a),
-          ),
-          RemoteLibraryGenresView(
-            server: widget.server,
-            password: widget.password,
-            genres: _genres,
-            isLoading: _isLoadingGenres,
-            error: _genresError,
-            onRefresh: () => _loadGenres(forceRefresh: true),
-            bottomOffset: bottomOffset,
-          ),
-          RemoteLibrarySongsView(
-            toolbar: _buildSongsToolbar(),
-            server: widget.server,
-            password: widget.password,
-            songs: _getFilteredSongs(),
-            totalServerSongsCount: _songs.length,
-            starredSongIds: _starredSongIds,
-            isLoading: _isLoadingSongs,
-            isLoadingMore: _isLoadingMoreSongs,
-            hasMore: _hasMoreSongs,
-            error: _songsError,
-            onRefresh: () => _loadSongs(forceRefresh: true),
-            onLoadMore: () => _loadSongs(loadMore: true),
-            searchQuery: _songSearchQuery,
-            bottomOffset: bottomOffset,
-            isSelectionMode: _isSongSelectionMode,
-            selectedSongPaths: _selectedSongPaths,
-            lastSongAnchorIndex: _lastSongAnchorIndex,
-            onSetSelection: _setSongSelection,
-            onToggleSelection: _toggleSongSelection,
-            onUpdateAnchor: (a) =>
-                setState(() => _lastSongAnchorIndex = a),
-            onToggleStar: _toggleSongStar,
-          ),
-          RemoteLibraryPlaylistsView(
-            toolbar: _buildPlaylistsToolbar(),
-            server: widget.server,
-            password: widget.password,
-            playlists: _getFilteredPlaylists(),
-            selectedPlaylistId: _selectedPlaylistId,
-            isLoading: _isLoadingPlaylists,
-            error: _playlistsError,
-            onRefresh: () => _loadPlaylists(forceRefresh: true),
-            searchQuery: _playlistSearchQuery,
-            bottomOffset: bottomOffset,
-            isSelectionMode: _isPlaylistSelectionMode,
-            selectedPlaylistIds: _selectedPlaylistIds,
-            lastPlaylistAnchorIndex: _lastPlaylistAnchorIndex,
-            onSelectPlaylistId: (id) {
-              setState(() {
-                _selectedPlaylistId = id;
-              });
-              ref
-                  .read(activeRemoteSessionProvider.notifier)
-                  .updateNavidromePlaylists(
-                    selectedPlaylistId: id,
-                  );
-            },
-            onSetSelection: _setPlaylistSelection,
-            onToggleSelection: _togglePlaylistSelection,
-            onUpdateAnchor: (a) =>
-                setState(() => _lastPlaylistAnchorIndex = a),
-            sortField: _playlistSortField,
-            sortAscending: _playlistSortAscending,
-          ),
-          RemoteLibrarySearchView(
-            toolbar: _buildSearchToolbar(),
-            server: widget.server,
-            password: widget.password,
-            searchController: _searchController,
-            searchedSongs: _searchedSongs,
-            searchedAlbums: _searchedAlbums,
-            searchedArtists: _searchedArtists,
-            isSearching: _isSearching,
-            bottomOffset: bottomOffset,
-            isArtistSelectionMode: _isArtistSelectionMode,
-            isAlbumSelectionMode: _isAlbumSelectionMode,
-            isSongSelectionMode: _isSongSelectionMode,
-            selectedArtistIds: _selectedArtistIds,
-            selectedAlbumIds: _selectedAlbumIds,
-            selectedSongPaths: _selectedSongPaths,
-            lastSongAnchorIndex: _lastSongAnchorIndex,
-            onSetSongSelection: _setSongSelection,
-            onToggleSongSelection: _toggleSongSelection,
-            onUpdateSongAnchor: (a) =>
-                setState(() => _lastSongAnchorIndex = a),
-            onToggleArtistSelection: _toggleArtistSelection,
-            onToggleAlbumSelection: _toggleAlbumSelection,
-          ),
-        ],
-      );
-
-      final mainBody = isLandscape
-          ? tabBarView
-          : ScrollConfiguration(
-              behavior:
-                  ScrollConfiguration.of(context).copyWith(scrollbars: false),
-              child: NestedScrollView(
-                floatHeaderSlivers: true,
-                headerSliverBuilder: (context, innerBoxIsScrolled) {
-                  return [
-                    SliverAppBar(
-                      floating: true,
-                      snap: false,
-                      pinned: false,
-                      elevation: 0,
-                      scrolledUnderElevation: 0,
-                      surfaceTintColor: Colors.transparent,
-                      backgroundColor: theme.colorScheme.surface,
-                      leading: IconButton(
-                        icon: const Icon(kAppBackIcon, size: 24),
-                        tooltip: l10n.close,
-                        onPressed: _handleBack,
-                      ),
-                      title: headerTitle,
-                      actions: headerActions,
-                      bottom: headerBottom,
-                    ),
-                  ];
-                },
-                body: tabBarView,
-              ),
-            );
-
-      content = PopScope(
-        canPop: true,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              ref.read(activeRemoteSessionProvider.notifier).clear();
-            });
-          }
-        },
-        child: Scaffold(
-          appBar: isLandscape
-              ? AppBar(
-                  elevation: 0,
-                  scrolledUnderElevation: 0,
-                  backgroundColor: theme.colorScheme.surface,
-                  leading: IconButton(
-                    icon: const Icon(kAppBackIcon, size: 24),
-                    tooltip: l10n.close,
-                    onPressed: _handleBack,
-                  ),
-                  title: headerTitle,
-                  actions: headerActions,
-                  bottom: headerBottom,
-                )
-              : null,
-          body: Stack(
-            children: [
-              Positioned.fill(
-                child: mainBody,
-              ),
-              if (_isReloadingContent)
-                Positioned.fill(
-                  child: RemoteLibraryReloadingOverlay(
-                    server: widget.server,
-                    icon: _reloadingContentIcon,
-                  ),
-                ),
-            AnimatedSelectionPanel(
-              isVisible: _isSelectionMode,
-              child: RemoteSongSelectionPanel(
-                panelKey: ValueKey(
-                  'navidrome-library-selection-panel-${_tabController.index}',
-                ),
-                actions: RemoteSelectionActions.library,
-                server: widget.server,
-                password: widget.password,
-                selectedSongs: _isSongSelectionMode
-                    ? (_tabController.index == 4 ? _searchedSongs : _songs)
-                        .where((s) => _selectedSongPaths.contains(s.path))
-                        .toList()
-                    : const [],
-                allSongs: _isSongSelectionMode
-                    ? (_tabController.index == 4 ? _searchedSongs : _songs)
-                    : const [],
-                title: panelTitle,
-                isSelectionEmpty: !_isSelectionMode,
-                isAllSelected: panelIsAllSelected,
-                onToggleSelectAll: panelToggleSelectAll ?? () {},
-                onFetchSongs: _fetchSelectedSongs,
-                onClearSelection: _cancelSelection,
-                selectedAlbumIds:
-                    _isAlbumSelectionMode ? _selectedAlbumIds : null,
-                selectedArtistIds:
-                    _isArtistSelectionMode ? _selectedArtistIds : null,
-                onStarredChanged: (starredIds) {
-                  setState(() {
-                    _starredSongIds.addAll(starredIds);
-                  });
-                  ref
-                      .read(activeRemoteSessionProvider.notifier)
-                      .updateNavidromeSongs(
-                        starredSongIds: _starredSongIds,
-                      );
-                },
-                onStarredArtistsChanged: (starredIds) {
-                  setState(() {
-                    _starredArtistIds.addAll(starredIds);
-                  });
-                  ref
-                      .read(activeRemoteSessionProvider.notifier)
-                      .updateNavidromeArtists(
-                        starredArtistIds: _starredArtistIds,
-                      );
-                },
-                onDownload: () => RemoteLibrarySelectionActions.handleBatchDownload(
-                  context: context,
-                  ref: ref,
-                  server: widget.server,
-                  password: widget.password,
-                  onFetchBatches: _fetchSelectedDownloadBatches,
-                  onClearSelection: _cancelSelection,
-                ),
-                onDelete: panelDelete,
-                deleteLabel: panelDeleteLabel,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
     }
 
     final bool isWindowMode = isWindowedEnvironment(context);
@@ -2328,6 +2364,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     final l10n = AppLocalizations.of(context)!;
     final albums = _getFilteredAlbums();
     return RemoteLibraryAlbumsToolbar(
+      title: l10n.albums,
+      onBack: _closeSubHost,
+      trailingActions: _headerTrailingActions,
       isJellyfin: widget.server.type == RemoteServerType.jellyfin,
       searchController: _albumSearchController,
       searchFocusNode: _albumSearchFocusNode,
@@ -2402,6 +2441,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     final artists = _getFilteredArtists();
     return RemoteLibraryArtistsToolbar(
       compact: compact,
+      title: l10n.artists,
+      onBack: _closeSubHost,
+      trailingActions: _headerTrailingActions,
       searchController: _artistSearchController,
       searchFocusNode: _artistSearchFocusNode,
       searchQuery: _artistSearchQuery,
@@ -2456,7 +2498,11 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   }
 
   RemoteLibrarySongsToolbar _buildSongsToolbar() {
+    final l10n = AppLocalizations.of(context)!;
     return RemoteLibrarySongsToolbar(
+      title: l10n.songs,
+      onBack: _closeSubHost,
+      trailingActions: _headerTrailingActions,
       searchController: _songSearchController,
       searchFocusNode: _songSearchFocusNode,
       searchQuery: _songSearchQuery,
@@ -2581,6 +2627,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     final l10n = AppLocalizations.of(context)!;
     final playlists = _getFilteredPlaylists();
     return RemoteLibraryPlaylistsToolbar(
+      title: l10n.playlists,
+      onBack: _closeSubHost,
+      trailingActions: _headerTrailingActions,
       searchController: _playlistSearchController,
       totalCount: playlists.length,
       onPlayAll: () => _playRemoteEntities(
@@ -2644,7 +2693,10 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   }
 
   Widget _buildSearchToolbar() {
+    final l10n = AppLocalizations.of(context)!;
     return RemoteLibrarySearchToolbar(
+      title: l10n.search,
+      onBack: _closeSubHost,
       searchController: _searchController,
       isSearching: _isSearching,
       onSearchChanged: _onSearchChanged,

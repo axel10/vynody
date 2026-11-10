@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 import '../../../widgets/library_action_bar.dart';
+import '../../../widgets/library_category_header.dart';
 import '../../../widgets/library_toolbar_buttons.dart';
 import '../../../widgets/library_zoom_popover.dart';
 
-/// 远程媒体库各 tab 共用的动作行外壳。
+/// 远程媒体库各 tab 共用的页头。
 ///
 /// 横竖屏判据、搜索框规格、按钮规格、竖屏「更多」折叠全部由
 /// [LibraryActionBar] 一处决定；各 tab 只提供搜索参数、次要动作与播放回调。
 /// 此前每个 tab 自己写 LayoutBuilder / 600·740 阈值 / 32dp 按钮，
 /// 同一个窗口宽度下顶部区域排布各不相同。
+///
+/// 页头实体是本地库的 [LibraryCategoryHeader]：大标题 + 条目计数 + 返回按钮
+/// 与「播放全部 / 随机播放」完全同源，远程只关掉来源筛选
+/// （那是本地文件库独有的概念）。这样两边的二级页在同一个窗口宽度下
+/// 排布、字号、按钮尺寸、折叠规则都是同一套代码算出来的。
 class RemoteLibraryActionBar extends StatelessWidget {
   const RemoteLibraryActionBar({
     super.key,
+    this.title,
+    this.onBack,
     required this.searchController,
     required this.searchQuery,
     required this.onSearchChanged,
@@ -21,8 +29,18 @@ class RemoteLibraryActionBar extends StatelessWidget {
     this.onPlayAll,
     this.onShufflePlay,
     this.actions = const <LibraryToolbarAction>[],
+    this.trailingActions = const <LibraryToolbarAction>[],
     this.countLabel,
+    this.forceNarrow = false,
   });
+
+  /// 分类大标题（「专辑」「艺术家」…）。为空时不渲染标题行，
+  /// 返回按钮也随之不出现 —— 搜索页这种自带搜索行的页头走这条分支。
+  final String? title;
+
+  /// 返回概览页。远程库的二级分类在局部 Navigator 里，`maybePop()` 弹的是
+  /// 分类栈而非外层页面栈，所以必须由父页显式给出「回概览」的动作。
+  final VoidCallback? onBack;
 
   final TextEditingController searchController;
   final String searchQuery;
@@ -33,27 +51,49 @@ class RemoteLibraryActionBar extends StatelessWidget {
   final VoidCallback? onPlayAll;
   final VoidCallback? onShufflePlay;
   final List<LibraryToolbarAction> actions;
+
+  /// 库级动作（定位当前播放、下载管理器）。
+  ///
+  /// 原先挂在二级宿主的浮动胶囊上，必须在滚动离开顶部后才能点到。页头改成
+  /// 常驻大标题后，这些动作随各分类自己的页头一起出现，不滚也能进。
+  /// 排在 [actions] 之后 —— 分类专属动作在前，库级动作在后。
+  final List<LibraryToolbarAction> trailingActions;
+
   final String? countLabel;
+
+  /// 强制使用竖屏（折行）布局。
+  ///
+  /// 横屏主从分栏的左栏只有 300 出头，`libraryToolbarIsWide` 只看屏幕朝向
+  /// 会判成宽屏，把搜索框、播放组、动作按钮全塞进一行而溢出。左栏渲染页头
+  /// 时必须显式要求窄布局 —— 与本地 `genres_tab` / `artists_tab` 左栏同一口径。
+  final bool forceNarrow;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      builder: (context, constraints) => LibraryActionBar(
-        isWide: libraryToolbarIsWide(
-          isLandscape:
-              MediaQuery.orientationOf(context) == Orientation.landscape,
-          maxWidth: constraints.maxWidth,
-        ),
+      builder: (context, constraints) => LibraryCategoryHeader(
+        title: title,
+        countLabel: countLabel,
+        isWide: forceNarrow
+            ? false
+            : libraryToolbarIsWide(
+                isLandscape:
+                    MediaQuery.orientationOf(context) == Orientation.landscape,
+                maxWidth: constraints.maxWidth,
+              ),
         searchController: searchController,
+        searchFocusNode: searchFocusNode,
         searchQuery: searchQuery,
         onSearchChanged: onSearchChanged,
         onSearchCleared: onSearchCleared,
         searchHintText: searchHintText,
-        searchFocusNode: searchFocusNode,
         onPlayAll: onPlayAll,
         onShufflePlay: onShufflePlay,
-        actions: actions,
-        countLabel: countLabel,
+        // 远程库没有「本地 / U 盘 / 网盘」这类来源概念，筛选入口一律不出现。
+        showSourceFilter: false,
+        showBackButton: onBack != null,
+        onBack: onBack,
+        extraActions: [...actions, ...trailingActions],
       ),
     );
   }

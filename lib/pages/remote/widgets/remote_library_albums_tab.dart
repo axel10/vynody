@@ -3,6 +3,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../widgets/library_action_bar.dart';
 import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
@@ -30,6 +31,13 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
   final bool isJellyfin;
   final int? totalCount;
 
+  /// 页头大标题与返回概览页（与本地专辑页同形）。
+  final String? title;
+  final VoidCallback? onBack;
+
+  /// 库级动作（定位当前播放、下载管理器），由父页统一提供。
+  final List<LibraryToolbarAction> trailingActions;
+
   /// 播放全部 / 随机播放：播放当前列出的这些专辑里的歌。
   /// 开着「只看收藏」时列表本身就只剩收藏专辑，因此无需另行判断。
   final VoidCallback? onPlayAll;
@@ -48,6 +56,9 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
     required this.onToggleStarredOnly,
     this.isJellyfin = false,
     this.totalCount,
+    this.title,
+    this.onBack,
+    this.trailingActions = const <LibraryToolbarAction>[],
     this.onPlayAll,
     this.onShufflePlay,
   });
@@ -110,6 +121,9 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
     ];
 
     return RemoteLibraryActionBar(
+      title: title,
+      onBack: onBack,
+      trailingActions: trailingActions,
       searchController: searchController,
       searchFocusNode: searchFocusNode,
       searchQuery: searchQuery,
@@ -216,15 +230,7 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
                   ? Column(
                       children: [
                         if (toolbar != null)
-                          RemoteContentConstraint(
-                            padding: const EdgeInsets.fromLTRB(
-                              kGridHorizontalPadding,
-                              8,
-                              kGridHorizontalPadding,
-                              12,
-                            ),
-                            child: toolbar!,
-                          ),
+                          RemotePageHeaderSlot(child: toolbar!),
                         Expanded(
                           child: Center(
                             child: Text(
@@ -245,15 +251,7 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
                         physics: const AlwaysScrollableScrollPhysics(),
                         slivers: [
                           if (toolbar != null)
-                            SliverRemoteContentConstraint(
-                              padding: const EdgeInsets.fromLTRB(
-                                kGridHorizontalPadding,
-                                8,
-                                kGridHorizontalPadding,
-                                12,
-                              ),
-                              child: toolbar!,
-                            ),
+                            SliverRemotePageHeaderSlot(child: toolbar!),
                           FolderZoomSliverBuilder(
                             zoomScale: snapFolderZoomScale(albumZoomScale),
                             width: contentWidth,

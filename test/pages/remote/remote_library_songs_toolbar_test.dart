@@ -240,47 +240,32 @@ void main() {
     expect(find.byIcon(Icons.grid_view_rounded), findsOneWidget);
   });
 
-  testWidgets('顶部区域宽度与下方曲目网格同源', (tester) async {
-    final settings = await pumpSongsView(tester);
+  testWidgets('顶部区域与下方内容同宽：内边距只由页头自己给一份', (tester) async {
+    await pumpSongsView(tester);
 
-    final header = tester.widget<SliverRemoteContentConstraint>(
-      find.byType(SliverRemoteContentConstraint),
-    );
-    expect(header.maxWidth, kFolderPageMaxWidth);
-
-    final expectedHPad = folderContentHorizontalPadding(
-      isPortrait: true,
-      gridMorph: isFolderZoomGrid(snapFolderZoomScale(settings.songZoomScale))
-          ? 1.0
-          : 0.0,
-    );
-    expect(
-      header.padding,
-      EdgeInsets.fromLTRB(expectedHPad, 6, expectedHPad, 8),
-    );
+    // 页头插槽不再自带水平内边距 —— 那份 16 由 `LibraryCategoryHeader`
+    // 内部统一给，外层再套一份会让标题与搜索框比网格右移 16px，
+    // 和本地库的二级页对不齐。
+    expect(find.byType(SliverRemotePageHeaderSlot), findsOneWidget);
+    expect(find.byType(RemoteContentConstraint), findsNothing);
   });
 
-  /// 列表视图与网格视图必须同宽：水平内边距由缩放包的
-  /// `folderContentHorizontalPadding` 决定（曾按档位在 8/4 与 16 之间插值，
-  /// 切到列表后顶部与曲目行一起变宽，页头反而比内容窄），页面自己传的
-  /// padding 也会被包内 `_resolveLayerHorizontal` 按档位重新校正。
+  /// 列表视图与网格视图的页头必须铺满内容区，正文从 16 开始。
+  ///
+  /// 页头的 16 是本地库 `LibraryCategoryHeader` 的口径；曲目行仍按缩放包的
+  /// `folderContentHorizontalPadding` 按档位取 8/4，两者相差的几像素是列表态
+  /// 多塞内容的既有取舍，不在本次对齐范围内。
   for (final entry in const {'列表视图': 0.0, '网格视图': 1.0}.entries) {
-    testWidgets('${entry.key}：顶部动作行与曲目行同宽且贴 16', (tester) async {
+    testWidgets('${entry.key}：页头铺满内容区且正文贴 16', (tester) async {
       await pumpSongsViewWithRows(tester, zoomScale: entry.value);
 
-      final toolbarLeft =
-          tester.getRect(find.byType(RemoteLibrarySongsToolbar)).left;
-      final rowLeft = tester.getRect(find.byType(SongZoomItem).first).left;
-      final rowRight = tester.getRect(find.byType(SongZoomItem).first).right;
+      final headerRect =
+          tester.getRect(find.byType(RemoteLibrarySongsToolbar));
+      expect(headerRect.left, 0, reason: '页头背景要铺到内容区左边缘');
+      expect(headerRect.right, 1200, reason: '页头背景要铺到内容区右边缘');
 
-      expect(toolbarLeft, kGridHorizontalPadding);
-      expect(rowLeft, toolbarLeft, reason: '顶部与内容左边缘必须一致');
-      // 网格视图一行多张卡片，只有列表视图能按整行宽度核对右边缘。
-      if (entry.value == 0.0) {
-        final toolbarRight =
-            tester.getRect(find.byType(RemoteLibrarySongsToolbar)).right;
-        expect(rowRight, toolbarRight, reason: '顶部与内容右边缘必须一致');
-      }
+      final searchLeft = tester.getRect(find.byType(TextField)).left;
+      expect(searchLeft, kGridHorizontalPadding, reason: '页头正文贴 16');
     });
   }
 }
