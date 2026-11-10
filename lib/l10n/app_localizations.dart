@@ -9196,6 +9196,12 @@ abstract class AppLocalizations {
   /// **'播放列表排序'**
   String get sortPlaylists;
 
+  /// No description provided for @sortServerOrder.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务端原序'**
+  String get sortServerOrder;
+
   /// No description provided for @sortRecentlyUpdated.
   ///
   /// In zh, this message translates to:

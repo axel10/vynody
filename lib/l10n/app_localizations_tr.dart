@@ -5213,6 +5213,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get sortPlaylists => 'Çalma Listelerini Sırala';
 
   @override
+  String get sortServerOrder => 'Sunucu sırası';
+
+  @override
   String get sortRecentlyUpdated => 'Son Güncellenenler';
 
   @override

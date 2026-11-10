@@ -4938,6 +4938,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sortPlaylists => '播放列表排序';
 
   @override
+  String get sortServerOrder => '服务端原序';
+
+  @override
   String get sortRecentlyUpdated => '最近更新';
 
   @override
@@ -10655,6 +10658,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get sortPlaylists => '播放清單排序';
+
+  @override
+  String get sortServerOrder => '伺服器原始順序';
 
   @override
   String get sortRecentlyUpdated => '最近更新';

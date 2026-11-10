@@ -1991,6 +1991,7 @@
   "removedFromMediaLibrary": "Aus der Medienbibliothek entfernt",
   "sortCustom": "Benutzerdefinierte Reihenfolge",
   "sortPlaylists": "Wiedergabelisten sortieren",
+  "sortServerOrder": "Server-Reihenfolge",
   "sortRecentlyCreated": "Kürzlich erstellt",
   "sortRecentlyUpdated": "Kürzlich aktualisiert",
   "viewInRemoteFolder": "Im Remote-Ordner anzeigen",

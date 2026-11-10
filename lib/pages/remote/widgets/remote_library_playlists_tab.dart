@@ -18,12 +18,29 @@ import '../../../widgets/folder_zoom_gesture_layer.dart';
 import '../../../widgets/remote_playlist_zoom_item.dart';
 import 'remote_library_toolbar_widgets.dart';
 
+/// 远程歌单页的排序字段。
+///
+/// 服务端没有「歌单之间排序」的接口，这里只做展示层排序：不回写服务端、不提供拖拽重排。
+/// 「选了哪个字段 + 升降序」是纯视图偏好，由 `SettingsService` 存在本机；
+/// 存下来的不是歌单顺序本身，与「不造本地影子顺序」的约定不冲突。
+/// [RemotePlaylistSortField.serverOrder] 是默认值 —— 完全沿用服务端返回顺序。
+enum RemotePlaylistSortField { serverOrder, name, songCount, duration }
+
+/// 从本地设置还原枚举。未知值（版本升级、手工改 prefs）一律退回服务端原序，
+/// 避免脏值让歌单页启动即崩。
+RemotePlaylistSortField remotePlaylistSortFieldFromStorage(String? value) {
+  for (final field in RemotePlaylistSortField.values) {
+    if (field.name == value) return field;
+  }
+  return RemotePlaylistSortField.serverOrder;
+}
+
 class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
   final VoidCallback onCreatePlaylist;
-  final VoidCallback onRefresh;
+  final VoidCallback onSortPressed;
   final int? totalCount;
 
   const RemoteLibraryPlaylistsToolbar({
@@ -32,7 +49,7 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
     required this.onSearchChanged,
     required this.onClearSearch,
     required this.onCreatePlaylist,
-    required this.onRefresh,
+    required this.onSortPressed,
     this.totalCount,
   });
 
@@ -58,11 +75,13 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
       onPressed: onCreatePlaylist,
     );
 
-    final refreshButton = IconButton(
+    // 排序入口与本地专辑页一致：单按钮点开选项弹窗。
+    // 刷新交给下拉刷新与详情页回调，工具栏不再单独占位。
+    final sortButton = IconButton(
       style: kCompactIconButtonStyle,
-      tooltip: l10n.refresh,
-      icon: const Icon(Icons.refresh_rounded, size: 18),
-      onPressed: onRefresh,
+      tooltip: l10n.sort,
+      icon: const Icon(Icons.sort_rounded, size: 18),
+      onPressed: onSortPressed,
     );
 
     return LayoutBuilder(
@@ -94,7 +113,7 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
                 const SizedBox(width: 8),
                 createButton,
                 const SizedBox(width: 6),
-                refreshButton,
+                sortButton,
               ],
             ),
           );
@@ -108,7 +127,7 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
               const SizedBox(width: 8),
               createButton,
               const SizedBox(width: 6),
-              refreshButton,
+              sortButton,
             ],
           ),
         );
@@ -161,6 +180,8 @@ class RemoteLibraryPlaylistsView extends ConsumerStatefulWidget {
   final void Function(String playlistId) onToggleSelection;
   final void Function(int? index) onUpdateAnchor;
   final Widget? toolbar;
+  final RemotePlaylistSortField sortField;
+  final bool sortAscending;
 
   const RemoteLibraryPlaylistsView({
     super.key,
@@ -181,6 +202,8 @@ class RemoteLibraryPlaylistsView extends ConsumerStatefulWidget {
     required this.onToggleSelection,
     required this.onUpdateAnchor,
     this.toolbar,
+    this.sortField = RemotePlaylistSortField.serverOrder,
+    this.sortAscending = true,
   });
 
   @override
@@ -246,6 +269,41 @@ class _RemoteLibraryPlaylistsViewState
           );
         }(),
     ];
+  }
+
+  int _durationOf(_RemotePlaylistEntry entry) {
+    final raw = entry.raw['duration'];
+    return raw is num ? raw.toInt() : 0;
+  }
+
+  /// 纯展示层排序：星标虚拟歌单恒首位，其余按选中字段排。
+  /// 默认 [RemotePlaylistSortField.serverOrder] 时直接返回服务端原序。
+  List<_RemotePlaylistEntry> _sortEntries(List<_RemotePlaylistEntry> entries) {
+    if (widget.sortField == RemotePlaylistSortField.serverOrder) {
+      return entries;
+    }
+    final pinned = entries.where((e) => e.isPinned).toList();
+    final rest = entries.where((e) => !e.isPinned).toList();
+
+    int compare(_RemotePlaylistEntry a, _RemotePlaylistEntry b) =>
+        switch (widget.sortField) {
+          RemotePlaylistSortField.name =>
+            a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          RemotePlaylistSortField.songCount =>
+            a.songCount.compareTo(b.songCount),
+          RemotePlaylistSortField.duration =>
+            _durationOf(a).compareTo(_durationOf(b)),
+          RemotePlaylistSortField.serverOrder => 0,
+        };
+
+    rest.sort((a, b) {
+      final cmp = compare(a, b);
+      if (cmp != 0) return widget.sortAscending ? cmp : -cmp;
+      // 同值时按名称收敛，避免刷新后顺序跳动。
+      final fallback = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      return widget.sortAscending ? fallback : -fallback;
+    });
+    return <_RemotePlaylistEntry>[...pinned, ...rest];
   }
 
   void _openPlaylist(_RemotePlaylistEntry entry) {
@@ -433,9 +491,9 @@ class _RemoteLibraryPlaylistsViewState
       );
     }
 
-    // 顺序完全用服务端返回的原序（星标虚拟歌单由外层页面插在首位）。
-    // 服务端没有「歌单之间排序」的接口，所以这里不做本地排序，也不提供拖拽重排。
-    final entries = _resolveEntries(widget.playlists);
+    // 默认沿用服务端返回原序；只有用户主动选了排序字段才在展示层排，
+    // 不落盘、不回写服务端，也不提供拖拽重排。
+    final entries = _sortEntries(_resolveEntries(widget.playlists));
     final zoomScale =
         snapFolderZoomScale(ref.watch(settingsServiceProvider).folderZoomScale);
     final isPortrait =
@@ -495,7 +553,8 @@ class _RemoteLibraryPlaylistsViewState
                           top: isPortrait ? 8.0 : 16.0,
                           bottom: widget.bottomOffset,
                         ),
-                        // 不可重排：服务端没有歌单之间的排序接口，直接用原始顺序。
+                        // 顺序由 _sortEntries 决定；不可拖拽重排
+                        // （服务端没有歌单之间的排序接口）。
                         sliver: SliverGrid(
                           gridDelegate: SliverAnimatedZoomGridDelegate(
                             metrics: metrics,

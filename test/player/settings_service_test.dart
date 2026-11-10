@@ -432,7 +432,7 @@ void main() {
       expect(restored.remotePrefetchCount, 5);
     });
 
-    test('album, artist, and navidrome sort settings default and persist correctly', () async {
+    test('album, artist, navidrome and remote playlist sort settings default and persist correctly', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       final settings = SettingsService(prefs);
@@ -445,6 +445,8 @@ void main() {
       expect(settings.navidromeAlbumSortType, 'alphabeticalByName');
       expect(settings.navidromeArtistSortField, 'name');
       expect(settings.navidromeArtistSortAscending, isTrue);
+      expect(settings.remotePlaylistSortField, 'serverOrder');
+      expect(settings.remotePlaylistSortAscending, isTrue);
 
       // Update values
       settings.albumSortField = AlbumSortField.recentAdded;
@@ -454,6 +456,8 @@ void main() {
       settings.navidromeAlbumSortType = 'recent';
       settings.navidromeArtistSortField = 'albumCount';
       settings.navidromeArtistSortAscending = false;
+      settings.remotePlaylistSortField = 'duration';
+      settings.remotePlaylistSortAscending = false;
 
       expect(settings.albumSortField, AlbumSortField.recentAdded);
       expect(settings.albumSortAscending, isFalse);
@@ -462,6 +466,8 @@ void main() {
       expect(settings.navidromeAlbumSortType, 'recent');
       expect(settings.navidromeArtistSortField, 'albumCount');
       expect(settings.navidromeArtistSortAscending, isFalse);
+      expect(settings.remotePlaylistSortField, 'duration');
+      expect(settings.remotePlaylistSortAscending, isFalse);
 
       // Verify persistence across restart
       final restored = SettingsService(prefs);
@@ -472,6 +478,8 @@ void main() {
       expect(restored.navidromeAlbumSortType, 'recent');
       expect(restored.navidromeArtistSortField, 'albumCount');
       expect(restored.navidromeArtistSortAscending, isFalse);
+      expect(restored.remotePlaylistSortField, 'duration');
+      expect(restored.remotePlaylistSortAscending, isFalse);
     });
   });
 

@@ -5262,6 +5262,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sortPlaylists => 'Trier les playlists';
 
   @override
+  String get sortServerOrder => 'Ordre du serveur';
+
+  @override
   String get sortRecentlyUpdated => 'Récemment mis à jour';
 
   @override

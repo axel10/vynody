@@ -1991,6 +1991,7 @@
   "removedFromMediaLibrary": "미디어 라이브러리에서 제거됨",
   "sortCustom": "사용자 지정 정렬",
   "sortPlaylists": "재생목록 정렬",
+  "sortServerOrder": "서버 순서",
   "sortRecentlyCreated": "최근 생성",
   "sortRecentlyUpdated": "최근 업데이트",
   "viewInRemoteFolder": "네트워크 폴더에서 보기",

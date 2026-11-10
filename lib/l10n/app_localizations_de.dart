@@ -5254,6 +5254,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sortPlaylists => 'Wiedergabelisten sortieren';
 
   @override
+  String get sortServerOrder => 'Server-Reihenfolge';
+
+  @override
   String get sortRecentlyUpdated => 'Kürzlich aktualisiert';
 
   @override

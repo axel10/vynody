@@ -5263,6 +5263,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sortPlaylists => 'Ordenar listas de reproducción';
 
   @override
+  String get sortServerOrder => 'Orden del servidor';
+
+  @override
   String get sortRecentlyUpdated => 'Recientemente actualizado';
 
   @override

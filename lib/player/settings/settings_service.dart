@@ -907,6 +907,10 @@ class SettingsService extends ChangeNotifier {
   static const String _keyNavidromeSongSortField = 'navidrome_song_sort_field';
   static const String _keyNavidromeSongSortAscending =
       'navidrome_song_sort_ascending';
+  static const String _keyRemotePlaylistSortField =
+      'remote_playlist_sort_field';
+  static const String _keyRemotePlaylistSortAscending =
+      'remote_playlist_sort_ascending';
   static const String _keyWebDavSortCriteria = 'webdav_sort_criteria';
   static const String _keyWebDavSortOrder = 'webdav_sort_order';
   static const String _keyRatedSongSortField = 'rated_song_sort_field';
@@ -1241,6 +1245,22 @@ class SettingsService extends ChangeNotifier {
 
   late final _navidromeArtistSortAscendingProperty = SettingProperty<bool>(
     key: _keyNavidromeArtistSortAscending,
+    defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  // 远程歌单列表页的排序偏好：只记「按哪个字段 + 升降序」，不记歌单顺序本身。
+  // 服务端没有可写入的「歌单之间顺序」字段，所以这里不做影子顺序。
+  late final _remotePlaylistSortFieldProperty = SettingProperty<String>(
+    key: _keyRemotePlaylistSortField,
+    defaultValue: 'serverOrder',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _remotePlaylistSortAscendingProperty = SettingProperty<bool>(
+    key: _keyRemotePlaylistSortAscending,
     defaultValue: true,
     prefs: _prefs,
     onChanged: notifyListeners,
@@ -3722,6 +3742,16 @@ class SettingsService extends ChangeNotifier {
       _navidromeArtistSortAscendingProperty.value;
   set navidromeArtistSortAscending(bool value) =>
       _navidromeArtistSortAscendingProperty.value = value;
+
+  String get remotePlaylistSortField =>
+      _remotePlaylistSortFieldProperty.value;
+  set remotePlaylistSortField(String value) =>
+      _remotePlaylistSortFieldProperty.value = value;
+
+  bool get remotePlaylistSortAscending =>
+      _remotePlaylistSortAscendingProperty.value;
+  set remotePlaylistSortAscending(bool value) =>
+      _remotePlaylistSortAscendingProperty.value = value;
 
   String get navidromeSongSortField => _navidromeSongSortFieldProperty.value;
   set navidromeSongSortField(String value) =>

@@ -32,6 +32,7 @@ class SortOptionsDialog<T> extends StatefulWidget {
     required this.currentField,
     required this.sortAscending,
     this.onChanged,
+    this.ascendingToggleEnabled,
   });
 
   final String title;
@@ -39,6 +40,10 @@ class SortOptionsDialog<T> extends StatefulWidget {
   final T currentField;
   final bool sortAscending;
   final void Function(T field, bool sortAscending)? onChanged;
+
+  /// 某些排序字段没有升降序之分（例如「服务端原序」），此时禁用降序开关。
+  /// 不传则所有字段都允许切换，保持既有调用点的行为。
+  final bool Function(T field)? ascendingToggleEnabled;
 
   @override
   State<SortOptionsDialog<T>> createState() => _SortOptionsDialogState<T>();
@@ -63,7 +68,8 @@ class _SortOptionsDialogState<T> extends State<SortOptionsDialog<T>> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final toggleEnabled =
+        widget.ascendingToggleEnabled?.call(_selectedField) ?? true;
 
     return AlertDialog(
       title: Row(
@@ -132,20 +138,22 @@ class _SortOptionsDialogState<T> extends State<SortOptionsDialog<T>> {
                 ),
               ),
               subtitle: Text(
-                _isDescending
-                    ? l10n.currentlyDescending
-                    : l10n.currentlyAscending,
+                (!toggleEnabled || !_isDescending)
+                    ? l10n.currentlyAscending
+                    : l10n.currentlyDescending,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              value: _isDescending,
-              onChanged: (val) {
-                setState(() {
-                  _isDescending = val ?? false;
-                });
-                _notifyChange();
-              },
+              value: _isDescending && toggleEnabled,
+              onChanged: toggleEnabled
+                  ? (val) {
+                      setState(() {
+                        _isDescending = val ?? false;
+                      });
+                      _notifyChange();
+                    }
+                  : null,
             ),
           ],
         ),

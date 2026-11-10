@@ -3187,6 +3187,7 @@
   "proxyTestFailed": "代理连接测试失败",
   "proxyHostPortInvalid": "请输入有效的代理地址和端口",
   "sortPlaylists": "播放列表排序",
+  "sortServerOrder": "服务端原序",
   "sortRecentlyUpdated": "最近更新",
   "sortRecentlyCreated": "最近创建",
   "sortCustom": "自定义排序",

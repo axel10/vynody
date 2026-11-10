@@ -5030,6 +5030,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get sortPlaylists => '재생목록 정렬';
 
   @override
+  String get sortServerOrder => '서버 순서';
+
+  @override
   String get sortRecentlyUpdated => '최근 업데이트';
 
   @override

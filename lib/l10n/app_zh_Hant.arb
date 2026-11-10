@@ -1688,6 +1688,7 @@
   "proxyTestFailed": "代理連線測試失敗",
   "proxyHostPortInvalid": "請輸入有效的代理位址和連接埠",
   "sortPlaylists": "播放清單排序",
+  "sortServerOrder": "伺服器原始順序",
   "sortRecentlyUpdated": "最近更新",
   "sortRecentlyCreated": "最近建立",
   "sortCustom": "自訂排序",

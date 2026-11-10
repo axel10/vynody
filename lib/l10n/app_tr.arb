@@ -2123,6 +2123,7 @@
   "removedFromMediaLibrary": "Medya kitaplığından kaldırıldı",
   "sortCustom": "Özel Sıralama",
   "sortPlaylists": "Çalma Listelerini Sırala",
+  "sortServerOrder": "Sunucu sırası",
   "sortRecentlyCreated": "Son Oluşturulanlar",
   "sortRecentlyUpdated": "Son Güncellenenler",
   "viewInRemoteFolder": "Uzak Klasörde Görüntüle",

@@ -5023,6 +5023,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sortPlaylists => 'プレイリストの並び替え';
 
   @override
+  String get sortServerOrder => 'サーバーの順序';
+
+  @override
   String get sortRecentlyUpdated => '最近更新';
 
   @override

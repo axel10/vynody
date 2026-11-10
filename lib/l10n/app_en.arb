@@ -2364,6 +2364,7 @@
   "proxyTestFailed": "Proxy connection test failed",
   "proxyHostPortInvalid": "Please enter a valid proxy host and port",
   "sortPlaylists": "Sort Playlists",
+  "sortServerOrder": "Server order",
   "sortRecentlyUpdated": "Recently Updated",
   "sortRecentlyCreated": "Recently Created",
   "sortCustom": "Custom Order",

@@ -27,6 +27,7 @@ import 'widgets/remote_library_search_tab.dart';
 import '../../utils/song_locator_helper.dart';
 import '../../utils/app_icons.dart';
 import '../../utils/layout_constants.dart';
+import '../../dialogs/sort_options_dialog.dart';
 import '../../widgets/locate_song_button.dart';
 
 class RemoteLibraryPage extends ConsumerStatefulWidget {
@@ -74,6 +75,13 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   String _artistSearchQuery = '';
   bool _artistSortAsc = true;
   String _artistSortField = 'name'; // 'name' or 'albumCount'
+
+  // 排序字段 + 升降序作为视图偏好存在 SettingsService（initState 读、弹窗写）。
+  // 存的是「按什么排」，不是歌单顺序本身：服务端没有「歌单之间排序」的接口，
+  // 也不该为此在客户端造一份持久化顺序。
+  RemotePlaylistSortField _playlistSortField =
+      RemotePlaylistSortField.serverOrder;
+  bool _playlistSortAscending = true;
   bool _artistStarredOnly = false;
   final Set<String> _starredArtistIds = {};
 
@@ -686,6 +694,10 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     _artistSortAsc = settings.navidromeArtistSortAscending;
     _songSortField = settings.navidromeSongSortField;
     _songSortAsc = settings.navidromeSongSortAscending;
+    _playlistSortField = remotePlaylistSortFieldFromStorage(
+      settings.remotePlaylistSortField,
+    );
+    _playlistSortAscending = settings.remotePlaylistSortAscending;
     // 首屏优先拉当前 tab，其余分类在首帧后错峰补齐：五路同时发请求 +
     // 同时解析 JSON 是竖屏首屏掉帧的主因。各分类本身都有 session / 本地
     // 缓存兜底，这里只削平并发峰值，不改变「所有分类最终都可用」的语义
@@ -2102,6 +2114,8 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
             onToggleSelection: _togglePlaylistSelection,
             onUpdateAnchor: (a) =>
                 setState(() => _lastPlaylistAnchorIndex = a),
+            sortField: _playlistSortField,
+            sortAscending: _playlistSortAscending,
           ),
           RemoteLibrarySearchView(
             toolbar: _buildSearchToolbar(),
@@ -2472,6 +2486,52 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     );
   }
 
+  Future<void> _openPlaylistSortDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final result = await showDialog<SortResult<RemotePlaylistSortField>>(
+      context: context,
+      builder: (dialogContext) => SortOptionsDialog<RemotePlaylistSortField>(
+        title: l10n.sortPlaylists,
+        currentField: _playlistSortField,
+        sortAscending: _playlistSortAscending,
+        // 服务端原序没有升降序之分。
+        ascendingToggleEnabled: (field) =>
+            field != RemotePlaylistSortField.serverOrder,
+        options: [
+          SortOptionItem(
+            value: RemotePlaylistSortField.serverOrder,
+            label: l10n.sortServerOrder,
+            icon: Icons.cloud_queue_rounded,
+          ),
+          SortOptionItem(
+            value: RemotePlaylistSortField.name,
+            label: l10n.playlistName,
+            icon: Icons.sort_by_alpha_rounded,
+          ),
+          SortOptionItem(
+            value: RemotePlaylistSortField.songCount,
+            label: l10n.sortTrackCount,
+            icon: Icons.format_list_numbered_rounded,
+          ),
+          SortOptionItem(
+            value: RemotePlaylistSortField.duration,
+            label: l10n.sortDuration,
+            icon: Icons.access_time_rounded,
+          ),
+        ],
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _playlistSortField = result.field;
+        _playlistSortAscending = result.sortAscending;
+      });
+      final settings = ref.read(settingsServiceProvider);
+      settings.remotePlaylistSortField = result.field.name;
+      settings.remotePlaylistSortAscending = result.sortAscending;
+    }
+  }
+
   Widget _buildPlaylistsToolbar() {
     return RemoteLibraryPlaylistsToolbar(
       searchController: _playlistSearchController,
@@ -2519,7 +2579,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
           }
         },
       ),
-      onRefresh: () => _loadPlaylists(forceRefresh: true),
+      onSortPressed: () => _openPlaylistSortDialog(context),
     );
   }
 
