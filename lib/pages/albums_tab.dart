@@ -26,6 +26,7 @@ import '../utils/app_log.dart';
 import '../widgets/draggable_album_item.dart';
 import '../widgets/album_context_menu.dart';
 import '../widgets/playback_ui_tuning.dart';
+import '../widgets/library_action_bar.dart';
 import '../widgets/library_category_header.dart';
 import '../widgets/library_toolbar_buttons.dart';
 import '../utils/app_orientation_manager.dart';
@@ -205,7 +206,10 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
         return LayoutBuilder(
           builder: (context, constraints) {
             final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-            final isWide = isLandscape || constraints.maxWidth >= 780;
+            final isWide = libraryToolbarIsWide(
+              isLandscape: isLandscape,
+              maxWidth: constraints.maxWidth,
+            );
             final availableWidth = math.max(0.0, constraints.maxWidth - widget.contentLeftPadding);
             final contentWidth = math.min(availableWidth, kFolderPageMaxWidth);
 
@@ -251,14 +255,37 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                   onSortPressed: () => _openSortDialog(context, l10n),
                   extraActions: [
                     if (_is3DView)
-                      libraryToolbarIconButton(
-                        tooltip: l10n.shuffleAlbumOrder,
-                        onPressed: () => _onShufflePressed(albums),
+                      LibraryToolbarAction(
                         icon: Icons.shuffle_rounded,
+                        label: l10n.shuffleAlbumOrder,
+                        onPressed: () => _onShufflePressed(albums),
                       ),
-                    if (!_is3DView) const LibraryZoomButton(scope: LibraryZoomScope.album),
-                    libraryToolbarIconButton(
-                      tooltip: _is3DView ? l10n.gridView : l10n.threeDView,
+                    // 视图档位：横屏平铺原按钮，竖屏进「更多」（3D 视图没有档位）。
+                    if (!_is3DView)
+                      LibraryToolbarAction(
+                        icon: Icons.grid_view_rounded,
+                        label: l10n.listView,
+                        wideButton: LibraryZoomButton(
+                          scope: LibraryZoomScope.album,
+                          buttonSize: LibraryToolbarMetrics.buttonSize,
+                        ),
+                        menuEntries: (ctx) => [
+                          libraryToolbarMenuEntry(
+                            context: ctx,
+                            icon: Icons.grid_view_rounded,
+                            label: l10n.listView,
+                            onTap: () => showLibraryZoomPopover(
+                              ctx,
+                              scope: LibraryZoomScope.album,
+                            ),
+                          ),
+                        ],
+                      ),
+                    LibraryToolbarAction(
+                      icon: _is3DView
+                          ? Icons.grid_view_rounded
+                          : Icons.view_carousel_rounded,
+                      label: _is3DView ? l10n.gridView : l10n.threeDView,
                       onPressed: () {
                         AppOrientationManager.toggleCoverFlow(
                           ref,
@@ -266,9 +293,6 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                           target: !_is3DView,
                         );
                       },
-                      icon: _is3DView
-                          ? Icons.grid_view_rounded
-                          : Icons.view_carousel_rounded,
                     ),
                   ],
                   backgroundColor: _is3DView ? Colors.transparent : null,

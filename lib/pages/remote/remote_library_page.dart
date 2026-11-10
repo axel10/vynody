@@ -25,6 +25,7 @@ import 'widgets/remote_library_songs_tab.dart';
 import 'widgets/remote_library_playlists_tab.dart';
 import 'widgets/remote_library_search_tab.dart';
 import '../../utils/song_locator_helper.dart';
+import '../../utils/remote_library_playback.dart';
 import '../../utils/app_icons.dart';
 import '../../utils/layout_constants.dart';
 import '../../dialogs/sort_options_dialog.dart';
@@ -101,7 +102,6 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   final TextEditingController _songSearchController = TextEditingController();
   final FocusNode _songSearchFocusNode = FocusNode();
   String _songSearchQuery = '';
-  bool _isSongSearchExpanded = false;
   bool _songStarredOnly = false;
   String _songSortField = 'title'; // 'title', 'artist', 'album', 'duration'
   bool _songSortAsc = true;
@@ -2338,7 +2338,35 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     return content;
   }
 
+  /// 分类 tab 的「播放全部 / 随机播放」统一下沉到这里。
+  ///
+  /// 各 tab 的工具栏只负责回调，条目 → 曲目的展开、进度浮层与播放来源
+  /// 都在 [playRemoteLibraryEntities] 一处决定，避免四个 tab 各写一份。
+  /// [entities] 传当前列出的条目（已含搜索与「只看收藏」过滤），
+  /// 所以收藏筛选下播的自然只有收藏条目的曲目。
+  Future<void> _playRemoteEntities({
+    required RemoteLibraryEntityKind kind,
+    required List<Map<String, dynamic>> entities,
+    required String sourceSuffix,
+    required String sourceName,
+    bool shuffle = false,
+  }) {
+    return playRemoteLibraryEntities(
+      context: context,
+      ref: ref,
+      server: widget.server,
+      password: widget.password,
+      kind: kind,
+      entities: entities,
+      sourceId: 'remote-${widget.server.id}-$sourceSuffix',
+      sourceName: sourceName,
+      shuffle: shuffle,
+    );
+  }
+
   Widget _buildAlbumsToolbar() {
+    final l10n = AppLocalizations.of(context)!;
+    final albums = _getFilteredAlbums();
     return RemoteLibraryAlbumsToolbar(
       isJellyfin: widget.server.type == RemoteServerType.jellyfin,
       searchController: _albumSearchController,
@@ -2346,7 +2374,20 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       searchQuery: _albumSearchQuery,
       sortType: _albumSortType,
       starredOnly: _albumStarredOnly,
-      totalCount: _getFilteredAlbums().length,
+      totalCount: albums.length,
+      onPlayAll: () => _playRemoteEntities(
+        kind: RemoteLibraryEntityKind.album,
+        entities: albums,
+        sourceSuffix: 'albums',
+        sourceName: l10n.albums,
+      ),
+      onShufflePlay: () => _playRemoteEntities(
+        kind: RemoteLibraryEntityKind.album,
+        entities: albums,
+        sourceSuffix: 'albums',
+        sourceName: l10n.albums,
+        shuffle: true,
+      ),
       onSearchChanged: (val) {
         setState(() {
           _albumSearchQuery = val.trim();
@@ -2397,6 +2438,8 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   }
 
   Widget _buildArtistsToolbar({bool compact = false}) {
+    final l10n = AppLocalizations.of(context)!;
+    final artists = _getFilteredArtists();
     return RemoteLibraryArtistsToolbar(
       compact: compact,
       searchController: _artistSearchController,
@@ -2405,7 +2448,20 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       starredOnly: _artistStarredOnly,
       sortAsc: _artistSortAsc,
       sortField: _artistSortField,
-      totalCount: _getFilteredArtists().length,
+      totalCount: artists.length,
+      onPlayAll: () => _playRemoteEntities(
+        kind: RemoteLibraryEntityKind.artist,
+        entities: artists,
+        sourceSuffix: 'artists',
+        sourceName: l10n.artists,
+      ),
+      onShufflePlay: () => _playRemoteEntities(
+        kind: RemoteLibraryEntityKind.artist,
+        entities: artists,
+        sourceSuffix: 'artists',
+        sourceName: l10n.artists,
+        shuffle: true,
+      ),
       onSearchChanged: (val) {
         setState(() {
           _artistSearchQuery = val.trim();
@@ -2444,7 +2500,6 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       searchController: _songSearchController,
       searchFocusNode: _songSearchFocusNode,
       searchQuery: _songSearchQuery,
-      isSearchExpanded: _isSongSearchExpanded,
       starredOnly: _songStarredOnly,
       onSearchChanged: (val) {
         setState(() {
@@ -2455,11 +2510,6 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
         _songSearchController.clear();
         setState(() {
           _songSearchQuery = '';
-        });
-      },
-      onToggleSearchExpanded: (expanded) {
-        setState(() {
-          _isSongSearchExpanded = expanded;
         });
       },
       onToggleStarredOnly: (selected) async {
@@ -2568,9 +2618,24 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   }
 
   Widget _buildPlaylistsToolbar() {
+    final l10n = AppLocalizations.of(context)!;
+    final playlists = _getFilteredPlaylists();
     return RemoteLibraryPlaylistsToolbar(
       searchController: _playlistSearchController,
-      totalCount: _getFilteredPlaylists().length,
+      totalCount: playlists.length,
+      onPlayAll: () => _playRemoteEntities(
+        kind: RemoteLibraryEntityKind.playlist,
+        entities: playlists,
+        sourceSuffix: 'playlists',
+        sourceName: l10n.playlists,
+      ),
+      onShufflePlay: () => _playRemoteEntities(
+        kind: RemoteLibraryEntityKind.playlist,
+        entities: playlists,
+        sourceSuffix: 'playlists',
+        sourceName: l10n.playlists,
+        shuffle: true,
+      ),
       onSearchChanged: (val) {
         setState(() {
           _playlistSearchQuery = val;

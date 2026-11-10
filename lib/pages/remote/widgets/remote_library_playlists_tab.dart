@@ -15,6 +15,7 @@ import '../../../utils/selection_utils.dart';
 import '../../../widgets/draggable_remote_playlist_item.dart';
 import '../../../widgets/folder_layout_utils.dart';
 import '../../../widgets/folder_zoom_gesture_layer.dart';
+import '../../../widgets/library_action_bar.dart';
 import '../../../widgets/remote_playlist_zoom_item.dart';
 import 'remote_library_toolbar_widgets.dart';
 
@@ -43,6 +44,10 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
   final VoidCallback onSortPressed;
   final int? totalCount;
 
+  /// 播放全部 / 随机播放：播放当前列出的这些歌单里的歌。
+  final VoidCallback? onPlayAll;
+  final VoidCallback? onShufflePlay;
+
   const RemoteLibraryPlaylistsToolbar({
     super.key,
     required this.searchController,
@@ -51,87 +56,40 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
     required this.onCreatePlaylist,
     required this.onSortPressed,
     this.totalCount,
+    this.onPlayAll,
+    this.onShufflePlay,
   });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
-    final searchBar = RemoteSearchBar(
-      controller: searchController,
-      hintText: l10n.searchPlaylists,
+    return RemoteLibraryActionBar(
+      searchController: searchController,
       searchQuery: searchController.text,
-      onChanged: onSearchChanged,
-      onClear: onClearSearch,
-      fillColor:
-          theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-    );
-
-    final createButton = IconButton.filledTonal(
-      style: kCompactIconButtonStyle,
-      tooltip: l10n.createNewServerPlaylist,
-      icon: const Icon(Icons.add_rounded, size: 18),
-      onPressed: onCreatePlaylist,
-    );
-
-    // 排序入口与本地专辑页一致：单按钮点开选项弹窗。
-    // 刷新交给下拉刷新与详情页回调，工具栏不再单独占位。
-    final sortButton = IconButton(
-      style: kCompactIconButtonStyle,
-      tooltip: l10n.sort,
-      icon: const Icon(Icons.sort_rounded, size: 18),
-      onPressed: onSortPressed,
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 600;
-
-        if (isWide) {
-          final isZh = Localizations.localeOf(context).languageCode == 'zh';
-          final countText = totalCount != null
-              ? Text(
-                  isZh ? '共 $totalCount 个歌单' : '$totalCount ${l10n.playlists}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-                )
-              : null;
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                ?countText,
-                const Spacer(),
-                SizedBox(
-                  width: 200,
-                  child: searchBar,
-                ),
-                const SizedBox(width: 8),
-                createButton,
-                const SizedBox(width: 6),
-                sortButton,
-              ],
-            ),
-          );
-        }
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            children: [
-              Expanded(child: searchBar),
-              const SizedBox(width: 8),
-              createButton,
-              const SizedBox(width: 6),
-              sortButton,
-            ],
-          ),
-        );
-      },
+      searchHintText: l10n.searchPlaylists,
+      onSearchChanged: onSearchChanged,
+      onSearchCleared: onClearSearch,
+      onPlayAll: onPlayAll,
+      onShufflePlay: onShufflePlay,
+      countLabel: totalCount == null
+          ? null
+          : (isZh ? '共 $totalCount 个歌单' : '$totalCount ${l10n.playlists}'),
+      actions: [
+        LibraryToolbarAction(
+          icon: Icons.add_rounded,
+          label: l10n.createNewServerPlaylist,
+          onPressed: onCreatePlaylist,
+        ),
+        // 排序入口与本地专辑页一致：单按钮点开选项弹窗。
+        // 刷新交给下拉刷新与详情页回调，工具栏不再单独占位。
+        LibraryToolbarAction(
+          icon: Icons.sort_rounded,
+          label: l10n.sort,
+          onPressed: onSortPressed,
+        ),
+      ],
     );
   }
 }
@@ -498,12 +456,16 @@ class _RemoteLibraryPlaylistsViewState
         snapFolderZoomScale(ref.watch(settingsServiceProvider).folderZoomScale);
     final isPortrait =
         MediaQuery.orientationOf(context) == Orientation.portrait;
-
     final toolbarSliver = widget.toolbar != null
         ? SliverRemoteContentConstraint(
             // 与本地歌单页同宽：这一页没有单列上限，铺满内容区。
             maxWidth: kFolderPageMaxWidth,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            padding: const EdgeInsets.fromLTRB(
+              kGridHorizontalPadding,
+              8,
+              kGridHorizontalPadding,
+              4,
+            ),
             child: widget.toolbar!,
           )
         : null;
@@ -541,15 +503,11 @@ class _RemoteLibraryPlaylistsViewState
                     // 即 ScrollView 的祖先结构会切换 —— 这种页面禁传 controller
                     // （切分支那帧会炸在 sliver 布局里，整页空白）。
                     builder: (context, metrics) {
-                      final hPad = folderContentHorizontalPadding(
-                        isPortrait: isPortrait,
-                        gridMorph: metrics.gridMorph,
-                      );
-
                       return SliverPadding(
+                        // 左右与顶部动作行同源、且不随档位变化。
                         padding: EdgeInsets.only(
-                          left: hPad,
-                          right: hPad,
+                          left: kGridHorizontalPadding,
+                          right: kGridHorizontalPadding,
                           top: isPortrait ? 8.0 : 16.0,
                           bottom: widget.bottomOffset,
                         ),

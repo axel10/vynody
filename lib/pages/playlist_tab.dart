@@ -20,10 +20,10 @@ import '../widgets/drag/drag_preview_card.dart';
 import '../widgets/draggable_playlist_item.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_zoom_gesture_layer.dart';
+import '../widgets/library_action_bar.dart';
 import '../widgets/library_category_header.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
-import '../widgets/library_toolbar_buttons.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/playlist_context_menu.dart';
 import '../widgets/playlist_zoom_item.dart';
@@ -369,7 +369,10 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                         onBack: widget.onBack,
                         title: l10n.playlist,
                         countLabel: l10n.playlistCount(playlists.length),
-                        isWide: !isPortrait,
+                        isWide: libraryToolbarIsWide(
+                          isLandscape: !isPortrait,
+                          maxWidth: width,
+                        ),
                         searchController: _searchController,
                         searchQuery: _searchQuery,
                         onSearchChanged: (query) {
@@ -386,14 +389,14 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                         onSortPressed: () => _showSortDialog(context),
                         showSourceFilter: false,
                         extraActions: [
-                          libraryToolbarIconButton(
-                            tooltip: l10n.createPlaylist,
+                          LibraryToolbarAction(
                             icon: Icons.add_rounded,
+                            label: l10n.createPlaylist,
                             onPressed: () => _showCreatePlaylistDialog(context),
                           ),
-                          libraryToolbarIconButton(
-                            tooltip: l10n.importPlaylist,
+                          LibraryToolbarAction(
                             icon: Icons.file_download_outlined,
+                            label: l10n.importPlaylist,
                             onPressed: () => _importM3uPlaylist(context),
                           ),
                         ],

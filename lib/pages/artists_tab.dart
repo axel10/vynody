@@ -24,8 +24,10 @@ import '../widgets/library_selection_panel.dart';
 import '../models/music_file.dart';
 import '../dialogs/sort_options_dialog.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import '../widgets/library_action_bar.dart';
 import '../widgets/library_category_header.dart';
 import '../widgets/library_master_pane_header.dart';
+import '../widgets/library_toolbar_buttons.dart';
 import '../widgets/artist_context_menu.dart';
 import '../widgets/master_detail_scaffold.dart';
 import 'main_layout_riverpod.dart';
@@ -380,7 +382,25 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
             onShufflePlay: () => _playAllVisible(visibleArtists, shuffle: true),
             onSortPressed: () => _openSortDialog(context, l10n),
             extraActions: [
-              if (!isWide) const LibraryZoomButton(scope: LibraryZoomScope.artist),
+              LibraryToolbarAction(
+                icon: Icons.grid_view_rounded,
+                label: l10n.listView,
+                wideButton: LibraryZoomButton(
+                  scope: LibraryZoomScope.artist,
+                  buttonSize: LibraryToolbarMetrics.buttonSize,
+                ),
+                menuEntries: (ctx) => [
+                  libraryToolbarMenuEntry(
+                    context: ctx,
+                    icon: Icons.grid_view_rounded,
+                    label: l10n.listView,
+                    onTap: () => showLibraryZoomPopover(
+                      ctx,
+                      scope: LibraryZoomScope.artist,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
           masterItemBuilder: (context, artist, index, isSelected, isWide, onTap) {

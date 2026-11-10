@@ -138,7 +138,7 @@ SPEC CHECKSUMS:
   desktop_multi_window: ea8bb43f17f12cf60220d6ebd6b249dcd82e8279
   device_info_plus: 4fb280989f669696856f8b129e4a5e3cd6c48f76
   file_picker: 7584aae6fa07a041af2b36a2655122d42f578c1a
-  file_selector_macos: 9e9e068e90ebee155097d00e89ae91edb2374db7
+  file_selector_macos: 3af0fddc391c32a6a3956a7d3898ca3a86057a4f
   flutter_desktop_lyrics: 801afb6a5a33ad2cede882de4e20d2b9cb1a1c27
   flutter_desktop_tray: 49e2a668a20531257bb2b56a0986c602e9a08fed
   flutter_secure_storage_macos: 7f45e30f838cf2659862a4e4e3ee1c347c2b3b54

@@ -30,6 +30,11 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
   final bool isJellyfin;
   final int? totalCount;
 
+  /// 播放全部 / 随机播放：播放当前列出的这些专辑里的歌。
+  /// 开着「只看收藏」时列表本身就只剩收藏专辑，因此无需另行判断。
+  final VoidCallback? onPlayAll;
+  final VoidCallback? onShufflePlay;
+
   const RemoteLibraryAlbumsToolbar({
     super.key,
     required this.searchController,
@@ -43,6 +48,8 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
     required this.onToggleStarredOnly,
     this.isJellyfin = false,
     this.totalCount,
+    this.onPlayAll,
+    this.onShufflePlay,
   });
 
   String _getSortLabel(AppLocalizations l10n) {
@@ -64,117 +71,69 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
     final currentLabel = _getSortLabel(l10n);
 
-    final searchBar = RemoteSearchBar(
-      controller: searchController,
-      focusNode: searchFocusNode,
-      hintText: l10n.filterAlbums,
-      searchQuery: searchQuery,
-      onChanged: onSearchChanged,
-      onClear: onClearSearch,
-    );
-
-    final starButton = RemoteStarFilterButton(
-      active: starredOnly,
-      tooltip: l10n.starredAlbums,
-      onToggle: onToggleStarredOnly,
-    );
-
-    final sortDropdown = RemoteDropdownButton<String>(
-      value: sortType,
-      label: currentLabel,
-      icon: Icons.sort_rounded,
-      tooltip: l10n.sort,
-      onSelected: onSortTypeChanged,
-      items: [
-        buildRemoteMenuItem(
-          value: 'alphabeticalByName',
-          label: l10n.sortAllAZ,
-          icon: Icons.sort_by_alpha_rounded,
-          isSelected: sortType == 'alphabeticalByName',
-          theme: theme,
+    final sortOptions = <RemoteSortOption>[
+      RemoteSortOption(
+        value: 'alphabeticalByName',
+        label: l10n.sortAllAZ,
+        icon: Icons.sort_by_alpha_rounded,
+        selected: sortType == 'alphabeticalByName',
+      ),
+      RemoteSortOption(
+        value: 'newest',
+        label: l10n.sortRecentAdded,
+        icon: Icons.access_time_rounded,
+        selected: sortType == 'newest',
+      ),
+      if (!isJellyfin) ...[
+        RemoteSortOption(
+          value: 'recent',
+          label: l10n.sortRecentlyPlayed,
+          icon: Icons.history_rounded,
+          selected: sortType == 'recent',
         ),
-        buildRemoteMenuItem(
-          value: 'newest',
-          label: l10n.sortRecentAdded,
-          icon: Icons.access_time_rounded,
-          isSelected: sortType == 'newest',
-          theme: theme,
-        ),
-        if (!isJellyfin) ...[
-          buildRemoteMenuItem(
-            value: 'recent',
-            label: l10n.sortRecentlyPlayed,
-            icon: Icons.history_rounded,
-            isSelected: sortType == 'recent',
-            theme: theme,
-          ),
-          buildRemoteMenuItem(
-            value: 'frequent',
-            label: l10n.sortMostPlayed,
-            icon: Icons.local_fire_department_rounded,
-            isSelected: sortType == 'frequent',
-            theme: theme,
-          ),
-        ],
-        buildRemoteMenuItem(
-          value: 'random',
-          label: l10n.sortRandom,
-          icon: Icons.shuffle_rounded,
-          isSelected: sortType == 'random',
-          theme: theme,
+        RemoteSortOption(
+          value: 'frequent',
+          label: l10n.sortMostPlayed,
+          icon: Icons.local_fire_department_rounded,
+          selected: sortType == 'frequent',
         ),
       ],
-    );
+      RemoteSortOption(
+        value: 'random',
+        label: l10n.sortRandom,
+        icon: Icons.shuffle_rounded,
+        selected: sortType == 'random',
+      ),
+    ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 600;
-
-        if (isWide) {
-          final isZh = Localizations.localeOf(context).languageCode == 'zh';
-          final countText = totalCount != null
-              ? Text(
-                  isZh ? '共 $totalCount 张专辑' : l10n.albumCount(totalCount!),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-                )
-              : null;
-
-          return Row(
-            children: [
-              ?countText,
-              const Spacer(),
-              SizedBox(
-                width: 200,
-                child: searchBar,
-              ),
-              const SizedBox(width: 8),
-              starButton,
-              const SizedBox(width: 8),
-              sortDropdown,
-              const SizedBox(width: 4),
-              const LibraryZoomButton(scope: LibraryZoomScope.album),
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(child: searchBar),
-            const SizedBox(width: 8),
-            starButton,
-            const SizedBox(width: 8),
-            sortDropdown,
-            const SizedBox(width: 4),
-            const LibraryZoomButton(scope: LibraryZoomScope.album),
-          ],
-        );
-      },
+    return RemoteLibraryActionBar(
+      searchController: searchController,
+      searchFocusNode: searchFocusNode,
+      searchQuery: searchQuery,
+      searchHintText: l10n.filterAlbums,
+      onSearchChanged: onSearchChanged,
+      onSearchCleared: onClearSearch,
+      onPlayAll: onPlayAll,
+      onShufflePlay: onShufflePlay,
+      countLabel: totalCount == null
+          ? null
+          : (isZh ? '共 $totalCount 张专辑' : l10n.albumCount(totalCount!)),
+      actions: [
+        remoteStarAction(
+          active: starredOnly,
+          label: l10n.starredAlbums,
+          onToggle: onToggleStarredOnly,
+        ),
+        remoteSortAction(
+          label: '${l10n.sort} · $currentLabel',
+          options: sortOptions,
+          onSelected: onSortTypeChanged,
+        ),
+        remoteZoomAction(label: l10n.listView, scope: LibraryZoomScope.album),
+      ],
     );
   }
 }
@@ -258,7 +217,12 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
                       children: [
                         if (toolbar != null)
                           RemoteContentConstraint(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                            padding: const EdgeInsets.fromLTRB(
+                              kGridHorizontalPadding,
+                              8,
+                              kGridHorizontalPadding,
+                              12,
+                            ),
                             child: toolbar!,
                           ),
                         Expanded(
@@ -282,22 +246,24 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
                         slivers: [
                           if (toolbar != null)
                             SliverRemoteContentConstraint(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                              padding: const EdgeInsets.fromLTRB(
+                                kGridHorizontalPadding,
+                                8,
+                                kGridHorizontalPadding,
+                                12,
+                              ),
                               child: toolbar!,
                             ),
                           FolderZoomSliverBuilder(
                             zoomScale: snapFolderZoomScale(albumZoomScale),
                             width: contentWidth,
                             builder: (context, metrics) {
-                              final hPad = folderContentHorizontalPadding(
-                                isPortrait: isPortrait,
-                                gridMorph: metrics.gridMorph,
-                              );
                               return SliverPadding(
+                                // 与顶部动作行同源、且不随档位变化。
                                 padding: EdgeInsets.fromLTRB(
-                                  hPad,
+                                  kGridHorizontalPadding,
                                   0,
-                                  hPad,
+                                  kGridHorizontalPadding,
                                   bottomOffset,
                                 ),
                                 sliver: SliverGrid(

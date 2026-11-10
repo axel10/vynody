@@ -4,17 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../dialogs/library_source_filter_dialog.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
+import 'library_action_bar.dart';
 import 'library_large_title.dart';
-import 'library_search_field.dart';
-import 'library_toolbar_buttons.dart';
 
-/// 本地媒体库二级分类列表（专辑、艺术家、流派、年份等）的轻量统一工具栏。
+/// 本地媒体库二级分类列表（专辑、艺术家、流派、年份、歌单）的统一页头。
 ///
-/// 标题统一由外层顶部导航栏（[AppTopNavBar]）承载，本组件专注于内容区操作：
-/// - 横屏（宽屏）：单行两端对齐排列，左侧展示标题与条目数量信息，右侧整合常驻搜索框与操作按钮区。
-/// - 竖屏（窄屏）：单行轻量排列（播放全部、随机播放、排序、数量信息、搜索、扩展项、来源筛选）。
-///   点击搜索按钮后，动画平滑切换为全宽搜索框与关闭按钮。
-class LibraryCategoryHeader extends ConsumerStatefulWidget {
+/// 动作行的排布与折叠交给 [LibraryActionBar]：
+/// - 横屏：单行，标题在左，右侧依次是搜索框 → 播放全部 / 随机播放 → 其余按钮；
+/// - 竖屏：标题一行，下面「播放全部 / 随机播放 / 搜索」左对齐，其余全进右侧「更多」。
+///
+/// 横屏主从分栏时（艺术家 / 流派 / 年份）调用方会置 `showSearch: false` 与
+/// `showSortActionInWide: false`，把搜索和排序让给左栏顶部，本行不重复渲染。
+class LibraryCategoryHeader extends ConsumerWidget {
   const LibraryCategoryHeader({
     super.key,
     this.title,
@@ -50,67 +51,25 @@ class LibraryCategoryHeader extends ConsumerStatefulWidget {
   final VoidCallback? onShufflePlay;
   final VoidCallback? onSortPressed;
   final bool showSourceFilter;
-  final List<Widget>? extraActions;
+
+  /// 各分类页特有的次要动作。横屏平铺、竖屏进「更多」，由 [LibraryActionBar]
+  /// 一处决定，调用方不要再按 `isWide` 自行增删按钮。
+  final List<LibraryToolbarAction>? extraActions;
+
   final Color? backgroundColor;
   final bool hasBorder;
 
-  /// 是否在本组件内渲染搜索框。
-  ///
-  /// 横屏主从分栏时搜索框会收进左栏（见 [MasterDetailScaffold] 的
-  /// masterPaneHeaderBuilder）：页头横跨两栏、搜索框右对齐，视觉上认不出
-  /// 它过滤的是左边那条列表，而且会和右侧详情自己的搜索挤在一起。
+  /// 是否在本组件内渲染搜索框。横屏主从分栏时搜索框收进左栏顶部，本行置 false。
   final bool showSearch;
 
-  /// 横屏时是否在本组件内渲染排序按钮。
-  ///
-  /// 竖屏没有分栏，排序与播放操作同属页头一行动作；横屏主从分栏时排序只作用于
-  /// 左栏列表，会随搜索框一起收进左栏顶部（见 `LibraryMasterPaneHeader`），
-  /// 这里置 false 把这格腾出来。
+  /// 横屏时是否在本组件内渲染排序按钮。主从分栏时排序只作用于左栏列表，
+  /// 会随搜索框一起收进左栏顶部，这里置 false 让它只出现在竖屏的「更多」里。
   final bool showSortActionInWide;
   final bool showBackButton;
   final VoidCallback? onBack;
 
   @override
-  ConsumerState<LibraryCategoryHeader> createState() => _LibraryCategoryHeaderState();
-}
-
-class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
-  late bool _isSearching;
-  final FocusNode _focusNode = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    _isSearching = widget.searchQuery.isNotEmpty;
-  }
-
-  @override
-  void didUpdateWidget(LibraryCategoryHeader oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.searchQuery.isNotEmpty && !_isSearching) {
-      _isSearching = true;
-    }
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  Widget _buildSearchField(BuildContext context, ThemeData theme, AppLocalizations l10n) {
-    return LibrarySearchField(
-      controller: widget.searchController,
-      focusNode: _focusNode,
-      hintText: widget.searchHintText ?? l10n.search,
-      query: widget.searchQuery,
-      onChanged: widget.onSearchChanged,
-      onClear: widget.onSearchCleared,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
@@ -118,66 +77,36 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
     final currentFilter = ref.watch(librarySourceFilterProvider);
     final isFiltered = currentFilter.type != LibrarySourceType.all;
 
-    final filterButton = widget.showSourceFilter
-        ? libraryToolbarIconButton(
-            tooltip: isZh ? '渠道与来源筛选' : 'Filter by Source',
-            onPressed: () => showLibrarySourceFilterDialog(context),
-            icon: Icons.tune_rounded,
-            color: isFiltered ? theme.colorScheme.primary : null,
-            wrapIcon: (icon) => Badge(
-              isLabelVisible: isFiltered,
-              smallSize: 8,
-              child: icon,
-            ),
-          )
-        : null;
+    final actions = <LibraryToolbarAction>[
+      if (onSortPressed != null)
+        LibraryToolbarAction(
+          icon: Icons.sort_rounded,
+          label: l10n.sort,
+          onPressed: onSortPressed!,
+          hideInWide: !showSortActionInWide,
+        ),
+      ...?extraActions,
+      if (showSourceFilter)
+        LibraryToolbarAction(
+          icon: Icons.tune_rounded,
+          label: isZh ? '渠道与来源筛选' : 'Filter by Source',
+          onPressed: () => showLibrarySourceFilterDialog(context),
+          color: isFiltered ? theme.colorScheme.primary : null,
+          showBadge: isFiltered,
+        ),
+    ];
 
-    final hasTitle = widget.title != null && widget.title!.isNotEmpty;
-
+    final hasTitle = title != null && title!.isNotEmpty;
     final largeTitleBlock = hasTitle
         ? LibraryLargeTitle(
-            title: widget.title!,
-            countLabel: widget.countLabel,
-            showBackButton: widget.showBackButton,
-            onBack: widget.onBack,
+            title: title!,
+            countLabel: countLabel,
+            showBackButton: showBackButton,
+            onBack: onBack,
           )
         : null;
 
-    final countText = widget.countLabel != null
-        ? Text(
-            widget.countLabel!,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
-            ),
-          )
-        : null;
-
-    final sortButton = widget.onSortPressed != null
-        ? libraryToolbarIconButton(
-            tooltip: l10n.sort,
-            onPressed: widget.onSortPressed,
-            icon: Icons.sort_rounded,
-          )
-        : null;
-
-    final playAllButton = widget.onPlayAll != null
-        ? libraryToolbarIconButton(
-            tooltip: l10n.playAll,
-            onPressed: widget.onPlayAll,
-            icon: Icons.play_arrow_rounded,
-          )
-        : null;
-
-    final shufflePlayButton = widget.onShufflePlay != null
-        ? libraryToolbarIconButton(
-            tooltip: l10n.shufflePlay,
-            onPressed: widget.onShufflePlay,
-            icon: Icons.shuffle_rounded,
-          )
-        : null;
-
-    final border = widget.hasBorder
+    final border = hasBorder
         ? Border(
             bottom: BorderSide(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
@@ -188,42 +117,26 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: widget.backgroundColor ?? theme.colorScheme.surface,
+        color: backgroundColor ?? theme.colorScheme.surface,
         border: border,
       ),
-      child: widget.isWide
-          ? Row(
-              children: [
-                if (largeTitleBlock != null) ...[
-                  largeTitleBlock,
-                  const SizedBox(width: 20),
-                ] else if (countText != null) ...[
-                  countText,
-                  const SizedBox(width: 16),
-                ],
-                Expanded(
-                  child: widget.showSearch
-                      ? Align(
-                          alignment: Alignment.centerRight,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 280),
-                            child: _buildSearchField(context, theme, l10n),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                const SizedBox(width: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ?playAllButton,
-                    ?shufflePlayButton,
-                    if (widget.showSortActionInWide) ?sortButton,
-                    ...?widget.extraActions,
-                    ?filterButton,
-                  ],
-                ),
-              ],
+      // 横屏保持「标题在左、搜索框与按钮组在右」的单行页头；竖屏才拆成
+      // 标题一行、动作行一行。数量信息在有标题时已归 LibraryLargeTitle，
+      // 这里不再重复一份。
+      child: isWide
+          ? LibraryActionBar(
+              isWide: true,
+              leading: largeTitleBlock,
+              searchController: searchController,
+              searchQuery: searchQuery,
+              onSearchChanged: onSearchChanged,
+              onSearchCleared: onSearchCleared,
+              searchHintText: searchHintText,
+              showSearch: showSearch,
+              onPlayAll: onPlayAll,
+              onShufflePlay: onShufflePlay,
+              actions: actions,
+              countLabel: largeTitleBlock == null ? countLabel : null,
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,70 +146,18 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
                   largeTitleBlock,
                   const SizedBox(height: 8),
                 ],
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: child,
-                    );
-                  },
-                  child: _isSearching && widget.showSearch
-                      ? Row(
-                          key: const ValueKey('header_search_active'),
-                          children: [
-                            Expanded(
-                              child: _buildSearchField(context, theme, l10n),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              tooltip: l10n.cancel,
-                              icon: const Icon(Icons.close_rounded),
-                              onPressed: () {
-                                widget.searchController.clear();
-                                widget.onSearchCleared();
-                                setState(() {
-                                  _isSearching = false;
-                                });
-                              },
-                            ),
-                          ],
-                        )
-                      : Row(
-                          key: const ValueKey('header_actions_normal'),
-                          children: [
-                            ?playAllButton,
-                            ?shufflePlayButton,
-                            ?sortButton,
-                            const Spacer(),
-                            if (largeTitleBlock == null && countText != null) ...[
-                              Flexible(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                                  child: countText,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                            ],
-                            if (widget.showSearch)
-                              IconButton(
-                                tooltip: l10n.search,
-                                icon: const Icon(Icons.search_rounded),
-                                onPressed: () {
-                                  setState(() {
-                                    _isSearching = true;
-                                  });
-                                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                                    if (mounted) {
-                                      _focusNode.requestFocus();
-                                    }
-                                  });
-                                },
-                              ),
-                            ...?widget.extraActions,
-                            ?filterButton,
-                          ],
-                        ),
+                LibraryActionBar(
+                  isWide: false,
+                  searchController: searchController,
+                  searchQuery: searchQuery,
+                  onSearchChanged: onSearchChanged,
+                  onSearchCleared: onSearchCleared,
+                  searchHintText: searchHintText,
+                  showSearch: showSearch,
+                  onPlayAll: onPlayAll,
+                  onShufflePlay: onShufflePlay,
+                  actions: actions,
+                  countLabel: largeTitleBlock == null ? countLabel : null,
                 ),
               ],
             ),

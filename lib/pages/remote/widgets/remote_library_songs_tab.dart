@@ -15,6 +15,7 @@ import '../../../utils/selection_utils.dart';
 import '../../../utils/song_locator_helper.dart';
 import '../../../widgets/folder_layout_utils.dart';
 import '../../../widgets/folder_zoom_gesture_layer.dart';
+import '../../../widgets/library_action_bar.dart';
 import '../../../widgets/library_zoom_popover.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../../../widgets/song_zoom_item.dart';
@@ -28,11 +29,16 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
   final String searchQuery;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
-  final bool isSearchExpanded;
-  final ValueChanged<bool> onToggleSearchExpanded;
   final bool starredOnly;
   final ValueChanged<bool> onToggleStarredOnly;
   final VoidCallback onSortPressed;
+
+  /// 播放与下载的实现在 [RemoteLibrarySongsView] 里（要读当前曲目列表与
+  /// 页面 context），由 View 在构建页头时通过 [copyWith] 注入。
+  final VoidCallback? onPlayAll;
+  final VoidCallback? onShufflePlay;
+  final VoidCallback? onDownloadAll;
+  final String? countLabel;
 
   const RemoteLibrarySongsToolbar({
     super.key,
@@ -41,75 +47,71 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
     required this.searchQuery,
     required this.onSearchChanged,
     required this.onClearSearch,
-    required this.isSearchExpanded,
-    required this.onToggleSearchExpanded,
     required this.starredOnly,
     required this.onToggleStarredOnly,
     required this.onSortPressed,
+    this.onPlayAll,
+    this.onShufflePlay,
+    this.onDownloadAll,
+    this.countLabel,
   });
 
-  Widget buildConditions(
-    BuildContext context, {
-    bool expandSearch = false,
-    double searchWidth = 190.0,
+  RemoteLibrarySongsToolbar copyWith({
+    VoidCallback? onPlayAll,
+    VoidCallback? onShufflePlay,
+    VoidCallback? onDownloadAll,
+    String? countLabel,
   }) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final isPortrait =
-        MediaQuery.orientationOf(context) == Orientation.portrait;
-
-    final searchField = RemoteSearchBar(
-      controller: searchController,
-      focusNode: searchFocusNode,
-      hintText: l10n.filterSongs,
+    return RemoteLibrarySongsToolbar(
+      key: key,
+      searchController: searchController,
+      searchFocusNode: searchFocusNode,
       searchQuery: searchQuery,
-      onChanged: onSearchChanged,
-      onClear: onClearSearch,
-    );
-
-    return Row(
-      mainAxisSize: expandSearch ? MainAxisSize.max : MainAxisSize.min,
-      children: [
-        if (expandSearch)
-          Expanded(child: searchField)
-        else
-          SizedBox(width: searchWidth, child: searchField),
-        const SizedBox(width: 4),
-        IconButton(
-          style: kCompactIconButtonStyle,
-          tooltip: l10n.starredSongsOnly,
-          icon: Icon(
-            starredOnly
-                ? Icons.favorite_rounded
-                : Icons.favorite_border_rounded,
-            size: 18,
-            color: starredOnly
-                ? Colors.redAccent
-                : theme.colorScheme.onSurfaceVariant,
-          ),
-          onPressed: () => onToggleStarredOnly(!starredOnly),
-        ),
-        const SizedBox(width: 4),
-        // 排序入口与歌单 tab 一致：单个图标按钮点开排序弹窗，
-        // 不再用带文字标签的下拉胶囊（竖屏会把顶部两行挤窄）。
-        IconButton(
-          style: kCompactIconButtonStyle,
-          tooltip: l10n.sort,
-          icon: const Icon(Icons.sort_rounded, size: 18),
-          onPressed: onSortPressed,
-        ),
-        // 竖屏下顶部两行已占满内容宽，视图档位交给捏合手势；横屏才显示按钮。
-        if (!isPortrait) ...[
-          const SizedBox(width: 4),
-          const LibraryZoomButton(scope: LibraryZoomScope.song),
-        ],
-      ],
+      onSearchChanged: onSearchChanged,
+      onClearSearch: onClearSearch,
+      starredOnly: starredOnly,
+      onToggleStarredOnly: onToggleStarredOnly,
+      onSortPressed: onSortPressed,
+      onPlayAll: onPlayAll ?? this.onPlayAll,
+      onShufflePlay: onShufflePlay ?? this.onShufflePlay,
+      onDownloadAll: onDownloadAll ?? this.onDownloadAll,
+      countLabel: countLabel ?? this.countLabel,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return buildConditions(context, expandSearch: true);
+    final l10n = AppLocalizations.of(context)!;
+    return RemoteLibraryActionBar(
+      searchController: searchController,
+      searchFocusNode: searchFocusNode,
+      searchQuery: searchQuery,
+      searchHintText: l10n.filterSongs,
+      onSearchChanged: onSearchChanged,
+      onSearchCleared: onClearSearch,
+      onPlayAll: onPlayAll,
+      onShufflePlay: onShufflePlay,
+      countLabel: countLabel,
+      actions: [
+        remoteStarAction(
+          active: starredOnly,
+          label: l10n.starredSongsOnly,
+          onToggle: onToggleStarredOnly,
+        ),
+        LibraryToolbarAction(
+          icon: Icons.download_rounded,
+          label: l10n.downloadAllTracks,
+          onPressed: onDownloadAll,
+        ),
+        LibraryToolbarAction(
+          icon: Icons.sort_rounded,
+          label: l10n.sort,
+          onPressed: onSortPressed,
+        ),
+        // 视图档位：横屏平铺、竖屏进「更多」。此前竖屏直接隐藏，只能捏合。
+        remoteZoomAction(label: l10n.listView, scope: LibraryZoomScope.song),
+      ],
+    );
   }
 }
 
@@ -231,108 +233,23 @@ class _RemoteLibrarySongsViewState
     showRemoteDownloadQueuedFeedback(context, ref, widget.songs.length);
   }
 
-  Widget _buildHeader(BuildContext context, BoxConstraints constraints) {
+  Widget _buildHeader(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final totalDurationStr = _formatTotalDuration(widget.songs);
+    final countLabel = totalDurationStr.isNotEmpty
+        ? '${l10n.trackCountShort(widget.songs.length)} · $totalDurationStr'
+        : l10n.trackCountShort(widget.songs.length);
 
-    final countAndDurationText = Text(
-      totalDurationStr.isNotEmpty
-          ? '${l10n.trackCountShort(widget.songs.length)} · $totalDurationStr'
-          : l10n.trackCountShort(widget.songs.length),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-        fontWeight: FontWeight.w500,
-      ),
-    );
-
-    final playButtons = [
-      SizedBox(
-        height: 32,
-        child: FilledButton.icon(
-          onPressed: widget.songs.isNotEmpty ? () => _playAll() : null,
-          icon: const Icon(Icons.play_arrow_rounded, size: 18),
-          label: Text(l10n.playAll),
-          style: FilledButton.styleFrom(
-            shape: const StadiumBorder(),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            textStyle: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(width: 8),
-      IconButton.filledTonal(
-        style: IconButton.styleFrom(
-          minimumSize: const Size(32, 32),
-          fixedSize: const Size(32, 32),
-          padding: EdgeInsets.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        tooltip: l10n.shufflePlay,
-        onPressed: widget.songs.isNotEmpty ? () => _playAll(shuffle: true) : null,
-        icon: const Icon(Icons.shuffle_rounded, size: 18),
-      ),
-      const SizedBox(width: 8),
-      IconButton.filledTonal(
-        style: IconButton.styleFrom(
-          minimumSize: const Size(32, 32),
-          fixedSize: const Size(32, 32),
-          padding: EdgeInsets.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        tooltip: l10n.downloadAllTracks,
-        onPressed: widget.songs.isNotEmpty ? _downloadAll : null,
-        icon: const Icon(Icons.download_rounded, size: 18),
-      ),
-    ];
-
-    final isWide = constraints.maxWidth >= 740;
-
-    if (isWide) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          ...playButtons,
-          const Spacer(),
-          if (widget.toolbar != null) ...[
-            widget.toolbar!.buildConditions(
-              context,
-              expandSearch: false,
-              searchWidth: 190,
-            ),
-            const SizedBox(width: 12),
-          ],
-          countAndDurationText,
-        ],
-      );
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (widget.toolbar != null) ...[
-          widget.toolbar!.buildConditions(
-            context,
-            expandSearch: true,
-          ),
-          const SizedBox(height: 8),
-        ],
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            ...playButtons,
-            const Spacer(),
-            countAndDurationText,
-          ],
-        ),
-      ],
-    );
+    // 顶部只保留一行：搜索 / 播放 / 其余动作的顺序与折叠全部由
+    // LibraryActionBar 决定。播放与下载的回调实现在本 View，注入给外层
+    // 构造的 toolbar（同一位置更新 widget，搜索展开态由 State 自己保留）。
+    return widget.toolbar?.copyWith(
+          onPlayAll: () => _playAll(),
+          onShufflePlay: () => _playAll(shuffle: true),
+          onDownloadAll: _downloadAll,
+          countLabel: countLabel,
+        ) ??
+        const SizedBox.shrink();
   }
 
   @override
@@ -364,29 +281,24 @@ class _RemoteLibrarySongsViewState
       );
     }
 
-    // 顶部两行（搜索/收藏/排序 + 播放全部/随机/下载）与下方曲目网格同宽：
-    // 歌单 tab 已经去掉 1080 单列上限，这里也不能再锁 kSingleColumnContentMaxWidth，
-    // 否则宽窗口下顶部明显比其它 tab 窄一截；左右内边距同样与下方网格同源，
-    // 竖屏下不再额外缩 28/36 两档。
+    // 顶部动作行与下方曲目网格同宽：歌单 tab 已经去掉 1080 单列上限，
+    // 这里也不能再锁 kSingleColumnContentMaxWidth，否则宽窗口下顶部明显比
+    // 其它 tab 窄一截；左右内边距与曲目行共用 [kGridHorizontalPadding]，
+    // 且**与缩放档位无关** —— 跟 gridMorph 走的话切到列表视图两侧会从 16
+    // 缩到 8，顶部与曲目一起「变宽」，还会比其它 tab 宽出一截。
     final songZoomScale = ref.watch(
       settingsServiceProvider.select((s) => s.songZoomScale),
-    );
-    final isPortrait =
-        MediaQuery.orientationOf(context) == Orientation.portrait;
-    final headerHPad = folderContentHorizontalPadding(
-      isPortrait: isPortrait,
-      gridMorph: isFolderZoomGrid(snapFolderZoomScale(songZoomScale))
-          ? 1.0
-          : 0.0,
     );
 
     final headerSliver = SliverRemoteContentConstraint(
       maxWidth: kFolderPageMaxWidth,
-      padding: EdgeInsets.fromLTRB(headerHPad, 6, headerHPad, 8),
-      child: LayoutBuilder(
-        builder: (context, constraints) =>
-            _buildHeader(context, constraints),
+      padding: const EdgeInsets.fromLTRB(
+        kGridHorizontalPadding,
+        6,
+        kGridHorizontalPadding,
+        8,
       ),
+      child: _buildHeader(context),
     );
 
     if (widget.songs.isEmpty) {
@@ -444,13 +356,11 @@ class _RemoteLibrarySongsViewState
                         zoomScale: snapFolderZoomScale(songZoomScale),
                         width: contentWidth,
                         builder: (context, metrics) {
-                          final hPad = folderContentHorizontalPadding(
-                            isPortrait: isPortrait,
-                            gridMorph: metrics.gridMorph,
-                          );
-
                           return SliverPadding(
-                            padding: EdgeInsets.symmetric(horizontal: hPad),
+                            // 与顶部动作行同源、且不随档位变化。
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: kGridHorizontalPadding,
+                            ),
                             sliver: SliverGrid(
                               gridDelegate:
                                   SliverAnimatedZoomGridDelegate(

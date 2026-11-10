@@ -10,6 +10,8 @@ import '../../../utils/selection_utils.dart';
 import '../../../widgets/draggable_remote_artist_item.dart';
 import '../../../widgets/folder_layout_utils.dart';
 import '../../../widgets/folder_zoom_gesture_layer.dart';
+import '../../../widgets/library_search_field.dart';
+import '../../../widgets/library_toolbar_buttons.dart';
 import '../../../widgets/library_zoom_popover.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../remote_artist_detail_page.dart';
@@ -29,6 +31,10 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
   final void Function(String field, bool asc) onSortChanged;
   final int? totalCount;
 
+  /// 播放全部 / 随机播放：播放当前列出的这些艺术家的歌。
+  final VoidCallback? onPlayAll;
+  final VoidCallback? onShufflePlay;
+
   /// 给横屏左栏用的紧凑形态：搜索独占一行，计数 / 收藏 / 排序占第二行。
   /// 左栏只有 260~300 宽，横排四个控件会把搜索框挤到放不下 hint。
   final bool compact;
@@ -46,6 +52,8 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
     required this.sortField,
     required this.onSortChanged,
     this.totalCount,
+    this.onPlayAll,
+    this.onShufflePlay,
     this.compact = false,
   });
 
@@ -53,141 +61,132 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final String currentSortKey = '${sortField}_$sortAsc';
-    final String currentLabel = switch (sortField) {
-      'albumCount' => l10n.albums,
-      _ => 'A-Z',
-    };
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
-    final searchBar = RemoteSearchBar(
-      controller: searchController,
-      focusNode: searchFocusNode,
-      hintText: l10n.filterArtists,
-      searchQuery: searchQuery,
-      onChanged: onSearchChanged,
-      onClear: onClearSearch,
-    );
+    final sortOptions = <RemoteSortOption>[
+      RemoteSortOption(
+        value: 'name_true',
+        label: 'A-Z (${l10n.sortAscending})',
+        icon: Icons.sort_by_alpha_rounded,
+        selected: sortField == 'name' && sortAsc,
+      ),
+      RemoteSortOption(
+        value: 'name_false',
+        label: 'Z-A (${l10n.sortDescending})',
+        icon: Icons.sort_by_alpha_rounded,
+        selected: sortField == 'name' && !sortAsc,
+      ),
+      RemoteSortOption(
+        value: 'albumCount_false',
+        label: '${l10n.albums} (${l10n.sortDescending})',
+        icon: Icons.album_rounded,
+        selected: sortField == 'albumCount' && !sortAsc,
+      ),
+      RemoteSortOption(
+        value: 'albumCount_true',
+        label: '${l10n.albums} (${l10n.sortAscending})',
+        icon: Icons.album_rounded,
+        selected: sortField == 'albumCount' && sortAsc,
+      ),
+    ];
 
-    final starButton = RemoteStarFilterButton(
-      active: starredOnly,
-      tooltip: l10n.starredArtists,
-      onToggle: onToggleStarredOnly,
-    );
+    void onSortSelected(String key) {
+      final parts = key.split('_');
+      onSortChanged(parts[0], parts[1] == 'true');
+    }
 
-    final sortDropdown = RemoteDropdownButton<String>(
-      value: currentSortKey,
-      label: currentLabel,
-      icon: sortAsc
-          ? Icons.arrow_upward_rounded
-          : Icons.arrow_downward_rounded,
-      tooltip: l10n.sort,
-      onSelected: (key) {
-        final parts = key.split('_');
-        onSortChanged(parts[0], parts[1] == 'true');
-      },
-      items: [
-        buildRemoteMenuItem(
-          value: 'name_true',
-          label: 'A-Z (${l10n.sortAscending})',
-          icon: Icons.sort_by_alpha_rounded,
-          isSelected: sortField == 'name' && sortAsc,
-          theme: theme,
-        ),
-        buildRemoteMenuItem(
-          value: 'name_false',
-          label: 'Z-A (${l10n.sortDescending})',
-          icon: Icons.sort_by_alpha_rounded,
-          isSelected: sortField == 'name' && !sortAsc,
-          theme: theme,
-        ),
-        buildRemoteMenuItem(
-          value: 'albumCount_false',
-          label: '${l10n.albums} (${l10n.sortDescending})',
-          icon: Icons.album_rounded,
-          isSelected: sortField == 'albumCount' && !sortAsc,
-          theme: theme,
-        ),
-        buildRemoteMenuItem(
-          value: 'albumCount_true',
-          label: '${l10n.albums} (${l10n.sortAscending})',
-          icon: Icons.album_rounded,
-          isSelected: sortField == 'albumCount' && sortAsc,
-          theme: theme,
-        ),
-      ],
-    );
+    final countLabel = totalCount == null
+        ? null
+        : (isZh ? '共 $totalCount 位艺术家' : '$totalCount ${l10n.artists}');
 
-    final countText = totalCount != null
-        ? Text(
-            Localizations.localeOf(context).languageCode == 'zh'
-                ? '共 $totalCount 位艺术家'
-                : '$totalCount ${l10n.artists}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
-            ),
-          )
-        : null;
-
+    // 横屏分栏左栏只有 260~300 宽，一行塞不下搜索框 + 全部动作，保持
+    // 「搜索独占一行 / 计数 + 红心 + 排序第二行」的紧凑形态。
     if (compact) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          searchBar,
+          LibrarySearchField(
+            controller: searchController,
+            focusNode: searchFocusNode,
+            hintText: l10n.filterArtists,
+            query: searchQuery,
+            onChanged: onSearchChanged,
+            onClear: onClearSearch,
+          ),
           const SizedBox(height: 8),
           Row(
             children: [
-              if (countText != null)
-                Expanded(child: countText)
+              if (countLabel != null)
+                Expanded(
+                  child: Text(
+                    countLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                )
               else
                 const Spacer(),
-              starButton,
-              const SizedBox(width: 6),
-              sortDropdown,
+              // 竖屏没有这行（播放组在本行上方），横屏左栏是唯一入口，
+              // 所以播放组得挤进来：计数让位、ellipsis 兜底。
+              if (onPlayAll != null)
+                libraryToolbarIconButton(
+                  icon: Icons.play_arrow_rounded,
+                  tooltip: l10n.playAll,
+                  onPressed: onPlayAll,
+                ),
+              if (onShufflePlay != null)
+                libraryToolbarIconButton(
+                  icon: Icons.shuffle_rounded,
+                  tooltip: l10n.shufflePlay,
+                  onPressed: onShufflePlay,
+                ),
+              libraryToolbarIconButton(
+                icon: starredOnly
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                tooltip: l10n.starredArtists,
+                color: starredOnly ? Colors.redAccent : null,
+                onPressed: () => onToggleStarredOnly(!starredOnly),
+              ),
+              remoteSortPopupButton(
+                label: l10n.sort,
+                options: sortOptions,
+                onSelected: onSortSelected,
+              ),
             ],
           ),
         ],
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 600;
-
-        if (isWide) {
-          return Row(
-            children: [
-              ?countText,
-              const Spacer(),
-              SizedBox(
-                width: 200,
-                child: searchBar,
-              ),
-              const SizedBox(width: 8),
-              starButton,
-              const SizedBox(width: 8),
-              sortDropdown,
-              const SizedBox(width: 4),
-              const LibraryZoomButton(scope: LibraryZoomScope.artist),
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(child: searchBar),
-            const SizedBox(width: 8),
-            starButton,
-            const SizedBox(width: 8),
-            sortDropdown,
-            const SizedBox(width: 4),
-            const LibraryZoomButton(scope: LibraryZoomScope.artist),
-          ],
-        );
-      },
+    return RemoteLibraryActionBar(
+      searchController: searchController,
+      searchFocusNode: searchFocusNode,
+      searchQuery: searchQuery,
+      searchHintText: l10n.filterArtists,
+      onSearchChanged: onSearchChanged,
+      onSearchCleared: onClearSearch,
+      onPlayAll: onPlayAll,
+      onShufflePlay: onShufflePlay,
+      countLabel: countLabel,
+      actions: [
+        remoteStarAction(
+          active: starredOnly,
+          label: l10n.starredArtists,
+          onToggle: onToggleStarredOnly,
+        ),
+        remoteSortAction(
+          label: l10n.sort,
+          options: sortOptions,
+          onSelected: onSortSelected,
+        ),
+        remoteZoomAction(label: l10n.listView, scope: LibraryZoomScope.artist),
+      ],
     );
   }
 }
@@ -293,19 +292,22 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
         }
 
         // Portrait: Zoomable List / Grid of Artist Cards
-        final toolbarSliver = toolbar != null
-            ? SliverRemoteContentConstraint(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: toolbar!,
-              )
-            : null;
-
-        final isPortrait =
-            MediaQuery.orientationOf(context) == Orientation.portrait;
         final contentWidth = math.min(
           constraints.maxWidth,
           kFolderPageMaxWidth,
         );
+
+        final toolbarSliver = toolbar != null
+            ? SliverRemoteContentConstraint(
+                padding: const EdgeInsets.fromLTRB(
+                  kGridHorizontalPadding,
+                  8,
+                  kGridHorizontalPadding,
+                  12,
+                ),
+                child: toolbar!,
+              )
+            : null;
 
         return FolderZoomGestureLayer(
           scope: LibraryZoomScope.artist,
@@ -317,7 +319,12 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
                       children: [
                         if (toolbar != null)
                           RemoteContentConstraint(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                            padding: const EdgeInsets.fromLTRB(
+                              kGridHorizontalPadding,
+                              8,
+                              kGridHorizontalPadding,
+                              12,
+                            ),
                             child: toolbar!,
                           ),
                         Expanded(
@@ -344,16 +351,12 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
                             zoomScale: snapFolderZoomScale(artistZoomScale),
                             width: contentWidth,
                             builder: (context, metrics) {
-                              final hPad = folderContentHorizontalPadding(
-                                isPortrait: isPortrait,
-                                gridMorph: metrics.gridMorph,
-                              );
-
                               return SliverPadding(
+                                // 与顶部动作行同源、且不随档位变化。
                                 padding: EdgeInsets.fromLTRB(
-                                  hPad,
+                                  kGridHorizontalPadding,
                                   0,
-                                  hPad,
+                                  kGridHorizontalPadding,
                                   bottomOffset,
                                 ),
                                 sliver: SliverGrid(

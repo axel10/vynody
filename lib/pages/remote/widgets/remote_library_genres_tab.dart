@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../player/remote/remote_server_models.dart';
+import '../../../utils/remote_library_playback.dart';
+import '../../../widgets/folder_layout_utils.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../remote_genre_detail_page.dart';
 import 'remote_library_common_widgets.dart';
@@ -135,7 +137,12 @@ class _RemoteLibraryGenresViewState
       return Column(
         children: [
           RemoteContentConstraint(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: const EdgeInsets.fromLTRB(
+              kGridHorizontalPadding,
+              8,
+              kGridHorizontalPadding,
+              12,
+            ),
             child: toolbar,
           ),
           Expanded(
@@ -163,7 +170,12 @@ class _RemoteLibraryGenresViewState
                 child: Column(
                   children: [
                     RemoteContentConstraint(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                      padding: const EdgeInsets.fromLTRB(
+                        kGridHorizontalPadding,
+                        8,
+                        kGridHorizontalPadding,
+                        8,
+                      ),
                       maxWidth: 330,
                       child: toolbar,
                     ),
@@ -204,7 +216,12 @@ class _RemoteLibraryGenresViewState
         return Column(
           children: [
             RemoteContentConstraint(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: const EdgeInsets.fromLTRB(
+                kGridHorizontalPadding,
+                8,
+                kGridHorizontalPadding,
+                8,
+              ),
               child: toolbar,
             ),
             Expanded(
@@ -241,7 +258,12 @@ class _RemoteLibraryGenresViewState
       onRefresh: widget.onRefresh,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(16, 0, 16, widget.bottomOffset),
+        padding: EdgeInsets.fromLTRB(
+          kGridHorizontalPadding,
+          0,
+          kGridHorizontalPadding,
+          widget.bottomOffset,
+        ),
         itemCount: visible.length,
         itemBuilder: (context, index) {
           final genre = visible[index];
@@ -267,33 +289,68 @@ class _RemoteLibraryGenresViewState
     );
   }
 
-  Widget _buildToolbar(BuildContext context, AppLocalizations l10n) {
-    final theme = Theme.of(context);
-    final sortKey = '${_sortField}_$_sortAsc';
-    final sortLabel = _sortField == 'songCount' ? l10n.songs : 'A-Z';
+  /// 播放当前列出的流派（已含搜索 / 排序后的可见集合）名下的全部曲目。
+  Future<void> _playAllVisible({bool shuffle = false}) async {
+    final genres = _visibleGenres;
+    if (genres.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    await playRemoteLibraryEntities(
+      context: context,
+      ref: ref,
+      server: widget.server,
+      password: widget.password,
+      kind: RemoteLibraryEntityKind.genre,
+      entities: genres,
+      sourceId: 'remote-${widget.server.id}-genres',
+      sourceName: l10n.genres,
+      shuffle: shuffle,
+    );
+  }
 
-    return Row(
-      children: [
-        Expanded(
-          child: RemoteSearchBar(
-            controller: _searchController,
-            hintText: l10n.genres,
-            searchQuery: _searchQuery,
-            onChanged: (value) => setState(() => _searchQuery = value.trim()),
-            onClear: () {
-              _searchController.clear();
-              setState(() => _searchQuery = '');
-            },
-          ),
-        ),
-        const SizedBox(width: 8),
-        RemoteDropdownButton<String>(
-          value: sortKey,
-          label: sortLabel,
-          icon: _sortAsc
-              ? Icons.arrow_upward_rounded
-              : Icons.arrow_downward_rounded,
-          tooltip: l10n.sort,
+  Widget _buildToolbar(BuildContext context, AppLocalizations l10n) {
+    final sortOptions = <RemoteSortOption>[
+      RemoteSortOption(
+        value: 'name_true',
+        label: 'A-Z (${l10n.sortAscending})',
+        icon: Icons.sort_by_alpha_rounded,
+        selected: _sortField == 'name' && _sortAsc,
+      ),
+      RemoteSortOption(
+        value: 'name_false',
+        label: 'Z-A (${l10n.sortDescending})',
+        icon: Icons.sort_by_alpha_rounded,
+        selected: _sortField == 'name' && !_sortAsc,
+      ),
+      RemoteSortOption(
+        value: 'songCount_false',
+        label: '${l10n.songs} (${l10n.sortDescending})',
+        icon: Icons.format_list_numbered_rounded,
+        selected: _sortField == 'songCount' && !_sortAsc,
+      ),
+      RemoteSortOption(
+        value: 'songCount_true',
+        label: '${l10n.songs} (${l10n.sortAscending})',
+        icon: Icons.format_list_numbered_rounded,
+        selected: _sortField == 'songCount' && _sortAsc,
+      ),
+    ];
+
+    return RemoteLibraryActionBar(
+      searchController: _searchController,
+      searchQuery: _searchQuery,
+      searchHintText: l10n.genres,
+      onSearchChanged: (value) => setState(() => _searchQuery = value.trim()),
+      onSearchCleared: () {
+        _searchController.clear();
+        setState(() => _searchQuery = '');
+      },
+      onPlayAll: _visibleGenres.isEmpty ? null : () => _playAllVisible(),
+      onShufflePlay:
+          _visibleGenres.isEmpty ? null : () => _playAllVisible(shuffle: true),
+      actions: [
+        remoteSortAction(
+          label: l10n.sort,
+          options: sortOptions,
           onSelected: (key) {
             final parts = key.split('_');
             setState(() {
@@ -301,36 +358,6 @@ class _RemoteLibraryGenresViewState
               _sortAsc = parts[1] == 'true';
             });
           },
-          items: [
-            buildRemoteMenuItem(
-              value: 'name_true',
-              label: 'A-Z (${l10n.sortAscending})',
-              icon: Icons.sort_by_alpha_rounded,
-              isSelected: _sortField == 'name' && _sortAsc,
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'name_false',
-              label: 'Z-A (${l10n.sortDescending})',
-              icon: Icons.sort_by_alpha_rounded,
-              isSelected: _sortField == 'name' && !_sortAsc,
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'songCount_false',
-              label: '${l10n.songs} (${l10n.sortDescending})',
-              icon: Icons.format_list_numbered_rounded,
-              isSelected: _sortField == 'songCount' && !_sortAsc,
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'songCount_true',
-              label: '${l10n.songs} (${l10n.sortAscending})',
-              icon: Icons.format_list_numbered_rounded,
-              isSelected: _sortField == 'songCount' && _sortAsc,
-              theme: theme,
-            ),
-          ],
         ),
       ],
     );

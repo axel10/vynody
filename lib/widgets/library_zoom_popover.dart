@@ -376,12 +376,17 @@ class LibraryZoomButton extends ConsumerWidget {
     this.iconSize = 24.0,
     this.color,
     this.visualDensity,
+    this.buttonSize,
   });
 
   final LibraryZoomScope scope;
   final double iconSize;
   final Color? color;
   final VisualDensity? visualDensity;
+
+  /// 统一顶部动作行传入 [LibraryToolbarMetrics.buttonSize]，让档位按钮与同行的
+  /// 播放 / 排序按钮一样高（默认 null 时沿用 IconButton 原生 48，保持其它页原样）。
+  final double? buttonSize;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -399,6 +404,13 @@ class LibraryZoomButton extends ConsumerWidget {
         return IconButton(
           tooltip: tooltipText,
           visualDensity: visualDensity,
+          padding: buttonSize == null ? null : EdgeInsets.zero,
+          constraints: buttonSize == null
+              ? null
+              : BoxConstraints(
+                  minWidth: buttonSize!,
+                  minHeight: buttonSize!,
+                ),
           onPressed: () => showLibraryZoomPopover(btnContext, scope: scope),
           icon: ZoomTierIcon(
             zoomScale: zoomScale,
