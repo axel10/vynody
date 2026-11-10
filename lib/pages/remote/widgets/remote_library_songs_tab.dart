@@ -32,9 +32,7 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
   final ValueChanged<bool> onToggleSearchExpanded;
   final bool starredOnly;
   final ValueChanged<bool> onToggleStarredOnly;
-  final String sortField; // 'title', 'artist', 'album', 'duration'
-  final bool sortAsc;
-  final void Function(String field, bool asc) onSortChanged;
+  final VoidCallback onSortPressed;
 
   const RemoteLibrarySongsToolbar({
     super.key,
@@ -47,20 +45,8 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
     required this.onToggleSearchExpanded,
     required this.starredOnly,
     required this.onToggleStarredOnly,
-    required this.sortField,
-    required this.sortAsc,
-    required this.onSortChanged,
+    required this.onSortPressed,
   });
-
-  String _getSortDisplayLabel(AppLocalizations l10n) {
-    final name = switch (sortField) {
-      'artist' => l10n.artists,
-      'album' => l10n.albums,
-      'duration' => l10n.durationLabel,
-      _ => l10n.songs,
-    };
-    return '$name ${sortAsc ? '↑' : '↓'}';
-  }
 
   Widget buildConditions(
     BuildContext context, {
@@ -69,7 +55,8 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
   }) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final currentKey = '${sortField}_${sortAsc ? 'asc' : 'desc'}';
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
 
     final searchField = RemoteSearchBar(
       controller: searchController,
@@ -103,78 +90,19 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
           onPressed: () => onToggleStarredOnly(!starredOnly),
         ),
         const SizedBox(width: 4),
-        RemoteDropdownButton<String>(
-          value: currentKey,
-          label: _getSortDisplayLabel(l10n),
+        // 排序入口与歌单 tab 一致：单个图标按钮点开排序弹窗，
+        // 不再用带文字标签的下拉胶囊（竖屏会把顶部两行挤窄）。
+        IconButton(
+          style: kCompactIconButtonStyle,
           tooltip: l10n.sort,
-          icon: Icons.sort_rounded,
-          onSelected: (key) {
-            final parts = key.split('_');
-            final field = parts[0];
-            final asc = parts[1] == 'asc';
-            onSortChanged(field, asc);
-          },
-          items: [
-            buildRemoteMenuItem(
-              value: 'title_asc',
-              icon: Icons.arrow_upward_rounded,
-              label: '${l10n.songs} (A-Z)',
-              isSelected: currentKey == 'title_asc',
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'title_desc',
-              icon: Icons.arrow_downward_rounded,
-              label: '${l10n.songs} (Z-A)',
-              isSelected: currentKey == 'title_desc',
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'artist_asc',
-              icon: Icons.arrow_upward_rounded,
-              label: '${l10n.artists} (A-Z)',
-              isSelected: currentKey == 'artist_asc',
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'artist_desc',
-              icon: Icons.arrow_downward_rounded,
-              label: '${l10n.artists} (Z-A)',
-              isSelected: currentKey == 'artist_desc',
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'album_asc',
-              icon: Icons.arrow_upward_rounded,
-              label: '${l10n.albums} (A-Z)',
-              isSelected: currentKey == 'album_asc',
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'album_desc',
-              icon: Icons.arrow_downward_rounded,
-              label: '${l10n.albums} (Z-A)',
-              isSelected: currentKey == 'album_desc',
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'duration_asc',
-              icon: Icons.arrow_upward_rounded,
-              label: '${l10n.durationLabel} (↑)',
-              isSelected: currentKey == 'duration_asc',
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'duration_desc',
-              icon: Icons.arrow_downward_rounded,
-              label: '${l10n.durationLabel} (↓)',
-              isSelected: currentKey == 'duration_desc',
-              theme: theme,
-            ),
-          ],
+          icon: const Icon(Icons.sort_rounded, size: 18),
+          onPressed: onSortPressed,
         ),
-        const SizedBox(width: 4),
-        const LibraryZoomButton(scope: LibraryZoomScope.song),
+        // 竖屏下顶部两行已占满内容宽，视图档位交给捏合手势；横屏才显示按钮。
+        if (!isPortrait) ...[
+          const SizedBox(width: 4),
+          const LibraryZoomButton(scope: LibraryZoomScope.song),
+        ],
       ],
     );
   }
@@ -436,8 +364,25 @@ class _RemoteLibrarySongsViewState
       );
     }
 
+    // 顶部两行（搜索/收藏/排序 + 播放全部/随机/下载）与下方曲目网格同宽：
+    // 歌单 tab 已经去掉 1080 单列上限，这里也不能再锁 kSingleColumnContentMaxWidth，
+    // 否则宽窗口下顶部明显比其它 tab 窄一截；左右内边距同样与下方网格同源，
+    // 竖屏下不再额外缩 28/36 两档。
+    final songZoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.songZoomScale),
+    );
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+    final headerHPad = folderContentHorizontalPadding(
+      isPortrait: isPortrait,
+      gridMorph: isFolderZoomGrid(snapFolderZoomScale(songZoomScale))
+          ? 1.0
+          : 0.0,
+    );
+
     final headerSliver = SliverRemoteContentConstraint(
-      padding: const EdgeInsets.fromLTRB(28, 6, 36, 8),
+      maxWidth: kFolderPageMaxWidth,
+      padding: EdgeInsets.fromLTRB(headerHPad, 6, headerHPad, 8),
       child: LayoutBuilder(
         builder: (context, constraints) =>
             _buildHeader(context, constraints),
@@ -464,16 +409,10 @@ class _RemoteLibrarySongsViewState
       );
     }
 
-    final songZoomScale = ref.watch(
-      settingsServiceProvider.select((s) => s.songZoomScale),
-    );
-
     return FolderZoomGestureLayer(
       scope: LibraryZoomScope.song,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isPortrait =
-              MediaQuery.orientationOf(context) == Orientation.portrait;
           final contentWidth = math.min(
             constraints.maxWidth,
             kFolderPageMaxWidth,

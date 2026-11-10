@@ -2446,8 +2446,6 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       searchQuery: _songSearchQuery,
       isSearchExpanded: _isSongSearchExpanded,
       starredOnly: _songStarredOnly,
-      sortAsc: _songSortAsc,
-      sortField: _songSortField,
       onSearchChanged: (val) {
         setState(() {
           _songSearchQuery = val.trim();
@@ -2474,16 +2472,53 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
           _endContentReload();
         }
       },
-      onSortChanged: (field, asc) {
-        setState(() {
-          _songSortField = field;
-          _songSortAsc = asc;
-        });
-        final settings = ref.read(settingsServiceProvider);
-        settings.navidromeSongSortField = field;
-        settings.navidromeSongSortAscending = asc;
-      },
+      onSortPressed: () => _openSongsSortDialog(context),
     );
+  }
+
+  /// 歌曲排序与歌单 tab 同一套入口：单按钮点开选项弹窗。
+  /// 排序只作用于展示层顺序，「字段 + 升降序」是本机视图偏好、不回写服务端。
+  Future<void> _openSongsSortDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final result = await showDialog<SortResult<String>>(
+      context: context,
+      builder: (dialogContext) => SortOptionsDialog<String>(
+        title: l10n.sort,
+        currentField: _songSortField,
+        sortAscending: _songSortAsc,
+        options: [
+          SortOptionItem(
+            value: 'title',
+            label: l10n.songs,
+            icon: Icons.sort_by_alpha_rounded,
+          ),
+          SortOptionItem(
+            value: 'artist',
+            label: l10n.artists,
+            icon: Icons.person_rounded,
+          ),
+          SortOptionItem(
+            value: 'album',
+            label: l10n.albums,
+            icon: Icons.album_rounded,
+          ),
+          SortOptionItem(
+            value: 'duration',
+            label: l10n.durationLabel,
+            icon: Icons.access_time_rounded,
+          ),
+        ],
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _songSortField = result.field;
+        _songSortAsc = result.sortAscending;
+      });
+      final settings = ref.read(settingsServiceProvider);
+      settings.navidromeSongSortField = result.field;
+      settings.navidromeSongSortAscending = result.sortAscending;
+    }
   }
 
   Future<void> _openPlaylistSortDialog(BuildContext context) async {
