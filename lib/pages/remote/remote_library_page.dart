@@ -1821,21 +1821,20 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
         .take(12)
         .toList();
 
-    // 概览页是这条局部 Navigator 的根路由，横屏时整页在 Rail 右侧的内容区里，
-    // 左避让必须在 route 自己的 context 里取（外层已不再 `Padding(left:)`）。
+    // 概览页是局部 Navigator 的根路由。为使横向流能透到左侧 Rail 栏下方，
+    // 外层不加硬截断 Padding，而是将 railWidth 作为 contentLeftPadding 传给内部。
     return Builder(
       builder: (routeContext) {
         final Size size = MediaQuery.sizeOf(routeContext);
         final double railWidth = ref.watch(
           effectiveSidebarRailWidthProvider(size),
         );
-        return Padding(
-          padding: EdgeInsets.only(left: railWidth),
-          child: RemoteLibraryDashboardView(
-            contentTopPadding: getTitleBarTopPadding(
-              routeContext,
-              defaultWindowPadding: size.width > size.height ? 32.0 : 36.0,
-            ),
+        return RemoteLibraryDashboardView(
+          contentTopPadding: getTitleBarTopPadding(
+            routeContext,
+            defaultWindowPadding: size.width > size.height ? 32.0 : 36.0,
+          ),
+          contentLeftPadding: railWidth,
             server: widget.server,
             password: widget.password,
             albumCount: _albums.length,
@@ -1884,11 +1883,10 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
               sourceName: l10n.albums,
               shuffle: true,
             ),
-          ),
-        );
-      },
-    );
-  }
+          );
+        },
+      );
+    }
 
   Widget _buildSubHost() {
     final l10n = AppLocalizations.of(context)!;

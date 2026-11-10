@@ -2,8 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../player/remote/remote_server_models.dart';
+import '../../widgets/carousel_scroll_wrapper.dart';
 import '../../widgets/playback_ui_tuning.dart';
 import '../../widgets/remote_artwork_widget.dart';
+
+/// 桌面横屏下专辑/歌单封面缩放系数（与本地媒体库保持一致）
+const double kDashboardDesktopCoverScale = 1.9;
+
+/// 竖屏移动端下封面缩放系数（与本地媒体库保持一致）
+const double kDashboardMobileCoverScale = 1.2;
 
 /// 远程媒体库概览页。
 ///
@@ -36,6 +43,7 @@ class RemoteLibraryDashboardView extends StatelessWidget {
     required this.onShuffleAll,
     required this.onDisconnect,
     this.contentTopPadding = 16,
+    this.contentLeftPadding = 0.0,
   });
 
   final RemoteServer server;
@@ -82,6 +90,7 @@ class RemoteLibraryDashboardView extends StatelessWidget {
   final VoidCallback onDisconnect;
 
   final double contentTopPadding;
+  final double contentLeftPadding;
 
   /// 分类索引，与 `RemoteLibraryPage` 的 tab 顺序保持一致。
   static const int tabAlbums = 0;
@@ -102,6 +111,11 @@ class RemoteLibraryDashboardView extends StatelessWidget {
         builder: (context, constraints) {
           final bool isWide = constraints.maxWidth >= 780;
           final double horizontalPadding = isWide ? 32.0 : 16.0;
+          final double scale =
+              isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
+          final double cardWidth = (126.0 * scale).roundToDouble();
+          final double listHeight = cardWidth + 70.0;
+          final double separatorWidth = isWide ? 16.0 : 14.0;
 
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
@@ -109,7 +123,7 @@ class RemoteLibraryDashboardView extends StatelessWidget {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
-                    horizontalPadding,
+                    contentLeftPadding + horizontalPadding,
                     contentTopPadding + 8,
                     horizontalPadding,
                     12,
@@ -127,7 +141,10 @@ class RemoteLibraryDashboardView extends StatelessWidget {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  padding: EdgeInsets.only(
+                    left: contentLeftPadding + horizontalPadding,
+                    right: horizontalPadding,
+                  ),
                   child: _QuickAccessGrid(
                     l10n: l10n,
                     albumCount: albumCount,
@@ -144,7 +161,12 @@ class RemoteLibraryDashboardView extends StatelessWidget {
                   albums: recentAlbums,
                   server: server,
                   password: password,
+                  contentLeftPadding: contentLeftPadding,
                   horizontalPadding: horizontalPadding,
+                  cardWidth: cardWidth,
+                  listHeight: listHeight,
+                  separatorWidth: separatorWidth,
+                  isWide: isWide,
                   onOpenAlbum: onOpenAlbum,
                   onSeeAll: () => onNavigateToTab(tabAlbums),
                 ),
@@ -154,7 +176,12 @@ class RemoteLibraryDashboardView extends StatelessWidget {
                   albums: releasedAlbums,
                   server: server,
                   password: password,
+                  contentLeftPadding: contentLeftPadding,
                   horizontalPadding: horizontalPadding,
+                  cardWidth: cardWidth,
+                  listHeight: listHeight,
+                  separatorWidth: separatorWidth,
+                  isWide: isWide,
                   onOpenAlbum: onOpenAlbum,
                   onSeeAll: () => onNavigateToTab(tabAlbums),
                 ),
@@ -164,7 +191,12 @@ class RemoteLibraryDashboardView extends StatelessWidget {
                   albums: recentPlayedAlbums,
                   server: server,
                   password: password,
+                  contentLeftPadding: contentLeftPadding,
                   horizontalPadding: horizontalPadding,
+                  cardWidth: cardWidth,
+                  listHeight: listHeight,
+                  separatorWidth: separatorWidth,
+                  isWide: isWide,
                   onOpenAlbum: onOpenAlbum,
                   onSeeAll: () => onNavigateToTab(tabAlbums),
                 ),
@@ -174,7 +206,12 @@ class RemoteLibraryDashboardView extends StatelessWidget {
                   albums: mostPlayedAlbums,
                   server: server,
                   password: password,
+                  contentLeftPadding: contentLeftPadding,
                   horizontalPadding: horizontalPadding,
+                  cardWidth: cardWidth,
+                  listHeight: listHeight,
+                  separatorWidth: separatorWidth,
+                  isWide: isWide,
                   onOpenAlbum: onOpenAlbum,
                   onSeeAll: () => onNavigateToTab(tabAlbums),
                 ),
@@ -184,7 +221,12 @@ class RemoteLibraryDashboardView extends StatelessWidget {
                   playlists: playlists,
                   server: server,
                   password: password,
+                  contentLeftPadding: contentLeftPadding,
                   horizontalPadding: horizontalPadding,
+                  cardWidth: cardWidth,
+                  listHeight: listHeight,
+                  separatorWidth: separatorWidth,
+                  isWide: isWide,
                   onOpenPlaylist: onOpenPlaylist,
                   onSeeAll: () => onNavigateToTab(tabPlaylists),
                 ),
@@ -194,7 +236,12 @@ class RemoteLibraryDashboardView extends StatelessWidget {
                   albums: favoriteAlbums,
                   server: server,
                   password: password,
+                  contentLeftPadding: contentLeftPadding,
                   horizontalPadding: horizontalPadding,
+                  cardWidth: cardWidth,
+                  listHeight: listHeight,
+                  separatorWidth: separatorWidth,
+                  isWide: isWide,
                   onOpenAlbum: onOpenAlbum,
                   onSeeAll: () => onNavigateToTab(tabAlbums),
                 ),
@@ -454,7 +501,12 @@ class _AlbumRowSection extends StatelessWidget {
     required this.albums,
     required this.server,
     required this.password,
+    required this.contentLeftPadding,
     required this.horizontalPadding,
+    required this.cardWidth,
+    required this.listHeight,
+    required this.separatorWidth,
+    required this.isWide,
     required this.onOpenAlbum,
     required this.onSeeAll,
   });
@@ -463,7 +515,12 @@ class _AlbumRowSection extends StatelessWidget {
   final List<Map<String, dynamic>> albums;
   final RemoteServer server;
   final String password;
+  final double contentLeftPadding;
   final double horizontalPadding;
+  final double cardWidth;
+  final double listHeight;
+  final double separatorWidth;
+  final bool isWide;
   final void Function(String albumId, String albumTitle) onOpenAlbum;
   final VoidCallback onSeeAll;
 
@@ -480,7 +537,7 @@ class _AlbumRowSection extends StatelessWidget {
           children: [
             Padding(
               padding: EdgeInsets.only(
-                left: horizontalPadding,
+                left: contentLeftPadding + horizontalPadding,
                 right: horizontalPadding - 8,
               ),
               child: Row(
@@ -501,31 +558,43 @@ class _AlbumRowSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            SizedBox(
-              height: 196,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                itemCount: albums.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) {
-                  final album = albums[index];
-                  final id = album['id']?.toString() ?? '';
-                  final name =
-                      album['name'] as String? ??
-                      album['title'] as String? ??
-                      '';
-                  final coverArtId = album['coverArt'] as String?;
-                  return _DashboardAlbumCard(
-                    title: name,
-                    subtitle: album['artist'] as String?,
-                    coverArtId: coverArtId,
-                    server: server,
-                    password: password,
-                    onTap: () => onOpenAlbum(id, name),
-                  );
-                },
-              ),
+            CarouselScrollWrapper(
+              height: listHeight,
+              centerHeight: cardWidth,
+              buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
+              leftButtonOffset: contentLeftPadding,
+              builder: (context, controller) {
+                return ListView.separated(
+                  controller: controller,
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.only(
+                    left: contentLeftPadding + horizontalPadding,
+                    right: horizontalPadding,
+                  ),
+                  itemCount: albums.length,
+                  separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
+                  itemBuilder: (context, index) {
+                    final album = albums[index];
+                    final id = album['id']?.toString() ?? '';
+                    final name =
+                        album['name'] as String? ??
+                        album['title'] as String? ??
+                        '';
+                    final coverArtId = album['coverArt'] as String?;
+                    return _DashboardAlbumCard(
+                      title: name,
+                      subtitle: album['artist'] as String?,
+                      coverArtId: coverArtId,
+                      server: server,
+                      password: password,
+                      width: cardWidth,
+                      isWide: isWide,
+                      onTap: () => onOpenAlbum(id, name),
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),
@@ -541,6 +610,8 @@ class _DashboardAlbumCard extends StatelessWidget {
     required this.coverArtId,
     required this.server,
     required this.password,
+    required this.width,
+    required this.isWide,
     required this.onTap,
   });
 
@@ -549,6 +620,8 @@ class _DashboardAlbumCard extends StatelessWidget {
   final String? coverArtId;
   final RemoteServer server;
   final String password;
+  final double width;
+  final bool isWide;
   final VoidCallback onTap;
 
   @override
@@ -556,7 +629,7 @@ class _DashboardAlbumCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SizedBox(
-      width: 140,
+      width: width,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -571,9 +644,9 @@ class _DashboardAlbumCard extends StatelessWidget {
                   server: server,
                   password: password,
                   coverArtId: coverArtId,
-                  size: 140,
-                  width: 140,
-                  height: 140,
+                  size: width,
+                  width: width,
+                  height: width,
                   fallbackIcon: Icons.album_rounded,
                 ),
               ),
@@ -584,8 +657,10 @@ class _DashboardAlbumCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
+                  fontSize: isWide ? 14.5 : 14.0,
                 ),
               ),
+              const SizedBox(height: 2),
               if ((subtitle ?? '').isNotEmpty)
                 Text(
                   subtitle!,
@@ -609,7 +684,12 @@ class _PlaylistRowSection extends StatelessWidget {
     required this.playlists,
     required this.server,
     required this.password,
+    required this.contentLeftPadding,
     required this.horizontalPadding,
+    required this.cardWidth,
+    required this.listHeight,
+    required this.separatorWidth,
+    required this.isWide,
     this.onOpenPlaylist,
     required this.onSeeAll,
   });
@@ -618,7 +698,12 @@ class _PlaylistRowSection extends StatelessWidget {
   final List<Map<String, dynamic>> playlists;
   final RemoteServer server;
   final String password;
+  final double contentLeftPadding;
   final double horizontalPadding;
+  final double cardWidth;
+  final double listHeight;
+  final double separatorWidth;
+  final bool isWide;
   final void Function(Map<String, dynamic> playlist)? onOpenPlaylist;
   final VoidCallback onSeeAll;
 
@@ -635,7 +720,7 @@ class _PlaylistRowSection extends StatelessWidget {
           children: [
             Padding(
               padding: EdgeInsets.only(
-                left: horizontalPadding,
+                left: contentLeftPadding + horizontalPadding,
                 right: horizontalPadding - 8,
               ),
               child: Row(
@@ -656,28 +741,40 @@ class _PlaylistRowSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            SizedBox(
-              height: 196,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                itemCount: playlists.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) {
-                  final playlist = playlists[index];
-                  final name = playlist['name'] as String? ?? '';
-                  final count = playlist['songCount'] as int? ?? 0;
-                  final coverArtId = playlist['coverArt'] as String?;
-                  return _DashboardPlaylistCard(
-                    title: name,
-                    songCount: count,
-                    coverArtId: coverArtId,
-                    server: server,
-                    password: password,
-                    onTap: () => onOpenPlaylist?.call(playlist),
-                  );
-                },
-              ),
+            CarouselScrollWrapper(
+              height: listHeight,
+              centerHeight: cardWidth,
+              buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
+              leftButtonOffset: contentLeftPadding,
+              builder: (context, controller) {
+                return ListView.separated(
+                  controller: controller,
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.only(
+                    left: contentLeftPadding + horizontalPadding,
+                    right: horizontalPadding,
+                  ),
+                  itemCount: playlists.length,
+                  separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
+                  itemBuilder: (context, index) {
+                    final playlist = playlists[index];
+                    final name = playlist['name'] as String? ?? '';
+                    final count = playlist['songCount'] as int? ?? 0;
+                    final coverArtId = playlist['coverArt'] as String?;
+                    return _DashboardPlaylistCard(
+                      title: name,
+                      songCount: count,
+                      coverArtId: coverArtId,
+                      server: server,
+                      password: password,
+                      width: cardWidth,
+                      isWide: isWide,
+                      onTap: () => onOpenPlaylist?.call(playlist),
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),
@@ -693,6 +790,8 @@ class _DashboardPlaylistCard extends StatelessWidget {
     required this.coverArtId,
     required this.server,
     required this.password,
+    required this.width,
+    required this.isWide,
     required this.onTap,
   });
 
@@ -701,6 +800,8 @@ class _DashboardPlaylistCard extends StatelessWidget {
   final String? coverArtId;
   final RemoteServer server;
   final String password;
+  final double width;
+  final bool isWide;
   final VoidCallback onTap;
 
   @override
@@ -709,7 +810,7 @@ class _DashboardPlaylistCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return SizedBox(
-      width: 140,
+      width: width,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -724,9 +825,9 @@ class _DashboardPlaylistCard extends StatelessWidget {
                   server: server,
                   password: password,
                   coverArtId: coverArtId,
-                  size: 140,
-                  width: 140,
-                  height: 140,
+                  size: width,
+                  width: width,
+                  height: width,
                   fallbackIcon: Icons.queue_music_rounded,
                 ),
               ),
@@ -737,8 +838,10 @@ class _DashboardPlaylistCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
+                  fontSize: isWide ? 14.5 : 14.0,
                 ),
               ),
+              const SizedBox(height: 2),
               Text(
                 '$songCount ${l10n.songs}',
                 maxLines: 1,

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/pages/remote/remote_library_dashboard_view.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
+import 'package:vynody/widgets/carousel_scroll_wrapper.dart';
 
 /// 远程库概览页的版式约束。
 ///
@@ -185,5 +186,54 @@ void main() {
     expect(scaffoldFinder, findsOneWidget);
     final scaffold = tester.widget<Scaffold>(scaffoldFinder);
     expect(scaffold.backgroundColor, customBg);
+  });
+
+  testWidgets('横屏与竖屏下封面尺寸与 CarouselScrollWrapper 正确配置，contentLeftPadding 正确传递', (tester) async {
+    // 宽屏横屏测试
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const double testLeftPadding = 72.0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('zh'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: RemoteLibraryDashboardView(
+          server: server,
+          password: 'p',
+          albumCount: 1,
+          artistCount: 1,
+          songCount: 1,
+          playlistCount: 0,
+          contentLeftPadding: testLeftPadding,
+          recentAlbums: const [
+            {'id': 'a1', 'name': '测试专辑', 'artist': '测试艺人'}
+          ],
+          onNavigateToTab: (_) {},
+          onOpenAlbum: (_, _) {},
+          onRefresh: () {},
+          onShuffleAll: () {},
+          onDisconnect: () {},
+        ),
+      ),
+    );
+
+    // 检查 CarouselScrollWrapper 存在且 leftButtonOffset 匹配 contentLeftPadding
+    final carouselFinder = find.byType(CarouselScrollWrapper);
+    expect(carouselFinder, findsOneWidget);
+    final carousel = tester.widget<CarouselScrollWrapper>(carouselFinder);
+    expect(carousel.leftButtonOffset, testLeftPadding);
+    expect(carousel.centerHeight, (126.0 * 1.9).roundToDouble()); // 239.0
+
+    // 检查横向 ListView 的 content padding 左侧包含 testLeftPadding + horizontalPadding (32.0)
+    final listViewFinder = find.byType(ListView);
+    expect(listViewFinder, findsOneWidget);
+    final listView = tester.widget<ListView>(listViewFinder);
+    final padding = listView.padding as EdgeInsets;
+    expect(padding.left, testLeftPadding + 32.0);
   });
 }
