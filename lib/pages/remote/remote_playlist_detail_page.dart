@@ -17,16 +17,16 @@ import '../../player/remote/services/remote_download_service.dart';
 import '../../player/platform/right_queue_drawer_controller.dart';
 import '../../widgets/remote_artwork_widget.dart';
 import '../../player/remote/remote_library_navigation.dart';
-import '../../widgets/mini_player_wrapper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../dialogs/remote_track_load_progress_dialog.dart';
 import '../../utils/app_snack_bar.dart';
 import '../../utils/remote_context_menu_utils.dart';
 import '../../utils/remote_download_feedback.dart';
-import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
+import '../../widgets/playback_ui_tuning.dart';
+import '../../widgets/remote_page_shell.dart';
 import 'remote_download_manager_page.dart';
-import 'widgets/remote_library_selection_actions.dart';
+import 'widgets/remote_song_selection_panel.dart';
 import '../../widgets/app_top_nav_bar.dart';
 import '../../widgets/folder_layout_utils.dart';
 import '../../widgets/folder_zoom_gesture_layer.dart';
@@ -143,7 +143,6 @@ class _RemotePlaylistDetailContentState
   Timer? _highlightTimer;
   bool _isRevalidating = false;
   final ZoomReorderController _reorderController = ZoomReorderController();
-  bool _isPastTop = false;
 
   void _handleBack() {
     if (widget.onGoBack != null) {
@@ -980,31 +979,6 @@ class _RemotePlaylistDetailContentState
         if (selectedSongPaths.contains(_tracks[i].path)) i,
     };
 
-    final topNavBar = AppTopNavBar(
-      title: _currentName,
-      parentTitle: l10n.playlist,
-      titleKey: ValueKey('remote_playlist_title_${widget.playlistId}'),
-      isFloatingCapsule: _isPastTop,
-      onBack: _handleBack,
-      actions: [
-        IconButton(
-          icon: Badge(
-            isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
-            label: Text('${ref.watch(activeDownloadsCountProvider)}'),
-            child: const Icon(Icons.download_rounded, size: 20),
-          ),
-          tooltip: l10n.downloadManager,
-          onPressed: () {
-            Navigator.of(context, rootNavigator: true).push(
-              MaterialPageRoute(
-                builder: (_) => const RemoteDownloadManagerPage(),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-
     Widget scrollBody;
     if (_isLoading) {
       final isJellyfin = widget.server.type == RemoteServerType.jellyfin;
@@ -1770,98 +1744,84 @@ class _RemotePlaylistDetailContentState
       );
     }
 
-    final pageContent = Scaffold(
-      body: Stack(
-        children: [
-          scrollBody,
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: topNavBar,
-          ),
-            if (!_isLoading && _error == null)
-              AnimatedSelectionPanel(
-                isVisible: isSelectionMode,
-                child: LibrarySelectionPanel(
-                  key: const ValueKey('remote-playlist-selection-panel'),
-                  selectedSongs: selectedSongs,
-                  allSongs: _tracks,
-                  onToggleSelectAll: () => toggleSelectAllSongs(_tracks),
-                  onCancel: cancelSongSelection,
-                  onAddToFavorites: () =>
-                      RemoteLibrarySelectionActions.handleBatchAddToLocalFavorites(
-                    context: context,
-                    ref: ref,
-                    onFetchSongs: () async => selectedSongs,
-                    onClearSelection: cancelSongSelection,
-                  ),
-                  onAddToCloudFavorites: () =>
-                      RemoteLibrarySelectionActions.handleBatchAddToCloudFavorites(
-                    context: context,
-                    ref: ref,
-                    server: widget.server,
-                    password: widget.password,
-                    onFetchSongs: () async => selectedSongs,
-                    onClearSelection: cancelSongSelection,
-                    onStarredChanged: (starredIds) {
-                      ref
-                          .read(activeRemoteSessionProvider.notifier)
-                          .updateNavidromeSongs(
-                            starredSongIds: {
-                              ...?ref
-                                  .read(activeRemoteSessionProvider)
-                                  ?.navidromeStarredSongIds,
-                              ...starredIds,
-                            },
-                          );
-                    },
-                  ),
-                  onDelete: !_isStarredView ? _deleteSelectedSongs : null,
-                  deleteLabel: l10n.removeFromPlaylist,
-                  onDownload: () async {
-                    final sel = List<MusicFile>.from(selectedSongs);
-                    if (sel.isEmpty) return;
-                    await ref
-                        .read(remoteDownloadTasksProvider.notifier)
-                        .enqueue(
-                          RemoteDownloadRequest(
-                            server: widget.server,
-                            password: widget.password,
-                            songs: sel,
-                            layout: RemoteDownloadLayout.playlist,
-                            collectionFolder: _currentName,
-                          ),
-                        );
-                    cancelSongSelection();
-                    showRemoteDownloadQueuedFeedback(context, ref, sel.length);
-                  },
+    return RemotePageShell(
+      contentBuilder: (context) => scrollBody,
+      navBarBuilder: (context, isHeaderVisible, isPastTop) => AppTopNavBar(
+        title: _currentName,
+        parentTitle: l10n.playlist,
+        titleKey: ValueKey('remote_playlist_title_${widget.playlistId}'),
+        isFloatingCapsule: isPastTop,
+        onBack: _handleBack,
+        actions: [
+          IconButton(
+            icon: Badge(
+              isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
+              label: Text('${ref.watch(activeDownloadsCountProvider)}'),
+              child: const Icon(Icons.download_rounded, size: 20),
+            ),
+            tooltip: l10n.downloadManager,
+            onPressed: () {
+              Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(
+                  builder: (_) => const RemoteDownloadManagerPage(),
                 ),
-              ),
+              );
+            },
+          ),
         ],
       ),
-    );
-
-    return PopScope(
-      canPop: !isSelectionMode,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (isSelectionMode) {
-          _reorderController.cancelDrag();
-          cancelSongSelection();
-        }
+      selectionPanel: (!_isLoading && _error == null)
+          ? AnimatedSelectionPanel(
+              isVisible: isSelectionMode,
+              child: RemoteSongSelectionPanel(
+                panelKey: const ValueKey('remote-playlist-selection-panel'),
+                server: widget.server,
+                password: widget.password,
+                selectedSongs: selectedSongs,
+                allSongs: _tracks,
+                onToggleSelectAll: () => toggleSelectAllSongs(_tracks),
+                onFetchSongs: () async => selectedSongs,
+                onClearSelection: cancelSongSelection,
+                onDelete: !_isStarredView ? _deleteSelectedSongs : null,
+                deleteLabel: l10n.removeFromPlaylist,
+                onStarredChanged: (starredIds) {
+                  ref
+                      .read(activeRemoteSessionProvider.notifier)
+                      .updateNavidromeSongs(
+                        starredSongIds: {
+                          ...?ref
+                              .read(activeRemoteSessionProvider)
+                              ?.navidromeStarredSongIds,
+                          ...starredIds,
+                        },
+                      );
+                },
+                onDownload: () async {
+                  final sel = List<MusicFile>.from(selectedSongs);
+                  if (sel.isEmpty) return;
+                  await ref
+                      .read(remoteDownloadTasksProvider.notifier)
+                      .enqueue(
+                        RemoteDownloadRequest(
+                          server: widget.server,
+                          password: widget.password,
+                          songs: sel,
+                          layout: RemoteDownloadLayout.playlist,
+                          collectionFolder: _currentName,
+                        ),
+                      );
+                  cancelSongSelection();
+                  showRemoteDownloadQueuedFeedback(context, ref, sel.length);
+                },
+              ),
+            )
+          : null,
+      popScopeCanPop: !isSelectionMode,
+      onPopBlocked: () {
+        if (!isSelectionMode) return;
+        _reorderController.cancelDrag();
+        cancelSongSelection();
       },
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          if (notification.metrics.axis != Axis.vertical) return false;
-          final past = notification.metrics.pixels > 36.0;
-          if (_isPastTop != past) {
-            setState(() => _isPastTop = past);
-          }
-          return false;
-        },
-        child: MiniPlayerWrapper(child: pageContent),
-      ),
     );
   }
 }

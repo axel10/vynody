@@ -28,6 +28,16 @@ const double kMaxRightQueueDrawerWidth = 600.0;
 /// 队列抽屉宽度常量（向后兼容）
 const double kRightQueueDrawerWidth = kDefaultRightQueueDrawerWidth;
 
+/// 详情页顶部导航栏从「贴顶大标题」切换为「浮动胶囊」的滚动阈值。
+///
+/// 列表纵向滚动超过这个距离即认为已离开顶部，顶栏改画成悬浮胶囊。
+/// 此前 `detail_page_shell` / `library_page` / `remote_playlist_detail_page` /
+/// `remote_folder_browser_page` 各自写死了一份 `36.0`。
+const double kHeaderFloatingCapsuleThreshold = 36.0;
+
+/// 窗口化环境（桌面端、iPadOS 台前调度/分屏）下页面内容顶部的额外避让高度。
+const double kWindowedPageTopInset = 32.0;
+
 /// 左侧导航栏（Rail）折叠态宽度：仅显示图标 + 悬浮提示
 const double kSidebarRailWidthCollapsed = 80.0;
 

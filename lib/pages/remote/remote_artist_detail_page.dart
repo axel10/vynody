@@ -19,7 +19,6 @@ import '../../widgets/folder_layout_utils.dart';
 import '../../widgets/folder_zoom_gesture_layer.dart';
 import '../../widgets/hoverable_card.dart';
 import '../../widgets/remote_artwork_widget.dart';
-import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/playing_equalizer_icon.dart';
 import '../../l10n/app_localizations.dart';
 import '../../dialogs/remote_track_load_progress_dialog.dart';
@@ -27,12 +26,13 @@ import '../../player/remote/services/remote_download_service.dart';
 import '../../player/remote/remote_library_navigation.dart';
 import '../../utils/remote_context_menu_utils.dart';
 import '../../utils/remote_download_feedback.dart';
-import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
 import 'remote_download_manager_page.dart';
 import 'widgets/remote_library_selection_actions.dart';
+import 'widgets/remote_song_selection_panel.dart';
 import 'widgets/remote_library_toolbar_widgets.dart';
-import '../../widgets/auto_hide_header.dart';
+import '../../widgets/remote_page_shell.dart';
+import '../../widgets/mini_player_wrapper.dart';
 
 class RemoteArtistDetailPage extends ConsumerStatefulWidget {
   final RemoteServer server;
@@ -100,71 +100,54 @@ class _RemoteArtistDetailPageState
     final l10n = AppLocalizations.of(context)!;
     final double barHeight = getBarHeight(context);
 
-    return AutoHideHeaderScope(
-      enabled: false,
-      builder: (context, isHeaderVisible) {
-        final Widget content = Scaffold(
-          body: Stack(
-            children: [
-              RemoteArtistDetailContent(
-                server: widget.server,
-                password: widget.password,
-                artistId: widget.artistId,
-                artistName: widget.artistName,
-                coverArtId: widget.coverArtId,
-                albumCount: widget.albumCount,
-                scrollController: _scrollController,
-                topPadding: barHeight + 8,
-                onLoadingStateChanged: (isLoading, hasError) {
-                  if (_isLoading != isLoading || _hasError != hasError) {
-                    setState(() {
-                      _isLoading = isLoading;
-                      _hasError = hasError;
-                    });
-                  }
-                },
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: AutoHideHeader(
-                  isVisible: isHeaderVisible,
-                  child: AlbumDetailNavBar(
-                    title: widget.artistName,
-                    scrollProgress: (_isLoading || _hasError)
-                        ? const AlwaysStoppedAnimation(1.0)
-                        : _scrollProgress,
-                    isCoverVisible: (_isLoading || _hasError)
-                        ? const AlwaysStoppedAnimation(false)
-                        : _isHeaderVisible,
-                    onGoBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
-                    actions: [
-                      IconButton(
-                        icon: Badge(
-                          isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
-                          label: Text('${ref.watch(activeDownloadsCountProvider)}'),
-                          child: const Icon(Icons.download_rounded, size: 20),
-                        ),
-                        tooltip: l10n.downloadManager,
-                        onPressed: () {
-                          Navigator.of(context, rootNavigator: true).push(
-                            MaterialPageRoute(
-                              builder: (_) => const RemoteDownloadManagerPage(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+    return RemotePageShell(
+      // 顶栏由 `_scrollProgress` 驱动形态变化，不需要外壳再算滚动阈值。
+      enableFloatingCapsule: false,
+      contentBuilder: (context) => RemoteArtistDetailContent(
+        server: widget.server,
+        password: widget.password,
+        artistId: widget.artistId,
+        artistName: widget.artistName,
+        coverArtId: widget.coverArtId,
+        albumCount: widget.albumCount,
+        scrollController: _scrollController,
+        topPadding: barHeight + 8,
+        onLoadingStateChanged: (isLoading, hasError) {
+          if (_isLoading != isLoading || _hasError != hasError) {
+            setState(() {
+              _isLoading = isLoading;
+              _hasError = hasError;
+            });
+          }
+        },
+      ),
+      navBarBuilder: (context, _, _) => AlbumDetailNavBar(
+        title: widget.artistName,
+        scrollProgress: (_isLoading || _hasError)
+            ? const AlwaysStoppedAnimation(1.0)
+            : _scrollProgress,
+        isCoverVisible: (_isLoading || _hasError)
+            ? const AlwaysStoppedAnimation(false)
+            : _isHeaderVisible,
+        onGoBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
+        actions: [
+          IconButton(
+            icon: Badge(
+              isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
+              label: Text('${ref.watch(activeDownloadsCountProvider)}'),
+              child: const Icon(Icons.download_rounded, size: 20),
+            ),
+            tooltip: l10n.downloadManager,
+            onPressed: () {
+              Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(
+                  builder: (_) => const RemoteDownloadManagerPage(),
                 ),
-              ),
-            ],
+              );
+            },
           ),
-        );
-
-        return MiniPlayerWrapper(child: content);
-      },
+        ],
+      ),
     );
   }
 }
@@ -1280,40 +1263,27 @@ class _RemoteArtistDetailContentState
             Positioned.fill(child: scrollContent),
             AnimatedSelectionPanel(
               isVisible: !isPortrait && isSelectionMode,
-              child: LibrarySelectionPanel(
-                key: const ValueKey('remote-artist-selection-panel'),
+              child: RemoteSongSelectionPanel(
+                panelKey: const ValueKey('remote-artist-selection-panel'),
+                server: widget.server,
+                password: widget.password,
                 selectedSongs: selectedSongs,
                 allSongs: _allSongs,
                 onToggleSelectAll: () => toggleSelectAllSongs(_allSongs),
-                onCancel: cancelSongSelection,
-                onAddToFavorites: () =>
-                    RemoteLibrarySelectionActions.handleBatchAddToLocalFavorites(
-                  context: context,
-                  ref: ref,
-                  onFetchSongs: () async => selectedSongs,
-                  onClearSelection: cancelSongSelection,
-                ),
-                onAddToCloudFavorites: () =>
-                    RemoteLibrarySelectionActions.handleBatchAddToCloudFavorites(
-                  context: context,
-                  ref: ref,
-                  server: widget.server,
-                  password: widget.password,
-                  onFetchSongs: () async => selectedSongs,
-                  onClearSelection: cancelSongSelection,
-                  onStarredChanged: (starredIds) {
-                    ref
-                        .read(activeRemoteSessionProvider.notifier)
-                        .updateNavidromeSongs(
-                          starredSongIds: {
-                            ...?ref
-                                .read(activeRemoteSessionProvider)
-                                ?.navidromeStarredSongIds,
-                            ...starredIds,
-                          },
-                        );
-                  },
-                ),
+                onFetchSongs: () async => selectedSongs,
+                onClearSelection: cancelSongSelection,
+                onStarredChanged: (starredIds) {
+                  ref
+                      .read(activeRemoteSessionProvider.notifier)
+                      .updateNavidromeSongs(
+                        starredSongIds: {
+                          ...?ref
+                              .read(activeRemoteSessionProvider)
+                              ?.navidromeStarredSongIds,
+                          ...starredIds,
+                        },
+                      );
+                },
                 onDownload: () async {
                   final sel = List<MusicFile>.from(selectedSongs);
                   if (sel.isEmpty) return;

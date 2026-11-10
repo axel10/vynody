@@ -18,6 +18,8 @@ import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/remote_artwork_widget.dart';
 import 'widgets/remote_library_common_widgets.dart';
 import 'widgets/remote_library_toolbar_widgets.dart';
+import '../../widgets/remote_page_shell.dart';
+import '../../widgets/app_top_nav_bar.dart';
 
 /// 远程流派详情页：竖屏时由流派列表 push 进入。
 class RemoteGenreDetailPage extends ConsumerWidget {
@@ -36,26 +38,29 @@ class RemoteGenreDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final hasPlayingMusic = ref.watch(audioCurrentMusicProvider) != null;
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
       context,
       hasPlayingMusic: hasPlayingMusic,
     );
+    final double barHeight = AppTopNavBar.getBarHeight(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          genreName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-      body: RemoteGenreDetailContent(
+    return RemotePageShell(
+      contentBuilder: (context) => RemoteGenreDetailContent(
         server: server,
         password: password,
         genreId: genreId,
         genreName: genreName,
         bottomOffset: bottomOffset,
+        topPadding: barHeight + 8,
+      ),
+      navBarBuilder: (context, _, isPastTop) => AppTopNavBar(
+        title: genreName,
+        parentTitle: l10n.genres,
+        titleKey: ValueKey('remote_genre_title_$genreId'),
+        isFloatingCapsule: isPastTop,
+        onBack: () => Navigator.of(context).maybePop(),
       ),
     );
   }
@@ -84,6 +89,9 @@ class RemoteGenreDetailContent extends ConsumerStatefulWidget {
   /// 底部额外留白（Mini 播放器 / 底栏避让）。
   final double bottomOffset;
 
+  /// 顶部额外留白（避让透明浮动的顶部导航栏）。
+  final double topPadding;
+
   const RemoteGenreDetailContent({
     super.key,
     required this.server,
@@ -91,6 +99,7 @@ class RemoteGenreDetailContent extends ConsumerStatefulWidget {
     required this.genreId,
     required this.genreName,
     this.bottomOffset = 0,
+    this.topPadding = 0,
   });
 
   @override
@@ -426,7 +435,12 @@ class _RemoteGenreDetailContentState
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 16),
+                  padding: EdgeInsets.fromLTRB(
+                    hPad,
+                    widget.topPadding + 8,
+                    hPad,
+                    16,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,

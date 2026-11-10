@@ -12,7 +12,6 @@ import '../../player/remote/remote_server_riverpod.dart';
 import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../widgets/remote_artwork_widget.dart';
 import '../../widgets/album_detail_widgets.dart';
-import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/playing_equalizer_icon.dart';
 import '../../dialogs/remote_playlist_dialog.dart';
 import '../../dialogs/remote_track_load_progress_dialog.dart';
@@ -23,12 +22,12 @@ import '../../player/remote/remote_library_navigation.dart';
 import '../../utils/layout_constants.dart';
 import '../../utils/remote_context_menu_utils.dart';
 import '../../utils/remote_download_feedback.dart';
-import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
+import '../../widgets/playback_ui_tuning.dart';
+import '../../widgets/remote_page_shell.dart';
 import 'remote_download_manager_page.dart';
-import 'widgets/remote_library_selection_actions.dart';
+import 'widgets/remote_song_selection_panel.dart';
 import '../../utils/song_locator_helper.dart';
-import '../../widgets/auto_hide_header.dart';
 import '../../widgets/locate_song_button.dart';
 
 class RemoteAlbumDetailPage extends ConsumerStatefulWidget {
@@ -821,102 +820,84 @@ class _RemoteAlbumDetailPageState
                       ),
                     );
 
-    final Widget content = AutoHideHeaderScope(
-      enabled: false,
-      forceVisible: isSelectionMode,
-      builder: (context, isHeaderVisible) => Scaffold(
-        body: Stack(
-          children: [
-            if (_isLoading)
-              const Center(
-                child: SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: CircularProgressIndicator(strokeWidth: 3),
+    Widget buildBody() {
+      if (_isLoading) {
+        return const Center(
+          child: SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(strokeWidth: 3),
+          ),
+        );
+      }
+      if (_error != null) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline_rounded,
+                  size: 48,
+                  color: theme.colorScheme.error,
                 ),
-              )
-            else if (_error != null)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.error_outline_rounded,
-                        size: 48,
-                        color: theme.colorScheme.error,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(l10n.errorWithMessage(_error!), textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      FilledButton.icon(
-                        onPressed: _loadAlbumDetails,
-                        icon: const Icon(Icons.refresh_rounded),
-                        label: Text(l10n.retry),
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: 12),
+                Text(l10n.errorWithMessage(_error!), textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: _loadAlbumDetails,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: Text(l10n.retry),
                 ),
-              )
-            else
-              scrollBody,
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: AutoHideHeader(
-                isVisible: isHeaderVisible,
-                child: AlbumDetailNavBar(
-                  title: albumTitle,
-                  scrollProgress: (_isLoading || _error != null)
-                      ? const AlwaysStoppedAnimation(1.0)
-                      : _scrollProgress,
-                  isCoverVisible: (_isLoading || _error != null)
-                      ? const AlwaysStoppedAnimation(false)
-                      : _isCoverVisible,
-                  onGoBack: () => Navigator.of(context).maybePop(),
-                  actions: navActions,
-                ),
-              ),
+              ],
             ),
-          if (!_isLoading && _error == null)
-            AnimatedSelectionPanel(
+          ),
+        );
+      }
+      return scrollBody;
+    }
+
+    return RemotePageShell(
+      forceHeaderVisible: isSelectionMode,
+      // 顶栏由 `_scrollProgress` 驱动形态变化，不需要外壳再算滚动阈值。
+      enableFloatingCapsule: false,
+      contentBuilder: (context) => buildBody(),
+      navBarBuilder: (context, isHeaderVisible, isPastTop) => AlbumDetailNavBar(
+        title: albumTitle,
+        scrollProgress: (_isLoading || _error != null)
+            ? const AlwaysStoppedAnimation(1.0)
+            : _scrollProgress,
+        isCoverVisible: (_isLoading || _error != null)
+            ? const AlwaysStoppedAnimation(false)
+            : _isCoverVisible,
+        onGoBack: () => Navigator.of(context).maybePop(),
+        actions: navActions,
+      ),
+      selectionPanel: (!_isLoading && _error == null)
+          ? AnimatedSelectionPanel(
               isVisible: isSelectionMode,
-              child: LibrarySelectionPanel(
-                key: const ValueKey('remote-album-selection-panel'),
+              child: RemoteSongSelectionPanel(
+                panelKey: const ValueKey('remote-album-selection-panel'),
+                server: widget.server,
+                password: widget.password,
                 selectedSongs: selectedSongs,
                 allSongs: _tracks,
                 onToggleSelectAll: () => toggleSelectAllSongs(_tracks),
-                onCancel: cancelSongSelection,
-                onAddToFavorites: () =>
-                    RemoteLibrarySelectionActions.handleBatchAddToLocalFavorites(
-                  context: context,
-                  ref: ref,
-                  onFetchSongs: () async => selectedSongs,
-                  onClearSelection: cancelSongSelection,
-                ),
-                onAddToCloudFavorites: () =>
-                    RemoteLibrarySelectionActions.handleBatchAddToCloudFavorites(
-                  context: context,
-                  ref: ref,
-                  server: widget.server,
-                  password: widget.password,
-                  onFetchSongs: () async => selectedSongs,
-                  onClearSelection: cancelSongSelection,
-                  onStarredChanged: (starredIds) {
-                    ref
-                        .read(activeRemoteSessionProvider.notifier)
-                        .updateNavidromeSongs(
-                          starredSongIds: {
-                            ...?ref
-                                .read(activeRemoteSessionProvider)
-                                ?.navidromeStarredSongIds,
-                            ...starredIds,
-                          },
-                        );
-                  },
-                ),
+                onFetchSongs: () async => selectedSongs,
+                onClearSelection: cancelSongSelection,
+                onStarredChanged: (starredIds) {
+                  ref
+                      .read(activeRemoteSessionProvider.notifier)
+                      .updateNavidromeSongs(
+                        starredSongIds: {
+                          ...?ref
+                              .read(activeRemoteSessionProvider)
+                              ?.navidromeStarredSongIds,
+                          ...starredIds,
+                        },
+                      );
+                },
                 onDownload: () async {
                   final sel = List<MusicFile>.from(selectedSongs);
                   if (sel.isEmpty) return;
@@ -942,13 +923,9 @@ class _RemoteAlbumDetailPageState
                   showRemoteDownloadQueuedFeedback(context, ref, sel.length);
                 },
               ),
-            ),
-        ],
-      ),
-    ),
-  );
-
-    return MiniPlayerWrapper(child: content);
+            )
+          : null,
+    );
   }
 
   String _formatDuration(int millis) {

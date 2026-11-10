@@ -12,12 +12,12 @@ import '../../player/remote/proxy/remote_media_resolver.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../player/remote/services/remote_download_service.dart';
-import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
 import 'remote_download_manager_page.dart';
 import 'widgets/remote_library_header_bottom.dart';
 import 'widgets/remote_library_common_widgets.dart';
 import 'widgets/remote_library_selection_actions.dart';
+import 'widgets/remote_song_selection_panel.dart';
 import 'widgets/remote_library_albums_tab.dart';
 import 'widgets/remote_library_artists_tab.dart';
 import 'widgets/remote_library_genres_tab.dart';
@@ -2215,10 +2215,13 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                 ),
             AnimatedSelectionPanel(
               isVisible: _isSelectionMode,
-              child: LibrarySelectionPanel(
-                key: ValueKey(
+              child: RemoteSongSelectionPanel(
+                panelKey: ValueKey(
                   'navidrome-library-selection-panel-${_tabController.index}',
                 ),
+                actions: RemoteSelectionActions.library,
+                server: widget.server,
+                password: widget.password,
                 selectedSongs: _isSongSelectionMode
                     ? (_tabController.index == 4 ? _searchedSongs : _songs)
                         .where((s) => _selectedSongPaths.contains(s.path))
@@ -2231,81 +2234,38 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                 isSelectionEmpty: !_isSelectionMode,
                 isAllSelected: panelIsAllSelected,
                 onToggleSelectAll: panelToggleSelectAll ?? () {},
-                onCancel: _cancelSelection,
-                onPlayNext: () => RemoteLibrarySelectionActions.handleBatchPlayNext(
-                  context: context,
-                  ref: ref,
-                  onFetchSongs: _fetchSelectedSongs,
-                  onClearSelection: _cancelSelection,
-                ),
-                onAddToQueue: () =>
-                    RemoteLibrarySelectionActions.handleBatchAddToQueue(
-                  context: context,
-                  ref: ref,
-                  onFetchSongs: _fetchSelectedSongs,
-                  onClearSelection: _cancelSelection,
-                ),
-                onAddToPlaylist: () =>
-                    RemoteLibrarySelectionActions.handleBatchAddToPlaylist(
-                  context: context,
-                  ref: ref,
-                  server: widget.server,
-                  password: widget.password,
-                  onFetchSongs: _fetchSelectedSongs,
-                  onClearSelection: _cancelSelection,
-                ),
-                onAddToFavorites: () =>
-                    RemoteLibrarySelectionActions.handleBatchAddToLocalFavorites(
-                  context: context,
-                  ref: ref,
-                  onFetchSongs: _fetchSelectedSongs,
-                  onClearSelection: _cancelSelection,
-                ),
-                onAddToCloudFavorites: () =>
-                    RemoteLibrarySelectionActions.handleBatchAddToCloudFavorites(
-                  context: context,
-                  ref: ref,
-                  server: widget.server,
-                  password: widget.password,
-                  selectedAlbumIds:
-                      _isAlbumSelectionMode ? _selectedAlbumIds : null,
-                  selectedArtistIds:
-                      _isArtistSelectionMode ? _selectedArtistIds : null,
-                  onFetchSongs: _fetchSelectedSongs,
-                  onClearSelection: _cancelSelection,
-                  onStarredChanged: (starredIds) {
-                    setState(() {
-                      _starredSongIds.addAll(starredIds);
-                    });
-                    ref
-                        .read(activeRemoteSessionProvider.notifier)
-                        .updateNavidromeSongs(
-                          starredSongIds: _starredSongIds,
-                        );
-                  },
-                  onStarredArtistsChanged: (starredIds) {
-                    setState(() {
-                      _starredArtistIds.addAll(starredIds);
-                    });
-                    ref
-                        .read(activeRemoteSessionProvider.notifier)
-                        .updateNavidromeArtists(
-                          starredArtistIds: _starredArtistIds,
-                        );
-                  },
-                ),
+                onFetchSongs: _fetchSelectedSongs,
+                onClearSelection: _cancelSelection,
+                selectedAlbumIds:
+                    _isAlbumSelectionMode ? _selectedAlbumIds : null,
+                selectedArtistIds:
+                    _isArtistSelectionMode ? _selectedArtistIds : null,
+                onStarredChanged: (starredIds) {
+                  setState(() {
+                    _starredSongIds.addAll(starredIds);
+                  });
+                  ref
+                      .read(activeRemoteSessionProvider.notifier)
+                      .updateNavidromeSongs(
+                        starredSongIds: _starredSongIds,
+                      );
+                },
+                onStarredArtistsChanged: (starredIds) {
+                  setState(() {
+                    _starredArtistIds.addAll(starredIds);
+                  });
+                  ref
+                      .read(activeRemoteSessionProvider.notifier)
+                      .updateNavidromeArtists(
+                        starredArtistIds: _starredArtistIds,
+                      );
+                },
                 onDownload: () => RemoteLibrarySelectionActions.handleBatchDownload(
                   context: context,
                   ref: ref,
                   server: widget.server,
                   password: widget.password,
                   onFetchBatches: _fetchSelectedDownloadBatches,
-                  onClearSelection: _cancelSelection,
-                ),
-                onTranscode: () =>
-                    RemoteLibrarySelectionActions.handleBatchTranscode(
-                  context: context,
-                  onFetchSongs: _fetchSelectedSongs,
                   onClearSelection: _cancelSelection,
                 ),
                 onDelete: panelDelete,
