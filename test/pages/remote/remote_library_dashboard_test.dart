@@ -28,6 +28,7 @@ void main() {
     List<Map<String, dynamic>> favoriteAlbums = const [],
     ValueChanged<int>? onNavigateToTab,
     int playlistCount = 0,
+    int? genreCount,
     ThemeData? theme,
   }) {
     return MaterialApp(
@@ -42,6 +43,7 @@ void main() {
         artistCount: 3,
         songCount: 48,
         playlistCount: playlistCount,
+        genreCount: genreCount,
         recentAlbums: recentAlbums,
         releasedAlbums: releasedAlbums,
         recentPlayedAlbums: recentPlayedAlbums,
@@ -69,6 +71,11 @@ void main() {
   });
 
   testWidgets('六个快捷入口都在，点击回传对应分类索引', (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final tapped = <int>[];
     await tester.pumpWidget(wrap(onNavigateToTab: tapped.add));
 
@@ -223,11 +230,16 @@ void main() {
     );
 
     // 检查 CarouselScrollWrapper 存在且 leftButtonOffset 匹配 contentLeftPadding
-    final carouselFinder = find.byType(CarouselScrollWrapper);
-    expect(carouselFinder, findsOneWidget);
-    final carousel = tester.widget<CarouselScrollWrapper>(carouselFinder);
-    expect(carousel.leftButtonOffset, testLeftPadding);
-    expect(carousel.centerHeight, (126.0 * 1.9).roundToDouble()); // 239.0
+    // （宽屏下包含顶部快捷入口流与专辑板块共 2 个 CarouselScrollWrapper）
+    final carouselFinders = find.byType(CarouselScrollWrapper);
+    expect(carouselFinders, findsNWidgets(2));
+    for (final carousel in tester.widgetList<CarouselScrollWrapper>(carouselFinders)) {
+      expect(carousel.leftButtonOffset, testLeftPadding);
+    }
+    final albumCarousel = tester.widgetList<CarouselScrollWrapper>(carouselFinders).firstWhere(
+      (w) => w.centerHeight == (126.0 * 1.9).roundToDouble(),
+    );
+    expect(albumCarousel.centerHeight, (126.0 * 1.9).roundToDouble()); // 239.0
 
     // 检查横向 ListView 的 content padding 左侧包含 testLeftPadding + horizontalPadding (32.0)
     final listViewFinder = find.byType(ListView);
@@ -235,5 +247,38 @@ void main() {
     final listView = tester.widget<ListView>(listViewFinder);
     final padding = listView.padding as EdgeInsets;
     expect(padding.left, testLeftPadding + 32.0);
+  });
+
+  testWidgets('竖屏与横屏下二级页面入口均在条目右侧以徽章展示统计数字且样式与本地媒体库对齐', (tester) async {
+    // 1. 竖屏测试 (宽 400 < 780)
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(wrap(playlistCount: 99, genreCount: 5));
+
+    // 竖屏下采用列表菜单项，包含右箭头
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(6));
+
+    // 二级页面入口条目右侧展示对应统计数字徽章
+    expect(find.text('12'), findsOneWidget); // 专辑数
+    expect(find.text('3'), findsOneWidget);  // 艺术家数
+    expect(find.text('5'), findsOneWidget);  // 流派数
+    expect(find.text('48'), findsOneWidget); // 歌曲数
+    expect(find.text('99'), findsOneWidget); // 歌单数
+
+    // 2. 宽屏测试 (宽 1000 >= 780)
+    tester.view.physicalSize = const Size(1000, 800);
+    await tester.pumpWidget(wrap(playlistCount: 99, genreCount: 5));
+
+    // 宽屏下横向快速入口采用 CarouselScrollWrapper
+    expect(find.byType(CarouselScrollWrapper), findsOneWidget);
+    // 宽屏下卡片右侧同样展示对应统计数字徽章
+    expect(find.text('12'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('5'), findsOneWidget);
+    expect(find.text('48'), findsOneWidget);
+    expect(find.text('99'), findsOneWidget);
   });
 }

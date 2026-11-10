@@ -30,6 +30,7 @@ class RemoteLibraryDashboardView extends StatelessWidget {
     required this.artistCount,
     required this.songCount,
     required this.playlistCount,
+    this.genreCount,
     required this.recentAlbums,
     this.releasedAlbums = const [],
     this.recentPlayedAlbums = const [],
@@ -53,6 +54,7 @@ class RemoteLibraryDashboardView extends StatelessWidget {
   final int artistCount;
   final int songCount;
   final int playlistCount;
+  final int? genreCount;
 
   /// 最近添加的专辑。空则不显示该板块。
   final List<Map<String, dynamic>> recentAlbums;
@@ -140,20 +142,38 @@ class RemoteLibraryDashboardView extends StatelessWidget {
                 ),
               ),
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    left: contentLeftPadding + horizontalPadding,
-                    right: horizontalPadding,
-                  ),
-                  child: _QuickAccessGrid(
-                    l10n: l10n,
-                    albumCount: albumCount,
-                    artistCount: artistCount,
-                    songCount: songCount,
-                    playlistCount: playlistCount,
-                    onNavigateToTab: onNavigateToTab,
-                  ),
-                ),
+                child: isWide
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 14, bottom: 28),
+                        child: _WideQuickAccessBar(
+                          onTapTab: onNavigateToTab,
+                          l10n: l10n,
+                          albumCount: albumCount,
+                          artistCount: artistCount,
+                          genreCount: genreCount,
+                          songCount: songCount,
+                          playlistCount: playlistCount,
+                          contentLeftPadding: contentLeftPadding,
+                          horizontalPadding: horizontalPadding,
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.only(
+                          top: 8,
+                          bottom: 22,
+                        ),
+                        child: _PortraitLibraryMenuCard(
+                          onTapTab: onNavigateToTab,
+                          l10n: l10n,
+                          albumCount: albumCount,
+                          artistCount: artistCount,
+                          genreCount: genreCount,
+                          songCount: songCount,
+                          playlistCount: playlistCount,
+                          contentLeftPadding: contentLeftPadding,
+                          horizontalPadding: horizontalPadding,
+                        ),
+                      ),
               ),
               if (recentAlbums.isNotEmpty)
                 _AlbumRowSection(
@@ -340,152 +360,418 @@ class _DashboardHeader extends StatelessWidget {
   }
 }
 
-class _QuickAccessGrid extends StatelessWidget {
-  const _QuickAccessGrid({
+class _LibraryQuickItem {
+  final int tab;
+  final String title;
+  final IconData icon;
+  final List<Color> gradient;
+  final String? badgeText;
+
+  const _LibraryQuickItem({
+    required this.tab,
+    required this.title,
+    required this.icon,
+    required this.gradient,
+    this.badgeText,
+  });
+}
+
+List<_LibraryQuickItem> _buildQuickItems({
+  required AppLocalizations l10n,
+  int? albumCount,
+  int? artistCount,
+  int? genreCount,
+  int? songCount,
+  int? playlistCount,
+}) => [
+  _LibraryQuickItem(
+    tab: RemoteLibraryDashboardView.tabAlbums,
+    title: l10n.albums,
+    icon: Icons.album_rounded,
+    gradient: const [Color(0xFF007AFF), Color(0xFF0062D2)],
+    badgeText: albumCount != null && albumCount > 0 ? '$albumCount' : null,
+  ),
+  _LibraryQuickItem(
+    tab: RemoteLibraryDashboardView.tabArtists,
+    title: l10n.artists,
+    icon: Icons.mic_external_on_rounded,
+    gradient: const [Color(0xFFFF9500), Color(0xFFE07D00)],
+    badgeText: artistCount != null && artistCount > 0 ? '$artistCount' : null,
+  ),
+  _LibraryQuickItem(
+    tab: RemoteLibraryDashboardView.tabGenres,
+    title: l10n.genres,
+    icon: Icons.style_rounded,
+    gradient: const [Color(0xFF5856D6), Color(0xFF4745BA)],
+    badgeText: genreCount != null && genreCount > 0 ? '$genreCount' : null,
+  ),
+  _LibraryQuickItem(
+    tab: RemoteLibraryDashboardView.tabSongs,
+    title: l10n.songs,
+    icon: Icons.music_note_rounded,
+    gradient: const [Color(0xFF2AC8A8), Color(0xFF1EAE91)],
+    badgeText: songCount != null && songCount > 0 ? '$songCount' : null,
+  ),
+  _LibraryQuickItem(
+    tab: RemoteLibraryDashboardView.tabPlaylists,
+    title: l10n.playlists,
+    icon: Icons.queue_music_rounded,
+    gradient: const [Color(0xFFFA243C), Color(0xFFE01E37)],
+    badgeText:
+        playlistCount != null && playlistCount > 0 ? '$playlistCount' : null,
+  ),
+  _LibraryQuickItem(
+    tab: RemoteLibraryDashboardView.tabSearch,
+    title: l10n.search,
+    icon: Icons.search_rounded,
+    gradient: const [Color(0xFF30B0C7), Color(0xFF258C9E)],
+    badgeText: null,
+  ),
+];
+
+// ---------------------------------------------------------------------------
+// 横屏大号快捷入口流（与本地媒体库保持完全一致的视觉样式）
+// ---------------------------------------------------------------------------
+class _WideQuickAccessBar extends StatelessWidget {
+  const _WideQuickAccessBar({
+    required this.onTapTab,
     required this.l10n,
-    required this.albumCount,
-    required this.artistCount,
-    required this.songCount,
-    required this.playlistCount,
-    required this.onNavigateToTab,
+    this.albumCount,
+    this.artistCount,
+    this.genreCount,
+    this.songCount,
+    this.playlistCount,
+    this.contentLeftPadding = 0.0,
+    this.horizontalPadding = 32.0,
   });
 
+  final ValueChanged<int> onTapTab;
   final AppLocalizations l10n;
-  final int albumCount;
-  final int artistCount;
-  final int songCount;
-  final int playlistCount;
-  final ValueChanged<int> onNavigateToTab;
+  final int? albumCount;
+  final int? artistCount;
+  final int? genreCount;
+  final int? songCount;
+  final int? playlistCount;
+  final double contentLeftPadding;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
-    final entries = <_QuickEntry>[
-      _QuickEntry(
-        icon: Icons.album_outlined,
-        label: l10n.albums,
-        count: albumCount,
-        tabIndex: RemoteLibraryDashboardView.tabAlbums,
-      ),
-      _QuickEntry(
-        icon: Icons.mic_none_rounded,
-        label: l10n.artists,
-        count: artistCount,
-        tabIndex: RemoteLibraryDashboardView.tabArtists,
-      ),
-      _QuickEntry(
-        icon: Icons.style_outlined,
-        label: l10n.genres,
-        tabIndex: RemoteLibraryDashboardView.tabGenres,
-      ),
-      _QuickEntry(
-        icon: Icons.music_note_rounded,
-        label: l10n.songs,
-        count: songCount,
-        tabIndex: RemoteLibraryDashboardView.tabSongs,
-      ),
-      _QuickEntry(
-        icon: Icons.queue_music_rounded,
-        label: l10n.playlists,
-        count: playlistCount,
-        tabIndex: RemoteLibraryDashboardView.tabPlaylists,
-      ),
-      _QuickEntry(
-        icon: Icons.search_rounded,
-        label: l10n.search,
-        tabIndex: RemoteLibraryDashboardView.tabSearch,
-      ),
-    ];
+    final items = _buildQuickItems(
+      l10n: l10n,
+      albumCount: albumCount,
+      artistCount: artistCount,
+      genreCount: genreCount,
+      songCount: songCount,
+      playlistCount: playlistCount,
+    );
+    const cardHeight = 60.0;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // 卡片定宽，列数由可用宽度决定：桌面宽窗一行放满，手机竖屏两列。
-        const double minCardWidth = 160;
-        const double spacing = 12;
-        final int columns = (constraints.maxWidth / (minCardWidth + spacing))
-            .floor()
-            .clamp(2, entries.length);
-        final double cardWidth =
-            (constraints.maxWidth - spacing * (columns - 1)) / columns;
-
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: [
-            for (final entry in entries)
-              SizedBox(
-                width: cardWidth,
-                child: _QuickAccessCard(
-                  entry: entry,
-                  onTap: () => onNavigateToTab(entry.tabIndex),
+    return CarouselScrollWrapper(
+      height: cardHeight,
+      buttonHeight: 40.0,
+      buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
+      leftButtonOffset: contentLeftPadding,
+      builder: (context, controller) {
+        return SingleChildScrollView(
+          controller: controller,
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.only(
+            left: contentLeftPadding + horizontalPadding,
+            right: horizontalPadding,
+          ),
+          child: Row(
+            children: items.map((item) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: _WideQuickCard(
+                  title: item.title,
+                  icon: item.icon,
+                  gradient: item.gradient,
+                  badgeText: item.badgeText,
+                  onTap: () => onTapTab(item.tab),
                 ),
-              ),
-          ],
+              );
+            }).toList(),
+          ),
         );
       },
     );
   }
 }
 
-class _QuickEntry {
-  const _QuickEntry({
+class _WideQuickCard extends StatefulWidget {
+  const _WideQuickCard({
+    required this.title,
     required this.icon,
-    required this.label,
-    required this.tabIndex,
-    this.count,
+    required this.gradient,
+    this.badgeText,
+    required this.onTap,
   });
 
+  final String title;
   final IconData icon;
-  final String label;
-  final int tabIndex;
-  final int? count;
+  final List<Color> gradient;
+  final String? badgeText;
+  final VoidCallback onTap;
+
+  @override
+  State<_WideQuickCard> createState() => _WideQuickCardState();
 }
 
-class _QuickAccessCard extends StatelessWidget {
-  const _QuickAccessCard({required this.entry, required this.onTap});
-
-  final _QuickEntry entry;
-  final VoidCallback onTap;
+class _WideQuickCardState extends State<_WideQuickCard> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = widget.gradient.first;
 
-    return Material(
-      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Icon(entry.icon, size: 22, color: theme.colorScheme.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      entry.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+          decoration: BoxDecoration(
+            color: _isHovered
+                ? primaryColor.withValues(alpha: isDark ? 0.20 : 0.12)
+                : theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: isDark ? 0.45 : 0.65,
+                  ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _isHovered
+                  ? primaryColor.withValues(alpha: 0.55)
+                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.22),
+              width: 1,
+            ),
+            boxShadow: _isHovered
+                ? [
+                    BoxShadow(
+                      color: primaryColor.withValues(alpha: 0.16),
+                      blurRadius: 12,
+                      offset: const Offset(0, 3),
                     ),
-                    if (entry.count != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        '${entry.count}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: widget.gradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1.5),
+                    ),
                   ],
                 ),
+                child: Center(
+                  child: Icon(
+                    widget.icon,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                widget.title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  color: _isHovered
+                      ? theme.colorScheme.onSurface
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.9),
+                ),
+              ),
+              if (widget.badgeText != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2.5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : Colors.black.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    widget.badgeText!,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 竖屏列表菜单卡片（与本地媒体库保持完全一致的视觉样式）
+// ---------------------------------------------------------------------------
+class _PortraitLibraryMenuCard extends StatelessWidget {
+  const _PortraitLibraryMenuCard({
+    required this.onTapTab,
+    required this.l10n,
+    this.albumCount,
+    this.artistCount,
+    this.genreCount,
+    this.songCount,
+    this.playlistCount,
+    this.contentLeftPadding = 0.0,
+    this.horizontalPadding = 16.0,
+  });
+
+  final ValueChanged<int> onTapTab;
+  final AppLocalizations l10n;
+  final int? albumCount;
+  final int? artistCount;
+  final int? genreCount;
+  final int? songCount;
+  final int? playlistCount;
+  final double contentLeftPadding;
+  final double horizontalPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final items = _buildQuickItems(
+      l10n: l10n,
+      albumCount: albumCount,
+      artistCount: artistCount,
+      genreCount: genreCount,
+      songCount: songCount,
+      playlistCount: playlistCount,
+    );
+
+    return Column(
+      children: [
+        for (int i = 0; i < items.length; i++) ...[
+          _buildTile(context, items[i]),
+          if (i < items.length - 1)
+            Padding(
+              padding: EdgeInsets.only(
+                left: contentLeftPadding + horizontalPadding + 38 + 14,
+                right: horizontalPadding,
+              ),
+              child: Divider(
+                height: 1,
+                thickness: 0.6,
+                color: theme.dividerColor.withValues(alpha: isDark ? 0.12 : 0.08),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTile(BuildContext context, _LibraryQuickItem item) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onTapTab(item.tab),
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: contentLeftPadding + horizontalPadding,
+            right: horizontalPadding,
+            top: 13,
+            bottom: 13,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: item.gradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1.5),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    item.icon,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  item.title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              if (item.badgeText != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.black.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    item.badgeText!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
             ],
           ),

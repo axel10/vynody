@@ -1839,6 +1839,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
             password: widget.password,
             albumCount: _albums.length,
             artistCount: _artists.length,
+            genreCount: _genres.length,
             songCount: _songs.length,
             playlistCount: _playlists.length,
             recentAlbums: _recentAlbums(12),
