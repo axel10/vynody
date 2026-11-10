@@ -329,6 +329,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recentlyAdded => 'Recently Added';
 
   @override
+  String get recentlyReleased => 'Recently Released';
+
+  @override
   String get albums => 'Albums';
 
   @override

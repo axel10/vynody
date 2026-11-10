@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
+import 'package:vynody/player/remote/clients/jellyfin_client.dart';
 import 'package:vynody/player/remote/clients/subsonic_client.dart';
 import 'package:vynody/player/remote/clients/webdav_client.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
@@ -349,6 +350,29 @@ void main() {
       expect(state.navidromePlaylists?.first['id'], 'pl-2');
       expect(state.navidromeSelectedPlaylistId, isNull);
       expect(state.navidromePlaylistDetailsCache.containsKey('pl-1'), false);
+    });
+  });
+
+  group('JellyfinClient normalizeAlbumItem tests', () {
+    test('normalizes album item and preserves DateCreated as created', () {
+      final raw = {
+        'Id': 'album-123',
+        'Name': 'Test Album',
+        'AlbumArtist': 'Artist Name',
+        'ProductionYear': 2024,
+        'DateCreated': '2024-05-01T12:00:00Z',
+        'ChildCount': 10,
+        'RunTimeTicks': 20000000000,
+        'UserData': {'IsFavorite': true},
+      };
+
+      final normalized = JellyfinClient.normalizeAlbumItem(raw);
+      expect(normalized['id'], 'album-123');
+      expect(normalized['name'], 'Test Album');
+      expect(normalized['artist'], 'Artist Name');
+      expect(normalized['year'], 2024);
+      expect(normalized['created'], '2024-05-01T12:00:00Z');
+      expect(normalized['isFavorite'], true);
     });
   });
 }

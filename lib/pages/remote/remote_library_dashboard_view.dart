@@ -11,9 +11,9 @@ import '../../widgets/remote_artwork_widget.dart';
 /// 快捷入口 → 若干横向内容板块。数据由 `RemoteLibraryPage` 传入（那里是唯一的
 /// 数据宿主），本页只负责排版与跳转，不发起任何请求。
 ///
-/// 板块取舍遵循「没有对应能力就不显示」：远程没有播放历史与用户评分，
-/// 所以不出现「最近播放 / 最常播放 / 高分」；搜索按需求保持为独立子页，
-/// 这里只放一个入口卡片。
+/// 板块取舍遵循「没有对应能力或无数据则不显示」：
+/// 最近添加、最新发布、最近播放、最多播放、播放列表与收藏专辑在有数据时呈现对应板块；
+/// 搜索按需求保持为独立子页，这里放快捷入口卡片。
 class RemoteLibraryDashboardView extends StatelessWidget {
   const RemoteLibraryDashboardView({
     super.key,
@@ -24,9 +24,14 @@ class RemoteLibraryDashboardView extends StatelessWidget {
     required this.songCount,
     required this.playlistCount,
     required this.recentAlbums,
-    required this.favoriteAlbums,
+    this.releasedAlbums = const [],
+    this.recentPlayedAlbums = const [],
+    this.mostPlayedAlbums = const [],
+    this.playlists = const [],
+    this.favoriteAlbums = const [],
     required this.onNavigateToTab,
     required this.onOpenAlbum,
+    this.onOpenPlaylist,
     required this.onRefresh,
     required this.onShuffleAll,
     required this.onDisconnect,
@@ -41,8 +46,20 @@ class RemoteLibraryDashboardView extends StatelessWidget {
   final int songCount;
   final int playlistCount;
 
-  /// 最近添加的专辑（父页按 `created` 降序取前若干张）。空则不显示该板块。
+  /// 最近添加的专辑。空则不显示该板块。
   final List<Map<String, dynamic>> recentAlbums;
+
+  /// 最新发布的专辑（按发行年份/首映日期降序）。空则不显示该板块。
+  final List<Map<String, dynamic>> releasedAlbums;
+
+  /// 最近播放的专辑。空则不显示该板块。
+  final List<Map<String, dynamic>> recentPlayedAlbums;
+
+  /// 最多播放的专辑。空则不显示该板块。
+  final List<Map<String, dynamic>> mostPlayedAlbums;
+
+  /// 播放列表。空则不显示该板块。
+  final List<Map<String, dynamic>> playlists;
 
   /// 收藏的专辑。空则不显示该板块。
   final List<Map<String, dynamic>> favoriteAlbums;
@@ -51,6 +68,9 @@ class RemoteLibraryDashboardView extends StatelessWidget {
 
   /// 点封面直接进专辑详情。
   final void Function(String albumId, String albumTitle) onOpenAlbum;
+
+  /// 点封面直接进歌单详情。
+  final void Function(Map<String, dynamic> playlist)? onOpenPlaylist;
 
   final VoidCallback onRefresh;
   final VoidCallback onShuffleAll;
@@ -127,6 +147,46 @@ class RemoteLibraryDashboardView extends StatelessWidget {
                   horizontalPadding: horizontalPadding,
                   onOpenAlbum: onOpenAlbum,
                   onSeeAll: () => onNavigateToTab(tabAlbums),
+                ),
+              if (releasedAlbums.isNotEmpty)
+                _AlbumRowSection(
+                  title: l10n.recentlyReleased,
+                  albums: releasedAlbums,
+                  server: server,
+                  password: password,
+                  horizontalPadding: horizontalPadding,
+                  onOpenAlbum: onOpenAlbum,
+                  onSeeAll: () => onNavigateToTab(tabAlbums),
+                ),
+              if (recentPlayedAlbums.isNotEmpty)
+                _AlbumRowSection(
+                  title: l10n.recentlyPlayed,
+                  albums: recentPlayedAlbums,
+                  server: server,
+                  password: password,
+                  horizontalPadding: horizontalPadding,
+                  onOpenAlbum: onOpenAlbum,
+                  onSeeAll: () => onNavigateToTab(tabAlbums),
+                ),
+              if (mostPlayedAlbums.isNotEmpty)
+                _AlbumRowSection(
+                  title: l10n.mostPlayed,
+                  albums: mostPlayedAlbums,
+                  server: server,
+                  password: password,
+                  horizontalPadding: horizontalPadding,
+                  onOpenAlbum: onOpenAlbum,
+                  onSeeAll: () => onNavigateToTab(tabAlbums),
+                ),
+              if (playlists.isNotEmpty)
+                _PlaylistRowSection(
+                  title: l10n.playlist,
+                  playlists: playlists,
+                  server: server,
+                  password: password,
+                  horizontalPadding: horizontalPadding,
+                  onOpenPlaylist: onOpenPlaylist,
+                  onSeeAll: () => onNavigateToTab(tabPlaylists),
                 ),
               if (favoriteAlbums.isNotEmpty)
                 _AlbumRowSection(
@@ -535,6 +595,158 @@ class _DashboardAlbumCard extends StatelessWidget {
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlaylistRowSection extends StatelessWidget {
+  const _PlaylistRowSection({
+    required this.title,
+    required this.playlists,
+    required this.server,
+    required this.password,
+    required this.horizontalPadding,
+    this.onOpenPlaylist,
+    required this.onSeeAll,
+  });
+
+  final String title;
+  final List<Map<String, dynamic>> playlists;
+  final RemoteServer server;
+  final String password;
+  final double horizontalPadding;
+  final void Function(Map<String, dynamic> playlist)? onOpenPlaylist;
+  final VoidCallback onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(
+                left: horizontalPadding,
+                right: horizontalPadding - 8,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: onSeeAll,
+                    child: Text(l10n.viewAll),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 196,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                itemCount: playlists.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final playlist = playlists[index];
+                  final name = playlist['name'] as String? ?? '';
+                  final count = playlist['songCount'] as int? ?? 0;
+                  final coverArtId = playlist['coverArt'] as String?;
+                  return _DashboardPlaylistCard(
+                    title: name,
+                    songCount: count,
+                    coverArtId: coverArtId,
+                    server: server,
+                    password: password,
+                    onTap: () => onOpenPlaylist?.call(playlist),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DashboardPlaylistCard extends StatelessWidget {
+  const _DashboardPlaylistCard({
+    required this.title,
+    required this.songCount,
+    required this.coverArtId,
+    required this.server,
+    required this.password,
+    required this.onTap,
+  });
+
+  final String title;
+  final int songCount;
+  final String? coverArtId;
+  final RemoteServer server;
+  final String password;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return SizedBox(
+      width: 140,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: RemoteArtworkWidget(
+                  server: server,
+                  password: password,
+                  coverArtId: coverArtId,
+                  size: 140,
+                  width: 140,
+                  height: 140,
+                  fallbackIcon: Icons.queue_music_rounded,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '$songCount ${l10n.songs}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ),

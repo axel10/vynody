@@ -115,6 +115,7 @@
   "mostPlayed": "Most Played",
   "recentlyPlayed": "Recently Played",
   "recentlyAdded": "Recently Added",
+  "recentlyReleased": "Recently Released",
   "albums": "Albums",
   "artists": "Artists",
   "mostPlayedDescription": "Ranked by completed plays",

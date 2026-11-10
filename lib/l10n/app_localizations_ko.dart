@@ -325,6 +325,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get recentlyAdded => '최근 추가됨';
 
   @override
+  String get recentlyReleased => '최근 발매';
+
+  @override
   String get albums => '앨범';
 
   @override

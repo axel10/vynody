@@ -20,6 +20,10 @@ void main() {
 
   Widget wrap({
     List<Map<String, dynamic>> recentAlbums = const [],
+    List<Map<String, dynamic>> releasedAlbums = const [],
+    List<Map<String, dynamic>> recentPlayedAlbums = const [],
+    List<Map<String, dynamic>> mostPlayedAlbums = const [],
+    List<Map<String, dynamic>> playlists = const [],
     List<Map<String, dynamic>> favoriteAlbums = const [],
     ValueChanged<int>? onNavigateToTab,
     int playlistCount = 0,
@@ -38,9 +42,14 @@ void main() {
         songCount: 48,
         playlistCount: playlistCount,
         recentAlbums: recentAlbums,
+        releasedAlbums: releasedAlbums,
+        recentPlayedAlbums: recentPlayedAlbums,
+        mostPlayedAlbums: mostPlayedAlbums,
+        playlists: playlists,
         favoriteAlbums: favoriteAlbums,
         onNavigateToTab: onNavigateToTab ?? (_) {},
         onOpenAlbum: (_, _) {},
+        onOpenPlaylist: (_) {},
         onRefresh: () {},
         onShuffleAll: () {},
         onDisconnect: () {},
@@ -83,12 +92,88 @@ void main() {
     expect(tapped.last, RemoteLibraryDashboardView.tabSearch);
   });
 
-  testWidgets('没有最近添加 / 收藏数据时不出现对应板块', (tester) async {
+  testWidgets('没有数据时不出现对应板块', (tester) async {
     await tester.pumpWidget(wrap());
     final l10n = await AppLocalizations.delegate.load(const Locale('zh'));
 
     expect(find.text(l10n.recentlyAdded), findsNothing);
+    expect(find.text(l10n.recentlyReleased), findsNothing);
+    expect(find.text(l10n.recentlyPlayed), findsNothing);
+    expect(find.text(l10n.mostPlayed), findsNothing);
+    expect(find.text(l10n.playlist), findsNothing);
     expect(find.text(l10n.starredAlbums), findsNothing);
+  });
+
+  testWidgets('存在数据时展示对应板块与内容', (tester) async {
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final tappedTab = <int>[];
+    String? openedAlbumId;
+    Map<String, dynamic>? openedPlaylist;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('zh'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: RemoteLibraryDashboardView(
+          server: server,
+          password: 'p',
+          albumCount: 1,
+          artistCount: 1,
+          songCount: 1,
+          playlistCount: 1,
+          recentAlbums: const [
+            {'id': 'a1', 'name': '最近添加专辑', 'artist': '艺人A'}
+          ],
+          releasedAlbums: const [
+            {'id': 'a2', 'name': '最新发布专辑', 'artist': '艺人B', 'year': 2026}
+          ],
+          recentPlayedAlbums: const [
+            {'id': 'a3', 'name': '最近播放专辑', 'artist': '艺人C'}
+          ],
+          mostPlayedAlbums: const [
+            {'id': 'a4', 'name': '最多播放专辑', 'artist': '艺人D'}
+          ],
+          playlists: const [
+            {'id': 'p1', 'name': '我的精选歌单', 'songCount': 25}
+          ],
+          onNavigateToTab: tappedTab.add,
+          onOpenAlbum: (id, _) => openedAlbumId = id,
+          onOpenPlaylist: (p) => openedPlaylist = p,
+          onRefresh: () {},
+          onShuffleAll: () {},
+          onDisconnect: () {},
+        ),
+      ),
+    );
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+    expect(find.text(l10n.recentlyAdded), findsOneWidget);
+    expect(find.text(l10n.recentlyReleased), findsOneWidget);
+    expect(find.text(l10n.recentlyPlayed), findsOneWidget);
+    expect(find.text(l10n.mostPlayed), findsOneWidget);
+    expect(find.text(l10n.playlist), findsOneWidget);
+
+    expect(find.text('最近添加专辑'), findsOneWidget);
+    expect(find.text('最新发布专辑'), findsOneWidget);
+    expect(find.text('最近播放专辑'), findsOneWidget);
+    expect(find.text('最多播放专辑'), findsOneWidget);
+    expect(find.text('我的精选歌单'), findsOneWidget);
+    expect(find.textContaining('25'), findsWidgets);
+
+    // 点击专辑卡片
+    await tester.tap(find.text('最近添加专辑'));
+    await tester.pump();
+    expect(openedAlbumId, 'a1');
+
+    // 点击歌单卡片
+    await tester.tap(find.text('我的精选歌单'));
+    await tester.pump();
+    expect(openedPlaylist?['id'], 'p1');
   });
 
   testWidgets('页面外层包裹 Scaffold 并继承主题 scaffoldBackgroundColor', (tester) async {

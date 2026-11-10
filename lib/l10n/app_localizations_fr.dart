@@ -332,6 +332,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get recentlyAdded => 'Ajoutées récemment';
 
   @override
+  String get recentlyReleased => 'Sorties récentes';
+
+  @override
   String get albums => 'Albums';
 
   @override

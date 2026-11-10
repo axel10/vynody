@@ -693,6 +693,12 @@ abstract class AppLocalizations {
   /// **'最近添加'**
   String get recentlyAdded;
 
+  /// No description provided for @recentlyReleased.
+  ///
+  /// In zh, this message translates to:
+  /// **'最新发布'**
+  String get recentlyReleased;
+
   /// Albums tab and section label
   ///
   /// In zh, this message translates to:

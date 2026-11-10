@@ -326,6 +326,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get recentlyAdded => '最近追加';
 
   @override
+  String get recentlyReleased => '最近リリース';
+
+  @override
   String get albums => 'アルバム';
 
   @override

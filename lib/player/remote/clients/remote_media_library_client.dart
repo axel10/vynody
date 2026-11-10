@@ -17,6 +17,8 @@ abstract class RemoteMediaLibraryClient {
     String type = 'alphabeticalByName',
     int size = 500,
     int offset = 0,
+    int? fromYear,
+    int? toYear,
   });
   Future<Map<String, dynamic>?> getAlbum(String albumId);
   Future<Map<String, dynamic>?> getSong(String songId);
@@ -129,8 +131,16 @@ class SubsonicMediaLibraryClient implements RemoteMediaLibraryClient {
     String type = 'alphabeticalByName',
     int size = 500,
     int offset = 0,
+    int? fromYear,
+    int? toYear,
   }) =>
-      client.getAlbumList(type: type, size: size, offset: offset);
+      client.getAlbumList(
+        type: type,
+        size: size,
+        offset: offset,
+        fromYear: fromYear,
+        toYear: toYear,
+      );
 
   @override
   Future<Map<String, dynamic>?> getAlbum(String albumId) =>
@@ -286,8 +296,16 @@ class JellyfinMediaLibraryClient implements RemoteMediaLibraryClient {
     String type = 'alphabeticalByName',
     int size = 500,
     int offset = 0,
+    int? fromYear,
+    int? toYear,
   }) =>
-      client.getAlbumList(type: type, size: size, offset: offset);
+      client.getAlbumList(
+        type: type,
+        size: size,
+        offset: offset,
+        fromYear: fromYear,
+        toYear: toYear,
+      );
 
   @override
   Future<Map<String, dynamic>?> getAlbum(String albumId) =>

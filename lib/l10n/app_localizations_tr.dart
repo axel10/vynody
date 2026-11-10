@@ -330,6 +330,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get recentlyAdded => 'Son Eklenenler';
 
   @override
+  String get recentlyReleased => 'Son Çıkanlar';
+
+  @override
   String get albums => 'Albümler';
 
   @override

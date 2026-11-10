@@ -409,6 +409,7 @@ class JellyfinClient {
     final ticks = item['RunTimeTicks'] as num? ?? 0;
     final durationSec = (ticks / 10000000).round();
     final isStarred = item['UserData']?['IsFavorite'] == true;
+    final created = item['DateCreated'] as String?;
 
     return {
       'id': id,
@@ -420,6 +421,7 @@ class JellyfinClient {
       'songCount': songCount,
       'duration': durationSec,
       'coverArt': id,
+      'created': created,
       'starred': isStarred ? DateTime.now().toIso8601String() : null,
       'isFavorite': isStarred,
     };
@@ -470,6 +472,8 @@ class JellyfinClient {
     String type = 'alphabeticalByName',
     int size = 500,
     int offset = 0,
+    int? fromYear,
+    int? toYear,
   }) async {
     final session = await authenticate();
     String sortBy = 'SortName';
@@ -478,14 +482,98 @@ class JellyfinClient {
 
     switch (type) {
       case 'newest':
-      case 'recent':
         sortBy = 'DateCreated';
         sortOrder = 'Descending';
         break;
-      case 'frequent':
-        sortBy = 'PlayCount';
+      case 'byYear':
+      case 'releaseDate':
+        sortBy = 'PremiereDate,ProductionYear';
         sortOrder = 'Descending';
         break;
+      case 'recent':
+        // 尝试通过最近播放的单曲归纳出专辑列表，保持播放时间倒序
+        try {
+          final songsRes = await _get('/Users/${session.userId}/Items', {
+            'IncludeItemTypes': 'Audio',
+            'Recursive': true,
+            'SortBy': 'DatePlayed',
+            'SortOrder': 'Descending',
+            'Filters': 'IsPlayed',
+            'StartIndex': offset,
+            'Limit': size * 3,
+            'Fields': 'AlbumId',
+          });
+          final songItems = songsRes['Items'] as List? ?? [];
+          final seenAlbumIds = <String>{};
+          final albumIds = <String>[];
+          for (final s in songItems) {
+            if (s is Map) {
+              final aid = s['AlbumId'] as String?;
+              if (aid != null && aid.isNotEmpty && seenAlbumIds.add(aid)) {
+                albumIds.add(aid);
+                if (albumIds.length >= size) break;
+              }
+            }
+          }
+          if (albumIds.isEmpty) return const [];
+          final albumsRes = await _get('/Users/${session.userId}/Items', {
+            'Ids': albumIds.join(','),
+            'Fields': 'ChildCount,ItemCounts',
+          });
+          final rawAlbums = (albumsRes['Items'] as List? ?? [])
+              .whereType<Map<String, dynamic>>()
+              .map(normalizeAlbumItem)
+              .toList();
+          final albumMap = {for (final a in rawAlbums) a['id']: a};
+          return [
+            for (final id in albumIds)
+              if (albumMap.containsKey(id)) albumMap[id]!,
+          ];
+        } catch (_) {
+          return const [];
+        }
+      case 'frequent':
+        // 尝试通过最多播放的单曲归纳出专辑列表，保持播放频次倒序
+        try {
+          final songsRes = await _get('/Users/${session.userId}/Items', {
+            'IncludeItemTypes': 'Audio',
+            'Recursive': true,
+            'SortBy': 'PlayCount',
+            'SortOrder': 'Descending',
+            'Filters': 'IsPlayed',
+            'StartIndex': offset,
+            'Limit': size * 3,
+            'Fields': 'AlbumId',
+          });
+          final songItems = songsRes['Items'] as List? ?? [];
+          final seenAlbumIds = <String>{};
+          final albumIds = <String>[];
+          for (final s in songItems) {
+            if (s is Map) {
+              final aid = s['AlbumId'] as String?;
+              if (aid != null && aid.isNotEmpty && seenAlbumIds.add(aid)) {
+                albumIds.add(aid);
+                if (albumIds.length >= size) break;
+              }
+            }
+          }
+          if (albumIds.isEmpty) return const [];
+          final albumsRes = await _get('/Users/${session.userId}/Items', {
+            'Ids': albumIds.join(','),
+            'Fields': 'ChildCount,ItemCounts',
+          });
+          final rawAlbums = (albumsRes['Items'] as List? ?? [])
+              .whereType<Map<String, dynamic>>()
+              .map(normalizeAlbumItem)
+              .toList();
+          final albumMap = {for (final a in rawAlbums) a['id']: a};
+          return [
+            for (final id in albumIds)
+              if (albumMap.containsKey(id)) albumMap[id]!,
+          ];
+        } catch (_) {
+          return const [];
+        }
       case 'starred':
         extra['Filters'] = 'IsFavorite';
         sortBy = 'SortName';

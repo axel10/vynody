@@ -408,17 +408,24 @@ class SubsonicClient {
     return null;
   }
 
-  /// Fetches album list by type (e.g. 'recent', 'newest', 'frequent', 'alphabeticalByName', 'starred', 'random').
+  /// Fetches album list by type (e.g. 'recent', 'newest', 'frequent', 'alphabeticalByName', 'starred', 'random', 'byYear').
   Future<List<Map<String, dynamic>>> getAlbumList({
     String type = 'alphabeticalByName',
     int size = 500,
     int offset = 0,
+    int? fromYear,
+    int? toYear,
   }) async {
-    final subsonic = await _getSubsonicData('getAlbumList2.view', {
+    final params = <String, dynamic>{
       'type': type,
       'size': size,
       'offset': offset,
-    });
+    };
+    if (type == 'byYear') {
+      params['fromYear'] = fromYear ?? 3000;
+      params['toYear'] = toYear ?? 0;
+    }
+    final subsonic = await _getSubsonicData('getAlbumList2.view', params);
     final albumRoot = subsonic['albumList2'] ?? subsonic['albumList'];
     final albumData = albumRoot?['album'];
     if (albumData is List) {

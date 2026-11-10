@@ -81,6 +81,8 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
   final FocusNode _albumSearchFocusNode = FocusNode();
   String _albumSearchQuery = '';
   final Set<String> _starredAlbumIds = {};
+  List<Map<String, dynamic>> _recentPlayedAlbums = [];
+  List<Map<String, dynamic>> _mostPlayedAlbums = [];
 
   // Artists state
   bool _isLoadingArtists = false;
@@ -705,10 +707,6 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
             'alphabeticalByName';
       });
     }
-    if (widget.server.type == RemoteServerType.jellyfin &&
-        (_albumSortType == 'recent' || _albumSortType == 'frequent')) {
-      _albumSortType = 'alphabeticalByName';
-    }
     _artistSortField = settings.navidromeArtistSortField;
     _artistSortAsc = settings.navidromeArtistSortAscending;
     _songSortField = settings.navidromeSongSortField;
@@ -740,6 +738,9 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       },
       () {
         _loadPlaylists();
+      },
+      () {
+        _loadDashboardInsights();
       },
     ];
     // 首批加载哪个分类：跟随当前二级分类（深链进来时可能不是专辑）。
@@ -778,6 +779,8 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       _genres = [];
       _songs = [];
       _playlists = [];
+      _recentPlayedAlbums = [];
+      _mostPlayedAlbums = [];
       _starredAlbumIds.clear();
       _starredArtistIds.clear();
       _starredSongIds.clear();
@@ -932,10 +935,6 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
   }
 
   Future<void> _loadAlbums({bool forceRefresh = false}) async {
-    if (widget.server.type == RemoteServerType.jellyfin &&
-        (_albumSortType == 'recent' || _albumSortType == 'frequent')) {
-      _albumSortType = 'alphabeticalByName';
-    }
     final session = ref.read(activeRemoteSessionProvider);
     final isSameServer =
         session != null && session.server.id == widget.server.id;
@@ -1744,6 +1743,39 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     return list.take(limit).toList();
   }
 
+  List<Map<String, dynamic>> _releasedAlbums(int limit) {
+    final list = List<Map<String, dynamic>>.from(_albums);
+    list.sort((a, b) {
+      final ya = (a['year'] as num?)?.toInt() ?? 0;
+      final yb = (b['year'] as num?)?.toInt() ?? 0;
+      if (ya != yb) return yb.compareTo(ya);
+      final ca = a['created']?.toString() ?? '';
+      final cb = b['created']?.toString() ?? '';
+      return cb.compareTo(ca);
+    });
+    final withYear =
+        list.where((a) => ((a['year'] as num?)?.toInt() ?? 0) > 0).toList();
+    return (withYear.isNotEmpty ? withYear : list).take(limit).toList();
+  }
+
+  Future<void> _loadDashboardInsights({bool forceRefresh = false}) async {
+    try {
+      final results = await Future.wait([
+        _client
+            .getAlbumList(type: 'recent', size: 16)
+            .catchError((_) => <Map<String, dynamic>>[]),
+        _client
+            .getAlbumList(type: 'frequent', size: 16)
+            .catchError((_) => <Map<String, dynamic>>[]),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _recentPlayedAlbums = results[0];
+        _mostPlayedAlbums = results[1];
+      });
+    } catch (_) {}
+  }
+
   Future<void> _refreshAll() async {
     _beginContentReload();
     await Future.wait<void>([
@@ -1752,6 +1784,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       _loadGenres(forceRefresh: true),
       _loadSongs(forceRefresh: true),
       _loadPlaylists(forceRefresh: true),
+      _loadDashboardInsights(forceRefresh: true),
     ]);
     _endContentReload();
   }
@@ -1810,6 +1843,10 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
             songCount: _songs.length,
             playlistCount: _playlists.length,
             recentAlbums: _recentAlbums(12),
+            releasedAlbums: _releasedAlbums(12),
+            recentPlayedAlbums: _recentPlayedAlbums,
+            mostPlayedAlbums: _mostPlayedAlbums,
+            playlists: _playlists.take(12).toList(),
             favoriteAlbums: favorites,
             onNavigateToTab: _openTab,
             onOpenAlbum: (albumId, albumName) =>
@@ -1820,6 +1857,24 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
                   albumId: albumId,
                   albumName: albumName,
                 ),
+            onOpenPlaylist: (playlist) {
+              final id = playlist['id']?.toString() ?? '';
+              final name = playlist['name'] as String? ?? '';
+              if (id.isEmpty) return;
+              RemoteLibraryNavUtils.openPlaylist(
+                routeContext,
+                server: widget.server,
+                password: widget.password,
+                playlistId: id,
+                playlistName: name,
+                coverArtId: playlist['coverArt'] as String?,
+                songCount: playlist['songCount'] as int?,
+                duration: playlist['duration'] as int?,
+                isStarred: playlist['isStarred'] == true,
+                highlightedSongPath: playlist['highlightedSongPath'] as String?,
+                onPlaylistModified: () => _loadPlaylists(forceRefresh: true),
+              );
+            },
             onDisconnect: _disconnectFromServer,
             onRefresh: _refreshAll,
             onShuffleAll: () => _playRemoteEntities(

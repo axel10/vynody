@@ -331,6 +331,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get recentlyAdded => 'Kürzlich hinzugefügt';
 
   @override
+  String get recentlyReleased => 'Kürzlich veröffentlicht';
+
+  @override
   String get albums => 'Alben';
 
   @override

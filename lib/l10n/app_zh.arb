@@ -430,6 +430,7 @@
   "mostPlayed": "最多播放",
   "recentlyPlayed": "最近播放",
   "recentlyAdded": "最近添加",
+  "recentlyReleased": "最新发布",
   "albums": "专辑",
   "@albums": {
     "description": "Albums tab and section label"

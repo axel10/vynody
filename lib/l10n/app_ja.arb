@@ -111,6 +111,7 @@
   "playlist": "プレイリスト",
   "mostPlayed": "最も再生された",
   "recentlyAdded": "最近追加",
+  "recentlyReleased": "最近リリース",
   "albums": "アルバム",
   "artists": "アーティスト",
   "mostPlayedDescription": "再生完了回数でランク付け",

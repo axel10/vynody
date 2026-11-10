@@ -323,6 +323,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recentlyAdded => '最近添加';
 
   @override
+  String get recentlyReleased => '最新发布';
+
+  @override
   String get albums => '专辑';
 
   @override
@@ -6053,6 +6056,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get recentlyAdded => '最近新增';
+
+  @override
+  String get recentlyReleased => '最新發佈';
 
   @override
   String get albums => '專輯';
