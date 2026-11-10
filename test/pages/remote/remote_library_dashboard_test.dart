@@ -23,26 +23,27 @@ void main() {
     List<Map<String, dynamic>> favoriteAlbums = const [],
     ValueChanged<int>? onNavigateToTab,
     int playlistCount = 0,
+    ThemeData? theme,
   }) {
     return MaterialApp(
       locale: const Locale('zh'),
+      theme: theme,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: RemoteLibraryDashboardView(
-          server: server,
-          password: 'p',
-          albumCount: 12,
-          artistCount: 3,
-          songCount: 48,
-          playlistCount: playlistCount,
-          recentAlbums: recentAlbums,
-          favoriteAlbums: favoriteAlbums,
-          onNavigateToTab: onNavigateToTab ?? (_) {},
-          onOpenAlbum: (_, _) {},
-          onRefresh: () {},
-          onShuffleAll: () {},
-        ),
+      home: RemoteLibraryDashboardView(
+        server: server,
+        password: 'p',
+        albumCount: 12,
+        artistCount: 3,
+        songCount: 48,
+        playlistCount: playlistCount,
+        recentAlbums: recentAlbums,
+        favoriteAlbums: favoriteAlbums,
+        onNavigateToTab: onNavigateToTab ?? (_) {},
+        onOpenAlbum: (_, _) {},
+        onRefresh: () {},
+        onShuffleAll: () {},
+        onDisconnect: () {},
       ),
     );
   }
@@ -88,5 +89,16 @@ void main() {
 
     expect(find.text(l10n.recentlyAdded), findsNothing);
     expect(find.text(l10n.starredAlbums), findsNothing);
+  });
+
+  testWidgets('页面外层包裹 Scaffold 并继承主题 scaffoldBackgroundColor', (tester) async {
+    const customBg = Color(0xFFABCDEF);
+    final theme = ThemeData(scaffoldBackgroundColor: customBg);
+    await tester.pumpWidget(wrap(theme: theme));
+
+    final scaffoldFinder = find.byType(Scaffold);
+    expect(scaffoldFinder, findsOneWidget);
+    final scaffold = tester.widget<Scaffold>(scaffoldFinder);
+    expect(scaffold.backgroundColor, customBg);
   });
 }

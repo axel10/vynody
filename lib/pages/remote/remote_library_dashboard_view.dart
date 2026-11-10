@@ -73,81 +73,85 @@ class RemoteLibraryDashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isWide = constraints.maxWidth >= 780;
-        final double horizontalPadding = isWide ? 32.0 : 16.0;
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isWide = constraints.maxWidth >= 780;
+          final double horizontalPadding = isWide ? 32.0 : 16.0;
 
-        return CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  horizontalPadding,
-                  contentTopPadding + 8,
-                  horizontalPadding,
-                  12,
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    contentTopPadding + 8,
+                    horizontalPadding,
+                    12,
+                  ),
+                  child: _DashboardHeader(
+                    server: server,
+                    albumCount: albumCount,
+                    artistCount: artistCount,
+                    songCount: songCount,
+                    onRefresh: onRefresh,
+                    onShuffleAll: onShuffleAll,
+                    onDisconnect: onDisconnect,
+                  ),
                 ),
-                child: _DashboardHeader(
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: _QuickAccessGrid(
+                    l10n: l10n,
+                    albumCount: albumCount,
+                    artistCount: artistCount,
+                    songCount: songCount,
+                    playlistCount: playlistCount,
+                    onNavigateToTab: onNavigateToTab,
+                  ),
+                ),
+              ),
+              if (recentAlbums.isNotEmpty)
+                _AlbumRowSection(
+                  title: l10n.recentlyAdded,
+                  albums: recentAlbums,
                   server: server,
-                  albumCount: albumCount,
-                  artistCount: artistCount,
-                  songCount: songCount,
-                  onRefresh: onRefresh,
-                  onShuffleAll: onShuffleAll,
-                  onDisconnect: onDisconnect,
+                  password: password,
+                  horizontalPadding: horizontalPadding,
+                  onOpenAlbum: onOpenAlbum,
+                  onSeeAll: () => onNavigateToTab(tabAlbums),
+                ),
+              if (favoriteAlbums.isNotEmpty)
+                _AlbumRowSection(
+                  title: l10n.starredAlbums,
+                  albums: favoriteAlbums,
+                  server: server,
+                  password: password,
+                  horizontalPadding: horizontalPadding,
+                  onOpenAlbum: onOpenAlbum,
+                  onSeeAll: () => onNavigateToTab(tabAlbums),
+                ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height:
+                      MiniPlayerUiTuning.getListBottomPadding(
+                        context,
+                        hasPlayingMusic: false,
+                      ) +
+                      24,
                 ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: _QuickAccessGrid(
-                  l10n: l10n,
-                  albumCount: albumCount,
-                  artistCount: artistCount,
-                  songCount: songCount,
-                  playlistCount: playlistCount,
-                  onNavigateToTab: onNavigateToTab,
-                ),
-              ),
-            ),
-            if (recentAlbums.isNotEmpty)
-              _AlbumRowSection(
-                title: l10n.recentlyAdded,
-                albums: recentAlbums,
-                server: server,
-                password: password,
-                horizontalPadding: horizontalPadding,
-                onOpenAlbum: onOpenAlbum,
-                onSeeAll: () => onNavigateToTab(tabAlbums),
-              ),
-            if (favoriteAlbums.isNotEmpty)
-              _AlbumRowSection(
-                title: l10n.starredAlbums,
-                albums: favoriteAlbums,
-                server: server,
-                password: password,
-                horizontalPadding: horizontalPadding,
-                onOpenAlbum: onOpenAlbum,
-                onSeeAll: () => onNavigateToTab(tabAlbums),
-              ),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height:
-                    MiniPlayerUiTuning.getListBottomPadding(
-                      context,
-                      hasPlayingMusic: false,
-                    ) +
-                    24,
-              ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 }
