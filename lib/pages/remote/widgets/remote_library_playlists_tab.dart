@@ -1,7 +1,9 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/remote/clients/remote_media_library_client.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
@@ -11,8 +13,9 @@ import 'remote_library_common_widgets.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../widgets/draggable_remote_playlist_item.dart';
-import '../../../widgets/remote_artwork_widget.dart';
-import '../remote_playlist_detail_page.dart';
+import '../../../widgets/folder_layout_utils.dart';
+import '../../../widgets/folder_zoom_gesture_layer.dart';
+import '../../../widgets/remote_playlist_zoom_item.dart';
 import 'remote_library_toolbar_widgets.dart';
 
 class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
@@ -114,7 +117,31 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
   }
 }
 
-class RemoteLibraryPlaylistsView extends ConsumerWidget {
+/// 远程歌单条目在网格里展示所需的派生字段。
+///
+/// 会话缓存优先于接口返回值：正在播的那份详情里曲目数是实时的，而列表接口
+/// 返回的 `songCount` 可能落后于刚刚的增删。
+class _RemotePlaylistEntry {
+  const _RemotePlaylistEntry({
+    required this.raw,
+    required this.id,
+    required this.name,
+    required this.songCount,
+    required this.coverArt,
+    required this.isPinned,
+  });
+
+  final Map<String, dynamic> raw;
+  final String id;
+  final String name;
+  final int songCount;
+  final String? coverArt;
+
+  /// 星标歌曲这一虚拟歌单（由外层页面插在首位，只用于样式与菜单门控）。
+  final bool isPinned;
+}
+
+class RemoteLibraryPlaylistsView extends ConsumerStatefulWidget {
   static const String starredPlaylistId = '__navidrome_starred_songs__';
 
   final RemoteServer server;
@@ -157,184 +184,93 @@ class RemoteLibraryPlaylistsView extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-
-    if (isLoading) {
-      return RemoteLibraryLoadingView(
-        server: server,
-        icon: Icons.queue_music_rounded,
-      );
-    }
-    if (error != null) {
-      return RemoteLibraryErrorView(
-        error: l10n.errorLoadingPlaylists(error!),
-        onRetry: onRefresh,
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isLandscape =
-            constraints.maxWidth >= 750 && playlists.isNotEmpty;
-
-        final selectedPlaylist = playlists
-                .where((pl) => pl['id'] == selectedPlaylistId)
-                .firstOrNull ??
-            (playlists.isNotEmpty ? playlists.first : const <String, dynamic>{});
-
-        if (isLandscape) {
-          return _LandscapePlaylistsSplitView(
-            server: server,
-            password: password,
-            playlists: playlists,
-            selectedPlaylist: selectedPlaylist,
-            onRefresh: onRefresh,
-            bottomOffset: bottomOffset,
-            isSelectionMode: isSelectionMode,
-            selectedPlaylistIds: selectedPlaylistIds,
-            lastPlaylistAnchorIndex: lastPlaylistAnchorIndex,
-            onSelectPlaylistId: onSelectPlaylistId,
-            onSetSelection: onSetSelection,
-            onToggleSelection: onToggleSelection,
-            onUpdateAnchor: onUpdateAnchor,
-            toolbar: toolbar,
-            maxWidth: constraints.maxWidth,
-          );
-        }
-
-        final toolbarSliver = toolbar != null
-            ? SliverRemoteContentConstraint(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: toolbar!,
-              )
-            : null;
-
-        // Portrait: Vertical List of Playlist Cards
-        return RefreshIndicator(
-          onRefresh: onRefresh,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                ?toolbarSliver,
-                if (playlists.isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Text(
-                        searchQuery.isEmpty
-                            ? l10n.noPlaylistsFound
-                            : l10n.noMatchingPlaylists,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(16, 4, 16, bottomOffset),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final pl = playlists[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: RemoteLibraryPlaylistItem(
-                              server: server,
-                              password: password,
-                              playlist: pl,
-                              index: index,
-                              allPlaylists: playlists,
-                              isSelected: false,
-                              isMultiSelected: selectedPlaylistIds
-                                  .contains(pl['id'] as String? ?? ''),
-                              isSelectionMode: isSelectionMode,
-                              selectedPlaylistIds: selectedPlaylistIds,
-                              lastPlaylistAnchorIndex: lastPlaylistAnchorIndex,
-                              onSetSelection: onSetSelection,
-                              onToggleSelection: onToggleSelection,
-                              onUpdateAnchor: onUpdateAnchor,
-                              onRefreshPlaylists: onRefresh,
-                              onTap: () {
-                                RemoteLibraryNavUtils.openPlaylist(
-                                  context,
-                                  ref,
-                                  server: server,
-                                  password: password,
-                                  playlistId: pl['id'] as String? ?? '',
-                                  playlistName:
-                                      pl['name'] as String? ?? l10n.playlist,
-                                  coverArtId: pl['coverArt'] as String?,
-                                  songCount: pl['songCount'] as int?,
-                                  duration: pl['duration'] as int?,
-                                  isStarred: pl['isStarred'] == true ||
-                                      pl['id'] == starredPlaylistId,
-                                  onPlaylistModified: onRefresh,
-                                );
-                              },
-                            ),
-                          );
-                        },
-                        childCount: playlists.length,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          );
-      },
-    );
-  }
+  ConsumerState<RemoteLibraryPlaylistsView> createState() =>
+      _RemoteLibraryPlaylistsViewState();
 }
 
-class RemoteLibraryPlaylistItem extends ConsumerWidget {
-  static const String starredPlaylistId = '__navidrome_starred_songs__';
+class _RemoteLibraryPlaylistsViewState
+    extends ConsumerState<RemoteLibraryPlaylistsView> {
+  bool _isPinned(Map<String, dynamic> playlist) {
+    final id = playlist['id'] as String? ?? '';
+    return id == RemoteLibraryPlaylistsView.starredPlaylistId ||
+        playlist['isStarred'] == true;
+  }
 
-  final RemoteServer server;
-  final String password;
-  final Map<String, dynamic> playlist;
-  final int index;
-  final List<Map<String, dynamic>> allPlaylists;
-  final bool isSelected;
-  final bool isMultiSelected;
-  final bool isSelectionMode;
-  final Set<String> selectedPlaylistIds;
-  final int? lastPlaylistAnchorIndex;
-  final void Function(Set<String> keys) onSetSelection;
-  final void Function(String playlistId) onToggleSelection;
-  final void Function(int? index) onUpdateAnchor;
-  final VoidCallback onRefreshPlaylists;
-  final VoidCallback onTap;
-
-  const RemoteLibraryPlaylistItem({
-    super.key,
-    required this.server,
-    required this.password,
-    required this.playlist,
-    required this.index,
-    required this.allPlaylists,
-    required this.isSelected,
-    required this.isMultiSelected,
-    required this.isSelectionMode,
-    required this.selectedPlaylistIds,
-    required this.lastPlaylistAnchorIndex,
-    required this.onSetSelection,
-    required this.onToggleSelection,
-    required this.onUpdateAnchor,
-    required this.onRefreshPlaylists,
-    required this.onTap,
-  });
-
-  void _showDeleteDialog(
-    BuildContext context,
-    WidgetRef ref,
-    String name,
-    String playlistId,
+  List<_RemotePlaylistEntry> _resolveEntries(
+    List<Map<String, dynamic>> playlists,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    showDialog(
+    final session = ref.watch(activeRemoteSessionProvider);
+    final currentSession =
+        (session != null && session.server.id == widget.server.id)
+            ? session
+            : null;
+
+    return <_RemotePlaylistEntry>[
+      for (final playlist in playlists)
+        () {
+          final id = playlist['id'] as String? ?? '';
+          final isPinned = _isPinned(playlist);
+
+          final sessionPlaylist = currentSession?.navidromePlaylists
+              ?.where((p) => p['id']?.toString() == id)
+              .firstOrNull;
+          final cachedDetail =
+              currentSession?.navidromePlaylistDetailsCache[id];
+
+          final name = (sessionPlaylist != null &&
+                  sessionPlaylist['name'] != null)
+              ? (sessionPlaylist['name'] as String)
+              : (playlist['name'] as String? ?? l10n.playlist);
+
+          final int songCount;
+          if (isPinned) {
+            songCount = currentSession?.navidromeStarredSongIds?.length ??
+                (playlist['songCount'] as int? ?? 0);
+          } else if (cachedDetail != null) {
+            songCount = cachedDetail.tracks.length;
+          } else if (sessionPlaylist != null &&
+              sessionPlaylist['songCount'] != null) {
+            songCount = sessionPlaylist['songCount'] as int? ?? 0;
+          } else {
+            songCount = playlist['songCount'] as int? ?? 0;
+          }
+
+          return _RemotePlaylistEntry(
+            raw: playlist,
+            id: id,
+            name: isPinned ? l10n.starredSongs : name,
+            songCount: songCount,
+            coverArt: playlist['coverArt'] as String?,
+            isPinned: isPinned,
+          );
+        }(),
+    ];
+  }
+
+  void _openPlaylist(_RemotePlaylistEntry entry) {
+    final l10n = AppLocalizations.of(context)!;
+    widget.onSelectPlaylistId(entry.id);
+    RemoteLibraryNavUtils.openPlaylist(
+      context,
+      ref,
+      server: widget.server,
+      password: widget.password,
+      playlistId: entry.id,
+      playlistName: entry.isPinned
+          ? l10n.starredSongs
+          : (entry.raw['name'] as String? ?? l10n.playlist),
+      coverArtId: entry.coverArt,
+      songCount: entry.songCount,
+      duration: entry.raw['duration'] as int?,
+      isStarred: entry.raw['isStarred'] == true || entry.isPinned,
+      onPlaylistModified: widget.onRefresh,
+    );
+  }
+
+  void _showDeleteDialog(String name, String playlistId) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.deletePlaylist),
@@ -348,25 +284,26 @@ class RemoteLibraryPlaylistItem extends ConsumerWidget {
             onPressed: () async {
               Navigator.pop(ctx);
               final client = RemoteMediaLibraryClient.create(
-                server: server,
-                password: password,
+                server: widget.server,
+                password: widget.password,
               );
               final ok = await client.deletePlaylist(playlistId);
               if (ok) {
                 final activeSession = ref.read(activeRemoteSessionProvider);
                 if (activeSession != null &&
-                    activeSession.server.id == server.id) {
+                    activeSession.server.id == widget.server.id) {
                   ref
                       .read(activeRemoteSessionProvider.notifier)
                       .removeNavidromePlaylist(playlistId);
                 }
                 showToast(l10n.playlistDeleted);
-                onRefreshPlaylists();
+                widget.onRefresh();
               } else {
-                if (context.mounted) {
-                  final permHint = server.type == RemoteServerType.jellyfin
-                      ? l10n.jellyfinMediaDeletionPermissionHint
-                      : '';
+                if (mounted) {
+                  final permHint =
+                      widget.server.type == RemoteServerType.jellyfin
+                          ? l10n.jellyfinMediaDeletionPermissionHint
+                          : '';
                   AppSnackBar.show(
                     context,
                     ref,
@@ -377,32 +314,27 @@ class RemoteLibraryPlaylistItem extends ConsumerWidget {
                 }
               }
             },
-            child: Text(l10n.delete,
-                style: const TextStyle(color: Colors.redAccent)),
+            child: Text(
+              l10n.delete,
+              style: const TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _showRenameDialog(
-    BuildContext context,
-    WidgetRef ref,
-    String currentName,
-    String playlistId,
-  ) {
+  void _showRenameDialog(String currentName, String playlistId) {
     final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: currentName);
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.renamePlaylist),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: InputDecoration(
-            labelText: l10n.playlistName,
-          ),
+          decoration: InputDecoration(labelText: l10n.playlistName),
         ),
         actions: [
           TextButton(
@@ -414,8 +346,8 @@ class RemoteLibraryPlaylistItem extends ConsumerWidget {
               final newName = controller.text.trim();
               if (newName.isNotEmpty && newName != currentName) {
                 final client = RemoteMediaLibraryClient.create(
-                  server: server,
-                  password: password,
+                  server: widget.server,
+                  password: widget.password,
                 );
                 final ok = await client.updatePlaylist(
                   playlistId: playlistId,
@@ -424,29 +356,26 @@ class RemoteLibraryPlaylistItem extends ConsumerWidget {
                 if (ok) {
                   final activeSession = ref.read(activeRemoteSessionProvider);
                   if (activeSession != null &&
-                      activeSession.server.id == server.id) {
+                      activeSession.server.id == widget.server.id) {
                     final currentPlaylists =
                         activeSession.navidromePlaylists ?? [];
                     final updatedPlaylists = currentPlaylists.map((p) {
                       if (p['id'] == playlistId) {
-                        return Map<String, dynamic>.from(p)..['name'] = newName;
+                        return Map<String, dynamic>.from(p)
+                          ..['name'] = newName;
                       }
                       return p;
                     }).toList();
                     ref
                         .read(activeRemoteSessionProvider.notifier)
-                        .updateNavidromePlaylists(
-                          playlists: updatedPlaylists,
-                        );
+                        .updateNavidromePlaylists(playlists: updatedPlaylists);
                   }
-                  onRefreshPlaylists();
-                } else if (context.mounted) {
+                  widget.onRefresh();
+                } else if (mounted) {
                   AppSnackBar.show(
                     context,
                     ref,
-                    SnackBar(
-                      content: Text('${l10n.renamePlaylist}: failed'),
-                    ),
+                    SnackBar(content: Text('${l10n.renamePlaylist}: failed')),
                   );
                 }
               }
@@ -461,246 +390,183 @@ class RemoteLibraryPlaylistItem extends ConsumerWidget {
     );
   }
 
+  void _showContextMenu(
+    _RemotePlaylistEntry entry,
+    int index,
+    Offset globalPosition,
+  ) {
+    showRemotePlaylistContextMenu(
+      context: context,
+      globalPosition: globalPosition,
+      ref: ref,
+      server: widget.server,
+      password: widget.password,
+      playlistId: entry.id,
+      playlistName: entry.name,
+      onViewDetails: () => _openPlaylist(entry),
+      onRename: () => _showRenameDialog(entry.name, entry.id),
+      onDelete: () => _showDeleteDialog(entry.name, entry.id),
+      onMultiSelect: widget.isSelectionMode
+          ? null
+          : () {
+              widget.onUpdateAnchor(index);
+              widget.onToggleSelection(entry.id);
+            },
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final playlistId = playlist['id'] as String? ?? '';
-    final isStarredItem =
-        playlist['isStarred'] == true || playlistId == starredPlaylistId;
 
-    final session = ref.watch(activeRemoteSessionProvider);
-    final isCurrentServer = session != null && session.server.id == server.id;
+    if (widget.isLoading) {
+      return RemoteLibraryLoadingView(
+        server: widget.server,
+        icon: Icons.queue_music_rounded,
+      );
+    }
+    if (widget.error != null) {
+      return RemoteLibraryErrorView(
+        error: l10n.errorLoadingPlaylists(widget.error!),
+        onRetry: widget.onRefresh,
+      );
+    }
 
-    final cachedDetail = isCurrentServer
-        ? session.navidromePlaylistDetailsCache[playlistId]
+    // 顺序完全用服务端返回的原序（星标虚拟歌单由外层页面插在首位）。
+    // 服务端没有「歌单之间排序」的接口，所以这里不做本地排序，也不提供拖拽重排。
+    final entries = _resolveEntries(widget.playlists);
+    final zoomScale =
+        snapFolderZoomScale(ref.watch(settingsServiceProvider).folderZoomScale);
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+
+    final toolbarSliver = widget.toolbar != null
+        ? SliverRemoteContentConstraint(
+            // 与本地歌单页同宽：这一页没有单列上限，铺满内容区。
+            maxWidth: kFolderPageMaxWidth,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: widget.toolbar!,
+          )
         : null;
 
-    final sessionPlaylist = isCurrentServer
-        ? session.navidromePlaylists
-            ?.where((p) => p['id']?.toString() == playlistId)
-            .firstOrNull
-        : null;
-
-    final name = (sessionPlaylist != null && sessionPlaylist['name'] != null)
-        ? (sessionPlaylist['name'] as String)
-        : (playlist['name'] as String? ?? l10n.playlist);
-
-    final songCount = isStarredItem
-        ? (session?.navidromeStarredSongIds?.length ??
-            (playlist['songCount'] as int? ?? 0))
-        : (cachedDetail != null
-            ? cachedDetail.tracks.length
-            : (sessionPlaylist != null && sessionPlaylist['songCount'] != null
-                ? (sessionPlaylist['songCount'] as int? ?? 0)
-                : (playlist['songCount'] as int? ?? 0)));
-
-    final durationSec = (sessionPlaylist != null &&
-            sessionPlaylist['duration'] != null)
-        ? (sessionPlaylist['duration'] as int? ?? 0)
-        : (playlist['duration'] as int? ?? 0);
-    final durationMin = durationSec ~/ 60;
-    final coverArt = playlist['coverArt'] as String?;
-
-    final backgroundColor = isSelectionMode && isMultiSelected
-        ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
-        : (isSelected
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35));
-
-    final itemWidget = GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onSecondaryTapDown: isStarredItem || isSelectionMode
-          ? null
-          : (details) {
-              showRemotePlaylistContextMenu(
-                context: context,
-                globalPosition: details.globalPosition,
-                ref: ref,
-                server: server,
-                password: password,
-                playlistId: playlistId,
-                playlistName: name,
-                onViewDetails: onTap,
-                onRename: () =>
-                    _showRenameDialog(context, ref, name, playlistId),
-                onDelete: () =>
-                    _showDeleteDialog(context, ref, name, playlistId),
-                onMultiSelect: isSelectionMode
-                    ? null
-                    : () {
-                        onUpdateAnchor(index);
-                        onToggleSelection(playlistId);
-                    },
-              );
-            },
-      onLongPressStart: (details) {
-        onUpdateAnchor(index);
-        onToggleSelection(playlistId);
-      },
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            SelectionActionHelper.handleItemTap(
-              index: index,
-              itemKey: playlistId,
-              items: allPlaylists,
-              keySelector: (p) => p['id'] as String? ?? '',
-              isSelectionMode: isSelectionMode,
-              selectedKeys: selectedPlaylistIds,
-              lastAnchorIndex: lastPlaylistAnchorIndex,
-              onUpdateAnchor: onUpdateAnchor,
-              onSetSelection: onSetSelection,
-              onToggleSelection: onToggleSelection,
-              onNormalTap: onTap,
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: (isSelectionMode && isMultiSelected) || isSelected
-                    ? theme.colorScheme.primary.withValues(alpha: 0.5)
-                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                width: (isSelectionMode && isMultiSelected) || isSelected
-                    ? 1.5
-                    : 0.8,
-              ),
-            ),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: coverArt != null && coverArt.isNotEmpty
-                      ? RemoteArtworkWidget(
-                          server: server,
-                          password: password,
-                          coverArtId: coverArt,
-                          size: 44,
-                        )
-                      : Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: isStarredItem
-                                ? Colors.redAccent.withValues(alpha: 0.15)
-                                : theme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            isStarredItem
-                                ? Icons.favorite_rounded
-                                : Icons.playlist_play_rounded,
-                            color: isStarredItem
-                                ? Colors.redAccent
-                                : theme.colorScheme.primary,
-                            size: 24,
-                          ),
-                        ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isStarredItem ? l10n.starredSongs : name,
+    return RefreshIndicator(
+      onRefresh: widget.onRefresh,
+      child: FolderZoomGestureLayer(
+        zoomGesturesEnabled: !widget.isSelectionMode,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            return CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                ?toolbarSliver,
+                if (entries.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Text(
+                        widget.searchQuery.isEmpty
+                            ? l10n.noPlaylistsFound
+                            : l10n.noMatchingPlaylists,
                         style: TextStyle(
-                          fontWeight: (isSelectionMode &&
-                                      isMultiSelected) ||
-                                  isSelected
-                              ? FontWeight.bold
-                              : FontWeight.w600,
-                          fontSize: 13,
-                          color: (isSelectionMode &&
-                                      isMultiSelected) ||
-                                  isSelected
-                              ? theme.colorScheme.primary
-                              : null,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${l10n.trackCountShort(songCount)} • $durationMin min',
-                        style: TextStyle(
-                          fontSize: 11,
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                if (isSelectionMode)
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: Checkbox(
-                      value: isMultiSelected,
-                      onChanged: (_) {
-                        onToggleSelection(playlistId);
-                      },
                     ),
                   )
-                else if (!isStarredItem)
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      size: 20,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    tooltip: l10n.more,
-                    onPressed: () {
-                      final box = context.findRenderObject() as RenderBox?;
-                      final pos = box != null
-                          ? box.localToGlobal(
-                              Offset(box.size.width / 2, box.size.height / 2))
-                          : Offset.zero;
-                      showRemotePlaylistContextMenu(
-                        context: context,
-                        globalPosition: pos,
-                        ref: ref,
-                        server: server,
-                        password: password,
-                        playlistId: playlistId,
-                        playlistName: name,
-                        onViewDetails: onTap,
-                        onRename: () =>
-                            _showRenameDialog(context, ref, name, playlistId),
-                        onDelete: () =>
-                            _showDeleteDialog(context, ref, name, playlistId),
-                        onMultiSelect: isSelectionMode
-                            ? null
-                            : () {
-                                onUpdateAnchor(index);
-                                onToggleSelection(playlistId);
+                else
+                  FolderZoomSliverBuilder(
+                    zoomScale: zoomScale,
+                    width: width,
+                    // 本页 loading/error 是裸 view、有内容才套 RefreshIndicator，
+                    // 即 ScrollView 的祖先结构会切换 —— 这种页面禁传 controller
+                    // （切分支那帧会炸在 sliver 布局里，整页空白）。
+                    builder: (context, metrics) {
+                      final hPad = folderContentHorizontalPadding(
+                        isPortrait: isPortrait,
+                        gridMorph: metrics.gridMorph,
+                      );
+
+                      return SliverPadding(
+                        padding: EdgeInsets.only(
+                          left: hPad,
+                          right: hPad,
+                          top: isPortrait ? 8.0 : 16.0,
+                          bottom: widget.bottomOffset,
+                        ),
+                        // 不可重排：服务端没有歌单之间的排序接口，直接用原始顺序。
+                        sliver: SliverGrid(
+                          gridDelegate: SliverAnimatedZoomGridDelegate(
+                            metrics: metrics,
+                          ),
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final entry = entries[index];
+                              final isSelected = widget.selectedPlaylistIds
+                                  .contains(entry.id);
+                              return DraggableRemotePlaylistItem(
+                                server: widget.server,
+                                playlist: entry.raw,
+                                songCount: entry.songCount,
+                                isSelectionMode: widget.isSelectionMode,
+                                isSelected: isSelected,
+                                selectedPlaylistIds:
+                                    widget.selectedPlaylistIds,
+                                child: RemotePlaylistZoomItem(
+                                  server: widget.server,
+                                  password: widget.password,
+                                  title: entry.name,
+                                  songCount: entry.songCount,
+                                  coverArtId: entry.coverArt,
+                                  isPinned: entry.isPinned,
+                                  metrics: metrics,
+                                  index: index,
+                                  isSelected: isSelected,
+                                  isSelectionMode: widget.isSelectionMode,
+                                  onTap: () {
+                                    SelectionActionHelper.handleItemTap(
+                                      index: index,
+                                      itemKey: entry.id,
+                                      items: entries,
+                                      keySelector: (e) => e.id,
+                                      isSelectionMode: widget.isSelectionMode,
+                                      selectedKeys: widget.selectedPlaylistIds,
+                                      lastAnchorIndex:
+                                          widget.lastPlaylistAnchorIndex,
+                                      onUpdateAnchor: widget.onUpdateAnchor,
+                                      onSetSelection: widget.onSetSelection,
+                                      onToggleSelection:
+                                          widget.onToggleSelection,
+                                      onNormalTap: () => _openPlaylist(entry),
+                                    );
+                                  },
+                                  onLongPress: () {
+                                    widget.onUpdateAnchor(index);
+                                    widget.onToggleSelection(entry.id);
+                                  },
+                                  onSecondaryTapDown: entry.isPinned ||
+                                          widget.isSelectionMode
+                                      ? null
+                                      : (details) => _showContextMenu(
+                                            entry,
+                                            index,
+                                            details.globalPosition,
+                                          ),
+                                ),
+                              );
                             },
+                            childCount: entries.length,
+                          ),
+                        ),
                       );
                     },
                   ),
               ],
-            ),
-          ),
+            );
+          },
         ),
       ),
-    );
-
-    return DraggableRemotePlaylistItem(
-      server: server,
-      playlist: playlist,
-      songCount: songCount,
-      isSelectionMode: isSelectionMode,
-      isSelected: isMultiSelected,
-      selectedPlaylistIds: selectedPlaylistIds,
-      child: itemWidget,
     );
   }
 }
@@ -748,190 +614,5 @@ Future<void> showCreateNavidromePlaylistDialog({
   );
 }
 
-class _LandscapePlaylistsSplitView extends StatefulWidget {
-  final RemoteServer server;
-  final String password;
-  final List<Map<String, dynamic>> playlists;
-  final Map<String, dynamic> selectedPlaylist;
-  final Future<void> Function() onRefresh;
-  final double bottomOffset;
-  final bool isSelectionMode;
-  final Set<String> selectedPlaylistIds;
-  final int? lastPlaylistAnchorIndex;
-  final ValueChanged<String?> onSelectPlaylistId;
-  final void Function(Set<String> keys) onSetSelection;
-  final void Function(String playlistId) onToggleSelection;
-  final void Function(int? index) onUpdateAnchor;
-  final Widget? toolbar;
-  final double maxWidth;
-
-  const _LandscapePlaylistsSplitView({
-    required this.server,
-    required this.password,
-    required this.playlists,
-    required this.selectedPlaylist,
-    required this.onRefresh,
-    required this.bottomOffset,
-    required this.isSelectionMode,
-    required this.selectedPlaylistIds,
-    required this.lastPlaylistAnchorIndex,
-    required this.onSelectPlaylistId,
-    required this.onSetSelection,
-    required this.onToggleSelection,
-    required this.onUpdateAnchor,
-    this.toolbar,
-    required this.maxWidth,
-  });
-
-  @override
-  State<_LandscapePlaylistsSplitView> createState() =>
-      _LandscapePlaylistsSplitViewState();
-}
-
-class _LandscapePlaylistsSplitViewState
-    extends State<_LandscapePlaylistsSplitView> {
-  late final ScrollController _leftScrollController;
-
-  @override
-  void initState() {
-    super.initState();
-    _leftScrollController = ScrollController();
-  }
-
-  @override
-  void dispose() {
-    _leftScrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final selectedPlaylist = widget.selectedPlaylist;
-
-    return NotificationListener<ScrollNotification>(
-      onNotification: (_) => true,
-      child: Column(
-        children: [
-          if (widget.toolbar != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: widget.toolbar!,
-            ),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Left: Playlist List Pane
-                SizedBox(
-                  width: widget.maxWidth >= 1100 ? 360 : 300,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        right: BorderSide(
-                          color: theme.colorScheme.outlineVariant
-                              .withValues(alpha: 0.2),
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                    child: PrimaryScrollController.none(
-                      child: RefreshIndicator(
-                        onRefresh: widget.onRefresh,
-                        child: Scrollbar(
-                          controller: _leftScrollController,
-                          child: ListView.builder(
-                            controller: _leftScrollController,
-                            primary: false,
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: EdgeInsets.fromLTRB(
-                              12,
-                              6,
-                              12,
-                              widget.bottomOffset,
-                            ),
-                            itemCount: widget.playlists.length,
-                            itemBuilder: (context, index) {
-                              final pl = widget.playlists[index];
-                              final isSelected =
-                                  pl['id'] == selectedPlaylist['id'];
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 6.0),
-                                child: RemoteLibraryPlaylistItem(
-                                  server: widget.server,
-                                  password: widget.password,
-                                  playlist: pl,
-                                  index: index,
-                                  allPlaylists: widget.playlists,
-                                  isSelected: isSelected,
-                                  isMultiSelected: widget.selectedPlaylistIds
-                                      .contains(pl['id'] as String? ?? ''),
-                                  isSelectionMode: widget.isSelectionMode,
-                                  selectedPlaylistIds:
-                                      widget.selectedPlaylistIds,
-                                  lastPlaylistAnchorIndex:
-                                      widget.lastPlaylistAnchorIndex,
-                                  onSetSelection: widget.onSetSelection,
-                                  onToggleSelection: widget.onToggleSelection,
-                                  onUpdateAnchor: widget.onUpdateAnchor,
-                                  onRefreshPlaylists: widget.onRefresh,
-                                  onTap: () {
-                                    final id = pl['id'] as String?;
-                                    widget.onSelectPlaylistId(id);
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Right: Playlist Detail Pane
-                Expanded(
-                  child: PrimaryScrollController.none(
-                    child: selectedPlaylist.isNotEmpty
-                        ? NavidromePlaylistDetailContent(
-                            key: ValueKey(selectedPlaylist['id']),
-                            server: widget.server,
-                            password: widget.password,
-                            playlistId:
-                                selectedPlaylist['id'] as String? ?? '',
-                            playlistName:
-                                selectedPlaylist['name'] as String? ??
-                                    l10n.playlist,
-                            coverArtId:
-                                selectedPlaylist['coverArt'] as String?,
-                            songCount:
-                                selectedPlaylist['songCount'] as int?,
-                            duration:
-                                selectedPlaylist['duration'] as int?,
-                            isStarred: selectedPlaylist['isStarred'] ==
-                                    true ||
-                                selectedPlaylist['id'] ==
-                                    RemoteLibraryPlaylistsView.starredPlaylistId,
-                            onPlaylistModified: widget.onRefresh,
-                            onDeleted: () {
-                              widget.onRefresh();
-                              widget.onSelectPlaylistId(null);
-                            },
-                          )
-                        : Center(child: Text(l10n.noPlaylistSelected)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 typedef NavidromePlaylistsToolbar = RemoteLibraryPlaylistsToolbar;
 typedef NavidromePlaylistsView = RemoteLibraryPlaylistsView;
-typedef NavidromePlaylistItem = RemoteLibraryPlaylistItem;
-

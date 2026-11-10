@@ -829,12 +829,17 @@ class SubsonicClient {
     return (text: content, synced: hasAnyStart);
   }
 
-  /// Creates a new playlist on the Subsonic server.
+  /// Creates or updates a playlist on the Subsonic server.
+  /// If [playlistId] is provided, the existing playlist will be updated
+  /// with [songIds] in the specified order.
   Future<Map<String, dynamic>?> createPlaylist({
-    required String name,
+    String? name,
+    String? playlistId,
     List<String>? songIds,
   }) async {
-    final params = <String, dynamic>{'name': name};
+    final params = <String, dynamic>{};
+    if (name != null) params['name'] = name;
+    if (playlistId != null) params['playlistId'] = playlistId;
     if (songIds != null && songIds.isNotEmpty) {
       params['songId'] = songIds;
     }

@@ -1025,6 +1025,27 @@ class JellyfinClient {
     }
   }
 
+  /// Moves an item in a playlist to a new index on the Jellyfin server.
+  Future<bool> movePlaylistItem({
+    required String playlistId,
+    required String itemId,
+    required int newIndex,
+  }) async {
+    final session = await authenticate();
+    try {
+      await _dio.post<dynamic>(
+        '$baseUrl/Playlists/$playlistId/Items/$itemId/Move/$newIndex',
+        options: Options(
+          headers: _authHeaders(session.token),
+        ),
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Error moving Jellyfin playlist item: $e');
+      return false;
+    }
+  }
+
   /// Deletes a playlist on the Jellyfin server.
   Future<bool> deletePlaylist(String playlistId) async {
     final session = await authenticate();

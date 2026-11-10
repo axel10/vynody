@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -13,10 +14,10 @@ import '../../player/remote/remote_server_riverpod.dart';
 import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../player/remote/proxy/remote_media_resolver.dart';
 import '../../player/remote/services/remote_download_service.dart';
-import '../../widgets/draggable_song_item.dart';
+import '../../player/platform/right_queue_drawer_controller.dart';
 import '../../widgets/remote_artwork_widget.dart';
+import '../../player/remote/remote_library_navigation.dart';
 import '../../widgets/mini_player_wrapper.dart';
-import '../../widgets/playing_equalizer_icon.dart';
 import '../../l10n/app_localizations.dart';
 import '../../dialogs/remote_track_load_progress_dialog.dart';
 import '../../utils/app_snack_bar.dart';
@@ -24,12 +25,19 @@ import '../../utils/remote_context_menu_utils.dart';
 import '../../utils/remote_download_feedback.dart';
 import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
-import 'remote_artist_detail_page.dart';
-import '../../utils/layout_constants.dart';
 import 'remote_download_manager_page.dart';
 import 'widgets/remote_library_selection_actions.dart';
+import '../../widgets/app_top_nav_bar.dart';
+import '../../widgets/folder_layout_utils.dart';
+import '../../widgets/folder_zoom_gesture_layer.dart';
+import '../../widgets/song_zoom_item.dart';
+import '../../widgets/zoom_reorder_ui.dart';
+import '../../widgets/drag/drag_cover.dart';
+import '../../widgets/drag/drag_payload.dart';
+import '../../widgets/drag/drag_preview_card.dart';
+import '../../utils/drop_data_utils.dart';
 
-/// Standalone Full-Page for Navidrome Playlist Detail (used in portrait / mobile navigation)
+/// Standalone Full-Page for Remote Playlist Detail
 class RemotePlaylistDetailPage extends ConsumerWidget {
   final RemoteServer server;
   final String password;
@@ -41,6 +49,7 @@ class RemotePlaylistDetailPage extends ConsumerWidget {
   final bool isStarred;
   final String? highlightedSongPath;
   final VoidCallback? onPlaylistModified;
+  final VoidCallback? onGoBack;
 
   const RemotePlaylistDetailPage({
     super.key,
@@ -54,71 +63,35 @@ class RemotePlaylistDetailPage extends ConsumerWidget {
     this.isStarred = false,
     this.highlightedSongPath,
     this.onPlaylistModified,
+    this.onGoBack,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-
-    Widget content = Scaffold(
-      appBar: AppBar(
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        title: Text(playlistName),
-        actions: [
-          IconButton(
-            icon: Badge(
-              isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
-              label: Text('${ref.watch(activeDownloadsCountProvider)}'),
-              child: const Icon(Icons.download_rounded, size: 20),
-            ),
-            tooltip: l10n.downloadManager,
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (_) => const RemoteDownloadManagerPage(),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: RemotePlaylistDetailContent(
-        server: server,
-        password: password,
-        playlistId: playlistId,
-        playlistName: playlistName,
-        coverArtId: coverArtId,
-        songCount: songCount,
-        duration: duration,
-        isStarred: isStarred,
-        highlightedSongPath: highlightedSongPath,
-        onPlaylistModified: onPlaylistModified,
-        onDeleted: () {
-          Navigator.of(context).pop();
-        },
-      ),
+    return RemotePlaylistDetailContent(
+      server: server,
+      password: password,
+      playlistId: playlistId,
+      playlistName: playlistName,
+      coverArtId: coverArtId,
+      songCount: songCount,
+      duration: duration,
+      isStarred: isStarred,
+      highlightedSongPath: highlightedSongPath,
+      onPlaylistModified: onPlaylistModified,
+      onGoBack: onGoBack,
+      onDeleted: () {
+        if (onGoBack != null) {
+          onGoBack!();
+        } else {
+          Navigator.of(context).maybePop();
+        }
+      },
     );
-
-    final bool isWindowMode = isWindowedEnvironment(context);
-
-    if (isWindowMode) {
-      content = Material(
-        color: Theme.of(context).colorScheme.surface,
-        child: Column(
-          children: [
-            const SizedBox(height: 32),
-            Expanded(child: content),
-          ],
-        ),
-      );
-    }
-
-    return MiniPlayerWrapper(child: content);
   }
 }
 
-/// Embedded Content Widget for Navidrome Playlist Detail (used in landscape split view or full page)
+/// Content Widget for Remote Playlist Detail
 class RemotePlaylistDetailContent extends ConsumerStatefulWidget {
   final RemoteServer server;
   final String password;
@@ -131,6 +104,7 @@ class RemotePlaylistDetailContent extends ConsumerStatefulWidget {
   final String? highlightedSongPath;
   final VoidCallback? onPlaylistModified;
   final VoidCallback? onDeleted;
+  final VoidCallback? onGoBack;
 
   const RemotePlaylistDetailContent({
     super.key,
@@ -145,6 +119,7 @@ class RemotePlaylistDetailContent extends ConsumerStatefulWidget {
     this.highlightedSongPath,
     this.onPlaylistModified,
     this.onDeleted,
+    this.onGoBack,
   });
 
   @override
@@ -167,6 +142,18 @@ class _RemotePlaylistDetailContentState
   String? _highlightedSongPath;
   Timer? _highlightTimer;
   bool _isRevalidating = false;
+  final ZoomReorderController _reorderController = ZoomReorderController();
+  bool _isPastTop = false;
+
+  void _handleBack() {
+    if (widget.onGoBack != null) {
+      widget.onGoBack!();
+    } else if (widget.onDeleted != null) {
+      widget.onDeleted!();
+    } else {
+      Navigator.of(context).maybePop();
+    }
+  }
 
   bool _tracksEqual(List<MusicFile> a, List<MusicFile> b) {
     if (a.length != b.length) return false;
@@ -260,6 +247,7 @@ class _RemotePlaylistDetailContentState
 
   @override
   void dispose() {
+    _reorderController.dispose();
     _highlightTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
@@ -962,19 +950,23 @@ class _RemotePlaylistDetailContentState
     return '$minutes min';
   }
 
-  String _formatTrackDuration(int? seconds) {
-    if (seconds == null || seconds <= 0) return '--:--';
-    final m = seconds ~/ 60;
-    final s = seconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
+    final settings = ref.watch(settingsServiceProvider);
+    final zoomScale = settings.folderZoomScale;
+
+    final size = MediaQuery.sizeOf(context);
+    final isLandscape = ref.watch(isEffectiveLandscapeProvider(size));
+    final isPortrait = !isLandscape;
+    // 本页不是全屏路由：它挂在 `folder_page.dart` 的嵌套 Navigator 里，
+    // 本身就在 rail 右侧的内容区内（与 `RemoteAlbumDetailPage` 同宿主）。
+    // 再让位一次 rail 会多空出一整条 —— 本地歌单详情页是全屏 push，才需要自己让位。
+    final double barHeight = AppTopNavBar.getBarHeight(context);
+
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
       context,
       hasPlayingMusic: currentMusic != null,
@@ -983,13 +975,43 @@ class _RemotePlaylistDetailContentState
     );
     final selectedSongs = getSelectedSongs(_tracks);
     final selectedSongPaths = selectedSongs.map((s) => s.path).toSet();
+    final selectedIndices = <int>{
+      for (int i = 0; i < _tracks.length; i++)
+        if (selectedSongPaths.contains(_tracks[i].path)) i,
+    };
 
+    final topNavBar = AppTopNavBar(
+      title: _currentName,
+      parentTitle: l10n.playlist,
+      titleKey: ValueKey('remote_playlist_title_${widget.playlistId}'),
+      isFloatingCapsule: _isPastTop,
+      onBack: _handleBack,
+      actions: [
+        IconButton(
+          icon: Badge(
+            isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
+            label: Text('${ref.watch(activeDownloadsCountProvider)}'),
+            child: const Icon(Icons.download_rounded, size: 20),
+          ),
+          tooltip: l10n.downloadManager,
+          onPressed: () {
+            Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute(
+                builder: (_) => const RemoteDownloadManagerPage(),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+
+    Widget scrollBody;
     if (_isLoading) {
       final isJellyfin = widget.server.type == RemoteServerType.jellyfin;
       final brandColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
       final isZh = l10n.localeName.startsWith('zh');
 
-      return Center(
+      scrollBody = Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1013,10 +1035,8 @@ class _RemotePlaylistDetailContentState
           ],
         ),
       );
-    }
-
-    if (_error != null) {
-      return Center(
+    } else if (_error != null) {
+      scrollBody = Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -1039,870 +1059,809 @@ class _RemotePlaylistDetailContentState
           ),
         ),
       );
-    }
+    } else {
+      final coverId = widget.coverArtId ?? _playlistData?['coverArt'] as String?;
+      final count = _tracks.isNotEmpty ? _tracks.length : (widget.songCount ?? 0);
+      final totalDuration =
+          _playlistData?['duration'] as int? ?? widget.duration ?? 0;
+      final comment = _playlistData?['comment'] as String?;
+      final owner = _playlistData?['owner'] as String?;
 
-    final coverId = widget.coverArtId ?? _playlistData?['coverArt'] as String?;
-    final count = _tracks.isNotEmpty ? _tracks.length : (widget.songCount ?? 0);
-    final totalDuration =
-        _playlistData?['duration'] as int? ?? widget.duration ?? 0;
-    final comment = _playlistData?['comment'] as String?;
-    final owner = _playlistData?['owner'] as String?;
+      final double buttonHeight = isPortrait ? 44.0 : 32.0;
+      final double iconSize = isPortrait ? 20.0 : 18.0;
+      final double buttonSpacing = isPortrait ? 10.0 : 8.0;
 
-    final isPortrait =
-        MediaQuery.orientationOf(context) == Orientation.portrait;
-    final double buttonHeight = isPortrait ? 44.0 : 32.0;
-    final double iconSize = isPortrait ? 20.0 : 18.0;
-    final double buttonSpacing = isPortrait ? 10.0 : 8.0;
+      scrollBody = FolderZoomGestureLayer(
+        reorderActive: _reorderController.reorderActive,
+        zoomGesturesEnabled: !isSelectionMode,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final contentWidth = math.min(
+              constraints.maxWidth,
+              kFolderPageMaxWidth,
+            );
+            return FolderZoomSliverBuilder(
+              zoomScale: snapFolderZoomScale(zoomScale),
+              width: contentWidth,
+              builder: (context, metrics) {
+                final hPad = folderContentHorizontalPadding(
+                  isPortrait: isPortrait,
+                  gridMorph: metrics.gridMorph,
+                );
+                final gridWidth = contentWidth - 2 * hPad;
 
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              // Header Section
-              SliverToBoxAdapter(
-                child: Align(
+                return Align(
                   alignment: Alignment.topCenter,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(
-                      maxWidth: kSingleColumnContentMaxWidth,
+                      maxWidth: kFolderPageMaxWidth,
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final isNarrow =
-                              isPortrait || constraints.maxWidth < 460;
-                          final double imageSize = isPortrait
-                              ? 220
-                              : (isNarrow ? 120 : 160);
-
-                          final coverWidget = ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              width: imageSize,
-                              height: imageSize,
-                              decoration: BoxDecoration(
-                                color:
-                                    theme.colorScheme.surfaceContainerHighest,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(
-                                      alpha: 0.15,
-                                    ),
-                                    blurRadius: 16,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
+                    child: CustomScrollView(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      slivers: [
+                        if (!isPortrait)
+                          SliverToBoxAdapter(child: SizedBox(height: barHeight)),
+                        // Header Section
+                        SliverToBoxAdapter(
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                maxWidth: kFolderPageMaxWidth,
                               ),
-                              child: coverId != null && coverId.isNotEmpty
-                                  ? RemoteArtworkWidget(
-                                      server: widget.server,
-                                      password: widget.password,
-                                      coverArtId: coverId,
-                                      size: imageSize,
+                              child: Padding(
+                                // 竖屏顶栏是浮在内容上的，横幅必须自己让位，
+                                // 否则封面会被导航栏压住（横屏已经用占位块让过）。
+                                padding: EdgeInsets.only(
+                                  left: 16,
+                                  right: 16,
+                                  top: isPortrait ? barHeight + 8 : 20,
+                                  bottom: 16,
+                                ),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final isNarrow =
+                                        isPortrait || constraints.maxWidth < 460;
+                                    final double imageSize = isPortrait
+                                        ? 220
+                                        : (isNarrow ? 120 : 160);
+
+                                    final coverWidget = ClipRRect(
                                       borderRadius: BorderRadius.circular(16),
-                                    )
-                                  : Icon(
-                                      _isStarredView
-                                          ? Icons.favorite_rounded
-                                          : Icons.playlist_play_rounded,
-                                      size: imageSize * 0.45,
-                                      color: _isStarredView
-                                          ? Colors.redAccent
-                                          : theme.colorScheme.primary,
-                                    ),
-                            ),
-                          );
-
-                          final infoContent = Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _isStarredView
-                                    ? l10n.starredSongs.toUpperCase()
-                                    : l10n.playlist.toUpperCase(),
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  color: _isStarredView
-                                      ? Colors.redAccent
-                                      : theme.colorScheme.primary,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _currentName,
-                                style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 4,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Text(
-                                    l10n.trackCountShort(count),
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  if (totalDuration > 0) ...[
-                                    Text(
-                                      '•',
-                                      style: TextStyle(
-                                        color:
-                                            theme.colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                    Text(
-                                      _formatDuration(totalDuration),
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ],
-                                  if (owner != null && owner.isNotEmpty) ...[
-                                    Text(
-                                      '•',
-                                      style: TextStyle(
-                                        color:
-                                            theme.colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                    Text(
-                                      owner,
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              if (comment != null &&
-                                  comment.trim().isNotEmpty) ...[
-                                const SizedBox(height: 6),
-                                Text(
-                                  comment.trim(),
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ],
-                          );
-
-                          return isNarrow
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Center(child: coverWidget),
-                                    const SizedBox(height: 16),
-                                    infoContent,
-                                  ],
-                                )
-                              : Row(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    coverWidget,
-                                    const SizedBox(width: 20),
-                                    Expanded(child: infoContent),
-                                  ],
-                                );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Action Toolbar
-              SliverToBoxAdapter(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: kSingleColumnContentMaxWidth,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            height: buttonHeight,
-                            child: FilledButton.icon(
-                              onPressed: _tracks.isNotEmpty
-                                  ? () => _playAll()
-                                  : null,
-                              icon: Icon(
-                                Icons.play_arrow_rounded,
-                                size: iconSize,
-                              ),
-                              label: Text(
-                                l10n.playAll,
-                                style: TextStyle(
-                                  fontWeight: isPortrait
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  fontSize: isPortrait ? 15 : 13,
-                                ),
-                              ),
-                              style: FilledButton.styleFrom(
-                                shape: const StadiumBorder(),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isPortrait ? 18 : 14,
-                                ),
-                                minimumSize: Size(0, buttonHeight),
-                                elevation: 0,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: buttonSpacing),
-                          IconButton.filledTonal(
-                            tooltip: l10n.shufflePlay,
-                            style: IconButton.styleFrom(
-                              foregroundColor:
-                                  theme.colorScheme.onSecondaryContainer,
-                              backgroundColor:
-                                  theme.colorScheme.surfaceContainerHighest,
-                              fixedSize: Size(buttonHeight, buttonHeight),
-                              minimumSize: Size(buttonHeight, buttonHeight),
-                              padding: EdgeInsets.zero,
-                              shape: const CircleBorder(),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            onPressed: _tracks.isNotEmpty
-                                ? () => _playAll(shuffle: true)
-                                : null,
-                            icon: Icon(Icons.shuffle_rounded, size: iconSize),
-                          ),
-                          SizedBox(width: buttonSpacing),
-                          IconButton.filledTonal(
-                            tooltip: l10n.downloadAllTracks,
-                            style: IconButton.styleFrom(
-                              foregroundColor:
-                                  theme.colorScheme.onSecondaryContainer,
-                              backgroundColor:
-                                  theme.colorScheme.surfaceContainerHighest,
-                              fixedSize: Size(buttonHeight, buttonHeight),
-                              minimumSize: Size(buttonHeight, buttonHeight),
-                              padding: EdgeInsets.zero,
-                              shape: const CircleBorder(),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            onPressed: _tracks.isNotEmpty ? _downloadAll : null,
-                            icon: Icon(Icons.download_rounded, size: iconSize),
-                          ),
-                          const Spacer(),
-                          PopupMenuButton<String>(
-                            tooltip: l10n.managePlaylists,
-                            iconSize: iconSize,
-                            style: IconButton.styleFrom(
-                              foregroundColor:
-                                  theme.colorScheme.onSurfaceVariant,
-                              fixedSize: Size(buttonHeight, buttonHeight),
-                              minimumSize: Size(buttonHeight, buttonHeight),
-                              padding: EdgeInsets.zero,
-                              shape: const CircleBorder(),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            icon: Icon(Icons.more_vert_rounded, size: iconSize),
-                            onSelected: (value) {
-                              if (value == 'rename') {
-                                _showRenameDialog();
-                              } else if (value == 'delete') {
-                                _showDeleteDialog();
-                              } else if (value == 'refresh') {
-                                _loadPlaylistDetails();
-                              }
-                            },
-                            itemBuilder: (ctx) => [
-                              if (!_isStarredView)
-                                PopupMenuItem(
-                                  value: 'rename',
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.edit_rounded, size: 18),
-                                      const SizedBox(width: 12),
-                                      Text(l10n.renamePlaylist),
-                                    ],
-                                  ),
-                                ),
-                              PopupMenuItem(
-                                value: 'refresh',
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.refresh_rounded, size: 18),
-                                    const SizedBox(width: 12),
-                                    Text(l10n.refresh),
-                                  ],
-                                ),
-                              ),
-                              if (!_isStarredView) ...[
-                                const PopupMenuDivider(),
-                                PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.delete_outline_rounded,
-                                        size: 18,
-                                        color: Colors.redAccent,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        l10n.deletePlaylist,
-                                        style: const TextStyle(
-                                          color: Colors.redAccent,
+                                      child: Container(
+                                        width: imageSize,
+                                        height: imageSize,
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme
+                                              .surfaceContainerHighest,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.15,
+                                              ),
+                                              blurRadius: 16,
+                                              offset: const Offset(0, 8),
+                                            ),
+                                          ],
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SliverToBoxAdapter(
-                child: Divider(height: 1, indent: 16, endIndent: 16),
-              ),
-
-              // Songs List
-              if (_tracks.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.music_off_rounded,
-                            size: 56,
-                            color: theme.colorScheme.outlineVariant,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            l10n.emptyList,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: EdgeInsets.only(top: 8, bottom: bottomOffset),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final song = _tracks[index];
-                      final isCurrent = currentMusic?.path == song.path;
-                      final isHighlighted = _highlightedSongPath == song.path;
-                      final isSelected = isSongSelected(song.path);
-                      final trackDuration = song.durationMillis != null
-                          ? _formatTrackDuration(song.durationMillis! ~/ 1000)
-                          : '--:--';
-
-                      final trackId =
-                          RemoteMediaResolver.extractTrackId(song) ??
-                          (song.id != null && song.id! > 0
-                              ? song.id.toString()
-                              : '');
-                      final isStarred = _starredSongIds.contains(trackId);
-
-                      String? trackCoverId;
-                      if (song.artworkPath != null &&
-                          song.artworkPath!.isNotEmpty) {
-                        trackCoverId = song.artworkPath!.replaceFirst(
-                          RegExp(r'^(subsonic|jellyfin)-cover://[^/]+/'),
-                          '',
-                        );
-                      }
-                      if (trackCoverId == null || trackCoverId.isEmpty) {
-                        trackCoverId = trackId.isNotEmpty ? trackId : null;
-                      }
-
-                      return DraggableSongItem(
-                        song: song,
-                        enabled: true,
-                        isSelected: isSelected,
-                        isSelectionMode: isSelectionMode,
-                        selectedPaths: selectedSongPaths,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onSecondaryTapDown: (details) {
-                              if (!isSelectionMode) {
-                                showRemoteSongContextMenu(
-                                  context: context,
-                                  globalPosition: details.globalPosition,
-                                  ref: ref,
-                                  server: widget.server,
-                                  password: widget.password,
-                                  song: song,
-                                  playlist: _tracks,
-                                  onMultiSelect: () =>
-                                      enterSongSelectionMode(song.path),
-                                  downloadLayout: RemoteDownloadLayout.playlist,
-                                  downloadCollectionFolder: _currentName,
-                                  onRemoveFromPlaylist: () =>
-                                      _removeTrackAt(index),
-                                  onViewArtist: () {
-                                    if (song.artist != null &&
-                                        song.artist!.isNotEmpty) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              NavidromeArtistDetailPage(
+                                        child: coverId != null &&
+                                                coverId.isNotEmpty
+                                            ? RemoteArtworkWidget(
                                                 server: widget.server,
                                                 password: widget.password,
-                                                artistId: '',
-                                                artistName: song.artist!,
+                                                coverArtId: coverId,
+                                                size: imageSize,
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                              )
+                                            : Icon(
+                                                _isStarredView
+                                                    ? Icons.favorite_rounded
+                                                    : Icons
+                                                        .playlist_play_rounded,
+                                                size: imageSize * 0.45,
+                                                color: _isStarredView
+                                                    ? Colors.redAccent
+                                                    : theme.colorScheme.primary,
                                               ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                );
-                              }
-                            },
-                            onLongPressStart: (details) {
-                              lastAnchorIndex = index;
-                              if (!isSelectionMode) {
-                                enterSongSelectionMode(song.path);
-                              } else {
-                                toggleSongSelection(song.path);
-                              }
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                              decoration: BoxDecoration(
-                                color: isSelectionMode && isSelected
-                                    ? theme.colorScheme.primaryContainer
-                                          .withValues(alpha: 0.35)
-                                    : (isHighlighted
-                                          ? theme.colorScheme.primaryContainer
-                                                .withValues(alpha: 0.6)
-                                          : (isCurrent
-                                                ? theme
-                                                      .colorScheme
-                                                      .primaryContainer
-                                                      .withValues(alpha: 0.35)
-                                                : Colors.transparent)),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(10),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(10),
-                                  onTap: () {
-                                    handleSongTap(
-                                      index: index,
-                                      songPath: song.path,
-                                      allSongs: _tracks,
-                                      onNormalTap: () async {
-                                        final audio = ref.read(
-                                          audioServiceProvider,
-                                        );
-                                        await audio.playPlaylist(
-                                          _tracks,
-                                          initialIndex: index,
-                                          source: PlaybackSource(
-                                            type: PlaybackSourceType.playlist,
-                                            id: 'remote-${widget.server.id}-${widget.playlistId}',
-                                            name: _currentName,
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: kSingleColumnContentMaxWidth,
                                       ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 6,
+                                    );
+
+                                    final infoContent = Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          _isStarredView
+                                              ? l10n.starredSongs.toUpperCase()
+                                              : l10n.playlist.toUpperCase(),
+                                          style: theme.textTheme.labelLarge
+                                              ?.copyWith(
+                                            color: _isStarredView
+                                                ? Colors.redAccent
+                                                : theme.colorScheme.primary,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 1.2,
+                                          ),
                                         ),
-                                        child: Row(
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          _currentName,
+                                          style: theme
+                                              .textTheme
+                                              .headlineSmall
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 4,
+                                          crossAxisAlignment:
+                                              WrapCrossAlignment.center,
                                           children: [
-                                            // Track index / Playing equalizer / Selection icon
-                                            SizedBox(
-                                              width: 36,
-                                              child: Center(
-                                                child: isSelectionMode
-                                                    ? Checkbox(
-                                                        value: isSelected,
-                                                        onChanged: (_) =>
-                                                            toggleSongSelection(
-                                                              song.path,
-                                                            ),
-                                                      )
-                                                    : (isCurrent
-                                                          ? PlayingEqualizerIcon(
-                                                              color: theme
-                                                                  .colorScheme
-                                                                  .primary,
-                                                              size: 16,
-                                                              isPlaying:
-                                                                  isAudioPlaying,
-                                                            )
-                                                          : Text(
-                                                              '${index + 1}',
-                                                              style: theme.textTheme.bodyMedium?.copyWith(
-                                                                color:
-                                                                    isHighlighted
-                                                                    ? theme
-                                                                          .colorScheme
-                                                                          .primary
-                                                                    : theme
-                                                                          .colorScheme
-                                                                          .onSurfaceVariant
-                                                                          .withValues(
-                                                                            alpha:
-                                                                                0.7,
-                                                                          ),
-                                                                fontWeight:
-                                                                    isHighlighted
-                                                                    ? FontWeight
-                                                                          .bold
-                                                                    : FontWeight
-                                                                          .w500,
-                                                              ),
-                                                            )),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-
-                                            // Track artwork
-                                            ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
-                                              child: Container(
-                                                width: 40,
-                                                height: 40,
-                                                color: theme
-                                                    .colorScheme
-                                                    .surfaceContainerHighest,
-                                                child:
-                                                    trackCoverId != null &&
-                                                        trackCoverId.isNotEmpty
-                                                    ? RemoteArtworkWidget(
-                                                        server: widget.server,
-                                                        password:
-                                                            widget.password,
-                                                        coverArtId:
-                                                            trackCoverId,
-                                                        size: 40,
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              6,
-                                                            ),
-                                                      )
-                                                    : const Icon(
-                                                        Icons
-                                                            .music_note_rounded,
-                                                        size: 20,
-                                                      ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-
-                                            // Title & Artist/Album
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    song.displayName,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: theme
-                                                        .textTheme
-                                                        .bodyMedium
-                                                        ?.copyWith(
-                                                          fontWeight:
-                                                              (isCurrent ||
-                                                                  isHighlighted)
-                                                              ? FontWeight.bold
-                                                              : FontWeight.w600,
-                                                          color:
-                                                              (isCurrent ||
-                                                                  isHighlighted)
-                                                              ? theme
-                                                                    .colorScheme
-                                                                    .primary
-                                                              : null,
-                                                        ),
-                                                  ),
-                                                  const SizedBox(height: 2),
-                                                  Text(
-                                                    '${song.artist ?? l10n.unknownArtist} • ${song.album ?? l10n.unknownAlbum}',
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: theme
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.copyWith(
-                                                          color: theme
-                                                              .colorScheme
-                                                              .onSurfaceVariant
-                                                              .withValues(
-                                                                alpha: 0.8,
-                                                              ),
-                                                        ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-
-                                            // Duration
                                             Text(
-                                              trackDuration,
-                                              style: theme.textTheme.bodySmall
+                                              l10n.trackCountShort(count),
+                                              style: theme
+                                                  .textTheme
+                                                  .bodyMedium
                                                   ?.copyWith(
-                                                    color: theme
-                                                        .colorScheme
-                                                        .onSurfaceVariant
-                                                        .withValues(alpha: 0.7),
-                                                  ),
-                                            ),
-
-                                            if (!isSelectionMode) ...[
-                                              // Star button
-                                              IconButton(
-                                                iconSize: 18,
-                                                visualDensity:
-                                                    VisualDensity.compact,
-                                                icon: Icon(
-                                                  isStarred
-                                                      ? Icons.favorite_rounded
-                                                      : Icons
-                                                            .favorite_border_rounded,
-                                                  color: isStarred
-                                                      ? Colors.redAccent
-                                                      : null,
-                                                ),
-                                                onPressed: () async {
-                                                  final client =
-                                                      RemoteMediaLibraryClient.create(
-                                                        server: widget.server,
-                                                        password:
-                                                            widget.password,
-                                                      );
-                                                  if (isStarred) {
-                                                    final ok = await client
-                                                        .unstar(id: trackId);
-                                                    if (ok && mounted) {
-                                                      setState(() {
-                                                        _starredSongIds.remove(
-                                                          trackId,
-                                                        );
-                                                      });
-                                                    }
-                                                  } else {
-                                                    final ok = await client
-                                                        .star(id: trackId);
-                                                    if (ok && mounted) {
-                                                      setState(() {
-                                                        _starredSongIds.add(
-                                                          trackId,
-                                                        );
-                                                      });
-                                                    }
-                                                  }
-                                                },
+                                                color: theme.colorScheme
+                                                    .onSurfaceVariant,
+                                                fontWeight: FontWeight.w600,
                                               ),
-
-                                              // More options
-                                              Builder(
-                                                builder: (btnContext) => IconButton(
-                                                  icon: const Icon(
-                                                    Icons.more_vert_rounded,
-                                                    size: 18,
-                                                  ),
-                                                  visualDensity:
-                                                      VisualDensity.compact,
-                                                  padding: EdgeInsets.zero,
-                                                  splashRadius: 18,
-                                                  onPressed: () {
-                                                    final renderBox =
-                                                        btnContext
-                                                                .findRenderObject()
-                                                            as RenderBox?;
-                                                    final offset =
-                                                        renderBox != null
-                                                        ? renderBox
-                                                              .localToGlobal(
-                                                                Offset(
-                                                                  renderBox
-                                                                      .size
-                                                                      .width,
-                                                                  0,
-                                                                ),
-                                                              )
-                                                        : Offset.zero;
-                                                    showRemoteSongContextMenu(
-                                                      context: context,
-                                                      globalPosition: offset,
-                                                      ref: ref,
-                                                      server: widget.server,
-                                                      password: widget.password,
-                                                      song: song,
-                                                      playlist: _tracks,
-                                                      onMultiSelect: () =>
-                                                          enterSongSelectionMode(
-                                                            song.path,
-                                                          ),
-                                                      downloadLayout:
-                                                          RemoteDownloadLayout
-                                                              .playlist,
-                                                      downloadCollectionFolder:
-                                                          _currentName,
-                                                      onRemoveFromPlaylist:
-                                                          () => _removeTrackAt(
-                                                            index,
-                                                          ),
-                                                      onViewArtist: () {
-                                                        if (song.artist !=
-                                                                null &&
-                                                            song
-                                                                .artist!
-                                                                .isNotEmpty) {
-                                                          Navigator.push(
-                                                            context,
-                                                            MaterialPageRoute(
-                                                              builder: (_) => NavidromeArtistDetailPage(
-                                                                server: widget
-                                                                    .server,
-                                                                password: widget
-                                                                    .password,
-                                                                artistId: '',
-                                                                artistName: song
-                                                                    .artist!,
-                                                              ),
-                                                            ),
-                                                          );
-                                                        }
-                                                      },
-                                                    );
-                                                  },
+                                            ),
+                                            if (totalDuration > 0) ...[
+                                              Text(
+                                                '•',
+                                                style: TextStyle(
+                                                  color: theme.colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                              ),
+                                              Text(
+                                                _formatDuration(totalDuration),
+                                                style: theme
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.copyWith(
+                                                  color: theme.colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                            if (owner != null &&
+                                                owner.isNotEmpty) ...[
+                                              Text(
+                                                '•',
+                                                style: TextStyle(
+                                                  color: theme.colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                              ),
+                                              Text(
+                                                owner,
+                                                style: theme
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.copyWith(
+                                                  color: theme.colorScheme
+                                                      .onSurfaceVariant,
                                                 ),
                                               ),
                                             ],
                                           ],
                                         ),
-                                      ),
-                                    ),
-                                  ),
+                                        if (comment != null &&
+                                            comment.trim().isNotEmpty) ...[
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            comment.trim(),
+                                            style: theme
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                              color: theme.colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ],
+                                    );
+
+                                    if (isPortrait) {
+                                      // 竖屏与横屏统一左对齐：封面靠左、信息列靠左，
+                                      // 不再走「整块居中但文字左对齐」那种歪着的排版。
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          coverWidget,
+                                          const SizedBox(height: 16),
+                                          SizedBox(
+                                            width: double.infinity,
+                                            child: infoContent,
+                                          ),
+                                        ],
+                                      );
+                                    }
+
+                                    return Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        coverWidget,
+                                        const SizedBox(width: 20),
+                                        Expanded(child: infoContent),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      );
-                    }, childCount: _tracks.length),
+
+                        // Action Buttons Bar
+                        SliverToBoxAdapter(
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                maxWidth: kFolderPageMaxWidth,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 4,
+                                ),
+                                child: Row(
+                                  children: [
+                                    FilledButton.icon(
+                                      onPressed: _tracks.isNotEmpty
+                                          ? () => _playAll()
+                                          : null,
+                                      icon: Icon(
+                                        Icons.play_arrow_rounded,
+                                        size: iconSize + 2,
+                                      ),
+                                      label: Text(
+                                        l10n.playAll,
+                                        style: TextStyle(
+                                          fontWeight: isPortrait
+                                              ? FontWeight.w700
+                                              : FontWeight.w500,
+                                          fontSize: isPortrait ? 15 : 13,
+                                        ),
+                                      ),
+                                      style: FilledButton.styleFrom(
+                                        shape: const StadiumBorder(),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: isPortrait ? 18 : 14,
+                                        ),
+                                        minimumSize: Size(0, buttonHeight),
+                                        elevation: 0,
+                                      ),
+                                    ),
+                                    SizedBox(width: buttonSpacing),
+                                    IconButton.filledTonal(
+                                      tooltip: l10n.shufflePlay,
+                                      style: IconButton.styleFrom(
+                                        foregroundColor: theme.colorScheme
+                                            .onSecondaryContainer,
+                                        backgroundColor: theme.colorScheme
+                                            .surfaceContainerHighest,
+                                        fixedSize:
+                                            Size(buttonHeight, buttonHeight),
+                                        minimumSize:
+                                            Size(buttonHeight, buttonHeight),
+                                        padding: EdgeInsets.zero,
+                                        shape: const CircleBorder(),
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      onPressed: _tracks.isNotEmpty
+                                          ? () => _playAll(shuffle: true)
+                                          : null,
+                                      icon: Icon(
+                                        Icons.shuffle_rounded,
+                                        size: iconSize,
+                                      ),
+                                    ),
+                                    SizedBox(width: buttonSpacing),
+                                    IconButton.filledTonal(
+                                      tooltip: l10n.downloadAllTracks,
+                                      style: IconButton.styleFrom(
+                                        foregroundColor: theme.colorScheme
+                                            .onSecondaryContainer,
+                                        backgroundColor: theme.colorScheme
+                                            .surfaceContainerHighest,
+                                        fixedSize:
+                                            Size(buttonHeight, buttonHeight),
+                                        minimumSize:
+                                            Size(buttonHeight, buttonHeight),
+                                        padding: EdgeInsets.zero,
+                                        shape: const CircleBorder(),
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      onPressed:
+                                          _tracks.isNotEmpty ? _downloadAll : null,
+                                      icon: Icon(
+                                        Icons.download_rounded,
+                                        size: iconSize,
+                                      ),
+                                    ),
+                                    SizedBox(width: buttonSpacing),
+                                    PopupMenuButton<String>(
+                                      tooltip: l10n.managePlaylists,
+                                      iconSize: iconSize,
+                                      style: IconButton.styleFrom(
+                                        foregroundColor:
+                                            theme.colorScheme.onSurfaceVariant,
+                                        fixedSize:
+                                            Size(buttonHeight, buttonHeight),
+                                        minimumSize:
+                                            Size(buttonHeight, buttonHeight),
+                                        padding: EdgeInsets.zero,
+                                        shape: const CircleBorder(),
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      icon: Icon(
+                                        Icons.more_vert_rounded,
+                                        size: iconSize,
+                                      ),
+                                      onSelected: (value) {
+                                        if (value == 'rename') {
+                                          _showRenameDialog();
+                                        } else if (value == 'delete') {
+                                          _showDeleteDialog();
+                                        } else if (value == 'refresh') {
+                                          _loadPlaylistDetails();
+                                        }
+                                      },
+                                      itemBuilder: (ctx) => [
+                                        if (!_isStarredView)
+                                          PopupMenuItem(
+                                            value: 'rename',
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.edit_rounded,
+                                                  size: 18,
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Text(l10n.renamePlaylist),
+                                              ],
+                                            ),
+                                          ),
+                                        PopupMenuItem(
+                                          value: 'refresh',
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.refresh_rounded,
+                                                size: 18,
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Text(l10n.refresh),
+                                            ],
+                                          ),
+                                        ),
+                                        if (!_isStarredView) ...[
+                                          const PopupMenuDivider(),
+                                          PopupMenuItem(
+                                            value: 'delete',
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.delete_outline_rounded,
+                                                  size: 18,
+                                                  color: Colors.redAccent,
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Text(
+                                                  l10n.deletePlaylist,
+                                                  style: const TextStyle(
+                                                    color: Colors.redAccent,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SliverToBoxAdapter(
+                          child: Divider(height: 1, indent: 16, endIndent: 16),
+                        ),
+
+                        // Songs List
+                        if (_tracks.isEmpty)
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(32.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.music_off_rounded,
+                                      size: 56,
+                                      color: theme.colorScheme.outlineVariant,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      l10n.emptyList,
+                                      style:
+                                          theme.textTheme.titleMedium?.copyWith(
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          SliverPadding(
+                            padding: EdgeInsets.only(
+                              left: hPad,
+                              right: hPad,
+                              top: isPortrait ? 8.0 : 16.0,
+                              bottom: bottomOffset,
+                            ),
+                            sliver: ZoomReorderableSliverGrid(
+                              metrics: metrics,
+                              width: gridWidth,
+                              itemCount: _tracks.length,
+                              itemKeyBuilder: (index) =>
+                                  ValueKey('${_tracks[index].path}_$index'),
+                              controller: _reorderController,
+                              selectedIndices: selectedIndices,
+                              lockedIndices: _isStarredView
+                                  ? {for (int i = 0; i < _tracks.length; i++) i}
+                                  : const {},
+                              showHandles: isSelectionMode,
+                              handleChild: buildZoomReorderHandle(context),
+                              previewBuilder: (context, _, count) =>
+                                  buildZoomReorderPreview(
+                                context,
+                                icon: Icons.music_note_rounded,
+                                count: count,
+                              ),
+                              directDragPreviewBuilder:
+                                  (context, index, selectedIndices) {
+                                final song = _tracks[index];
+                                final count = selectedIndices.length;
+                                final isBatch = count > 1;
+                                return AppDraggablePreviewCard(
+                                  title: song.displayName,
+                                  subtitle: isBatch
+                                      ? l10n.selectedSongs(count)
+                                      : (song.artist?.isNotEmpty == true
+                                          ? song.artist!
+                                          : l10n.unknownArtist),
+                                  imagePath: resolveDragCoverPath(
+                                    thumbnailPath: song.thumbnailPath,
+                                    artworkPath: song.artworkPath,
+                                  ),
+                                  defaultIcon: Icons.music_note_rounded,
+                                  isBatch: isBatch,
+                                  count: count,
+                                );
+                              },
+                              itemDragItemBuilder:
+                                  (index, pickedIndices, localData, [request]) {
+                                if (request != null) {
+                                  DropDataUtils.trackInternalDrag(request.session);
+                                }
+                                final song = _tracks[index];
+                                final List<String> dragPaths;
+                                if (isSelectionMode &&
+                                    selectedIndices.contains(index)) {
+                                  dragPaths = [
+                                    for (final i in selectedIndices)
+                                      _tracks[i].path,
+                                  ];
+                                } else {
+                                  dragPaths = [song.path];
+                                }
+                                return SongPathsPayload(paths: dragPaths)
+                                    .toDragItem();
+                              },
+                              onReorderAsync: _isStarredView
+                                  ? null
+                                  : (draggedIndices, insertIndex) async {
+                                      final originalTracks =
+                                          List<MusicFile>.of(_tracks);
+                                      final reordered =
+                                          ZoomReorderController.applyReorder(
+                                        _tracks,
+                                        draggedIndices,
+                                        insertIndex,
+                                      );
+                                      setState(() {
+                                        _tracks = reordered;
+                                      });
+
+                                      final orderedTrackIds = reordered
+                                          .map((s) =>
+                                              RemoteMediaResolver.extractTrackId(
+                                                  s) ??
+                                              (s.id?.toString() ?? ''))
+                                          .where((id) => id.isNotEmpty)
+                                          .toList();
+
+                                      String? movedId;
+                                      if (draggedIndices.length == 1) {
+                                        final s = originalTracks[
+                                            draggedIndices.first];
+                                        movedId =
+                                            RemoteMediaResolver.extractTrackId(
+                                                    s) ??
+                                                s.id?.toString();
+                                      }
+
+                                      final client =
+                                          RemoteMediaLibraryClient.create(
+                                        server: widget.server,
+                                        password: widget.password,
+                                      );
+
+                                      final ok = await client.reorderPlaylist(
+                                        playlistId: widget.playlistId,
+                                        orderedSongIds: orderedTrackIds,
+                                        playlistName: _currentName,
+                                        movedSongId: movedId,
+                                        newIndex: insertIndex,
+                                      );
+
+                                      if (!ok) {
+                                        if (mounted) {
+                                          setState(() {
+                                            _tracks = originalTracks;
+                                          });
+                                          showToast(l10n.removeTrackFailed);
+                                        }
+                                        throw Exception(
+                                            'Failed to update playlist order on server');
+                                      }
+
+                                      final activeSession = ref
+                                          .read(activeRemoteSessionProvider);
+                                      if (activeSession != null &&
+                                          activeSession.server.id ==
+                                              widget.server.id &&
+                                          _playlistData != null) {
+                                        ref
+                                            .read(activeRemoteSessionProvider
+                                                .notifier)
+                                            .updateNavidromePlaylistDetail(
+                                              playlistId: widget.playlistId,
+                                              playlistData: _playlistData!,
+                                              tracks: _tracks,
+                                              starredSongIds: _starredSongIds,
+                                            );
+                                      }
+                                      widget.onPlaylistModified?.call();
+                                      return true;
+                                    },
+                              onReorder: _isStarredView ? (_, _) {} : null,
+                              itemBuilder: (context, index) {
+                                final song = _tracks[index];
+                                final isCurrent =
+                                    currentMusic?.path == song.path;
+                                final isHighlighted =
+                                    _highlightedSongPath == song.path;
+                                final isSelected =
+                                    isSongSelected(song.path);
+
+                                return SongZoomItem(
+                                  key: ValueKey('${song.path}_$index'),
+                                  song: song,
+                                  metrics: metrics,
+                                  index: index,
+                                  isCurrent: isCurrent,
+                                  isPlaying: isAudioPlaying && isCurrent,
+                                  isSelected: isSelected,
+                                  isSelectionMode: isSelectionMode,
+                                  selectedPaths: selectedSongPaths,
+                                  isHighlighted: isHighlighted,
+                                  enableDrag: false,
+                                  onTap: () {
+                                    if (isSelectionMode) {
+                                      handleSongTap(
+                                        index: index,
+                                        songPath: song.path,
+                                        allSongs: _tracks,
+                                        onNormalTap: () =>
+                                            toggleSongSelection(song.path),
+                                      );
+                                    } else {
+                                      final audio =
+                                          ref.read(audioServiceProvider);
+                                      audio.playPlaylist(
+                                        _tracks,
+                                        initialIndex: index,
+                                        source: PlaybackSource(
+                                          type: PlaybackSourceType.playlist,
+                                          id:
+                                              'remote-${widget.server.id}-${widget.playlistId}',
+                                          name: _currentName,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  onLongPress: () {
+                                    lastAnchorIndex = index;
+                                    if (isSelectionMode) {
+                                      toggleSongSelection(song.path);
+                                    } else {
+                                      enterSongSelectionMode(song.path);
+                                    }
+                                  },
+                                  onSecondaryTapDown: (details) {
+                                    if (!isSelectionMode) {
+                                      showRemoteSongContextMenu(
+                                        context: context,
+                                        globalPosition:
+                                            details.globalPosition,
+                                        ref: ref,
+                                        server: widget.server,
+                                        password: widget.password,
+                                        song: song,
+                                        playlist: _tracks,
+                                        onMultiSelect: () =>
+                                            enterSongSelectionMode(song.path),
+                                        downloadLayout:
+                                            RemoteDownloadLayout.playlist,
+                                        downloadCollectionFolder:
+                                            _currentName,
+                                        onRemoveFromPlaylist: () =>
+                                            _removeTrackAt(index),
+                                        onViewArtist: () {
+                                          if (song.artist != null &&
+                                              song.artist!.isNotEmpty) {
+                                            RemoteLibraryNavUtils.openArtist(
+                                              context,
+                                              ref,
+                                              server: widget.server,
+                                              password: widget.password,
+                                              artistId: '',
+                                              artistName: song.artist!,
+                                            );
+                                          }
+                                        },
+                                      );
+                                    }
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-            ],
-          ),
+                );
+              },
+            );
+          },
         ),
-        AnimatedSelectionPanel(
-          isVisible: isSelectionMode,
-          child: LibrarySelectionPanel(
-            key: const ValueKey('remote-playlist-selection-panel'),
-            selectedSongs: selectedSongs,
-            allSongs: _tracks,
-            onToggleSelectAll: () => toggleSelectAllSongs(_tracks),
-            onCancel: cancelSongSelection,
-            onAddToFavorites: () =>
-                RemoteLibrarySelectionActions.handleBatchAddToLocalFavorites(
-                  context: context,
-                  ref: ref,
-                  onFetchSongs: () async => selectedSongs,
-                  onClearSelection: cancelSongSelection,
-                ),
-            onAddToCloudFavorites: () =>
-                RemoteLibrarySelectionActions.handleBatchAddToCloudFavorites(
-                  context: context,
-                  ref: ref,
-                  server: widget.server,
-                  password: widget.password,
-                  onFetchSongs: () async => selectedSongs,
-                  onClearSelection: cancelSongSelection,
-                  onStarredChanged: (starredIds) {
-                    ref
-                        .read(activeRemoteSessionProvider.notifier)
-                        .updateNavidromeSongs(
-                          starredSongIds: {
-                            ...?ref
-                                .read(activeRemoteSessionProvider)
-                                ?.navidromeStarredSongIds,
-                            ...starredIds,
-                          },
+      );
+    }
+
+    final pageContent = Scaffold(
+      body: Stack(
+        children: [
+          scrollBody,
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: topNavBar,
+          ),
+            if (!_isLoading && _error == null)
+              AnimatedSelectionPanel(
+                isVisible: isSelectionMode,
+                child: LibrarySelectionPanel(
+                  key: const ValueKey('remote-playlist-selection-panel'),
+                  selectedSongs: selectedSongs,
+                  allSongs: _tracks,
+                  onToggleSelectAll: () => toggleSelectAllSongs(_tracks),
+                  onCancel: cancelSongSelection,
+                  onAddToFavorites: () =>
+                      RemoteLibrarySelectionActions.handleBatchAddToLocalFavorites(
+                    context: context,
+                    ref: ref,
+                    onFetchSongs: () async => selectedSongs,
+                    onClearSelection: cancelSongSelection,
+                  ),
+                  onAddToCloudFavorites: () =>
+                      RemoteLibrarySelectionActions.handleBatchAddToCloudFavorites(
+                    context: context,
+                    ref: ref,
+                    server: widget.server,
+                    password: widget.password,
+                    onFetchSongs: () async => selectedSongs,
+                    onClearSelection: cancelSongSelection,
+                    onStarredChanged: (starredIds) {
+                      ref
+                          .read(activeRemoteSessionProvider.notifier)
+                          .updateNavidromeSongs(
+                            starredSongIds: {
+                              ...?ref
+                                  .read(activeRemoteSessionProvider)
+                                  ?.navidromeStarredSongIds,
+                              ...starredIds,
+                            },
+                          );
+                    },
+                  ),
+                  onDelete: !_isStarredView ? _deleteSelectedSongs : null,
+                  deleteLabel: l10n.removeFromPlaylist,
+                  onDownload: () async {
+                    final sel = List<MusicFile>.from(selectedSongs);
+                    if (sel.isEmpty) return;
+                    await ref
+                        .read(remoteDownloadTasksProvider.notifier)
+                        .enqueue(
+                          RemoteDownloadRequest(
+                            server: widget.server,
+                            password: widget.password,
+                            songs: sel,
+                            layout: RemoteDownloadLayout.playlist,
+                            collectionFolder: _currentName,
+                          ),
                         );
+                    cancelSongSelection();
+                    showRemoteDownloadQueuedFeedback(context, ref, sel.length);
                   },
                 ),
-            onDelete: !_isStarredView ? _deleteSelectedSongs : null,
-            deleteLabel: l10n.removeFromPlaylist,
-            onDownload: () async {
-              final sel = List<MusicFile>.from(selectedSongs);
-              if (sel.isEmpty) return;
-              await ref
-                  .read(remoteDownloadTasksProvider.notifier)
-                  .enqueue(
-                    RemoteDownloadRequest(
-                      server: widget.server,
-                      password: widget.password,
-                      songs: sel,
-                      layout: RemoteDownloadLayout.playlist,
-                      collectionFolder: _currentName,
-                    ),
-                  );
-              cancelSongSelection();
-              showRemoteDownloadQueuedFeedback(context, ref, sel.length);
-            },
-          ),
-        ),
-      ],
+              ),
+        ],
+      ),
+    );
+
+    return PopScope(
+      canPop: !isSelectionMode,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (isSelectionMode) {
+          _reorderController.cancelDrag();
+          cancelSongSelection();
+        }
+      },
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification.metrics.axis != Axis.vertical) return false;
+          final past = notification.metrics.pixels > 36.0;
+          if (_isPastTop != past) {
+            setState(() => _isPastTop = past);
+          }
+          return false;
+        },
+        child: MiniPlayerWrapper(child: pageContent),
+      ),
     );
   }
 }

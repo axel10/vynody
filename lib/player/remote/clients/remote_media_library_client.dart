@@ -55,6 +55,13 @@ abstract class RemoteMediaLibraryClient {
     List<int>? songIndexesToRemove,
   });
   Future<bool> deletePlaylist(String playlistId);
+  Future<bool> reorderPlaylist({
+    required String playlistId,
+    required List<String> orderedSongIds,
+    String? playlistName,
+    String? movedSongId,
+    int? newIndex,
+  });
   Future<Map<String, dynamic>> search(
     String query, {
     int artistCount = 20,
@@ -183,6 +190,22 @@ class SubsonicMediaLibraryClient implements RemoteMediaLibraryClient {
   @override
   Future<bool> deletePlaylist(String playlistId) =>
       client.deletePlaylist(playlistId);
+
+  @override
+  Future<bool> reorderPlaylist({
+    required String playlistId,
+    required List<String> orderedSongIds,
+    String? playlistName,
+    String? movedSongId,
+    int? newIndex,
+  }) async {
+    final res = await client.createPlaylist(
+      playlistId: playlistId,
+      name: playlistName,
+      songIds: orderedSongIds,
+    );
+    return res != null;
+  }
 
   @override
   Future<Map<String, dynamic>> search(
@@ -324,6 +347,24 @@ class JellyfinMediaLibraryClient implements RemoteMediaLibraryClient {
   @override
   Future<bool> deletePlaylist(String playlistId) =>
       client.deletePlaylist(playlistId);
+
+  @override
+  Future<bool> reorderPlaylist({
+    required String playlistId,
+    required List<String> orderedSongIds,
+    String? playlistName,
+    String? movedSongId,
+    int? newIndex,
+  }) async {
+    if (movedSongId != null && newIndex != null) {
+      return client.movePlaylistItem(
+        playlistId: playlistId,
+        itemId: movedSongId,
+        newIndex: newIndex,
+      );
+    }
+    return false;
+  }
 
   @override
   Future<Map<String, dynamic>> search(
