@@ -9,6 +9,7 @@ import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/musicbrainz_tag_completion_service.dart';
 import '../pages/main_layout.dart';
+import '../utils/layout_constants.dart';
 import 'song_tag_completion_widgets.dart';
 import 'song_tag_musicbrainz_cards.dart';
 import 'song_tag_acoustid_cards.dart';
@@ -349,7 +350,7 @@ class _SongTagCompletionSheetState
             label: l10n.goToSettings,
             onPressed: () {
               Navigator.of(context, rootNavigator: true).pushReplacement(
-                buildMainLayoutRoute(args: const [], initialIndex: 4),
+                buildMainLayoutRoute(args: const [], initialIndex: kMainTabSharing),
               );
             },
           ),

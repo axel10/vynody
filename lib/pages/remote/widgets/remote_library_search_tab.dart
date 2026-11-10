@@ -183,7 +183,6 @@ class RemoteLibrarySearchView extends ConsumerWidget {
             onViewDetails: () {
               RemoteLibraryNavUtils.openArtist(
                 context,
-                ref,
                 server: server,
                 password: password,
                 artistId: artistId,
@@ -211,7 +210,6 @@ class RemoteLibrarySearchView extends ConsumerWidget {
             } else {
               RemoteLibraryNavUtils.openArtist(
                 context,
-                ref,
                 server: server,
                 password: password,
                 artistId: artistId,
@@ -305,7 +303,6 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                     onViewDetails: () {
                       RemoteLibraryNavUtils.openAlbum(
                         context,
-                        ref,
                         server: server,
                         password: password,
                         albumId: albumId,
@@ -328,7 +325,6 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                   } else {
                     RemoteLibraryNavUtils.openAlbum(
                       context,
-                      ref,
                       server: server,
                       password: password,
                       albumId: albumId,

@@ -10,6 +10,9 @@ import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/pages/main_layout_riverpod.dart';
 import 'package:vynody/widgets/animated_play_pause_button.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
+import 'package:vynody/player/pro/pro_license_service.dart';
+import 'package:vynody/player/remote/remote_server_riverpod.dart';
+import 'package:vynody/utils/layout_constants.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
 
 // ---------------------------------------------------------------------------
@@ -151,33 +154,46 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
         ? 1.0
         : (1.0 - (0.05 * collapsePrepProgress));
 
+    // 远程媒体库入口只在有活跃会话时出现：断开后整项消失，与 Rail 同步。
+    final bool hasRemoteLibrary =
+        (ref.watch(activeRemoteSessionProvider)?.server.type.isMediaLibrary ??
+            false) &&
+        ref.watch(isProUnlockedProvider);
+
     final tabs = [
       _TabItem(
-        index: 0,
+        index: kMainTabFolders,
         label: l10n.scanDirectory,
         icon: Icons.folder_outlined,
         selectedIcon: Icons.folder,
       ),
+      if (hasRemoteLibrary)
+        _TabItem(
+          index: kMainTabRemoteLibrary,
+          label: l10n.remoteLibrary,
+          icon: Icons.cloud_outlined,
+          selectedIcon: Icons.cloud,
+        ),
       _TabItem(
-        index: 2,
+        index: kMainTabLibrary,
         label: l10n.list,
         icon: Icons.playlist_play_outlined,
         selectedIcon: Icons.playlist_play,
       ),
       _TabItem(
-        index: 3,
+        index: kMainTabQueue,
         label: l10n.queueTab,
         icon: Icons.queue_music_outlined,
         selectedIcon: Icons.queue_music,
       ),
       _TabItem(
-        index: 4,
+        index: kMainTabSharing,
         label: l10n.share,
         icon: Icons.share_outlined,
         selectedIcon: Icons.share,
       ),
       _TabItem(
-        index: 5,
+        index: kMainTabSettings,
         label: l10n.settings,
         icon: Icons.settings_outlined,
         selectedIcon: Icons.settings,

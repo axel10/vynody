@@ -459,7 +459,6 @@ class _RemoteLibraryAlbumCardState
           onNormalTap: () {
             RemoteLibraryNavUtils.openAlbum(
               context,
-              ref,
               server: widget.server,
               password: widget.password,
               albumId: widget.albumId,
@@ -489,7 +488,6 @@ class _RemoteLibraryAlbumCardState
             onViewDetails: () {
               RemoteLibraryNavUtils.openAlbum(
                 context,
-                ref,
                 server: widget.server,
                 password: widget.password,
                 albumId: widget.albumId,

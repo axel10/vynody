@@ -5298,6 +5298,16 @@ class AppLocalizationsEs extends AppLocalizations {
       'La carpeta ya está indexada en la biblioteca';
 
   @override
+  String get remoteLibraryDisconnectConfirm =>
+      '¿Desconectar de esta biblioteca? Tendrás que volver a conectarte para abrirla. La reproducción no se ve afectada.';
+
+  @override
+  String get remoteLibrary => 'Biblioteca remota';
+
+  @override
+  String get remoteLibraryOverview => 'Resumen';
+
+  @override
   String get remoteLibraryBadge => 'Nube';
 
   @override

@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/utils/app_log.dart';
+import 'package:vynody/utils/layout_constants.dart';
 
 class MainLayoutUiState {
   const MainLayoutUiState({
@@ -269,7 +270,7 @@ final isCoverFlowImmersiveActiveProvider = Provider<bool>((ref) {
   final mainIndex = ref.watch(mainTabIndexProvider);
   final libIndex = ref.watch(libraryActiveTabIndexProvider);
   final is3D = ref.watch(isAlbum3DViewActiveProvider);
-  return mainIndex == 2 && libIndex == 4 && is3D;
+  return mainIndex == kMainTabLibrary && libIndex == 4 && is3D;
 });
 
 class IsAlbumDetailActiveNotifier extends Notifier<bool> {

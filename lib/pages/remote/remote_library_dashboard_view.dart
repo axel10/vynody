@@ -29,6 +29,7 @@ class RemoteLibraryDashboardView extends StatelessWidget {
     required this.onOpenAlbum,
     required this.onRefresh,
     required this.onShuffleAll,
+    required this.onDisconnect,
     this.contentTopPadding = 16,
   });
 
@@ -53,6 +54,12 @@ class RemoteLibraryDashboardView extends StatelessWidget {
 
   final VoidCallback onRefresh;
   final VoidCallback onShuffleAll;
+
+  /// 断开当前媒体库（一级栏目的显式退出动作）。
+  ///
+  /// 一级 tab 没有「上一级」，返回键不再承担退出语义，所以退出必须是
+  /// 这里一个看得见、且有确认的动作。
+  final VoidCallback onDisconnect;
 
   final double contentTopPadding;
 
@@ -91,6 +98,7 @@ class RemoteLibraryDashboardView extends StatelessWidget {
                   songCount: songCount,
                   onRefresh: onRefresh,
                   onShuffleAll: onShuffleAll,
+                  onDisconnect: onDisconnect,
                 ),
               ),
             ),
@@ -152,6 +160,7 @@ class _DashboardHeader extends StatelessWidget {
     required this.songCount,
     required this.onRefresh,
     required this.onShuffleAll,
+    required this.onDisconnect,
   });
 
   final RemoteServer server;
@@ -160,6 +169,7 @@ class _DashboardHeader extends StatelessWidget {
   final int songCount;
   final VoidCallback onRefresh;
   final VoidCallback onShuffleAll;
+  final VoidCallback onDisconnect;
 
   @override
   Widget build(BuildContext context) {
@@ -191,6 +201,11 @@ class _DashboardHeader extends StatelessWidget {
               icon: const Icon(Icons.refresh_rounded, size: 20),
               tooltip: l10n.refresh,
               onPressed: onRefresh,
+            ),
+            IconButton(
+              icon: const Icon(Icons.link_off_rounded, size: 20),
+              tooltip: l10n.remoteDisconnect,
+              onPressed: onDisconnect,
             ),
           ],
         ),

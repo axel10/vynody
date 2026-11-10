@@ -282,7 +282,6 @@ class _RemoteLibraryPlaylistsViewState
     widget.onSelectPlaylistId(entry.id);
     RemoteLibraryNavUtils.openPlaylist(
       context,
-      ref,
       server: widget.server,
       password: widget.password,
       playlistId: entry.id,

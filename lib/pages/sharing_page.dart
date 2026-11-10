@@ -2182,7 +2182,11 @@ class _SharingPageState extends ConsumerState<SharingPage>
                         password: pwd ?? '',
                       ),
                     );
-                    await navigateToMainTab(context, index: 0, fromIndex: 4);
+                    await navigateToMainTab(
+                      context,
+                      index: kMainTabFolders,
+                      fromIndex: kMainTabSharing,
+                    );
                   },
                   icon: const Icon(Icons.arrow_forward_rounded, size: 16),
                   label: Text(l10n.browseServer),

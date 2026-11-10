@@ -19,6 +19,9 @@ import '../main_layout_riverpod.dart';
 import '../../player/remote/remote_library_navigation.dart';
 import '../../widgets/library_action_bar.dart';
 import 'remote_download_manager_page.dart';
+import 'remote_album_detail_page.dart';
+import 'remote_artist_detail_page.dart';
+import 'remote_playlist_detail_page.dart';
 import 'remote_library_dashboard_view.dart';
 import 'remote_library_sub_host_page.dart';
 import 'widgets/remote_library_selection_actions.dart';
@@ -31,6 +34,7 @@ import 'widgets/remote_library_playlists_tab.dart';
 import 'widgets/remote_library_search_tab.dart';
 import '../../utils/song_locator_helper.dart';
 import '../../utils/remote_library_playback.dart';
+import '../../player/platform/right_queue_drawer_controller.dart';
 import '../../utils/app_icons.dart';
 import '../../utils/layout_constants.dart';
 import '../../dialogs/sort_options_dialog.dart';
@@ -39,14 +43,12 @@ class RemoteLibraryPage extends ConsumerStatefulWidget {
   final RemoteServer server;
   final String password;
   final bool wrapWithMiniPlayer;
-  final int? initialTabIndex;
 
   const RemoteLibraryPage({
     super.key,
     required this.server,
     required this.password,
     this.wrapWithMiniPlayer = false,
-    this.initialTabIndex,
   });
 
   @override
@@ -67,7 +69,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
         (i) => GlobalKey<NavigatorState>(debugLabel: 'remote_library_tab_$i'),
       );
 
-  late final RemoteMediaLibraryClient _client;
+  late RemoteMediaLibraryClient _client;
 
   // Albums state
   bool _isLoadingAlbums = false;
@@ -177,12 +179,9 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
   /// 搜索分类的索引（专辑 0 / 艺术家 1 / 流派 2 / 歌曲 3 / 播放列表 4 / 搜索 5）。
   static const int _kSearchTabIndex = 5;
 
-  /// 当前二级分类索引。`null` = 停在概览页，此时回退到构造时指定的首个分类。
+  /// 当前二级分类索引。`null` = 停在概览页（回退到第一个分类取数）。
   int get _currentTabIndex =>
-      (ref.read(remoteLibraryActiveTabIndexProvider) ??
-              widget.initialTabIndex ??
-              0)
-          .clamp(0, 5);
+      (ref.read(remoteLibraryActiveTabIndexProvider) ?? 0).clamp(0, 5);
 
   bool get _isSelectionMode =>
       _isAlbumSelectionMode ||
@@ -665,11 +664,13 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
   @override
   void initState() {
     super.initState();
-    final initialIndex = (widget.initialTabIndex != null &&
-            widget.initialTabIndex! >= 0 &&
-            widget.initialTabIndex! < 6)
-        ? widget.initialTabIndex!
-        : 0;
+    // 页面可能在「深链请求」之后才被构建（切 tab 才建），`ref.listen` 只响应
+    // 后续变化，首帧要自己补一次消费。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final pending = ref.read(remoteLibraryPendingDetailProvider);
+      if (pending != null) _openPendingDetail(pending);
+    });
     _client = RemoteMediaLibraryClient.create(
       server: widget.server,
       password: widget.password,
@@ -716,10 +717,14 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       settings.remotePlaylistSortField,
     );
     _playlistSortAscending = settings.remotePlaylistSortAscending;
-    // 首屏优先拉当前 tab，其余分类在首帧后错峰补齐：五路同时发请求 +
-    // 同时解析 JSON 是竖屏首屏掉帧的主因。各分类本身都有 session / 本地
-    // 缓存兜底，这里只削平并发峰值，不改变「所有分类最终都可用」的语义
-    // （搜索 tab 的多选、收藏歌单计数等仍依赖跨 tab 数据）。
+    _scheduleInitialLoads();
+  }
+
+  /// 首屏优先拉当前 tab，其余分类在首帧后错峰补齐：五路同时发请求 +
+  /// 同时解析 JSON 是竖屏首屏掉帧的主因。各分类本身都有 session / 本地
+  /// 缓存兜底，这里只削平并发峰值，不改变「所有分类最终都可用」的语义
+  /// （搜索 tab 的多选、收藏歌单计数等仍依赖跨 tab 数据）。
+  void _scheduleInitialLoads() {
     final loaders = <void Function()>[
       () {
         _loadAlbums();
@@ -737,6 +742,9 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
         _loadPlaylists();
       },
     ];
+    // 首批加载哪个分类：跟随当前二级分类（深链进来时可能不是专辑）。
+    final int initialIndex =
+        (ref.read(remoteLibraryActiveTabIndexProvider) ?? 0).clamp(0, 5);
     final firstIndex = initialIndex < loaders.length ? initialIndex : 0;
     loaders.removeAt(firstIndex)();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -748,6 +756,40 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
         }
       }));
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant RemoteLibraryPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 一级 tab 用 GlobalKey 稳定持有 State（返回键分发要它），所以换服务器时
+    // 不会自动重建 —— 必须自己把 client 与五个 loader 的数据一起换掉，
+    // 否则会拿着上一台服务器的 client 继续拉，页面显示混合数据。
+    if (oldWidget.server.id == widget.server.id &&
+        oldWidget.password == widget.password) {
+      return;
+    }
+    _client = RemoteMediaLibraryClient.create(
+      server: widget.server,
+      password: widget.password,
+    );
+    setState(() {
+      _albums = [];
+      _artists = [];
+      _genres = [];
+      _songs = [];
+      _playlists = [];
+      _starredAlbumIds.clear();
+      _starredArtistIds.clear();
+      _starredSongIds.clear();
+      _albumsError = null;
+      _artistsError = null;
+      _genresError = null;
+      _songsError = null;
+      _connectionError = null;
+      _songOffset = 0;
+      _hasMoreSongs = true;
+    });
+    _scheduleInitialLoads();
   }
 
   void _beginContentReload() {
@@ -1596,7 +1638,9 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
         const RouteSettings(name: _kDashboardRoute),
       ),
     ];
-    final index = widget.initialTabIndex;
+    // 分类索引是跨层信号（Rail 与概览卡片只写 provider），页面首次构建时
+    // 直接用它决定要不要连同二级宿主一起入栈 —— 这就是深链的落点。
+    final index = ref.read(remoteLibraryActiveTabIndexProvider);
     if (index != null && index >= 0 && index < 6) {
       routes.add(
         _remoteRoute(
@@ -1618,6 +1662,76 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
 
   void _closeSubHost() {
     ref.read(remoteLibraryActiveTabIndexProvider.notifier).set(null);
+  }
+
+  /// 待打开详情属于哪个分类（决定压进哪条分类 Navigator）。
+  int _tabIndexForDetail(NavidromeDetailRoute route) {
+    if (route is NavidromeArtistRoute) return 1;
+    if (route is NavidromePlaylistRoute) return 4;
+    return 0;
+  }
+
+  /// 消费一次「深链打开详情」请求。
+  ///
+  /// 请求方（定位当前播放、分享页）写入时页面可能还没构建，分类宿主也可能尚未
+  /// 入栈，所以这里要等目标分类的 Navigator 真正就绪再压栈 —— 否则详情页会
+  /// 压在还不存在的栈上，表现为「切过去只看到分类列表」。
+  Future<void> _openPendingDetail(NavidromeDetailRoute route) async {
+    if (!mounted) return;
+    final int tab = _tabIndexForDetail(route);
+    ref.read(remoteLibraryPendingDetailProvider.notifier).set(null);
+    // 进二级宿主（`build` 里的 listen 负责 push 路由）。
+    ref.read(remoteLibraryActiveTabIndexProvider.notifier).set(tab);
+
+    for (int attempt = 0; attempt < 40; attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+      if (!mounted) return;
+      final nav = _tabNavigatorKeys[tab].currentState;
+      if (nav == null) continue;
+      nav.push(
+        _remoteRoute(
+          (context) => _buildDetailPage(route),
+          RouteSettings(name: 'remote_detail_${route.runtimeType}'),
+        ),
+      );
+      return;
+    }
+  }
+
+  Widget _buildDetailPage(NavidromeDetailRoute route) {
+    if (route is NavidromeAlbumRoute) {
+      return RemoteAlbumDetailPage(
+        server: widget.server,
+        password: widget.password,
+        albumId: route.albumId,
+        albumName: route.albumName,
+        artistName: route.artistName,
+        coverArtId: route.coverArtId,
+        highlightedSongPath: route.highlightedSongPath,
+      );
+    }
+    if (route is NavidromeArtistRoute) {
+      return RemoteArtistDetailPage(
+        server: widget.server,
+        password: widget.password,
+        artistId: route.artistId,
+        artistName: route.artistName,
+        coverArtId: route.coverArtId,
+        albumCount: route.albumCount,
+      );
+    }
+    final playlist = route as NavidromePlaylistRoute;
+    return RemotePlaylistDetailPage(
+      server: widget.server,
+      password: widget.password,
+      playlistId: playlist.playlistId,
+      playlistName: playlist.playlistName,
+      coverArtId: playlist.coverArtId,
+      songCount: playlist.songCount,
+      duration: playlist.duration,
+      isStarred: playlist.isStarred,
+      highlightedSongPath: playlist.highlightedSongPath,
+    );
   }
 
   List<Map<String, dynamic>> _recentAlbums(int limit) {
@@ -1674,32 +1788,50 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
         .take(12)
         .toList();
 
-    return RemoteLibraryDashboardView(
-      server: widget.server,
-      password: widget.password,
-      albumCount: _albums.length,
-      artistCount: _artists.length,
-      songCount: _songs.length,
-      playlistCount: _playlists.length,
-      recentAlbums: _recentAlbums(12),
-      favoriteAlbums: favorites,
-      onNavigateToTab: _openTab,
-      onOpenAlbum: (albumId, albumName) => RemoteLibraryNavUtils.openAlbum(
-        context,
-        ref,
-        server: widget.server,
-        password: widget.password,
-        albumId: albumId,
-        albumName: albumName,
-      ),
-      onRefresh: _refreshAll,
-      onShuffleAll: () => _playRemoteEntities(
-        kind: RemoteLibraryEntityKind.album,
-        entities: _getFilteredAlbums(),
-        sourceSuffix: 'dashboard',
-        sourceName: l10n.albums,
-        shuffle: true,
-      ),
+    // 概览页是这条局部 Navigator 的根路由，横屏时整页在 Rail 右侧的内容区里，
+    // 左避让必须在 route 自己的 context 里取（外层已不再 `Padding(left:)`）。
+    return Builder(
+      builder: (routeContext) {
+        final Size size = MediaQuery.sizeOf(routeContext);
+        final double railWidth = ref.watch(
+          effectiveSidebarRailWidthProvider(size),
+        );
+        return Padding(
+          padding: EdgeInsets.only(left: railWidth),
+          child: RemoteLibraryDashboardView(
+            contentTopPadding: getTitleBarTopPadding(
+              routeContext,
+              defaultWindowPadding: size.width > size.height ? 32.0 : 36.0,
+            ),
+            server: widget.server,
+            password: widget.password,
+            albumCount: _albums.length,
+            artistCount: _artists.length,
+            songCount: _songs.length,
+            playlistCount: _playlists.length,
+            recentAlbums: _recentAlbums(12),
+            favoriteAlbums: favorites,
+            onNavigateToTab: _openTab,
+            onOpenAlbum: (albumId, albumName) =>
+                RemoteLibraryNavUtils.openAlbum(
+                  routeContext,
+                  server: widget.server,
+                  password: widget.password,
+                  albumId: albumId,
+                  albumName: albumName,
+                ),
+            onDisconnect: _disconnectFromServer,
+            onRefresh: _refreshAll,
+            onShuffleAll: () => _playRemoteEntities(
+              kind: RemoteLibraryEntityKind.album,
+              entities: _getFilteredAlbums(),
+              sourceSuffix: 'dashboard',
+              sourceName: l10n.albums,
+              shuffle: true,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1714,7 +1846,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
         l10n.playlists,
         l10n.search,
       ],
-      initialIndex: widget.initialTabIndex,
+      initialIndex: ref.read(remoteLibraryActiveTabIndexProvider),
       navigatorKeys: _tabNavigatorKeys,
       onBack: _closeSubHost,
       onRefresh: _refreshTab,
@@ -2047,6 +2179,17 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
   /// 返回 false 表示已经停在概览页，交给宿主继续处理（清会话 / 退一级 tab）。
   /// 与本地库 `LibraryPageState.handleBackPressed()` 同一套分发约定。
   bool handleBackPressed() {
+    // 三级详情先弹（它压在当前分类的 Navigator 上），再退二级宿主回概览。
+    // 顺序与本地 `LibraryPageState.handleBackPressed()` 一致，不能反过来：
+    // 直接 pop 二级宿主会连带销毁整条分类栈，用户以为只退了一层。
+    final int? tabIndex = ref.read(remoteLibraryActiveTabIndexProvider);
+    if (tabIndex != null && tabIndex < _tabNavigatorKeys.length) {
+      final tabNav = _tabNavigatorKeys[tabIndex].currentState;
+      if (tabNav != null && tabNav.canPop()) {
+        tabNav.maybePop();
+        return true;
+      }
+    }
     final nav = _navigatorKey.currentState;
     if (nav != null && nav.canPop()) {
       _closeSubHost();
@@ -2055,11 +2198,32 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     return false;
   }
 
-  void _handleBack() {
+  /// 断开当前媒体库。
+  ///
+  /// 一级 tab 没有「上一级」可退，所以这是唯一显式的退出动作：清掉会话后
+  /// `MainLayout` 会把 Rail / dock 上的入口一并撤掉并切回媒体源。
+  /// 断开要重新拉五个 loader，必须二次确认，避免误触。
+  Future<void> _disconnectFromServer() async {
+    final l10n = AppLocalizations.of(context)!;
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.remoteDisconnect),
+        content: Text(l10n.remoteLibraryDisconnectConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.remoteDisconnect),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     ref.read(activeRemoteSessionProvider.notifier).clear();
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).maybePop();
-    }
   }
 
   void _onSearchChanged(String query) {
@@ -2194,6 +2358,15 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       });
     });
 
+    // 深链：外部写了「待打开详情」就消费一次（页面刚构建与后续请求都走这里）。
+    ref.listen<NavidromeDetailRoute?>(remoteLibraryPendingDetailProvider, (
+      previous,
+      next,
+    ) {
+      if (next == null) return;
+      _openPendingDetail(next);
+    });
+
     final bool hasConnectionError = _connectionError != null &&
         _albums.isEmpty &&
         _artists.isEmpty &&
@@ -2203,13 +2376,12 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     Widget content;
     if (hasConnectionError) {
       content = PopScope(
-        canPop: true,
+        // 连接失败页挂在 IndexedStack 的一级槽位里，不能让系统返回弹掉根路由：
+        // 只清会话，交给 `MainLayout` 撤栏目并切回媒体源。
+        canPop: false,
         onPopInvokedWithResult: (didPop, result) {
-          if (didPop) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              ref.read(activeRemoteSessionProvider.notifier).clear();
-            });
-          }
+          if (didPop) return;
+          ref.read(activeRemoteSessionProvider.notifier).clear();
         },
         child: Scaffold(
           appBar: AppBar(
@@ -2219,7 +2391,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
             leading: IconButton(
               icon: const Icon(kAppBackIcon, size: 24),
               tooltip: l10n.close,
-              onPressed: _handleBack,
+              onPressed: _disconnectFromServer,
             ),
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

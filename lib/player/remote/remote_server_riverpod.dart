@@ -204,7 +204,6 @@ class ActiveRemoteSession {
   final String password;
   final String? initialPath;
   final String? rootPath;
-  final int? initialTabIndex;
   final Map<String, List<WebDavFile>> webDavDirectoryCache;
   final Map<String, SongMetadata> webDavMetadataCache;
   final List<String> webDavPathStack;
@@ -227,7 +226,6 @@ class ActiveRemoteSession {
   final Set<String>? navidromeStarredSongIds;
   final bool? navidromeHasMoreSongs;
   final int? navidromeSongOffset;
-  final List<NavidromeDetailRoute> navidromeDetailStack;
   final String? webDavHighlightedSongPath;
 
   const ActiveRemoteSession({
@@ -235,7 +233,6 @@ class ActiveRemoteSession {
     required this.password,
     this.initialPath,
     this.rootPath,
-    this.initialTabIndex,
     this.webDavDirectoryCache = const {},
     this.webDavMetadataCache = const {},
     this.webDavPathStack = const [],
@@ -256,7 +253,6 @@ class ActiveRemoteSession {
     this.navidromeStarredSongIds,
     this.navidromeHasMoreSongs,
     this.navidromeSongOffset,
-    this.navidromeDetailStack = const [],
     this.webDavHighlightedSongPath,
   });
 
@@ -302,7 +298,6 @@ class ActiveRemoteSession {
     String? password,
     String? initialPath,
     String? rootPath,
-    int? initialTabIndex,
     Map<String, List<WebDavFile>>? webDavDirectoryCache,
     Map<String, SongMetadata>? webDavMetadataCache,
     List<String>? webDavPathStack,
@@ -324,7 +319,6 @@ class ActiveRemoteSession {
     Set<String>? navidromeStarredSongIds,
     bool? navidromeHasMoreSongs,
     int? navidromeSongOffset,
-    List<NavidromeDetailRoute>? navidromeDetailStack,
     String? webDavHighlightedSongPath,
   }) {
     return ActiveRemoteSession(
@@ -332,7 +326,6 @@ class ActiveRemoteSession {
       password: password ?? this.password,
       initialPath: initialPath ?? this.initialPath,
       rootPath: rootPath ?? this.rootPath,
-      initialTabIndex: initialTabIndex ?? this.initialTabIndex,
       webDavDirectoryCache: webDavDirectoryCache ?? this.webDavDirectoryCache,
       webDavMetadataCache: webDavMetadataCache ?? this.webDavMetadataCache,
       webDavPathStack: webDavPathStack ?? this.webDavPathStack,
@@ -365,7 +358,6 @@ class ActiveRemoteSession {
       navidromeHasMoreSongs:
           navidromeHasMoreSongs ?? this.navidromeHasMoreSongs,
       navidromeSongOffset: navidromeSongOffset ?? this.navidromeSongOffset,
-      navidromeDetailStack: navidromeDetailStack ?? this.navidromeDetailStack,
       webDavHighlightedSongPath:
           webDavHighlightedSongPath ?? this.webDavHighlightedSongPath,
     );
@@ -409,12 +401,6 @@ class ActiveRemoteSessionNotifier extends Notifier<ActiveRemoteSession?> {
         webDavDirectoryCache: newDirCache,
         webDavMetadataCache: newMetaCache,
       );
-    }
-  }
-
-  void updateInitialTabIndex(int? index) {
-    if (state != null) {
-      state = state!.copyWith(initialTabIndex: index);
     }
   }
 
@@ -610,23 +596,6 @@ class ActiveRemoteSessionNotifier extends Notifier<ActiveRemoteSession?> {
     }
   }
 
-  void pushNavidromeDetail(NavidromeDetailRoute route) {
-    if (state != null) {
-      state = state!.copyWith(
-        navidromeDetailStack: [...state!.navidromeDetailStack, route],
-      );
-    }
-  }
-
-  void popNavidromeDetail() {
-    if (state != null && state!.navidromeDetailStack.isNotEmpty) {
-      final newStack =
-          List<NavidromeDetailRoute>.from(state!.navidromeDetailStack)
-            ..removeLast();
-      state = state!.copyWith(navidromeDetailStack: newStack);
-    }
-  }
-
   void pushWebDavPath(String path) {
     if (state != null) {
       state = state!.copyWith(
@@ -674,4 +643,29 @@ class ActiveRemoteSessionNotifier extends Notifier<ActiveRemoteSession?> {
 final activeRemoteSessionProvider =
     NotifierProvider<ActiveRemoteSessionNotifier, ActiveRemoteSession?>(
       ActiveRemoteSessionNotifier.new,
+    );
+
+/// 深链请求：在远程媒体库里打开某个详情页。
+///
+/// 远程库是一级 tab，外部（定位当前播放、分享页）要打开详情时页面可能还没
+/// 构建过，拿不到 State，也没有可用的 `BuildContext`。所以这里只存一个「待打开」
+/// 的路由，由 `RemoteLibraryPage` 激活后消费一次并置空。
+///
+/// 与 `remoteLibraryActiveTabIndexProvider` 的分工：那个表示「当前停在哪个分类」，
+/// 这个是「进去之后还要压一页」。
+class RemoteLibraryPendingDetailNotifier
+    extends Notifier<NavidromeDetailRoute?> {
+  @override
+  NavidromeDetailRoute? build() => null;
+
+  void set(NavidromeDetailRoute? route) {
+    if (state != route) {
+      state = route;
+    }
+  }
+}
+
+final remoteLibraryPendingDetailProvider =
+    NotifierProvider<RemoteLibraryPendingDetailNotifier, NavidromeDetailRoute?>(
+      RemoteLibraryPendingDetailNotifier.new,
     );

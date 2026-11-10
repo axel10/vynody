@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/pages/main_layout.dart';
 import 'package:vynody/pages/main_layout_riverpod.dart';
+import 'package:vynody/utils/layout_constants.dart';
 import 'package:vynody/pages/settings_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
@@ -87,8 +88,8 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
           }
           return;
         }
-        if (index == 1) {
-          await navigateToMainTab(context, index: 1);
+        if (index == kMainTabPlayback) {
+          await navigateToMainTab(context, index: kMainTabPlayback);
           return;
         }
         Navigator.of(context).popUntil((route) => route.isFirst);

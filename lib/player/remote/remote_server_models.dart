@@ -14,6 +14,13 @@ enum RemoteServerType {
         RemoteServerType.jellyfin => 'Jellyfin',
       };
 
+  /// 有艺术家 / 专辑元数据、能构成「媒体库」的服务端类型。
+  ///
+  /// 只有这两种会占据一级栏目「远程媒体库」。WebDAV / SMB 是目录树浏览，
+  /// 仍在「媒体源」tab 的页面栈里，按目录导航，不参与专辑 / 艺术家聚合。
+  bool get isMediaLibrary => this == RemoteServerType.subsonic ||
+      this == RemoteServerType.jellyfin;
+
   static RemoteServerType fromString(String? value) {
     if (value == null) return RemoteServerType.subsonic;
     return RemoteServerType.values.firstWhere(

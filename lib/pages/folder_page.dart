@@ -20,10 +20,6 @@ import 'folder_root_view.dart';
 import 'folder_detail_view.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
-import 'remote/remote_library_page.dart';
-import 'remote/remote_album_detail_page.dart';
-import 'remote/remote_artist_detail_page.dart';
-import 'remote/remote_playlist_detail_page.dart';
 import 'remote/remote_folder_browser_page.dart';
 import '../dialogs/music_folders_dialog.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
@@ -51,10 +47,6 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
   late final HeroController _heroController;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
-  /// 远程库内部的「概览 / 二级分类」两级路由要优先于外层页面栈被返回键处理，
-  /// 否则在分类页按返回会直接退掉整个远程库。
-  final GlobalKey<RemoteLibraryPageState> _remoteLibraryPageKey =
-      GlobalKey<RemoteLibraryPageState>();
 
   /// 临时埋点：只在「刚点进目录」的 2 秒窗口内打印超时帧，
   /// 用来区分掉帧发生在 build（同步计算）还是 raster（图片解码 / 模糊）。
@@ -87,19 +79,12 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       _clearAllSelection();
       return true;
     }
-    if (_remoteLibraryPageKey.currentState?.handleBackPressed() ?? false) {
-      return true;
-    }
     if (_navigatorKey.currentState?.canPop() ?? false) {
       _navigatorKey.currentState?.maybePop();
       return true;
     }
     final session = ref.read(activeRemoteSessionProvider);
     if (session != null) {
-      if (session.navidromeDetailStack.isNotEmpty) {
-        ref.read(activeRemoteSessionProvider.notifier).popNavidromeDetail();
-        return true;
-      }
       if (session.webDavPathStack.isNotEmpty) {
         ref.read(activeRemoteSessionProvider.notifier).popWebDavPath();
         return true;
@@ -618,15 +603,16 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       );
     }
 
-    final activeRemoteSessionId = ref.watch(
+    // 只有 WebDAV / SMB 还在目录页的页面栈里：它们是目录树浏览，没有艺术家 /
+    // 专辑元数据，不纳入媒体库模型。Subsonic / Jellyfin 的媒体库已是一级 tab
+    // （见 `MainLayout._buildCurrentPage`），详情页压在各分类自己的 Navigator 上。
+    final activeRemoteSession = ref.watch(
       activeRemoteSessionProvider.select(
-        (s) => s != null ? '${s.server.id}_${s.server.type}' : null,
-      ),
-    );
-    final activeRemoteSession = ref.read(activeRemoteSessionProvider);
-    final navidromeDetailStack = ref.watch(
-      activeRemoteSessionProvider.select(
-        (s) => s?.navidromeDetailStack ?? const [],
+        (s) => s != null &&
+                (s.server.type == RemoteServerType.webdav ||
+                    s.server.type == RemoteServerType.smb)
+            ? s
+            : null,
       ),
     );
     final webDavPathStack = ref.watch(
@@ -637,114 +623,45 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
 
     final isProUnlocked = ref.watch(isProUnlockedProvider);
 
-    if (activeRemoteSessionId != null &&
-        activeRemoteSession != null &&
-        isProUnlocked) {
-      if (activeRemoteSession.server.type == RemoteServerType.subsonic ||
-          activeRemoteSession.server.type == RemoteServerType.jellyfin) {
-        pages.add(
-          _buildPage(
-            key: ValueKey('remote-page-${activeRemoteSession.server.id}'),
-            child: RemoteLibraryPage(
-              key: _remoteLibraryPageKey,
-              server: activeRemoteSession.server,
-              password: activeRemoteSession.password,
-              initialTabIndex: activeRemoteSession.initialTabIndex,
-            ),
+    if (activeRemoteSession != null && isProUnlocked) {
+      final rootPath = normalizeRemotePath(
+        activeRemoteSession.rootPath ??
+            activeRemoteSession.server.customPath,
+      );
+
+      pages.add(
+        _buildPage(
+          key: ValueKey('remote-folder-root-${activeRemoteSession.server.id}'),
+          child: RemoteFolderBrowserPage(
+            server: activeRemoteSession.server,
+            password: activeRemoteSession.password,
+            initialPath: rootPath,
+            rootPath: rootPath,
+            highlightedSongPath: webDavPathStack.isEmpty
+                ? activeRemoteSession.webDavHighlightedSongPath
+                : null,
           ),
-        );
+        ),
+      );
 
-        for (int i = 0; i < navidromeDetailStack.length; i++) {
-          final route = navidromeDetailStack[i];
-          if (route is NavidromeAlbumRoute) {
-            pages.add(
-              _buildPage(
-                key: ValueKey('remote-album-${route.albumId}-$i'),
-                child: RemoteAlbumDetailPage(
-                  server: activeRemoteSession.server,
-                  password: activeRemoteSession.password,
-                  albumId: route.albumId,
-                  albumName: route.albumName,
-                  artistName: route.artistName,
-                  coverArtId: route.coverArtId,
-                  highlightedSongPath: route.highlightedSongPath,
-                ),
-              ),
-            );
-          } else if (route is NavidromeArtistRoute) {
-            pages.add(
-              _buildPage(
-                key: ValueKey(
-                    'remote-artist-${route.artistId}_${route.artistName}-$i'),
-                child: RemoteArtistDetailPage(
-                  server: activeRemoteSession.server,
-                  password: activeRemoteSession.password,
-                  artistId: route.artistId,
-                  artistName: route.artistName,
-                  coverArtId: route.coverArtId,
-                  albumCount: route.albumCount,
-                ),
-              ),
-            );
-          } else if (route is NavidromePlaylistRoute) {
-            pages.add(
-              _buildPage(
-                key: ValueKey('remote-playlist-${route.playlistId}-$i'),
-                child: RemotePlaylistDetailPage(
-                  server: activeRemoteSession.server,
-                  password: activeRemoteSession.password,
-                  playlistId: route.playlistId,
-                  playlistName: route.playlistName,
-                  coverArtId: route.coverArtId,
-                  songCount: route.songCount,
-                  duration: route.duration,
-                  isStarred: route.isStarred,
-                  highlightedSongPath: route.highlightedSongPath,
-                ),
-              ),
-            );
-          }
-        }
-      } else {
-        final rootPath = normalizeRemotePath(
-          activeRemoteSession.rootPath ??
-              activeRemoteSession.server.customPath,
-        );
-
+      for (int i = 0; i < webDavPathStack.length; i++) {
+        final currentPath = webDavPathStack[i];
+        final isTopPage = i == webDavPathStack.length - 1;
         pages.add(
           _buildPage(
-            key: ValueKey('remote-folder-root-${activeRemoteSession.server.id}'),
+            key: ValueKey(
+                'remote-folder-page-${activeRemoteSession.server.id}-$currentPath-$i'),
             child: RemoteFolderBrowserPage(
               server: activeRemoteSession.server,
               password: activeRemoteSession.password,
-              initialPath: rootPath,
+              initialPath: currentPath,
               rootPath: rootPath,
-              highlightedSongPath: webDavPathStack.isEmpty
+              highlightedSongPath: isTopPage
                   ? activeRemoteSession.webDavHighlightedSongPath
                   : null,
             ),
           ),
         );
-
-        for (int i = 0; i < webDavPathStack.length; i++) {
-          final currentPath = webDavPathStack[i];
-          final isTopPage = i == webDavPathStack.length - 1;
-          pages.add(
-            _buildPage(
-              key: ValueKey(
-                  'remote-folder-page-${activeRemoteSession.server.id}-$currentPath-$i'),
-              child: RemoteFolderBrowserPage(
-                server: activeRemoteSession.server,
-                password: activeRemoteSession.password,
-                initialPath: currentPath,
-                rootPath: rootPath,
-                highlightedSongPath: isTopPage
-                    ? activeRemoteSession.webDavHighlightedSongPath
-                    : null,
-              ),
-            ),
-          );
-        }
       }
     }
 
@@ -764,13 +681,10 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
                 pageKeyStr.contains('webdav-page-')) {
               ref.read(activeRemoteSessionProvider.notifier).popWebDavPath();
             } else if (pageKeyStr.contains('remote-folder-root-') ||
-                pageKeyStr.contains('webdav-root-') ||
-                pageKeyStr.contains('remote-page-')) {
+                pageKeyStr.contains('webdav-root-')) {
+              // 只剩目录树型会话会在这个栈里出栈；媒体库型会话的入口是
+              // 一级 tab，不经过这里。
               ref.read(activeRemoteSessionProvider.notifier).clear();
-            } else if (pageKeyStr.contains('remote-album-') ||
-                pageKeyStr.contains('remote-artist-') ||
-                pageKeyStr.contains('remote-playlist-')) {
-              ref.read(activeRemoteSessionProvider.notifier).popNavidromeDetail();
             } else if (pageKeyStr.contains('folder-page-')) {
               _goBack(scanner);
             }

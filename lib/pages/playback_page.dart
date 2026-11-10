@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/layout_constants.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/audio/app_playback_mode.dart';
@@ -170,8 +171,14 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     } else {
       final previousTab = ref.read(previousMainTabIndexProvider);
       final targetIndex =
-          (previousTab == 1 || previousTab < 0) ? 0 : previousTab;
-      navigateToMainTab(context, index: targetIndex, fromIndex: 1);
+          (previousTab == kMainTabPlayback || previousTab < 0)
+              ? kMainTabFolders
+              : previousTab;
+      navigateToMainTab(
+        context,
+        index: targetIndex,
+        fromIndex: kMainTabPlayback,
+      );
     }
   }
 

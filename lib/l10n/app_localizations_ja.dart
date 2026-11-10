@@ -5056,6 +5056,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get remoteFolderAlreadyIndexed => 'このフォルダーは既にメディアライブラリに登録されています';
 
   @override
+  String get remoteLibraryDisconnectConfirm =>
+      'このライブラリから切断しますか？再度開くには再接続が必要です。再生中の曲には影響しません。';
+
+  @override
+  String get remoteLibrary => 'リモートライブラリ';
+
+  @override
+  String get remoteLibraryOverview => '概要';
+
+  @override
   String get remoteLibraryBadge => 'クラウド';
 
   @override

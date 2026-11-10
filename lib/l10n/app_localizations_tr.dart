@@ -5248,6 +5248,16 @@ class AppLocalizationsTr extends AppLocalizations {
       'Klasör zaten medya kitaplığında dizine eklenmiş';
 
   @override
+  String get remoteLibraryDisconnectConfirm =>
+      'Bu kitaplıktan bağlantı kesilsin mi? Yeniden açmak için tekrar bağlanmanız gerekir. Çalma etkilenmez.';
+
+  @override
+  String get remoteLibrary => 'Uzak Kitaplık';
+
+  @override
+  String get remoteLibraryOverview => 'Genel bakış';
+
+  @override
   String get remoteLibraryBadge => 'Bulut';
 
   @override

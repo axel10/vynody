@@ -5063,6 +5063,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get remoteFolderAlreadyIndexed => '해당 폴더는 이미 미디어 라이브러리에 인덱싱되어 있습니다';
 
   @override
+  String get remoteLibraryDisconnectConfirm =>
+      '이 라이브러리에서 연결을 해제할까요? 다시 열려면 재연결이 필요합니다. 재생 중인 곡에는 영향이 없습니다.';
+
+  @override
+  String get remoteLibrary => '원격 라이브러리';
+
+  @override
+  String get remoteLibraryOverview => '개요';
+
+  @override
   String get remoteLibraryBadge => '클라우드';
 
   @override

@@ -47,6 +47,9 @@ class RemoteGenreDetailPage extends ConsumerWidget {
     final double barHeight = AppTopNavBar.getBarHeight(context);
 
     return RemotePageShell(
+      // 远程库已是一级 tab，外层不再 `Padding(left: railWidth)`：
+      // 横屏时让位必须落在页面内部，否则整页被 Rail 压住左边缘。
+      avoidRail: true,
       contentBuilder: (context) => RemoteGenreDetailContent(
         server: server,
         password: password,
@@ -653,7 +656,6 @@ class _RemoteGenreDetailContentState
     if (!album.canOpen) return;
     RemoteLibraryNavUtils.openAlbum(
       context,
-      ref,
       server: widget.server,
       password: widget.password,
       albumId: album.id,
@@ -749,7 +751,6 @@ class _RemoteGenreAlbumCard extends ConsumerWidget {
     if (!album.canOpen) return;
     RemoteLibraryNavUtils.openAlbum(
       context,
-      ref,
       server: server,
       password: password,
       albumId: album.id,

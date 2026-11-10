@@ -4971,6 +4971,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get remoteFolderAlreadyIndexed => '该目录已在媒体库索引中';
 
   @override
+  String get remoteLibraryDisconnectConfirm =>
+      '断开当前媒体库？重新进入需要重新连接，正在播放的歌曲不受影响。';
+
+  @override
+  String get remoteLibrary => '远程媒体库';
+
+  @override
+  String get remoteLibraryOverview => '概览';
+
+  @override
   String get remoteLibraryBadge => '云端';
 
   @override
@@ -10691,6 +10701,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get remoteFolderAlreadyIndexed => '該目錄已在媒體庫索引中';
+
+  @override
+  String get remoteLibraryDisconnectConfirm =>
+      '中斷目前的媒體庫？重新進入需要重新連線，正在播放的歌曲不受影響。';
+
+  @override
+  String get remoteLibrary => '遠端媒體庫';
+
+  @override
+  String get remoteLibraryOverview => '總覽';
 
   @override
   String get remoteLibraryBadge => '雲端';

@@ -602,7 +602,6 @@ class _RemoteAlbumDetailPageState
                                         if (song.artist != null && song.artist!.isNotEmpty) {
                                           RemoteLibraryNavUtils.openArtist(
                                             context,
-                                            ref,
                                             server: widget.server,
                                             password: widget.password,
                                             artistId: '',
@@ -788,7 +787,6 @@ class _RemoteAlbumDetailPageState
                                                                 song.artist!.isNotEmpty) {
                                                               RemoteLibraryNavUtils.openArtist(
                                                                 context,
-                                                                ref,
                                                                 server: widget.server,
                                                                 password: widget.password,
                                                                 artistId: '',
@@ -859,6 +857,9 @@ class _RemoteAlbumDetailPageState
     }
 
     return RemotePageShell(
+      // 远程库已是一级 tab，外层不再 `Padding(left: railWidth)`：
+      // 横屏时让位必须落在页面内部，否则整页被 Rail 压住左边缘。
+      avoidRail: true,
       forceHeaderVisible: isSelectionMode,
       // 顶栏由 `_scrollProgress` 驱动形态变化，不需要外壳再算滚动阈值。
       enableFloatingCapsule: false,

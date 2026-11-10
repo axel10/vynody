@@ -424,7 +424,6 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
                                         onTap: () {
                                           RemoteLibraryNavUtils.openArtist(
                                             context,
-                                            ref,
                                             server: server,
                                             password: password,
                                             artistId: artistId,

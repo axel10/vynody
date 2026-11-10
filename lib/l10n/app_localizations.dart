@@ -9262,6 +9262,24 @@ abstract class AppLocalizations {
   /// **'该目录已在媒体库索引中'**
   String get remoteFolderAlreadyIndexed;
 
+  /// No description provided for @remoteLibraryDisconnectConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'断开当前媒体库？重新进入需要重新连接，正在播放的歌曲不受影响。'**
+  String get remoteLibraryDisconnectConfirm;
+
+  /// No description provided for @remoteLibrary.
+  ///
+  /// In zh, this message translates to:
+  /// **'远程媒体库'**
+  String get remoteLibrary;
+
+  /// No description provided for @remoteLibraryOverview.
+  ///
+  /// In zh, this message translates to:
+  /// **'概览'**
+  String get remoteLibraryOverview;
+
   /// No description provided for @remoteLibraryBadge.
   ///
   /// In zh, this message translates to:

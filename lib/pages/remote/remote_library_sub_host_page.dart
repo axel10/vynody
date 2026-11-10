@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../player/platform/right_queue_drawer_controller.dart';
-import '../../l10n/app_localizations.dart';
+import '../../player/platform/right_queue_drawer_controller.dart';import '../../l10n/app_localizations.dart';
 import '../../utils/layout_constants.dart';
 import '../../widgets/app_top_nav_bar.dart';
 import '../../widgets/library_selection_scope.dart';
@@ -101,11 +100,12 @@ class _RemoteLibrarySubHostPageState
     final bool tabHasChildRoute = _tabsWithChildRoutes.contains(index);
     final bool isPastTop = _tabScrolledPastTop[index] ?? false;
 
-    // 与本地 `LibrarySubHostPage` 同一套规则，但**横屏也要保留浮动胶囊**：
-    // 本地横屏的分类页头固定在 `Column` 顶部、永不滚走，所以不需要；远程的页头
-    // 是 sliver（`SliverRemotePageHeaderSlot`），滚上去就带走了返回键 ——
-    // 横屏没有 Rail 兜底时同样会「进得去出不来」。
-    final bool hideTopNavBar = tabHasChildRoute || !isPastTop;
+    // 与本地 `LibrarySubHostPage` 同一套规则：
+    // * 横屏由 Rail 承担分类导航与「回概览」，胶囊收起来避免和栏目标题重复；
+    // * 竖屏没有 Rail，页头又是 sliver（滚上去会把返回键带走），所以只在
+    //   离开顶部后浮出胶囊。
+    final bool hideTopNavBar =
+        isLandscape || tabHasChildRoute || !isPastTop;
 
     final Duration headerDuration = tabHasChildRoute
         ? Duration.zero
@@ -115,6 +115,10 @@ class _RemoteLibrarySubHostPageState
     // 系统状态栏（非窗口化）与横屏的 8dp 呼吸位。
     final double topInset =
         MediaQuery.paddingOf(context).top + (isLandscape ? 8.0 : 0.0);
+
+    // 横屏避让 Rail：外层 `MainLayout` 已不再对远程库做 `Padding(left:)`，
+    // 让位必须落在页面内部，否则整页会被 Rail 压住左边缘。
+    final double railWidth = ref.watch(effectiveSidebarRailWidthProvider(size));
 
     final String? title = index < widget.titles.length
         ? widget.titles[index]
@@ -136,7 +140,7 @@ class _RemoteLibrarySubHostPageState
               return false;
             },
             child: Padding(
-              padding: EdgeInsets.only(top: topInset),
+              padding: EdgeInsets.only(top: topInset, left: railWidth),
               child: IndexedStack(
                 index: index,
                 children: [
@@ -166,8 +170,8 @@ class _RemoteLibrarySubHostPageState
               curve: Curves.easeInOutCubic,
               child: IgnorePointer(
                 ignoring: hideTopNavBar,
-                // 不在这里避让 Rail：远程库当前挂在「目录」tab 的嵌套 Navigator
-                // 里，`MainLayout._buildCurrentPage` 的外层 Padding 已经让过位。
+                // 胶囊与内容区同源避让：`Padding(left: railWidth)` 已经在外层
+                // 生效，这里只补 4/8 的呼吸位。
                 child: Padding(
                   padding: const EdgeInsets.only(top: 4, left: 8, right: 8),
                   child: AppTopNavBar(

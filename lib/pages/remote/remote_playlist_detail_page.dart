@@ -1718,7 +1718,6 @@ class _RemotePlaylistDetailContentState
                                               song.artist!.isNotEmpty) {
                                             RemoteLibraryNavUtils.openArtist(
                                               context,
-                                              ref,
                                               server: widget.server,
                                               password: widget.password,
                                               artistId: '',
@@ -1745,6 +1744,9 @@ class _RemotePlaylistDetailContentState
     }
 
     return RemotePageShell(
+      // 远程库已是一级 tab，外层不再 `Padding(left: railWidth)`：
+      // 横屏时让位必须落在页面内部，否则整页被 Rail 压住左边缘。
+      avoidRail: true,
       contentBuilder: (context) => scrollBody,
       navBarBuilder: (context, isHeaderVisible, isPastTop) => AppTopNavBar(
         title: _currentName,

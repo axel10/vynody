@@ -38,6 +38,31 @@ const double kHeaderFloatingCapsuleThreshold = 36.0;
 /// 窗口化环境（桌面端、iPadOS 台前调度/分屏）下页面内容顶部的额外避让高度。
 const double kWindowedPageTopInset = 32.0;
 
+// ---------------------------------------------------------------------------
+// 主页面（`MainLayout`）一级导航索引
+// ---------------------------------------------------------------------------
+//
+// 这些值就是 `IndexedStack` 的槽序号。远程媒体库成为独立一级栏目时插在
+// 「媒体源」之后，原来留给播放抽屉的 1 号空槽被让出，其后整体后移一位。
+//
+// 引用面：Rail 的 `destinations`、底部 dock 的 `tabs`、返回键分发
+// （`_handleBackPressed`）、`_visitedTabs`、`mainTabIndexProvider` 的消费者。
+// **禁止再写字面量** —— 上一次加栏目就是靠人肉数槽位顺移，漏一处就是
+// 「点了图标去了别的页面」这种查起来极慢的 bug。
+const int kMainTabFolders = 0;
+const int kMainTabRemoteLibrary = 1;
+const int kMainTabPlayback = 2;
+const int kMainTabLibrary = 3;
+const int kMainTabQueue = 4;
+const int kMainTabSharing = 5;
+
+/// 设置页是 push 出来的独立路由，不占 `IndexedStack` 槽位；
+/// 但 Rail / dock 的「设置」条目和 `_onDestinationSelected` 需要同一个编号。
+const int kMainTabSettings = 6;
+
+/// `IndexedStack` 里实际存在的槽位数量（`kMainTabFolders` … `kMainTabSharing`）。
+const int kMainTabSlotCount = 6;
+
 /// 左侧导航栏（Rail）折叠态宽度：仅显示图标 + 悬浮提示
 const double kSidebarRailWidthCollapsed = 80.0;
 

@@ -16,6 +16,7 @@ import 'package:audio_core/audio_core.dart' show AppleOpenedFiles;
 import 'dialogs/close_window_action_dialog.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/main_layout.dart';
+import 'utils/layout_constants.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_temp_files.dart';
 import 'package:vynody/player/library/music_file_utils.dart';
@@ -142,7 +143,7 @@ Future<void> _handleFileOpenArgs(
       if (!context.mounted) {
         return;
       }
-      await navigateToMainTab(context, index: 1);
+      await navigateToMainTab(context, index: kMainTabPlayback);
       AppLog.log(
         '[external-open] navigateToMainTab(1) done path=$path',
         mirrorToConsole: true,
@@ -890,7 +891,8 @@ class _MyAppState extends ConsumerState<MyApp>
           final isStressTest = widget.args.any(
             (arg) => arg == '--stress-test' || arg == '--audio-stress-test',
           );
-          final initialIndex = (needOnboarding || isStressTest) ? 0 : 1;
+          final initialIndex =
+              (needOnboarding || isStressTest) ? kMainTabFolders : kMainTabPlayback;
           return [
             buildMainLayoutRoute(args: widget.args, initialIndex: initialIndex),
           ];

@@ -486,7 +486,6 @@ class _RemoteLibrarySongsViewState
                                                   RemoteLibraryNavUtils
                                                       .openArtist(
                                                     context,
-                                                    ref,
                                                     server: widget.server,
                                                     password: widget.password,
                                                     artistId: '',
@@ -574,7 +573,6 @@ class _RemoteLibrarySongsViewState
                                                 song.artist!.isNotEmpty) {
                                               RemoteLibraryNavUtils.openArtist(
                                                 context,
-                                                ref,
                                                 server: widget.server,
                                                 password: widget.password,
                                                 artistId: '',

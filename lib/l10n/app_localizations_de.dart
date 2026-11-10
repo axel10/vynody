@@ -5289,6 +5289,16 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ordner ist bereits in der Medienbibliothek indiziert';
 
   @override
+  String get remoteLibraryDisconnectConfirm =>
+      'Von dieser Mediathek trennen? Zum erneuten Öffnen ist eine neue Verbindung nötig. Die Wiedergabe ist nicht betroffen.';
+
+  @override
+  String get remoteLibrary => 'Remote-Mediathek';
+
+  @override
+  String get remoteLibraryOverview => 'Übersicht';
+
+  @override
   String get remoteLibraryBadge => 'Cloud';
 
   @override

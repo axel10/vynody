@@ -10,7 +10,6 @@ import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/remote/clients/remote_media_library_client.dart';
-import 'package:vynody/player/remote/remote_library_navigation.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
@@ -331,36 +330,27 @@ class SongLocatorHelper {
     final artistName = _nonEmpty(songData?['artist'] as String?);
     final coverArtId = _nonEmpty(songData?['coverArt'] as String?);
     final activeSession = ref.read(activeRemoteSessionProvider);
+    final bool isSameServer =
+        activeSession != null && activeSession.server.id == server.id;
 
-    if (activeSession == null || activeSession.server.id != server.id) {
+    if (!isSameServer) {
       ref.read(activeRemoteSessionProvider.notifier).setSession(
-            ActiveRemoteSession(
-              server: server,
-              password: password,
-              navidromeDetailStack: [
-                NavidromeAlbumRoute(
-                  albumId: albumId,
-                  albumName: albumName,
-                  artistName: artistName,
-                  coverArtId: coverArtId,
-                  highlightedSongPath: songPath,
-                ),
-              ],
-            ),
+            ActiveRemoteSession(server: server, password: password),
           );
-    } else {
-      RemoteLibraryNavUtils.openAlbum(
-        context,
-        ref,
-        server: server,
-        password: password,
-        albumId: albumId,
-        albumName: albumName,
-        artistName: artistName,
-        coverArtId: coverArtId,
-        highlightedSongPath: songPath,
-      );
     }
+
+    // 远程库是一级 tab，此刻页面可能还没构建过（拿不到 State），所以「打开这张
+    // 专辑」只能写成一次深链请求交给页面自己消费；切栏目交给 `MainLayout`，
+    // 它监听会话变化会自动把用户带到远程媒体库。
+    ref.read(remoteLibraryPendingDetailProvider.notifier).set(
+          NavidromeAlbumRoute(
+            albumId: albumId,
+            albumName: albumName,
+            artistName: artistName,
+            coverArtId: coverArtId,
+            highlightedSongPath: songPath,
+          ),
+        );
 
     ref.read(songHighlightProvider.notifier).highlight(songPath);
     return true;

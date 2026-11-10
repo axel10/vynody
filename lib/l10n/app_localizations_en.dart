@@ -5228,6 +5228,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Folder is already indexed in media library';
 
   @override
+  String get remoteLibraryDisconnectConfirm =>
+      'Disconnect from this library? You\'ll need to reconnect to open it again. Playback is not affected.';
+
+  @override
+  String get remoteLibrary => 'Remote Library';
+
+  @override
+  String get remoteLibraryOverview => 'Overview';
+
+  @override
   String get remoteLibraryBadge => 'Cloud';
 
   @override

@@ -5297,6 +5297,16 @@ class AppLocalizationsFr extends AppLocalizations {
       'Le dossier est déjà indexé dans la bibliothèque';
 
   @override
+  String get remoteLibraryDisconnectConfirm =>
+      'Se déconnecter de cette bibliothèque ? Une reconnexion sera nécessaire pour la rouvrir. La lecture n’est pas affectée.';
+
+  @override
+  String get remoteLibrary => 'Bibliothèque distante';
+
+  @override
+  String get remoteLibraryOverview => 'Aperçu';
+
+  @override
   String get remoteLibraryBadge => 'Cloud';
 
   @override

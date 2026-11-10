@@ -27,6 +27,8 @@ import '../pages/library_page.dart';
 import '../pages/queue_page.dart';
 import '../pages/settings_page.dart';
 import '../pages/sharing_page.dart';
+import '../pages/remote/remote_library_page.dart';
+import '../player/remote/remote_server_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_service.dart';
 import 'package:vynody/player/sharing/remote_control/remote_control_service.dart';
@@ -58,8 +60,6 @@ import 'package:vynody/utils/deleted_song_snack.dart';
 import 'package:vynody/utils/corrupted_song_snack.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 
-int _currentBaseTabIndex = 0;
-
 Route<void> buildMainLayoutRoute({
   required List<String> args,
   required int initialIndex,
@@ -72,7 +72,7 @@ Route<void> buildMainLayoutRoute({
     transitionDuration: const Duration(milliseconds: 380),
     reverseTransitionDuration: const Duration(milliseconds: 280),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      if (initialIndex == 1) {
+      if (initialIndex == kMainTabPlayback) {
         // 进入播放页：Apple Music 风格平滑饱满微缓入滑入（0.2, 0.0, 0.15, 1.0）；退出播放页：自顶向下滑落顺势滑出收起（easeInQuad）
         final slideAnimation =
             Tween<Offset>(
@@ -86,7 +86,7 @@ Route<void> buildMainLayoutRoute({
               ),
             );
         return SlideTransition(position: slideAnimation, child: child);
-      } else if (fromIndex == 1) {
+      } else if (fromIndex == kMainTabPlayback) {
         final curvedAnimation = CurvedAnimation(
           parent: animation,
           curve: const Cubic(0.2, 0.0, 0.15, 1.0),
@@ -114,7 +114,7 @@ Future<void> navigateToMainTab(
   final navigator = Navigator.of(context, rootNavigator: true);
   final container = ProviderScope.containerOf(context, listen: false);
 
-  if (index == 1) {
+  if (index == kMainTabPlayback) {
     // 目标是播放页：完全不产生路由跳转，若在二级页面则退回根页面后滑开抽屉
     if (navigator.canPop()) {
       navigator.popUntil((route) => route.isFirst);
@@ -126,7 +126,6 @@ Future<void> navigateToMainTab(
     if (navigator.canPop()) {
       navigator.popUntil((route) => route.isFirst);
     }
-    _currentBaseTabIndex = index;
     container.read(mainTabIndexProvider.notifier).setIndex(index);
   }
 }
@@ -164,6 +163,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       GlobalKey<FoldersPageState>();
   final GlobalKey<LibraryPageState> _libraryPageKey =
       GlobalKey<LibraryPageState>();
+  /// 远程媒体库一级页面的状态入口：返回键分发（分类页 → 概览）要用。
+  final GlobalKey<RemoteLibraryPageState> _remoteLibraryPageKey =
+      GlobalKey<RemoteLibraryPageState>();
   final Set<int> _visitedTabs = <int>{};
   final FloatingDockScrollHelper _dockScrollHelper = FloatingDockScrollHelper();
 
@@ -350,11 +352,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     }
 
     // 如果在曲库页且当前处于 3D 唱片封面流视图，则返回普通网格视图并恢复竖屏
-    if (_currentIndex == 2) {
+    if (_currentIndex == kMainTabLibrary) {
       final is3d = ref.read(isAlbum3DViewActiveProvider);
       final libState = _libraryPageKey.currentState;
       AppLog.log(
-        '[NavTrace] MainLayout: index 2 (LibraryPage), is3dView=$is3d, libraryPageState=${libState != null ? "exists" : "NULL"}',
+        '[NavTrace] MainLayout: index $kMainTabLibrary (LibraryPage), is3dView=$is3d, libraryPageState=${libState != null ? "exists" : "NULL"}',
         mirrorToConsole: true,
       );
       if (is3d) {
@@ -373,13 +375,27 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     }
 
     // 如果在目录页，且当前处于非根目录，则返回上一级目录
-    if (_currentIndex == 0) {
+    if (_currentIndex == kMainTabFolders) {
       final folderState = _foldersPageKey.currentState;
       AppLog.log(
-        '[NavTrace] MainLayout: index 0 (FoldersPage), foldersPageState=${folderState != null ? "exists" : "NULL"}',
+        '[NavTrace] MainLayout: index $kMainTabFolders (FoldersPage), foldersPageState=${folderState != null ? "exists" : "NULL"}',
         mirrorToConsole: true,
       );
       if (folderState?.handleBackPressed() ?? false) {
+        return;
+      }
+    }
+
+    // 远程媒体库：分类页 → 概览页由页面自己消费（同一套 `handleBackPressed`）。
+    // 停在概览页时不再有「上一级」——它与媒体库、队列、分享同为一个一级栏目，
+    // 退出远程库是概览页里的显式「断开连接」，不是返回键。
+    if (_currentIndex == kMainTabRemoteLibrary) {
+      final remoteState = _remoteLibraryPageKey.currentState;
+      AppLog.log(
+        '[NavTrace] MainLayout: index $kMainTabRemoteLibrary (RemoteLibrary), state=${remoteState != null ? "exists" : "NULL"}',
+        mirrorToConsole: true,
+      );
+      if (remoteState?.handleBackPressed() ?? false) {
         return;
       }
     }
@@ -389,7 +405,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     // 注意：判定必须放在这里，而不能放在 SharingPage 自己的 PopScope 里 ——
     // SharingPage 常驻在 IndexedStack 中，挂在它上面的 PopScope 会在其它 tab
     // 按返回键时同样被触发（PopScope 注册在路由上、与可见性无关）。
-    if (_currentIndex == 4) {
+    if (_currentIndex == kMainTabSharing) {
       final hasActiveTransfers = ref
           .read(activeTransfersProvider)
           .any(
@@ -398,7 +414,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                 s.status == TransferStatus.pending,
           );
       AppLog.log(
-        '[NavTrace] MainLayout: index 4 (SharingPage), hasActiveTransfers=$hasActiveTransfers',
+        '[NavTrace] MainLayout: index $kMainTabSharing (SharingPage), hasActiveTransfers=$hasActiveTransfers',
         mirrorToConsole: true,
       );
       if (hasActiveTransfers) {
@@ -443,7 +459,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       (arg) => arg == '--stress-test' || arg == '--audio-stress-test',
     );
     final bool shouldOpenPlaybackInitially =
-        !isStressTest && !needOnboarding && widget.initialIndex == 1;
+        !isStressTest && !needOnboarding && widget.initialIndex == kMainTabPlayback;
 
     _playbackDrawerAnimController = AnimationController(
       vsync: this,
@@ -454,7 +470,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
     _isPlaybackDrawerOpen = shouldOpenPlaybackInitially;
 
-    final initialBaseIndex = widget.initialIndex == 1 ? 0 : widget.initialIndex;
+    final initialBaseIndex = widget.initialIndex == kMainTabPlayback
+        ? kMainTabFolders
+        : widget.initialIndex;
     _currentIndex = isStressTest ? 0 : (needOnboarding ? 0 : initialBaseIndex);
     _visitedTabs.add(_currentIndex);
     _lastVolume = ref.read(audioVolumeProvider);
@@ -470,7 +488,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         ref.read(isPlaybackDrawerOpenProvider.notifier).setOpen(true);
       }
       ref.read(mainTabIndexProvider.notifier).setIndex(_currentIndex);
-      _currentBaseTabIndex = _currentIndex;
       if (needOnboarding) {
         _triggerOnboardingFlow();
       } else {
@@ -688,7 +705,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         debugPrint(
           '[external-open] _handleArgs navigateToMainTab begin path=$path',
         );
-        await navigateToMainTab(context, index: 1);
+        await navigateToMainTab(context, index: kMainTabPlayback);
         debugPrint(
           '[external-open] _handleArgs navigateToMainTab done path=$path',
         );
@@ -816,22 +833,22 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
       // Automatically navigate to the PlaybackPage (index 1) after clicking Play All
       debugPrint('[stress-test] Navigating to playback page...');
-      await _onDestinationSelected(1);
+      await _onDestinationSelected(kMainTabPlayback);
     } else {
       debugPrint(
         '[stress-test] WARNING: No music files available to run Play All in stress test.',
       );
       // Still navigate to PlaybackPage so the UI is on the correct page
-      await _onDestinationSelected(1);
+      await _onDestinationSelected(kMainTabPlayback);
     }
   }
 
   Future<void> _onDestinationSelected(int index) async {
-    if (index == 5) {
+    if (index == kMainTabSettings) {
       await _openSettingsPage();
       return;
     }
-    if (index == 1) {
+    if (index == kMainTabPlayback) {
       _expandPlayback();
       return;
     }
@@ -857,7 +874,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     // 展开动画（300ms）会和新页面紧接着的向下滚动收起判定撞在一起，
     // 表现为「先展开一下又收起」。只清掉上一页残留的累计距离与半收起进度。
     _dockScrollHelper.reset(ref);
-    _currentBaseTabIndex = index;
     Tooltip.dismissAllToolTips();
     setState(() {
       _currentIndex = index;
@@ -888,20 +904,44 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         : 0.0;
     final double leftPadding = railWidth;
 
+    // 远程媒体库是「有活跃会话才有内容」的一级栏目：会话被断开后槽位连同
+    // Rail / dock 入口一起消失（`_visitedTabs` 里的记录不影响，槽位由这里判断）。
+    final remoteSession = ref.watch(activeRemoteSessionProvider);
+    final bool canShowRemoteLibrary =
+        (remoteSession?.server.type.isMediaLibrary ?? false) &&
+        ref.watch(isProUnlockedProvider);
+
     return IndexedStack(
-      index: _currentIndex.clamp(0, 4),
+      index: _currentIndex.clamp(0, kMainTabSlotCount - 1),
       children: [
-        _visitedTabs.contains(0)
+        _visitedTabs.contains(kMainTabFolders)
             ? Padding(
                 padding: EdgeInsets.only(top: 0, left: leftPadding),
                 child: FoldersPage(
                   key: _foldersPageKey,
-                  onOpenPlayback: () => _onDestinationSelected(1),
+                  onOpenPlayback: () => _onDestinationSelected(kMainTabPlayback),
                 ),
               )
             : const SizedBox.shrink(),
+        canShowRemoteLibrary &&
+                _visitedTabs.contains(kMainTabRemoteLibrary)
+            ? Padding(
+                // left 恒为 0：让位下放到 `RemotePageShell(avoidRail: true)`。
+                // 远程详情页的封面要能延伸到 Rail 下方、顶栏浮动胶囊贴 Rail 右侧，
+                // 与本地库详情页一致；外层一刀切会让它永远做不到。
+                padding: const EdgeInsets.only(top: 0, left: 0),
+                child: RemoteLibraryPage(
+                  // 换服务器时必须整页重建：五个 loader 的 State 全部绑在
+                  // server/password 上，复用 State 会拿着旧服务器继续拉数据。
+                  key: _remoteLibraryPageKey,
+                  server: remoteSession!.server,
+                  password: remoteSession.password,
+                ),
+              )
+            : const SizedBox.shrink(),
+        // 播放页是覆盖在底层 Tab 之上的抽屉，不占导航槽位（保留占位便于对照索引）
         const SizedBox.shrink(),
-        _visitedTabs.contains(2)
+        _visitedTabs.contains(kMainTabLibrary)
             ? Padding(
                 padding: const EdgeInsets.only(top: 0, left: 0),
                 child: LibraryPage(
@@ -914,13 +954,13 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                 ),
               )
             : const SizedBox.shrink(),
-        _visitedTabs.contains(3)
+        _visitedTabs.contains(kMainTabQueue)
             ? Padding(
                 padding: EdgeInsets.only(top: 0, left: leftPadding),
                 child: const QueuePage(),
               )
             : const SizedBox.shrink(),
-        _visitedTabs.contains(4)
+        _visitedTabs.contains(kMainTabSharing)
             ? Padding(
                 padding: EdgeInsets.only(
                   top: isDesktop ? 32 : 0,
@@ -943,9 +983,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     nav.popUntil((route) => route.isFirst);
 
     // Ensure we are on directory page (tab 0)
-    if (_currentIndex != 0) {
+    if (_currentIndex != kMainTabFolders) {
       _isOnboardingDialogOpen = false;
-      await _onDestinationSelected(0);
+      await _onDestinationSelected(kMainTabFolders);
       return;
     }
 
@@ -1236,7 +1276,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             action: SnackBarAction(
               label: l10n.goToSettings,
               onPressed: () {
-                _onDestinationSelected(4);
+                _onDestinationSelected(kMainTabSharing);
               },
             ),
           ),
@@ -1322,6 +1362,13 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     final isPlaylistSelectionMode =
         selectionScope == LibrarySelectionScope.playlist;
     final isQueueSelectionMode = selectionScope == LibrarySelectionScope.queue;
+    // 多选面板贴在当前页底部，MiniPlayer / dock 要让开它那 80dp。
+    // 每个作用域只在自己所属的 tab 上生效，否则切到别的 tab 会莫名抬高。
+    final bool isSelectionOnCurrentTab =
+        (isRootSelectionMode && _currentIndex == kMainTabFolders) ||
+        (isPlaylistSelectionMode && _currentIndex == kMainTabLibrary) ||
+        (isQueueSelectionMode && _currentIndex == kMainTabQueue);
+    final double selectionBottomInset = isSelectionOnCurrentTab ? 80.0 : 0.0;
     ref.listen<double>(audioVolumeProvider, (previous, next) {
       if (!mounted) return;
       final volumeChanged =
@@ -1356,10 +1403,35 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
     });
 
+    // 远程媒体库的生命周期绑在 `ActiveRemoteSession` 上，不是路由：
+    // * 会话出现（媒体源页点服务器 / 定位远程歌曲）→ 一级栏目才有内容，
+    //   同时把分类索引归零，避免带着上一次的子分类直接进二级页；
+    // * 会话被断开（概览页「断开连接」/ 服务器被删 / 连接失败放弃）→
+    //   栏目与 Rail、dock 入口一起消失，当前停在远程库就退回媒体源。
+    ref.listen<ActiveRemoteSession?>(activeRemoteSessionProvider, (
+      previous,
+      next,
+    ) {
+      // WebDAV / SMB 是目录树会话，仍在「媒体源」tab 的页面栈里，不进这个栏目。
+      if (next != null && next.server.type.isMediaLibrary) {
+        if (previous?.server.id == next.server.id) return;
+        ref.read(remoteLibraryActiveTabIndexProvider.notifier).set(null);
+        if (_isPlaybackDrawerOpen) _collapsePlayback();
+        _selectTab(kMainTabRemoteLibrary);
+        return;
+      }
+      ref.read(remoteLibraryActiveTabIndexProvider.notifier).set(null);
+      if (_currentIndex == kMainTabRemoteLibrary) {
+        _selectTab(kMainTabFolders);
+      }
+    });
+
     ref.listen<int>(mainTabIndexProvider, (previous, next) {
-      if (next == 1) {
+      if (next == kMainTabPlayback) {
         _expandPlayback();
-      } else if (_currentIndex != next && next >= 0 && next <= 4) {
+      } else if (_currentIndex != next &&
+          next >= 0 &&
+          next < kMainTabSlotCount) {
         _selectTab(next);
       }
     });
@@ -1447,7 +1519,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                               .handleScrollNotification(notification, ref),
                           child: GlobalDropTarget(
                             enable:
-                                _currentIndex != 3 &&
+                                _currentIndex != kMainTabQueue &&
                                 !(isSmallWin &&
                                     settings.smallWindowBottomPanelMode !=
                                         SmallWindowBottomPanelMode.collapsed),
@@ -1492,7 +1564,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                             extended: railWidth > kSidebarRailWidthCollapsed,
                             selectedIndex: _currentIndex,
                             onDestinationSelected: (index) {
-                              if (index == 1) {
+                              if (index == kMainTabPlayback) {
                                 ref
                                     .read(settingsServiceProvider)
                                     .resetInactivity();
@@ -1500,7 +1572,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                               // 只有「再次点击已选中的媒体库主项」才退回仪表盘；
                               // 从其它主页面切回媒体库时不清空子分类索引，让原页面
                               // （含各子分类的路由栈）原样恢复。
-                              if (index == 2 && _currentIndex == 2) {
+                              if (index == kMainTabLibrary &&
+                                  _currentIndex == kMainTabLibrary) {
                                 ref
                                     .read(
                                       libraryActiveTabIndexProvider.notifier,
@@ -1521,8 +1594,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                               ref
                                   .read(libraryActiveTabIndexProvider.notifier)
                                   .set(subIndex);
-                              if (_currentIndex != 2) {
-                                _onDestinationSelected(2);
+                              if (_currentIndex != kMainTabLibrary) {
+                                _onDestinationSelected(kMainTabLibrary);
                               }
                             },
                             indicatorColor: navIndicatorBaseColor,
@@ -1547,13 +1620,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                             !isKeyboardVisible)
                         ? (20.0 +
                               MediaQuery.of(context).padding.bottom +
-                              (((isRootSelectionMode && _currentIndex == 0) ||
-                                      (isPlaylistSelectionMode &&
-                                          _currentIndex == 2) ||
-                                      (isQueueSelectionMode &&
-                                          _currentIndex == 3))
-                                  ? 80.0
-                                  : 0.0))
+                              selectionBottomInset)
                         : -120.0,
                     left: railWidth + extraLeft,
                     right: rightDrawerWidth,
@@ -1581,7 +1648,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                         showMiniVolumeSlider:
                                             _showMiniVolumeSlider,
                                         onMiniTap: () =>
-                                            _onDestinationSelected(1),
+                                            _onDestinationSelected(kMainTabPlayback),
                                         onPrevious: audio.previous,
                                         onPlayPause: audio.togglePlay,
                                         onNext: audio.next,
@@ -1666,12 +1733,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                             hideMiniPlayerForSelection,
                         rightDrawerWidth: rightDrawerWidth,
                         additionalBottomOffset:
-                            (((isRootSelectionMode && _currentIndex == 0) ||
-                                (isPlaylistSelectionMode &&
-                                    _currentIndex == 2) ||
-                                (isQueueSelectionMode && _currentIndex == 3))
-                            ? 80.0
-                            : 0.0),
+                            selectionBottomInset,
                       );
                       if (secondaryAnimation == null) return dock;
                       return AnimatedBuilder(
@@ -1734,8 +1796,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                       // 保持与「当前路由位置」一致，而不是全部熄掉。
                                       currentIndex: _currentIndex,
                                       onDestinationSelected: (index) {
-                                        if (index == 1) return;
-                                        if (index == 5) {
+                                        if (index == kMainTabPlayback) return;
+                                        if (index == kMainTabSettings) {
                                           _openSettingsPage();
                                           return;
                                         }
@@ -1864,36 +1926,91 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
     final settings = ref.watch(settingsServiceProvider);
     final isDark = theme.brightness == Brightness.dark;
 
+    // 远程媒体库是「有活跃会话才存在」的一级栏目：会话断开后条目与 Rail 上
+    // 的整段小节（含子分类）一起消失，不会留下点进去是空白的入口。
+    final remoteSession = ref.watch(activeRemoteSessionProvider);
+    final bool hasRemoteLibrary =
+        (remoteSession?.server.type.isMediaLibrary ?? false) &&
+        ref.watch(isProUnlockedProvider);
+
     final destinations = [
       (
-        index: 0,
+        index: kMainTabFolders,
         label: l10n.scanDirectory,
         icon: Icons.folder_outlined,
         selectedIcon: Icons.folder,
       ),
+      if (hasRemoteLibrary)
+        (
+          index: kMainTabRemoteLibrary,
+          label: l10n.remoteLibrary,
+          icon: Icons.cloud_outlined,
+          selectedIcon: Icons.cloud,
+        ),
       (
-        index: 2,
+        index: kMainTabLibrary,
         label: l10n.homeTab,
         icon: Icons.playlist_play_outlined,
         selectedIcon: Icons.playlist_play,
       ),
       (
-        index: 3,
+        index: kMainTabQueue,
         label: l10n.queueTab,
         icon: Icons.queue_music_outlined,
         selectedIcon: Icons.queue_music,
       ),
       (
-        index: 4,
+        index: kMainTabSharing,
         label: l10n.share,
         icon: Icons.share_outlined,
         selectedIcon: Icons.share,
       ),
       (
-        index: 5,
+        index: kMainTabSettings,
         label: l10n.settings,
         icon: Icons.settings_outlined,
         selectedIcon: Icons.settings,
+      ),
+    ];
+
+    // 远程媒体库的二级分类，顺序与 `remoteLibraryActiveTabIndexProvider` 一致
+    // （也就是 `RemoteLibraryPage._tabNavigatorKeys` 的下标）。主项即概览页。
+    final remoteSubDestinations = [
+      (
+        index: 0,
+        label: l10n.albums,
+        icon: Icons.album_outlined,
+        selectedIcon: Icons.album_rounded,
+      ),
+      (
+        index: 1,
+        label: l10n.artists,
+        icon: Icons.mic_external_on_outlined,
+        selectedIcon: Icons.mic_external_on_rounded,
+      ),
+      (
+        index: 2,
+        label: l10n.genres,
+        icon: Icons.style_outlined,
+        selectedIcon: Icons.style_rounded,
+      ),
+      (
+        index: 3,
+        label: l10n.songs,
+        icon: Icons.music_note_outlined,
+        selectedIcon: Icons.music_note_rounded,
+      ),
+      (
+        index: 4,
+        label: l10n.playlists,
+        icon: Icons.queue_music_outlined,
+        selectedIcon: Icons.queue_music_rounded,
+      ),
+      (
+        index: 5,
+        label: l10n.search,
+        icon: Icons.search_rounded,
+        selectedIcon: Icons.search_rounded,
       ),
     ];
 
@@ -1984,6 +2101,8 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
     final int activeMainIndex = widget.selectedIndex;
     final int? activeSubIndex = widget.librarySubIndex;
     final bool isLibrarySubActive = activeSubIndex != null;
+    /// 远程库当前选中的二级分类；null = 停在概览页。
+    final int? remoteSubIndex = ref.watch(remoteLibraryActiveTabIndexProvider);
 
     // 设置页固定钉在左下角，其余条目放进可滚动区
     final rows = <_RailRow>[];
@@ -1999,11 +2118,49 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
                   '',
             ));
 
-    // 1. 上方主要导航区：文件(0)、媒体库(2)、队列(3)、分享(4)
+    // 1. 上方主要导航区：媒体源(0)、远程媒体库(1，有条件)、媒体库(3)、队列(4)、分享(5)
     for (int i = 0; i < destinations.length - 1; i++) {
       final d = destinations[i];
 
-      if (d.index == 2) {
+      if (d.index == kMainTabRemoteLibrary) {
+        // 远程媒体库主项 = 概览页；子分类选中时主项不亮（与媒体库同一约定）。
+        final bool isHomeSelected =
+            d.index == activeMainIndex &&
+            !widget.isSettingsActive &&
+            remoteSubIndex == null;
+
+        if (isHomeSelected && !_isEditingLibrary) {
+          pillRow = rows.length;
+        }
+
+        rows.add(
+          _RailRow(
+            height: itemHeight,
+            child: _buildTile(
+              icon: d.icon,
+              selectedIcon: d.selectedIcon,
+              label: d.label,
+              isSelected: isHomeSelected,
+              activeColor: activeColor,
+              inactiveColor: inactiveColor,
+              onTap: () {
+                if (_isEditingLibrary) {
+                  setState(() {
+                    _isEditingLibrary = false;
+                  });
+                }
+                // 再次点已选中的主项才回概览；从别的栏目切回来保留原分类与栈。
+                if (activeMainIndex == kMainTabRemoteLibrary) {
+                  ref
+                      .read(remoteLibraryActiveTabIndexProvider.notifier)
+                      .set(null);
+                }
+                widget.onDestinationSelected(d.index);
+              },
+            ),
+          ),
+        );
+      } else if (d.index == kMainTabLibrary) {
         // 媒体库（媒体库首页独立项）
         final bool isHomeSelected =
             d.index == activeMainIndex &&
@@ -2089,7 +2246,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
 
       final bool isSubSelected =
           !_isEditingLibrary &&
-          2 == activeMainIndex &&
+          kMainTabLibrary == activeMainIndex &&
           !widget.isSettingsActive &&
           isLibrarySubActive &&
           sub.index == widget.librarySubIndex;
@@ -2167,7 +2324,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
       // 全部播放列表入口
       final bool isAllPlaylistsSelected =
           !_isEditingLibrary &&
-          2 == activeMainIndex &&
+          kMainTabLibrary == activeMainIndex &&
           !widget.isSettingsActive &&
           isLibrarySubActive &&
           0 == widget.librarySubIndex &&
@@ -2201,7 +2358,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
         final bool isFav = pl.id == PlaylistService.favoritePlaylistId;
         final bool isPlSelected =
             !_isEditingLibrary &&
-            2 == activeMainIndex &&
+            kMainTabLibrary == activeMainIndex &&
             !widget.isSettingsActive &&
             isLibrarySubActive &&
             0 == widget.librarySubIndex &&
@@ -2228,6 +2385,57 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
               onTap: () {
                 ref.read(selectedPlaylistIdProvider.notifier).set(pl.id);
                 widget.onLibrarySubDestinationSelected(0);
+              },
+            ),
+          ),
+        );
+      }
+    }
+
+    // 5. 远程媒体库分类（会话存在时才出现；主项在主导航区）
+    if (hasRemoteLibrary) {
+      rows.add(
+        _RailRow(
+          height: sectionHeaderHeight,
+          child: _buildStaticSectionLabel(
+            title: l10n.remoteLibrary,
+            inactiveColor: sectionLabelColor,
+          ),
+        ),
+      );
+
+      for (final sub in remoteSubDestinations) {
+        final bool isSubSelected =
+            !_isEditingLibrary &&
+            kMainTabRemoteLibrary == activeMainIndex &&
+            !widget.isSettingsActive &&
+            sub.index == remoteSubIndex;
+
+        if (isSubSelected) {
+          pillRow = rows.length;
+        }
+
+        rows.add(
+          _RailRow(
+            height: subItemHeight,
+            child: _buildTile(
+              icon: sub.icon,
+              selectedIcon: sub.selectedIcon,
+              label: sub.label,
+              isSelected: isSubSelected,
+              activeColor: activeColor,
+              inactiveColor: inactiveColor,
+              onTap: () {
+                Tooltip.dismissAllToolTips();
+                ref.read(librarySelectionScopeProvider.notifier).clear();
+                ref
+                    .read(remoteLibraryActiveTabIndexProvider.notifier)
+                    .set(sub.index);
+                // 进退栈由 `RemoteLibraryPage` 统一响应 provider 完成，
+                // 这里只保证人已经在远程库这个一级栏目上。
+                if (kMainTabRemoteLibrary != activeMainIndex) {
+                  widget.onDestinationSelected(kMainTabRemoteLibrary);
+                }
               },
             ),
           ),
@@ -2409,6 +2617,44 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// 静态分区小标题（无「编辑 / 完成」按钮）。
+  /// 远程媒体库的分类由服务端能力决定，不可排序也不可隐藏，所以不需要编辑态。
+  Widget _buildStaticSectionLabel({
+    required String title,
+    required Color inactiveColor,
+  }) {
+    if (!widget.extended) {
+      return Center(
+        child: Container(
+          width: 24.0,
+          height: 1.0,
+          color: inactiveColor.withValues(alpha: 0.20),
+        ),
+      );
+    }
+    return Container(
+      height: 36.0,
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.only(
+        left: 20.0,
+        right: 14.0,
+        top: 10.0,
+        bottom: 2.0,
+      ),
+      child: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 12.0,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+          color: inactiveColor,
         ),
       ),
     );
