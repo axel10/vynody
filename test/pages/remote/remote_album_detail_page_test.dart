@@ -141,7 +141,7 @@ void main() {
     );
   }
 
-  testWidgets('RemoteAlbumDetailPage renders AppTopNavBar with actions and aligns to contentMaxWidth', (tester) async {
+  testWidgets('RemoteAlbumDetailPage renders AppTopNavBar without actions and aligns to contentMaxWidth', (tester) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -152,12 +152,13 @@ void main() {
     // Verify AppTopNavBar is rendered instead of legacy AlbumDetailNavBar
     expect(find.byType(AppTopNavBar), findsOneWidget);
     expect(find.byIcon(kAppBackIcon), findsOneWidget);
-    expect(find.byIcon(Icons.my_location_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.download_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.my_location_rounded), findsNothing);
+    expect(find.byIcon(Icons.download_rounded), findsNothing);
 
     // Verify AppTopNavBar receives contentMaxWidth = kSingleColumnContentMaxWidth
     final navBar = tester.widget<AppTopNavBar>(find.byType(AppTopNavBar));
     expect(navBar.contentMaxWidth, equals(kSingleColumnContentMaxWidth));
+    expect(navBar.actions, isNull);
   });
 
   testWidgets('AlbumPortraitHeaderBanner and AlbumLandscapeHeaderBanner render remote album presentation', (tester) async {

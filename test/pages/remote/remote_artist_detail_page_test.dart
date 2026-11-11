@@ -132,7 +132,7 @@ void main() {
     );
   }
 
-  testWidgets('RemoteArtistDetailPage renders AppTopNavBar with download action and aligns to contentMaxWidth', (tester) async {
+  testWidgets('RemoteArtistDetailPage renders AppTopNavBar without actions and aligns to contentMaxWidth', (tester) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -143,14 +143,15 @@ void main() {
     // Verify AppBar is not used
     expect(find.byType(AppBar), findsNothing);
 
-    // Verify AppTopNavBar is rendered
+    // Verify AppTopNavBar is rendered without actions
     expect(find.byType(AppTopNavBar), findsOneWidget);
     expect(find.byIcon(kAppBackIcon), findsOneWidget);
-    expect(find.byIcon(Icons.download_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.download_rounded), findsNothing);
 
     // Verify contentMaxWidth is set
     final navBar = tester.widget<AppTopNavBar>(find.byType(AppTopNavBar));
     expect(navBar.contentMaxWidth, equals(kFolderPageMaxWidth));
+    expect(navBar.actions, isNull);
   });
 
   testWidgets('RemoteArtistDetailPage onGoBack callback triggers correctly', (tester) async {

@@ -17,7 +17,6 @@ import '../../widgets/app_top_nav_bar.dart';
 import '../../widgets/draggable_remote_album_item.dart';
 import '../../widgets/folder_layout_utils.dart';
 import '../../widgets/folder_zoom_gesture_layer.dart';
-import '../../widgets/hoverable_card.dart';
 import '../../widgets/remote_artwork_widget.dart';
 import '../../widgets/playing_equalizer_icon.dart';
 import '../../l10n/app_localizations.dart';
@@ -27,7 +26,6 @@ import '../../player/remote/remote_library_navigation.dart';
 import '../../utils/remote_context_menu_utils.dart';
 import '../../utils/remote_download_feedback.dart';
 import '../../widgets/library_selection_scope.dart';
-import 'remote_download_manager_page.dart';
 import 'widgets/remote_library_selection_actions.dart';
 import 'widgets/remote_song_selection_panel.dart';
 import 'widgets/remote_library_toolbar_widgets.dart';
@@ -130,23 +128,6 @@ class _RemoteArtistDetailPageState
         isFloatingCapsule: isPastTop,
         contentMaxWidth: kFolderPageMaxWidth,
         onBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
-        actions: [
-          IconButton(
-            icon: Badge(
-              isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
-              label: Text('${ref.watch(activeDownloadsCountProvider)}'),
-              child: const Icon(Icons.download_rounded, size: 20),
-            ),
-            tooltip: l10n.downloadManager,
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (_) => const RemoteDownloadManagerPage(),
-                ),
-              );
-            },
-          ),
-        ],
       ),
     );
   }

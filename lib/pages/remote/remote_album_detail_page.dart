@@ -26,10 +26,7 @@ import '../../utils/remote_download_feedback.dart';
 import '../../widgets/library_selection_scope.dart';
 import '../../widgets/playback_ui_tuning.dart';
 import '../../widgets/remote_page_shell.dart';
-import 'remote_download_manager_page.dart';
 import 'widgets/remote_song_selection_panel.dart';
-import '../../utils/song_locator_helper.dart';
-import '../../widgets/locate_song_button.dart';
 
 class RemoteAlbumDetailPage extends ConsumerStatefulWidget {
   final RemoteServer server;
@@ -148,19 +145,6 @@ class _RemoteAlbumDetailPageState
         curve: Curves.easeInOut,
       );
     }
-  }
-
-  Future<void> _locateCurrentSong() async {
-    final currentMusic = ref.read(audioCurrentMusicProvider);
-    if (currentMusic == null) return;
-
-    final inCurrentAlbum = _tracks.any((t) => t.path == currentMusic.path);
-    if (inCurrentAlbum) {
-      _scrollToTrack(currentMusic.path);
-      return;
-    }
-
-    await SongLocatorHelper.locateCurrentPlayingSong(ref, context);
   }
 
   Future<void> _loadAlbumDetails({bool forceRefresh = false}) async {
@@ -488,33 +472,6 @@ class _RemoteAlbumDetailPageState
           ),
         ),
         style: outlinedStyle,
-      ),
-    ];
-
-    final navActions = [
-      LocateSongIconButton(
-        tooltip: l10n.locateCurrentSong,
-        onPressed: _locateCurrentSong,
-      ),
-      Consumer(
-        builder: (context, ref, child) {
-          final activeCount = ref.watch(activeDownloadsCountProvider);
-          return IconButton(
-            icon: Badge(
-              isLabelVisible: activeCount > 0,
-              label: Text('$activeCount'),
-              child: const Icon(Icons.download_rounded, size: 20),
-            ),
-            tooltip: l10n.downloadManager,
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (_) => const RemoteDownloadManagerPage(),
-                ),
-              );
-            },
-          );
-        },
       ),
     ];
 
@@ -873,7 +830,6 @@ class _RemoteAlbumDetailPageState
         isFloatingCapsule: isPastTop,
         contentMaxWidth: kSingleColumnContentMaxWidth,
         onBack: _handleBack,
-        actions: navActions,
       ),
       selectionPanel: (!_isLoading && _error == null)
           ? AnimatedSelectionPanel(

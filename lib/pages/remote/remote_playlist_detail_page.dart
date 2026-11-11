@@ -25,7 +25,6 @@ import '../../utils/remote_download_feedback.dart';
 import '../../widgets/library_selection_scope.dart';
 import '../../widgets/playback_ui_tuning.dart';
 import '../../widgets/remote_page_shell.dart';
-import 'remote_download_manager_page.dart';
 import 'widgets/remote_song_selection_panel.dart';
 import '../../widgets/app_top_nav_bar.dart';
 import '../../widgets/folder_layout_utils.dart';
@@ -1755,23 +1754,6 @@ class _RemotePlaylistDetailContentState
         isFloatingCapsule: isPastTop,
         contentMaxWidth: kFolderPageMaxWidth,
         onBack: _handleBack,
-        actions: [
-          IconButton(
-            icon: Badge(
-              isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
-              label: Text('${ref.watch(activeDownloadsCountProvider)}'),
-              child: const Icon(Icons.download_rounded, size: 20),
-            ),
-            tooltip: l10n.downloadManager,
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (_) => const RemoteDownloadManagerPage(),
-                ),
-              );
-            },
-          ),
-        ],
       ),
       selectionPanel: (!_isLoading && _error == null)
           ? AnimatedSelectionPanel(
