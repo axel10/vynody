@@ -575,7 +575,8 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                             color: Colors.transparent,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(16),
-                              onTap: () => widget.onDestinationSelected(1),
+                              onTap: () =>
+                                  widget.onDestinationSelected(kMainTabPlayback),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 4.0,

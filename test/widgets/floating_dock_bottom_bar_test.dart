@@ -13,6 +13,7 @@ import 'package:vynody/widgets/animated_play_pause_button.dart';
 import 'package:vynody/widgets/floating_dock_bottom_bar.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
 import 'package:vynody/pages/main_layout_riverpod.dart';
+import 'package:vynody/utils/layout_constants.dart';
 
 class _MockAudioService extends Fake implements AudioService {
   @override
@@ -42,6 +43,7 @@ void main() {
     required EdgeInsets padding,
     TargetPlatform platform = TargetPlatform.iOS,
     MusicFile? currentMusic,
+    ValueChanged<int>? onDestinationSelected,
   }) {
     return ProviderScope(
       overrides: [
@@ -68,7 +70,7 @@ void main() {
             children: [
               FloatingDockBottomBar(
                 currentIndex: 0,
-                onDestinationSelected: (_) {},
+                onDestinationSelected: onDestinationSelected ?? (_) {},
                 isPlayback: false,
                 isHidden: false,
               ),
@@ -599,6 +601,37 @@ void main() {
     // Verify play_circle_outline (the removed Play tab) is not in the dock tabs
     expect(find.byIcon(Icons.play_circle_outline), findsNothing);
     expect(find.byIcon(Icons.play_circle), findsNothing);
+  });
+
+  testWidgets(
+      'Tapping mini player info triggers onDestinationSelected with kMainTabPlayback',
+      (tester) async {
+    int? selectedIndex;
+    final testMusic = const MusicFile(
+      path: '/test/song.mp3',
+      name: 'song.mp3',
+      title: 'Test Song',
+      artist: 'Test Artist',
+      durationMillis: 180000,
+    );
+
+    await tester.pumpWidget(
+      buildTestWidget(
+        screenSize: const Size(393, 852),
+        padding: const EdgeInsets.only(bottom: 34),
+        currentMusic: testMusic,
+        onDestinationSelected: (index) {
+          selectedIndex = index;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Test Song'), findsOneWidget);
+    await tester.tap(find.text('Test Song'));
+    await tester.pumpAndSettle();
+
+    expect(selectedIndex, equals(kMainTabPlayback));
   });
 }
 
