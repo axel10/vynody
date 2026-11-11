@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:proxy_getter/proxy_getter.dart';
 import 'package:vynody/utils/app_proxy_manager.dart';
 
 void main() {
@@ -161,6 +162,111 @@ void main() {
       manager.updateSettings(mode: AppProxyMode.system);
       final rule = manager.resolveProxyRuleSync(Uri.parse('https://demo.navidrome.org/rest/ping.view'));
       expect(rule, isNotEmpty);
+    });
+  });
+
+  group('AppProxyManager system proxy cache', () {
+    late AppProxyManager manager;
+    
+    const proxyUri = 'https://generativelanguage.googleapis.com/v1beta';
+
+    setUp(() {
+      manager = AppProxyManager.instance;
+      manager.updateSettings(mode: AppProxyMode.system);
+      manager.clearCache();
+    });
+
+    tearDown(() {
+      manager.systemProxyLoaderOverride = null;
+      manager.clearCache();
+    });
+
+    test('loader failure is not cached and retried on next resolution', () async {
+      var calls = 0;
+      manager.systemProxyLoaderOverride = () async {
+        calls++;
+        if (calls == 1) throw Exception('channel unavailable');
+        return const SystemProxy(
+          enable: true,
+          host: '127.0.0.1',
+          port: 7890,
+          bypass: '',
+        );
+      };
+
+      final failed = await manager.resolveProxyRule(Uri.parse(proxyUri));
+      expect(failed, equals('DIRECT'));
+      expect(manager.cachedSystemProxy, isNull);
+
+      manager.clearCache();
+      final retried = await manager.resolveProxyRule(Uri.parse(proxyUri));
+      expect(retried, equals('PROXY 127.0.0.1:7890; DIRECT'));
+      expect(calls, equals(2));
+    });
+
+    test('successful reads are cached within TTL', () async {
+      var calls = 0;
+      manager.systemProxyLoaderOverride = () async {
+        calls++;
+        return const SystemProxy(
+          enable: true,
+          host: '127.0.0.1',
+          port: 7890,
+          bypass: '',
+        );
+      };
+
+      await manager.resolveProxyRule(Uri.parse(proxyUri));
+      await manager.resolveProxyRule(Uri.parse('$proxyUri?2'));
+
+      expect(calls, equals(1));
+    });
+
+    test('cache expiry re-reads system proxy without settings change', () async {
+      var calls = 0;
+      manager.systemProxyLoaderOverride = () async {
+        calls++;
+        return const SystemProxy(
+          enable: true,
+          host: '127.0.0.1',
+          port: 7890,
+          bypass: '',
+        );
+      };
+
+      await manager.resolveProxyRule(Uri.parse(proxyUri));
+      expect(calls, equals(1));
+
+      final cachedAt = manager.systemProxyCachedAtForTest!;
+      manager.systemProxyCachedAtForTest = cachedAt.subtract(
+        AppProxyManager.systemProxyCacheTtl + const Duration(seconds: 1),
+      );
+
+      // 换一个 URL，避免被按 URL 缓存的规则短路，验证的是系统代理缓存本身过期。
+      await manager.resolveProxyRule(Uri.parse('$proxyUri?after-expiry'));
+      expect(calls, equals(2));
+    });
+
+    test('concurrent resolutions share one in-flight refresh', () async {
+      var calls = 0;
+      manager.systemProxyLoaderOverride = () async {
+        calls++;
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        return const SystemProxy(
+          enable: true,
+          host: '127.0.0.1',
+          port: 7890,
+          bypass: '',
+        );
+      };
+
+      await Future.wait([
+        manager.resolveProxyRule(Uri.parse('$proxyUri?a')),
+        manager.resolveProxyRule(Uri.parse('$proxyUri?b')),
+        manager.resolveProxyRule(Uri.parse('$proxyUri?c')),
+      ]);
+
+      expect(calls, equals(1));
     });
   });
 }
