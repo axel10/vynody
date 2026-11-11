@@ -6083,7 +6083,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Este dispositivo aún no se ha sincronizado';
 
   @override
-  String get reduceMotionGroup => 'Reducir animaciones';
+  String get animationsAndEffectsGroup => 'Animaciones y efectos';
 
   @override
   String get playingIndicatorAnimation =>

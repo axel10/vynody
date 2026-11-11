@@ -6025,7 +6025,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lanSyncLastSyncNever => 'Bu cihaz henüz eşitlenmedi';
 
   @override
-  String get reduceMotionGroup => 'Hareketi azalt';
+  String get animationsAndEffectsGroup => 'Animasyonlar ve efektler';
 
   @override
   String get playingIndicatorAnimation => 'Oynatma göstergesi animasyonu';

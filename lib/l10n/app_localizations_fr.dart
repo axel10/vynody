@@ -6084,7 +6084,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cet appareil n\'a pas encore été synchronisé';
 
   @override
-  String get reduceMotionGroup => 'Réduire les animations';
+  String get animationsAndEffectsGroup => 'Animations et effets';
 
   @override
   String get playingIndicatorAnimation =>

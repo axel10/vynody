@@ -5816,7 +5816,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lanSyncLastSyncNever => '이 기기는 아직 동기화한 적이 없습니다';
 
   @override
-  String get reduceMotionGroup => '모션 줄이기';
+  String get animationsAndEffectsGroup => '애니메이션 및 효과';
 
   @override
   String get playingIndicatorAnimation => '재생 중 아이콘 애니메이션';

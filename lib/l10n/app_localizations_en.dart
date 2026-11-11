@@ -5999,7 +5999,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lanSyncLastSyncNever => 'This device has not synced yet';
 
   @override
-  String get reduceMotionGroup => 'Reduce motion';
+  String get animationsAndEffectsGroup => 'Animations & effects';
 
   @override
   String get playingIndicatorAnimation => 'Playing indicator animation';

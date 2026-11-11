@@ -2206,7 +2206,7 @@
   "lanSyncViewDetails": "Details anzeigen",
   "lanSyncLastSync": "Letzte Synchronisierung",
   "lanSyncLastSyncNever": "Dieses Gerät wurde noch nicht synchronisiert",
-  "reduceMotionGroup": "Bewegungen reduzieren",
+  "animationsAndEffectsGroup": "Animationen & Effekte",
   "playingIndicatorAnimation": "Animation des Wiedergabe-Indikators",
   "playingIndicatorAnimationDescription": "Aus: Der aktuelle Titel zeigt statt des animierten Equalizers ein statisches Pause- oder Play-Symbol.",
   "miniPlayerSpectrum": "Mini-Player-Spektrum",

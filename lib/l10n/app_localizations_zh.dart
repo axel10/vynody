@@ -5715,7 +5715,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lanSyncLastSyncNever => '这台设备还没有同步过';
 
   @override
-  String get reduceMotionGroup => '减少动效';
+  String get animationsAndEffectsGroup => '动画与特效';
 
   @override
   String get playingIndicatorAnimation => '正在播放图标动画';
@@ -11456,7 +11456,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get lanSyncLastSyncNever => '這台裝置還沒有同步過';
 
   @override
-  String get reduceMotionGroup => '減少動效';
+  String get animationsAndEffectsGroup => '動畫與特效';
 
   @override
   String get playingIndicatorAnimation => '正在播放圖示動畫';

@@ -2338,7 +2338,7 @@
   "lanSyncViewDetails": "Ayrıntıları gör",
   "lanSyncLastSync": "Son eşitleme",
   "lanSyncLastSyncNever": "Bu cihaz henüz eşitlenmedi",
-  "reduceMotionGroup": "Hareketi azalt",
+  "animationsAndEffectsGroup": "Animasyonlar ve efektler",
   "playingIndicatorAnimation": "Oynatma göstergesi animasyonu",
   "playingIndicatorAnimationDescription": "Kapalıyken geçerli şarkı, animasyonlu ekolayzer yerine duraklat/oynat simgesini sabit olarak gösterir.",
   "miniPlayerSpectrum": "Mini oynatıcı spektrumu",

@@ -10599,11 +10599,11 @@ abstract class AppLocalizations {
   /// **'这台设备还没有同步过'**
   String get lanSyncLastSyncNever;
 
-  /// No description provided for @reduceMotionGroup.
+  /// No description provided for @animationsAndEffectsGroup.
   ///
   /// In zh, this message translates to:
-  /// **'减少动效'**
-  String get reduceMotionGroup;
+  /// **'动画与特效'**
+  String get animationsAndEffectsGroup;
 
   /// No description provided for @playingIndicatorAnimation.
   ///

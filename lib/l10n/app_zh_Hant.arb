@@ -1921,7 +1921,7 @@
   "lanSyncViewDetails": "查看詳情",
   "lanSyncLastSync": "最近一次同步",
   "lanSyncLastSyncNever": "這台裝置還沒有同步過",
-  "reduceMotionGroup": "減少動效",
+  "animationsAndEffectsGroup": "動畫與特效",
   "playingIndicatorAnimation": "正在播放圖示動畫",
   "playingIndicatorAnimationDescription": "關閉後，目前歌曲顯示靜止的暫停或播放圖示，不再隨音樂跳動。",
   "miniPlayerSpectrum": "迷你播放器頻譜動畫",

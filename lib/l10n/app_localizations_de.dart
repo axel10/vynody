@@ -6073,7 +6073,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieses Gerät wurde noch nicht synchronisiert';
 
   @override
-  String get reduceMotionGroup => 'Bewegungen reduzieren';
+  String get animationsAndEffectsGroup => 'Animationen & Effekte';
 
   @override
   String get playingIndicatorAnimation => 'Animation des Wiedergabe-Indikators';

@@ -2206,7 +2206,7 @@
   "lanSyncViewDetails": "Voir les détails",
   "lanSyncLastSync": "Dernière synchronisation",
   "lanSyncLastSyncNever": "Cet appareil n'a pas encore été synchronisé",
-  "reduceMotionGroup": "Réduire les animations",
+  "animationsAndEffectsGroup": "Animations et effets",
   "playingIndicatorAnimation": "Animation de l'indicateur de lecture",
   "playingIndicatorAnimationDescription": "Désactivée : le morceau en cours affiche une icône statique pause ou lecture au lieu de l’égaliseur animé.",
   "miniPlayerSpectrum": "Spectre du mini lecteur",

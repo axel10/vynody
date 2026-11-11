@@ -445,7 +445,7 @@ final List<SettingSearchItem> settingsSearchRegistry = [
     title: (l10n) => l10n.exportLogs,
   ),
 
-  // --- 界面与行为 / 减少动效 (Reduce motion) ---
+  // --- 界面与行为 / 动画与特效 (Animations & effects) ---
   SettingSearchItem(
     id: 'general.playing_indicator_animation',
     section: SettingsSection.general,

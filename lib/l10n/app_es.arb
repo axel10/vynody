@@ -2206,7 +2206,7 @@
   "lanSyncViewDetails": "Ver detalles",
   "lanSyncLastSync": "Última sincronización",
   "lanSyncLastSyncNever": "Este dispositivo aún no se ha sincronizado",
-  "reduceMotionGroup": "Reducir animaciones",
+  "animationsAndEffectsGroup": "Animaciones y efectos",
   "playingIndicatorAnimation": "Animación del indicador de reproducción",
   "playingIndicatorAnimationDescription": "Al desactivarla, la canción actual muestra un icono estático de pausa o reproducción en lugar del ecualizador animado.",
   "miniPlayerSpectrum": "Espectro del mini reproductor",

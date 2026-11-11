@@ -4120,7 +4120,7 @@
   "@lanSyncLastSyncNever": {
     "description": "Sharing page: no sync recorded yet"
   },
-  "reduceMotionGroup": "减少动效",
+  "animationsAndEffectsGroup": "动画与特效",
   "playingIndicatorAnimation": "正在播放图标动画",
   "playingIndicatorAnimationDescription": "关闭后，当前歌曲显示静止的暂停或播放图标，不再随音乐跳动。",
   "miniPlayerSpectrum": "迷你播放器频谱动画",

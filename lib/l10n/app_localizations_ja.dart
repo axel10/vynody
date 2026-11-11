@@ -5811,7 +5811,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get lanSyncLastSyncNever => 'この端末はまだ同期していません';
 
   @override
-  String get reduceMotionGroup => 'モーションを減らす';
+  String get animationsAndEffectsGroup => 'アニメーションと視覚効果';
 
   @override
   String get playingIndicatorAnimation => '再生中アイコンのアニメーション';
