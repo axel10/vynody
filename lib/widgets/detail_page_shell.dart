@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../player/platform/right_queue_drawer_controller.dart';
+import '../utils/layout_constants.dart';
 import 'app_top_nav_bar.dart';
 import 'auto_hide_header.dart';
 import 'mini_player_wrapper.dart';
@@ -18,6 +19,7 @@ class DetailPageShell extends ConsumerStatefulWidget {
     required this.titleKey,
     required this.contentBuilder,
     this.onGoBack,
+    this.contentMaxWidth = kFolderPageMaxWidth,
   });
 
   final String title;
@@ -28,6 +30,9 @@ class DetailPageShell extends ConsumerStatefulWidget {
 
   /// 未提供时走默认返回逻辑。
   final VoidCallback? onGoBack;
+
+  /// 内容区最大宽度限制（使顶部胶囊返回按钮在大屏下与内容区左对齐）。
+  final double? contentMaxWidth;
 
   /// 内容区构建器：传入滚动控制器与内容顶部内边距（避让导航栏）。
   final Widget Function(
@@ -99,6 +104,7 @@ class _DetailPageShellState extends ConsumerState<DetailPageShell> {
                         parentTitle: widget.parentTitle,
                         titleKey: widget.titleKey,
                         isFloatingCapsule: _isPastTop,
+                        contentMaxWidth: widget.contentMaxWidth,
                         onBack:
                             widget.onGoBack ?? () => Navigator.of(context).maybePop(),
                       ),

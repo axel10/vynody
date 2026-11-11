@@ -13,7 +13,7 @@ import '../../player/remote/remote_server_models.dart';
 import '../../player/remote/remote_server_riverpod.dart';
 import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../player/settings/settings_service.dart';
-import '../../widgets/album_detail_widgets.dart';
+import '../../widgets/app_top_nav_bar.dart';
 import '../../widgets/draggable_remote_album_item.dart';
 import '../../widgets/folder_layout_utils.dart';
 import '../../widgets/folder_zoom_gesture_layer.dart';
@@ -93,7 +93,7 @@ class _RemoteArtistDetailPageState
   }
 
   static double getBarHeight(BuildContext context) =>
-      AlbumDetailNavBar.getBarHeight(context);
+      AppTopNavBar.getBarHeight(context);
 
   @override
   Widget build(BuildContext context) {
@@ -104,8 +104,7 @@ class _RemoteArtistDetailPageState
       // 远程库已是一级 tab，外层不再 `Padding(left: railWidth)`：
       // 横屏时让位必须落在页面内部，否则整页被 Rail 压住左边缘。
       avoidRail: true,
-      // 顶栏由 `_scrollProgress` 驱动形态变化，不需要外壳再算滚动阈值。
-      enableFloatingCapsule: false,
+      enableFloatingCapsule: true,
       contentBuilder: (context) => RemoteArtistDetailContent(
         server: widget.server,
         password: widget.password,
@@ -124,15 +123,13 @@ class _RemoteArtistDetailPageState
           }
         },
       ),
-      navBarBuilder: (context, _, _) => AlbumDetailNavBar(
+      navBarBuilder: (context, isHeaderVisible, isPastTop) => AppTopNavBar(
         title: widget.artistName,
-        scrollProgress: (_isLoading || _hasError)
-            ? const AlwaysStoppedAnimation(1.0)
-            : _scrollProgress,
-        isCoverVisible: (_isLoading || _hasError)
-            ? const AlwaysStoppedAnimation(false)
-            : _isHeaderVisible,
-        onGoBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
+        parentTitle: l10n.artists,
+        titleKey: const ValueKey('remote_artist_title'),
+        isFloatingCapsule: isPastTop,
+        contentMaxWidth: kFolderPageMaxWidth,
+        onBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
         actions: [
           IconButton(
             icon: Badge(

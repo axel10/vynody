@@ -1753,6 +1753,7 @@ class _RemotePlaylistDetailContentState
         parentTitle: l10n.playlist,
         titleKey: ValueKey('remote_playlist_title_${widget.playlistId}'),
         isFloatingCapsule: isPastTop,
+        contentMaxWidth: kFolderPageMaxWidth,
         onBack: _handleBack,
         actions: [
           IconButton(

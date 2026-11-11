@@ -20,6 +20,7 @@ import 'widgets/remote_library_common_widgets.dart';
 import 'widgets/remote_library_toolbar_widgets.dart';
 import '../../widgets/remote_page_shell.dart';
 import '../../widgets/app_top_nav_bar.dart';
+import '../../utils/layout_constants.dart';
 
 /// 远程流派详情页：竖屏时由流派列表 push 进入。
 class RemoteGenreDetailPage extends ConsumerWidget {
@@ -63,6 +64,7 @@ class RemoteGenreDetailPage extends ConsumerWidget {
         parentTitle: l10n.genres,
         titleKey: ValueKey('remote_genre_title_$genreId'),
         isFloatingCapsule: isPastTop,
+        contentMaxWidth: kFolderPageMaxWidth,
         onBack: () => Navigator.of(context).maybePop(),
       ),
     );

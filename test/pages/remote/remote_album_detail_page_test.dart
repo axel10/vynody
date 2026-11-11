@@ -13,8 +13,10 @@ import 'package:vynody/pages/remote/remote_album_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/utils/app_icons.dart';
+import 'package:vynody/utils/layout_constants.dart';
 import 'package:vynody/widgets/album_detail_widgets.dart';
-import 'package:vynody/widgets/app_circular_back_button.dart';
+import 'package:vynody/widgets/app_top_nav_bar.dart';
 
 import '../../widgets/helpers/mobile_screenshot_harness.dart';
 
@@ -137,18 +139,23 @@ void main() {
     );
   }
 
-  testWidgets('RemoteAlbumDetailPage renders AlbumDetailNavBar with actions in portrait', (tester) async {
-    tester.view.physicalSize = const Size(400, 800);
+  testWidgets('RemoteAlbumDetailPage renders AppTopNavBar with actions and aligns to contentMaxWidth', (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(createWidget());
+    await tester.pumpWidget(createWidget(size: const Size(1400, 900)));
     await tester.pump();
 
-    expect(find.byType(AlbumDetailNavBar), findsOneWidget);
-    expect(find.byType(AppCircularBackButton), findsOneWidget);
+    // Verify AppTopNavBar is rendered instead of legacy AlbumDetailNavBar
+    expect(find.byType(AppTopNavBar), findsOneWidget);
+    expect(find.byIcon(kAppBackIcon), findsOneWidget);
     expect(find.byIcon(Icons.my_location_rounded), findsOneWidget);
     expect(find.byIcon(Icons.download_rounded), findsOneWidget);
+
+    // Verify AppTopNavBar receives contentMaxWidth = kSingleColumnContentMaxWidth
+    final navBar = tester.widget<AppTopNavBar>(find.byType(AppTopNavBar));
+    expect(navBar.contentMaxWidth, equals(kSingleColumnContentMaxWidth));
   });
 
   testWidgets('AlbumPortraitHeaderBanner and AlbumLandscapeHeaderBanner render remote album presentation', (tester) async {

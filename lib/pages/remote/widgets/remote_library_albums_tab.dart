@@ -12,9 +12,9 @@ import '../../../utils/selection_utils.dart';
 import '../../../widgets/draggable_remote_album_item.dart';
 import '../../../widgets/folder_layout_utils.dart';
 import '../../../widgets/folder_zoom_gesture_layer.dart';
-import '../../../widgets/hoverable_card.dart';
 import '../../../widgets/library_zoom_popover.dart';
 import '../../../widgets/remote_artwork_widget.dart';
+import '../../../widgets/adaptive_pinned_header_scroll_view.dart';
 import 'remote_library_common_widgets.dart';
 import 'remote_library_toolbar_widgets.dart';
 
@@ -226,12 +226,16 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
           return Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: contentWidth),
-              child: albums.isEmpty
-                  ? Column(
-                      children: [
-                        if (toolbar != null)
-                          RemotePageHeaderSlot(child: toolbar!),
-                        Expanded(
+              child: AdaptivePinnedHeaderScrollView(
+                header: toolbar,
+                headerSlotBuilder: (context, h, isSliver) => isSliver
+                    ? SliverRemotePageHeaderSlot(child: h)
+                    : RemotePageHeaderSlot(child: h),
+                onRefresh: onRefresh,
+                slivers: albums.isEmpty
+                    ? [
+                        SliverFillRemaining(
+                          hasScrollBody: false,
                           child: Center(
                             child: Text(
                               searchQuery.isEmpty
@@ -243,86 +247,78 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
                             ),
                           ),
                         ),
-                      ],
-                    )
-                  : RefreshIndicator(
-                      onRefresh: onRefresh,
-                      child: CustomScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        slivers: [
-                          if (toolbar != null)
-                            SliverRemotePageHeaderSlot(child: toolbar!),
-                          FolderZoomSliverBuilder(
-                            zoomScale: snapFolderZoomScale(albumZoomScale),
-                            width: contentWidth,
-                            builder: (context, metrics) {
-                              return SliverPadding(
-                                // 与顶部动作行同源、且不随档位变化。
-                                padding: EdgeInsets.fromLTRB(
-                                  kGridHorizontalPadding,
-                                  0,
-                                  kGridHorizontalPadding,
-                                  bottomOffset,
+                      ]
+                    : [
+                        FolderZoomSliverBuilder(
+                          zoomScale: snapFolderZoomScale(albumZoomScale),
+                          width: contentWidth,
+                          builder: (context, metrics) {
+                            return SliverPadding(
+                              // 与顶部动作行同源、且不随档位变化。
+                              padding: EdgeInsets.fromLTRB(
+                                kGridHorizontalPadding,
+                                0,
+                                kGridHorizontalPadding,
+                                bottomOffset,
+                              ),
+                              sliver: SliverGrid(
+                                gridDelegate:
+                                    SliverAnimatedZoomGridDelegate(
+                                  metrics: metrics,
                                 ),
-                                sliver: SliverGrid(
-                                  gridDelegate:
-                                      SliverAnimatedZoomGridDelegate(
-                                    metrics: metrics,
-                                  ),
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, index) {
-                                      final album = albums[index];
-                                      final albumId =
-                                          album['id'] as String? ?? '';
-                                      final isSelected =
-                                          selectedAlbumIds.contains(albumId);
-                                      final title = album['title'] as String? ??
-                                          album['name'] as String? ??
-                                          l10n.unknownAlbum;
-                                      final artist =
-                                          album['artist'] as String? ??
-                                              l10n.unknownArtist;
-                                      final coverId =
-                                          album['coverArt'] as String?;
-                                      final songCount =
-                                          album['songCount'] as int?;
-                                      final year = album['year'] as int?;
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final album = albums[index];
+                                    final albumId =
+                                        album['id'] as String? ?? '';
+                                    final isSelected =
+                                        selectedAlbumIds.contains(albumId);
+                                    final title = album['title'] as String? ??
+                                        album['name'] as String? ??
+                                        l10n.unknownAlbum;
+                                    final artist =
+                                        album['artist'] as String? ??
+                                            l10n.unknownArtist;
+                                    final coverId =
+                                        album['coverArt'] as String?;
+                                    final songCount =
+                                        album['songCount'] as int?;
+                                    final year = album['year'] as int?;
 
-                                      return RemoteLibraryAlbumCard(
-                                        server: server,
-                                        password: password,
-                                        album: album,
-                                        albumId: albumId,
-                                        title: title,
-                                        artist: artist,
-                                        coverId: coverId,
-                                        songCount: songCount,
-                                        year: year,
-                                        index: index,
-                                        isSelected: isSelected,
-                                        isSelectionMode: isSelectionMode,
-                                        filteredAlbums: albums,
-                                        selectedAlbumIds: selectedAlbumIds,
-                                        lastAlbumAnchorIndex:
-                                            lastAlbumAnchorIndex,
-                                        isPortrait: isPortrait,
-                                        metrics: metrics,
-                                        onSetSelection: onSetSelection,
-                                        onToggleSelection: onToggleSelection,
-                                        onUpdateAnchor: onUpdateAnchor,
-                                        onPlayAlbumDirectly: () =>
-                                            onPlayAlbumDirectly(albumId, title),
-                                      );
-                                    },
-                                    childCount: albums.length,
-                                  ),
+                                    return RemoteLibraryAlbumCard(
+                                      server: server,
+                                      password: password,
+                                      album: album,
+                                      albumId: albumId,
+                                      title: title,
+                                      artist: artist,
+                                      coverId: coverId,
+                                      songCount: songCount,
+                                      year: year,
+                                      index: index,
+                                      isSelected: isSelected,
+                                      isSelectionMode: isSelectionMode,
+                                      filteredAlbums: albums,
+                                      selectedAlbumIds: selectedAlbumIds,
+                                      lastAlbumAnchorIndex:
+                                          lastAlbumAnchorIndex,
+                                      isPortrait: isPortrait,
+                                      metrics: metrics,
+                                      onSetSelection: onSetSelection,
+                                      onToggleSelection: onToggleSelection,
+                                      onUpdateAnchor: onUpdateAnchor,
+                                      onPlayAlbumDirectly: () =>
+                                          onPlayAlbumDirectly(albumId, title),
+                                    );
+                                  },
+                                  childCount: albums.length,
                                 ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+              ),
             ),
           );
         },

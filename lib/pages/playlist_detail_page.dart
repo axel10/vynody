@@ -589,6 +589,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                             'playlist_title_${activePlaylist.id}',
                           ),
                           isFloatingCapsule: _isPastTop,
+                          contentMaxWidth: kFolderPageMaxWidth,
                           onBack: _handleBack,
                         ),
                       ),

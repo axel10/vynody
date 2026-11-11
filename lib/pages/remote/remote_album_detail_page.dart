@@ -12,6 +12,7 @@ import '../../player/remote/remote_server_riverpod.dart';
 import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../widgets/remote_artwork_widget.dart';
 import '../../widgets/album_detail_widgets.dart';
+import '../../widgets/app_top_nav_bar.dart';
 import '../../widgets/playing_equalizer_icon.dart';
 import '../../dialogs/remote_playlist_dialog.dart';
 import '../../dialogs/remote_track_load_progress_dialog.dart';
@@ -368,7 +369,7 @@ class _RemoteAlbumDetailPageState
             _albumData?['title'] as String? ??
             widget.albumName);
 
-    final double barHeight = AlbumDetailNavBar.getBarHeight(context);
+    final double barHeight = AppTopNavBar.getBarHeight(context);
 
     final metadataWidget = Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -861,18 +862,17 @@ class _RemoteAlbumDetailPageState
       // 横屏时让位必须落在页面内部，否则整页被 Rail 压住左边缘。
       avoidRail: true,
       forceHeaderVisible: isSelectionMode,
-      // 顶栏由 `_scrollProgress` 驱动形态变化，不需要外壳再算滚动阈值。
-      enableFloatingCapsule: false,
+      enableFloatingCapsule: true,
+      popScopeCanPop: !isSelectionMode,
+      onPopBlocked: cancelSongSelection,
       contentBuilder: (context) => buildBody(),
-      navBarBuilder: (context, isHeaderVisible, isPastTop) => AlbumDetailNavBar(
+      navBarBuilder: (context, isHeaderVisible, isPastTop) => AppTopNavBar(
         title: albumTitle,
-        scrollProgress: (_isLoading || _error != null)
-            ? const AlwaysStoppedAnimation(1.0)
-            : _scrollProgress,
-        isCoverVisible: (_isLoading || _error != null)
-            ? const AlwaysStoppedAnimation(false)
-            : _isCoverVisible,
-        onGoBack: () => Navigator.of(context).maybePop(),
+        parentTitle: l10n.albums,
+        titleKey: const ValueKey('remote_album_title'),
+        isFloatingCapsule: isPastTop,
+        contentMaxWidth: kSingleColumnContentMaxWidth,
+        onBack: _handleBack,
         actions: navActions,
       ),
       selectionPanel: (!_isLoading && _error == null)
@@ -927,6 +927,14 @@ class _RemoteAlbumDetailPageState
             )
           : null,
     );
+  }
+
+  void _handleBack() {
+    if (isSelectionMode) {
+      cancelSongSelection();
+      return;
+    }
+    Navigator.of(context).maybePop();
   }
 
   String _formatDuration(int millis) {

@@ -8,8 +8,9 @@ import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/pages/remote/remote_artist_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
-import 'package:vynody/widgets/album_detail_widgets.dart';
-import 'package:vynody/widgets/app_circular_back_button.dart';
+import 'package:vynody/utils/app_icons.dart';
+import 'package:vynody/utils/layout_constants.dart';
+import 'package:vynody/widgets/app_top_nav_bar.dart';
 
 import '../../widgets/helpers/mobile_screenshot_harness.dart';
 
@@ -131,8 +132,8 @@ void main() {
     );
   }
 
-  testWidgets('RemoteArtistDetailPage renders AlbumDetailNavBar with download action and no standard AppBar', (tester) async {
-    tester.view.physicalSize = const Size(400, 800);
+  testWidgets('RemoteArtistDetailPage renders AppTopNavBar with download action and aligns to contentMaxWidth', (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
@@ -142,10 +143,14 @@ void main() {
     // Verify AppBar is not used
     expect(find.byType(AppBar), findsNothing);
 
-    // Verify AlbumDetailNavBar is rendered
-    expect(find.byType(AlbumDetailNavBar), findsOneWidget);
-    expect(find.byType(AppCircularBackButton), findsOneWidget);
+    // Verify AppTopNavBar is rendered
+    expect(find.byType(AppTopNavBar), findsOneWidget);
+    expect(find.byIcon(kAppBackIcon), findsOneWidget);
     expect(find.byIcon(Icons.download_rounded), findsOneWidget);
+
+    // Verify contentMaxWidth is set
+    final navBar = tester.widget<AppTopNavBar>(find.byType(AppTopNavBar));
+    expect(navBar.contentMaxWidth, equals(kFolderPageMaxWidth));
   });
 
   testWidgets('RemoteArtistDetailPage onGoBack callback triggers correctly', (tester) async {
@@ -175,7 +180,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byType(AppCircularBackButton));
+    await tester.tap(find.byIcon(kAppBackIcon));
     await tester.pump();
 
     expect(goBackCalled, isTrue);
