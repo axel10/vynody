@@ -5489,6 +5489,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sortArtist => '艺术家';
 
   @override
+  String get sortByName => '名称';
+
+  @override
+  String get sortAlbumCount => '专辑数量';
+
+  @override
   String get allStars => '全部星级';
 
   @override
@@ -11222,6 +11228,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get sortArtist => '藝術家';
+
+  @override
+  String get sortByName => '名稱';
+
+  @override
+  String get sortAlbumCount => '專輯數量';
 
   @override
   String get allStars => '全部星級';

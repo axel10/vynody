@@ -5792,6 +5792,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get sortArtist => 'Sanatçı';
 
   @override
+  String get sortByName => 'Ad';
+
+  @override
+  String get sortAlbumCount => 'Albüm sayısı';
+
+  @override
   String get allStars => 'Tüm Yıldızlar';
 
   @override

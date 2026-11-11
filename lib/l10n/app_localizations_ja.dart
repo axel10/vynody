@@ -5582,6 +5582,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sortArtist => 'アーティスト';
 
   @override
+  String get sortByName => '名前';
+
+  @override
+  String get sortAlbumCount => 'アルバム数';
+
+  @override
   String get allStars => 'すべての星';
 
   @override

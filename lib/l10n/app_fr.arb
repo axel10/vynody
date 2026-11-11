@@ -2145,6 +2145,8 @@
   "sortRating": "Note",
   "sortSongTitle": "Titre du morceau",
   "sortArtist": "Artiste",
+  "sortByName": "Nom",
+  "sortAlbumCount": "Nombre d'albums",
   "allStars": "Toutes les étoiles",
   "homeTab": "Bibliothèque",
   "allPlaylists": "Toutes les listes de lecture",

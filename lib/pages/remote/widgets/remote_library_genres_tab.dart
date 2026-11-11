@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../dialogs/sort_options_dialog.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/library_action_bar.dart';
 import '../../../player/remote/remote_server_models.dart';
@@ -302,30 +303,16 @@ class _RemoteLibraryGenresViewState
     AppLocalizations l10n, {
     bool narrow = false,
   }) {
-    final sortOptions = <RemoteSortOption>[
-      RemoteSortOption(
-        value: 'name_true',
-        label: 'A-Z (${l10n.sortAscending})',
+    final sortOptions = <SortOptionItem<String>>[
+      SortOptionItem(
+        value: 'name',
+        label: l10n.sortByName,
         icon: Icons.sort_by_alpha_rounded,
-        selected: _sortField == 'name' && _sortAsc,
       ),
-      RemoteSortOption(
-        value: 'name_false',
-        label: 'Z-A (${l10n.sortDescending})',
-        icon: Icons.sort_by_alpha_rounded,
-        selected: _sortField == 'name' && !_sortAsc,
-      ),
-      RemoteSortOption(
-        value: 'songCount_false',
-        label: '${l10n.songs} (${l10n.sortDescending})',
+      SortOptionItem(
+        value: 'songCount',
+        label: l10n.sortTrackCount,
         icon: Icons.format_list_numbered_rounded,
-        selected: _sortField == 'songCount' && !_sortAsc,
-      ),
-      RemoteSortOption(
-        value: 'songCount_true',
-        label: '${l10n.songs} (${l10n.sortAscending})',
-        icon: Icons.format_list_numbered_rounded,
-        selected: _sortField == 'songCount' && _sortAsc,
       ),
     ];
 
@@ -346,14 +333,16 @@ class _RemoteLibraryGenresViewState
       onShufflePlay:
           _visibleGenres.isEmpty ? null : () => _playAllVisible(shuffle: true),
       actions: [
-        remoteSortAction(
+        remoteSortAction<String>(
+          context: context,
           label: l10n.sort,
+          currentField: _sortField,
+          sortAscending: _sortAsc,
           options: sortOptions,
-          onSelected: (key) {
-            final parts = key.split('_');
+          onSelected: (field, asc) {
             setState(() {
-              _sortField = parts[0];
-              _sortAsc = parts[1] == 'true';
+              _sortField = field;
+              _sortAsc = asc;
             });
           },
         ),

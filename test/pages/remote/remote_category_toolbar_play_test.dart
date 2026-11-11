@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vynody/dialogs/sort_options_dialog.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/pages/remote/widgets/remote_library_albums_tab.dart';
+import 'package:vynody/pages/remote/widgets/remote_library_artists_tab.dart';
 import 'package:vynody/pages/remote/widgets/remote_library_playlists_tab.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/settings/settings_service.dart';
@@ -104,5 +106,89 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
     expect(playAll, 1);
+  });
+
+  testWidgets('专辑排序按钮点开弹窗：无降序开关，确认后回调 sortType', (tester) async {
+    String? selectedSortType;
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+
+    await pumpToolbar(
+      tester,
+      RemoteLibraryAlbumsToolbar(
+        searchController: controller,
+        searchQuery: '',
+        onSearchChanged: (_) {},
+        onClearSearch: () {},
+        sortType: 'alphabeticalByName',
+        onSortTypeChanged: (value) => selectedSortType = value,
+        starredOnly: false,
+        onToggleStarredOnly: (_) {},
+        totalCount: 12,
+      ),
+      size: const Size(844, 390),
+    );
+
+    await tester.tap(find.byIcon(Icons.sort_rounded));
+    await tester.pumpAndSettle();
+
+    // 服务端 sortType 没有升降序概念，弹窗不渲染方向开关行。
+    expect(find.byType(SortOptionsDialog<String>), findsOneWidget);
+    expect(find.byType(CheckboxListTile), findsNothing);
+
+    // 矮屏下最后一个选项在滚动区外，先滚到可见再点。
+    await tester.ensureVisible(find.text('随机'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('随机'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    expect(selectedSortType, 'random');
+  });
+
+  testWidgets('艺术家排序按钮点开弹窗：选字段 + 降序后确认回写', (tester) async {
+    String? selectedField;
+    bool? selectedAsc;
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+
+    await pumpToolbar(
+      tester,
+      RemoteLibraryArtistsToolbar(
+        searchController: controller,
+        searchQuery: '',
+        onSearchChanged: (_) {},
+        onClearSearch: () {},
+        starredOnly: false,
+        onToggleStarredOnly: (_) {},
+        sortField: 'name',
+        sortAsc: true,
+        onSortChanged: (field, asc) {
+          selectedField = field;
+          selectedAsc = asc;
+        },
+        totalCount: 8,
+      ),
+      size: const Size(844, 390),
+    );
+
+    await tester.tap(find.byIcon(Icons.sort_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SortOptionsDialog<String>), findsOneWidget);
+    // 字段 + 方向拆开了：弹窗里有降序开关，选项不再自带 A-Z / Z-A。
+    expect(find.byType(CheckboxListTile), findsOneWidget);
+    expect(find.text('专辑数量'), findsOneWidget);
+
+    await tester.tap(find.text('专辑数量'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(CheckboxListTile));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    expect(selectedField, 'albumCount');
+    expect(selectedAsc, false);
   });
 }

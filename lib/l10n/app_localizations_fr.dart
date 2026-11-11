@@ -5849,6 +5849,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sortArtist => 'Artiste';
 
   @override
+  String get sortByName => 'Nom';
+
+  @override
+  String get sortAlbumCount => 'Nombre d\'albums';
+
+  @override
   String get allStars => 'Toutes les étoiles';
 
   @override

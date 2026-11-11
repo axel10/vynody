@@ -2536,6 +2536,8 @@
   "sortRating": "Rating",
   "sortSongTitle": "Song Title",
   "sortArtist": "Artist",
+  "sortByName": "Name",
+  "sortAlbumCount": "Album count",
   "allStars": "All Stars",
   "homeTab": "Library",
   "allPlaylists": "All Playlists",

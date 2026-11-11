@@ -2277,6 +2277,8 @@
   "sortRating": "Değerlendirme",
   "sortSongTitle": "Şarkı Başlığı",
   "sortArtist": "Sanatçı",
+  "sortByName": "Ad",
+  "sortAlbumCount": "Albüm sayısı",
   "allStars": "Tüm Yıldızlar",
   "homeTab": "Kitaplık",
   "allPlaylists": "Tüm Çalma Listeleri",

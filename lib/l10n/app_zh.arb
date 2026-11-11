@@ -3852,6 +3852,8 @@
     "description": "Sort songs by title"
   },
   "sortArtist": "艺术家",
+  "sortByName": "名称",
+  "sortAlbumCount": "专辑数量",
   "@sortArtist": {
     "description": "Sort songs by artist"
   },

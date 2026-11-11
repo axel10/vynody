@@ -2145,6 +2145,8 @@
   "sortRating": "평점",
   "sortSongTitle": "곡 제목",
   "sortArtist": "아티스트",
+  "sortByName": "이름",
+  "sortAlbumCount": "앨범 수",
   "allStars": "모든 별점",
   "homeTab": "라이브러리",
   "allPlaylists": "모든 재생목록",

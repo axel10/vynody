@@ -5588,6 +5588,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get sortArtist => '아티스트';
 
   @override
+  String get sortByName => '이름';
+
+  @override
+  String get sortAlbumCount => '앨범 수';
+
+  @override
   String get allStars => '모든 별점';
 
   @override

@@ -2145,6 +2145,8 @@
   "sortRating": "Bewertung",
   "sortSongTitle": "Songtitel",
   "sortArtist": "Künstler",
+  "sortByName": "Name",
+  "sortAlbumCount": "Albumanzahl",
   "allStars": "Alle Sterne",
   "homeTab": "Mediathek",
   "allPlaylists": "Alle Wiedergabelisten",

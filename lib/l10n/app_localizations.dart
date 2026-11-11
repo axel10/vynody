@@ -10228,6 +10228,18 @@ abstract class AppLocalizations {
   /// **'艺术家'**
   String get sortArtist;
 
+  /// No description provided for @sortByName.
+  ///
+  /// In zh, this message translates to:
+  /// **'名称'**
+  String get sortByName;
+
+  /// No description provided for @sortAlbumCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'专辑数量'**
+  String get sortAlbumCount;
+
   /// Filter option for all star ratings
   ///
   /// In zh, this message translates to:

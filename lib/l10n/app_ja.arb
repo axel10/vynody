@@ -2244,6 +2244,8 @@
   "sortRating": "評価",
   "sortSongTitle": "曲名",
   "sortArtist": "アーティスト",
+  "sortByName": "名前",
+  "sortAlbumCount": "アルバム数",
   "allStars": "すべての星",
   "homeTab": "ライブラリ",
   "allPlaylists": "すべてのプレイリスト",

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../dialogs/sort_options_dialog.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/library_action_bar.dart';
 import '../../../player/audio/audio_riverpod.dart';
@@ -63,60 +64,38 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
     this.onShufflePlay,
   });
 
-  String _getSortLabel(AppLocalizations l10n) {
-    switch (sortType) {
-      case 'newest':
-        return l10n.sortRecentAdded;
-      case 'recent':
-        return l10n.sortRecentlyPlayed;
-      case 'frequent':
-        return l10n.sortMostPlayed;
-      case 'random':
-        return l10n.sortRandom;
-      case 'alphabeticalByName':
-      default:
-        return l10n.sortAllAZ;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    final currentLabel = _getSortLabel(l10n);
 
-    final sortOptions = <RemoteSortOption>[
-      RemoteSortOption(
+    final sortOptions = <SortOptionItem<String>>[
+      SortOptionItem(
         value: 'alphabeticalByName',
         label: l10n.sortAllAZ,
         icon: Icons.sort_by_alpha_rounded,
-        selected: sortType == 'alphabeticalByName',
       ),
-      RemoteSortOption(
+      SortOptionItem(
         value: 'newest',
         label: l10n.sortRecentAdded,
         icon: Icons.access_time_rounded,
-        selected: sortType == 'newest',
       ),
       if (!isJellyfin) ...[
-        RemoteSortOption(
+        SortOptionItem(
           value: 'recent',
           label: l10n.sortRecentlyPlayed,
           icon: Icons.history_rounded,
-          selected: sortType == 'recent',
         ),
-        RemoteSortOption(
+        SortOptionItem(
           value: 'frequent',
           label: l10n.sortMostPlayed,
           icon: Icons.local_fire_department_rounded,
-          selected: sortType == 'frequent',
         ),
       ],
-      RemoteSortOption(
+      SortOptionItem(
         value: 'random',
         label: l10n.sortRandom,
         icon: Icons.shuffle_rounded,
-        selected: sortType == 'random',
       ),
     ];
 
@@ -141,10 +120,15 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
           label: l10n.starredAlbums,
           onToggle: onToggleStarredOnly,
         ),
-        remoteSortAction(
-          label: '${l10n.sort} · $currentLabel',
+        remoteSortAction<String>(
+          context: context,
+          label: l10n.sort,
+          currentField: sortType,
+          sortAscending: true,
+          // 服务端 sortType 没有升降序概念，弹窗不渲染方向开关。
+          showDirectionToggle: false,
           options: sortOptions,
-          onSelected: onSortTypeChanged,
+          onSelected: (field, _) => onSortTypeChanged(field),
         ),
         remoteZoomAction(label: l10n.listView, scope: LibraryZoomScope.album),
       ],

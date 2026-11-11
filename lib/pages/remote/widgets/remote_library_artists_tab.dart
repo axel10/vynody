@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../dialogs/sort_options_dialog.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/library_action_bar.dart';
 import '../../../player/audio/audio_riverpod.dart';
@@ -76,36 +77,30 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
     final theme = Theme.of(context);
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
-    final sortOptions = <RemoteSortOption>[
-      RemoteSortOption(
-        value: 'name_true',
-        label: 'A-Z (${l10n.sortAscending})',
+    final sortOptions = <SortOptionItem<String>>[
+      SortOptionItem(
+        value: 'name',
+        label: l10n.sortByName,
         icon: Icons.sort_by_alpha_rounded,
-        selected: sortField == 'name' && sortAsc,
       ),
-      RemoteSortOption(
-        value: 'name_false',
-        label: 'Z-A (${l10n.sortDescending})',
-        icon: Icons.sort_by_alpha_rounded,
-        selected: sortField == 'name' && !sortAsc,
-      ),
-      RemoteSortOption(
-        value: 'albumCount_false',
-        label: '${l10n.albums} (${l10n.sortDescending})',
+      SortOptionItem(
+        value: 'albumCount',
+        label: l10n.sortAlbumCount,
         icon: Icons.album_rounded,
-        selected: sortField == 'albumCount' && !sortAsc,
-      ),
-      RemoteSortOption(
-        value: 'albumCount_true',
-        label: '${l10n.albums} (${l10n.sortAscending})',
-        icon: Icons.album_rounded,
-        selected: sortField == 'albumCount' && sortAsc,
       ),
     ];
 
-    void onSortSelected(String key) {
-      final parts = key.split('_');
-      onSortChanged(parts[0], parts[1] == 'true');
+    Future<void> openSortDialog(BuildContext dialogHostContext) async {
+      final result = await showSortOptionsDialog<String>(
+        context: dialogHostContext,
+        title: l10n.sort,
+        currentField: sortField,
+        sortAscending: sortAsc,
+        options: sortOptions,
+      );
+      if (result != null) {
+        onSortChanged(result.field, result.sortAscending);
+      }
     }
 
     final countLabel = totalCount == null
@@ -197,10 +192,10 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
                 color: starredOnly ? Colors.redAccent : null,
                 onPressed: () => onToggleStarredOnly(!starredOnly),
               ),
-              remoteSortPopupButton(
-                label: l10n.sort,
-                options: sortOptions,
-                onSelected: onSortSelected,
+              libraryToolbarIconButton(
+                icon: Icons.sort_rounded,
+                tooltip: l10n.sort,
+                onPressed: () => openSortDialog(context),
               ),
             ],
           ),
@@ -227,10 +222,13 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
           label: l10n.starredArtists,
           onToggle: onToggleStarredOnly,
         ),
-        remoteSortAction(
+        remoteSortAction<String>(
+          context: context,
           label: l10n.sort,
+          currentField: sortField,
+          sortAscending: sortAsc,
           options: sortOptions,
-          onSelected: onSortSelected,
+          onSelected: onSortChanged,
         ),
         remoteZoomAction(label: l10n.listView, scope: LibraryZoomScope.artist),
       ],

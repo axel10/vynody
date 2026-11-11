@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../dialogs/sort_options_dialog.dart';
 import '../../../widgets/library_action_bar.dart';
 import '../../../widgets/library_category_header.dart';
 import '../../../widgets/library_toolbar_buttons.dart';
@@ -99,83 +100,39 @@ class RemoteLibraryActionBar extends StatelessWidget {
   }
 }
 
-/// 排序弹窗的一个选项。横屏走弹出菜单，竖屏走「更多」里的一组条目。
-class RemoteSortOption {
-  const RemoteSortOption({
-    required this.value,
-    required this.label,
-    required this.icon,
-    this.selected = false,
-  });
-
-  final String value;
-  final String label;
-  final IconData icon;
-  final bool selected;
-}
-
-/// [LibraryToolbarMetrics] 规格的排序图标弹出按钮。横屏动作行与远程艺术家页
-/// 的横屏左栏（分栏紧凑形态）共用，避免两处各写一份弹窗。
-Widget remoteSortPopupButton({
+/// 统一的「排序」动作：横竖屏都是单按钮点开 [SortOptionsDialog]，与本地库
+/// （专辑 / 流派 / 艺术家页）同款交互。横屏是图标按钮；竖屏收进「更多」菜单，
+/// 仍打开同一个弹窗。排序状态由调用方持有（[currentField] / [sortAscending]），
+/// 确认后经 [onSelected] 回写 —— 选项不再需要在菜单里自带 selected 勾选态。
+LibraryToolbarAction remoteSortAction<T>({
+  required BuildContext context,
   required String label,
-  required List<RemoteSortOption> options,
-  required ValueChanged<String> onSelected,
-}) {
-  return PopupMenuButton<String>(
-    tooltip: label,
-    padding: EdgeInsets.zero,
-    onSelected: onSelected,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-    itemBuilder: (context) => <PopupMenuEntry<String>>[
-      for (final option in options)
-        PopupMenuItem<String>(
-          value: option.value,
-          child: Row(
-            children: [
-              Icon(option.icon, size: 18),
-              const SizedBox(width: 10),
-              Expanded(child: Text(option.label, maxLines: 1)),
-              if (option.selected) const Icon(Icons.check_rounded, size: 16),
-            ],
-          ),
-        ),
-    ],
-    child: SizedBox(
-      width: LibraryToolbarMetrics.buttonSize,
-      height: LibraryToolbarMetrics.buttonSize,
-      child: Icon(
-        Icons.sort_rounded,
-        size: LibraryToolbarMetrics.iconSize,
-      ),
-    ),
-  );
-}
+  required T currentField,
+  required bool sortAscending,
+  required List<SortOptionItem<T>> options,
+  required void Function(T field, bool sortAscending) onSelected,
+  bool Function(T field)? ascendingToggleEnabled,
 
-/// 统一的「排序」动作：横屏是图标弹出按钮，竖屏把选项展开进「更多」，
-/// 不再用带文字标签的下拉胶囊。
-LibraryToolbarAction remoteSortAction({
-  required String label,
-  required List<RemoteSortOption> options,
-  required ValueChanged<String> onSelected,
+  /// 服务端 sortType 这类没有升降序概念的排序传 false，弹窗不渲染方向开关。
+  bool showDirectionToggle = true,
 }) {
   return LibraryToolbarAction(
     icon: Icons.sort_rounded,
     label: label,
-    wideButton: remoteSortPopupButton(
-      label: label,
-      options: options,
-      onSelected: onSelected,
-    ),
-    menuEntries: (ctx) => [
-      for (final option in options)
-        libraryToolbarMenuEntry(
-          context: ctx,
-          icon: option.icon,
-          label: option.label,
-          selected: option.selected,
-          onTap: () => onSelected(option.value),
-        ),
-    ],
+    onPressed: () async {
+      final result = await showSortOptionsDialog<T>(
+        context: context,
+        title: label,
+        currentField: currentField,
+        sortAscending: sortAscending,
+        options: options,
+        ascendingToggleEnabled: ascendingToggleEnabled,
+        showDirectionToggle: showDirectionToggle,
+      );
+      if (result != null) {
+        onSelected(result.field, result.sortAscending);
+      }
+    },
   );
 }
 

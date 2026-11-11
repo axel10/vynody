@@ -2753,35 +2753,33 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
   /// 排序只作用于展示层顺序，「字段 + 升降序」是本机视图偏好、不回写服务端。
   Future<void> _openSongsSortDialog(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final result = await showDialog<SortResult<String>>(
+    final result = await showSortOptionsDialog<String>(
       context: context,
-      builder: (dialogContext) => SortOptionsDialog<String>(
-        title: l10n.sort,
-        currentField: _songSortField,
-        sortAscending: _songSortAsc,
-        options: [
-          SortOptionItem(
-            value: 'title',
-            label: l10n.songs,
-            icon: Icons.sort_by_alpha_rounded,
-          ),
-          SortOptionItem(
-            value: 'artist',
-            label: l10n.artists,
-            icon: Icons.person_rounded,
-          ),
-          SortOptionItem(
-            value: 'album',
-            label: l10n.albums,
-            icon: Icons.album_rounded,
-          ),
-          SortOptionItem(
-            value: 'duration',
-            label: l10n.durationLabel,
-            icon: Icons.access_time_rounded,
-          ),
-        ],
-      ),
+      title: l10n.sort,
+      currentField: _songSortField,
+      sortAscending: _songSortAsc,
+      options: [
+        SortOptionItem(
+          value: 'title',
+          label: l10n.songs,
+          icon: Icons.sort_by_alpha_rounded,
+        ),
+        SortOptionItem(
+          value: 'artist',
+          label: l10n.artists,
+          icon: Icons.person_rounded,
+        ),
+        SortOptionItem(
+          value: 'album',
+          label: l10n.albums,
+          icon: Icons.album_rounded,
+        ),
+        SortOptionItem(
+          value: 'duration',
+          label: l10n.durationLabel,
+          icon: Icons.access_time_rounded,
+        ),
+      ],
     );
     if (result != null && mounted) {
       setState(() {
@@ -2796,38 +2794,36 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
 
   Future<void> _openPlaylistSortDialog(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final result = await showDialog<SortResult<RemotePlaylistSortField>>(
+    final result = await showSortOptionsDialog<RemotePlaylistSortField>(
       context: context,
-      builder: (dialogContext) => SortOptionsDialog<RemotePlaylistSortField>(
-        title: l10n.sortPlaylists,
-        currentField: _playlistSortField,
-        sortAscending: _playlistSortAscending,
-        // 服务端原序没有升降序之分。
-        ascendingToggleEnabled: (field) =>
-            field != RemotePlaylistSortField.serverOrder,
-        options: [
-          SortOptionItem(
-            value: RemotePlaylistSortField.serverOrder,
-            label: l10n.sortServerOrder,
-            icon: Icons.cloud_queue_rounded,
-          ),
-          SortOptionItem(
-            value: RemotePlaylistSortField.name,
-            label: l10n.playlistName,
-            icon: Icons.sort_by_alpha_rounded,
-          ),
-          SortOptionItem(
-            value: RemotePlaylistSortField.songCount,
-            label: l10n.sortTrackCount,
-            icon: Icons.format_list_numbered_rounded,
-          ),
-          SortOptionItem(
-            value: RemotePlaylistSortField.duration,
-            label: l10n.sortDuration,
-            icon: Icons.access_time_rounded,
-          ),
-        ],
-      ),
+      title: l10n.sortPlaylists,
+      currentField: _playlistSortField,
+      sortAscending: _playlistSortAscending,
+      // 服务端原序没有升降序之分。
+      ascendingToggleEnabled: (field) =>
+          field != RemotePlaylistSortField.serverOrder,
+      options: [
+        SortOptionItem(
+          value: RemotePlaylistSortField.serverOrder,
+          label: l10n.sortServerOrder,
+          icon: Icons.cloud_queue_rounded,
+        ),
+        SortOptionItem(
+          value: RemotePlaylistSortField.name,
+          label: l10n.playlistName,
+          icon: Icons.sort_by_alpha_rounded,
+        ),
+        SortOptionItem(
+          value: RemotePlaylistSortField.songCount,
+          label: l10n.sortTrackCount,
+          icon: Icons.format_list_numbered_rounded,
+        ),
+        SortOptionItem(
+          value: RemotePlaylistSortField.duration,
+          label: l10n.sortDuration,
+          icon: Icons.access_time_rounded,
+        ),
+      ],
     );
     if (result != null && mounted) {
       setState(() {

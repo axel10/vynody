@@ -1860,6 +1860,8 @@
   "sortRating": "評分星級",
   "sortSongTitle": "歌曲標題",
   "sortArtist": "藝術家",
+  "sortByName": "名稱",
+  "sortAlbumCount": "專輯數量",
   "allStars": "全部星級",
   "homeTab": "媒體庫",
   "allPlaylists": "全部播放清單",
