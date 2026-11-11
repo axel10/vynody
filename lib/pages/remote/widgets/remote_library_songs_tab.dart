@@ -138,6 +138,7 @@ class RemoteLibrarySongsView extends ConsumerStatefulWidget {
   final List<MusicFile> songs;
   final int totalServerSongsCount;
   final Set<String> starredSongIds;
+  final bool starredOnly;
   final bool isLoading;
   final bool isLoadingMore;
   final bool hasMore;
@@ -163,6 +164,7 @@ class RemoteLibrarySongsView extends ConsumerStatefulWidget {
     required this.songs,
     required this.totalServerSongsCount,
     required this.starredSongIds,
+    this.starredOnly = false,
     required this.isLoading,
     required this.isLoadingMore,
     required this.hasMore,
@@ -210,14 +212,28 @@ class _RemoteLibrarySongsViewState
     return '$minutes min';
   }
 
+  bool get _isStarredOnly =>
+      widget.starredOnly || (widget.toolbar?.starredOnly ?? false);
+
   Future<void> _playAll({bool shuffle = false}) async {
     if (widget.songs.isEmpty) return;
     final l10n = AppLocalizations.of(context)!;
-    final sourceId = 'remote-${widget.server.id}-songs';
-    final sourceName = l10n.songs;
+    final isStarred = _isStarredOnly;
+    final hasSearchQuery = widget.searchQuery.trim().isNotEmpty;
+    final isFiltered = isStarred || hasSearchQuery;
 
-    // 非搜索状态下的全库播放增强逻辑
-    if (widget.searchQuery.trim().isEmpty) {
+    final String sourceId;
+    final String sourceName;
+    if (isStarred) {
+      sourceId = 'remote-${widget.server.id}-songs-starred';
+      sourceName = l10n.starredSongs;
+    } else {
+      sourceId = 'remote-${widget.server.id}-songs';
+      sourceName = l10n.songs;
+    }
+
+    // 仅在无任何筛选（无搜索且未开启收藏过滤）时，才走全库增强逻辑
+    if (!isFiltered) {
       if (shuffle) {
         // 服务端真·全库随机
         await playRemoteRandomSongs(

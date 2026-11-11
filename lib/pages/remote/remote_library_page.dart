@@ -2037,6 +2037,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       songs: _getFilteredSongs(),
       totalServerSongsCount: _songs.length,
       starredSongIds: _starredSongIds,
+      starredOnly: _songStarredOnly,
       isLoading: _isLoadingSongs,
       isLoadingMore: _isLoadingMoreSongs,
       hasMore: _hasMoreSongs,
