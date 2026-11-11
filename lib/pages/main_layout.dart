@@ -2223,7 +2223,58 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
       }
     }
 
-    // 2. 媒体库小标题行（右侧带「编辑」/「完成」按钮）
+    // 2. 远程媒体库分类（会话存在时才出现；在本地资料库之前呈现）
+    if (hasRemoteLibrary) {
+      rows.add(
+        _RailRow(
+          height: sectionHeaderHeight,
+          child: _buildStaticSectionLabel(
+            title: l10n.remoteLibrary,
+            inactiveColor: sectionLabelColor,
+          ),
+        ),
+      );
+
+      for (final sub in remoteSubDestinations) {
+        final bool isSubSelected =
+            !_isEditingLibrary &&
+            kMainTabRemoteLibrary == activeMainIndex &&
+            !widget.isSettingsActive &&
+            sub.index == remoteSubIndex;
+
+        if (isSubSelected) {
+          pillRow = rows.length;
+        }
+
+        rows.add(
+          _RailRow(
+            height: subItemHeight,
+            child: _buildTile(
+              icon: sub.icon,
+              selectedIcon: sub.selectedIcon,
+              label: sub.label,
+              isSelected: isSubSelected,
+              activeColor: activeColor,
+              inactiveColor: inactiveColor,
+              onTap: () {
+                Tooltip.dismissAllToolTips();
+                ref.read(librarySelectionScopeProvider.notifier).clear();
+                ref
+                    .read(remoteLibraryActiveTabIndexProvider.notifier)
+                    .set(sub.index);
+                // 进退栈由 `RemoteLibraryPage` 统一响应 provider 完成，
+                // 这里只保证人已经在远程库这个一级栏目上。
+                if (kMainTabRemoteLibrary != activeMainIndex) {
+                  widget.onDestinationSelected(kMainTabRemoteLibrary);
+                }
+              },
+            ),
+          ),
+        );
+      }
+    }
+
+    // 3. 媒体库小标题行（右侧带「编辑」/「完成」按钮）
     rows.add(
       _RailRow(
         height: sectionHeaderHeight,
@@ -2236,7 +2287,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
       ),
     );
 
-    // 3. 媒体库分类子 Tab
+    // 4. 媒体库分类子 Tab
     for (int s = 0; s < librarySubDestinations.length; s++) {
       final sub = librarySubDestinations[s];
       final bool isVisible = settings.isLibraryTabVisible(sub.id);
@@ -2289,7 +2340,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
       );
     }
 
-    // 4. 播放列表分组（带展开收起按钮，下方平铺「全部播放列表」及各个具体歌单）
+    // 5. 播放列表分组（带展开收起按钮，下方平铺「全部播放列表」及各个具体歌单）
     final playlistService = ref.watch(playlistServiceProvider);
     final selectedPlaylistId = ref.watch(selectedPlaylistIdProvider);
     final playlists = playlistService.playlists;
@@ -2385,57 +2436,6 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
               onTap: () {
                 ref.read(selectedPlaylistIdProvider.notifier).set(pl.id);
                 widget.onLibrarySubDestinationSelected(0);
-              },
-            ),
-          ),
-        );
-      }
-    }
-
-    // 5. 远程媒体库分类（会话存在时才出现；主项在主导航区）
-    if (hasRemoteLibrary) {
-      rows.add(
-        _RailRow(
-          height: sectionHeaderHeight,
-          child: _buildStaticSectionLabel(
-            title: l10n.remoteLibrary,
-            inactiveColor: sectionLabelColor,
-          ),
-        ),
-      );
-
-      for (final sub in remoteSubDestinations) {
-        final bool isSubSelected =
-            !_isEditingLibrary &&
-            kMainTabRemoteLibrary == activeMainIndex &&
-            !widget.isSettingsActive &&
-            sub.index == remoteSubIndex;
-
-        if (isSubSelected) {
-          pillRow = rows.length;
-        }
-
-        rows.add(
-          _RailRow(
-            height: subItemHeight,
-            child: _buildTile(
-              icon: sub.icon,
-              selectedIcon: sub.selectedIcon,
-              label: sub.label,
-              isSelected: isSubSelected,
-              activeColor: activeColor,
-              inactiveColor: inactiveColor,
-              onTap: () {
-                Tooltip.dismissAllToolTips();
-                ref.read(librarySelectionScopeProvider.notifier).clear();
-                ref
-                    .read(remoteLibraryActiveTabIndexProvider.notifier)
-                    .set(sub.index);
-                // 进退栈由 `RemoteLibraryPage` 统一响应 provider 完成，
-                // 这里只保证人已经在远程库这个一级栏目上。
-                if (kMainTabRemoteLibrary != activeMainIndex) {
-                  widget.onDestinationSelected(kMainTabRemoteLibrary);
-                }
               },
             ),
           ),

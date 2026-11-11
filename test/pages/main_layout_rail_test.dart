@@ -6,7 +6,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/pages/main_layout.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/pro/pro_license_service.dart';
+import 'package:vynody/player/remote/remote_server_models.dart';
+import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+
+class _MockSessionNotifier extends ActiveRemoteSessionNotifier {
+  final ActiveRemoteSession? _initial;
+  _MockSessionNotifier(this._initial);
+  @override
+  ActiveRemoteSession? build() => _initial;
+}
 
 void main() {
   late SettingsService settingsService;
@@ -22,10 +32,16 @@ void main() {
     int? librarySubIndex,
     bool isLibraryExpanded = true,
     bool extended = true,
+    ActiveRemoteSession? activeRemoteSession,
+    bool isPro = false,
   }) {
     return ProviderScope(
       overrides: [
         settingsServiceProvider.overrideWith((ref) => settingsService),
+        if (activeRemoteSession != null)
+          activeRemoteSessionProvider.overrideWith(() => _MockSessionNotifier(activeRemoteSession)),
+        if (isPro)
+          isProUnlockedProvider.overrideWith((ref) => true),
       ],
       child: MaterialApp(
         locale: const Locale('zh'),
@@ -136,6 +152,47 @@ void main() {
     expect(find.byIcon(Icons.queue_music_outlined), findsOneWidget);
     expect(find.byIcon(Icons.share_outlined), findsOneWidget);
     expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+  });
+
+  testWidgets('When remote library session is active, remote library section is inserted before local library and playlist', (tester) async {
+    final testServer = RemoteServer(
+      id: 'test-remote-server',
+      name: 'Test Server',
+      type: RemoteServerType.subsonic,
+      url: 'https://music.example.com',
+      username: 'user',
+      createdAt: DateTime.now(),
+    );
+    final session = ActiveRemoteSession(
+      server: testServer,
+      password: 'password',
+    );
+
+    await tester.pumpWidget(buildRail(
+      selectedIndex: 0,
+      activeRemoteSession: session,
+      isPro: true,
+    ));
+    await tester.pumpAndSettle();
+
+    // Verify 远程媒体库 entries are present
+    // One for the primary navigation icon and one for section header
+    expect(find.text('远程媒体库'), findsNWidgets(2));
+    // Sub-items of remote library should be visible (e.g. 搜索 is remote-only)
+    expect(find.text('搜索'), findsOneWidget);
+    expect(find.text('播放列表'), findsOneWidget);
+
+    final folderDy = tester.getTopLeft(find.text('媒体源')).dy;
+    final remoteHeaderDy = tester.getTopLeft(find.text('远程媒体库').last).dy;
+    final remoteSearchDy = tester.getTopLeft(find.text('搜索')).dy;
+    final localLibraryHeaderDy = tester.getTopLeft(find.text('媒体库').last).dy;
+    final playlistDy = tester.getTopLeft(find.text('播放列表')).dy;
+
+    // Remote library section and sub items must appear after 媒体源 and before local library / playlist
+    expect(folderDy < remoteHeaderDy, isTrue, reason: 'Remote section header should be below 媒体源');
+    expect(remoteHeaderDy < remoteSearchDy, isTrue, reason: 'Remote sub-items should be below remote section header');
+    expect(remoteSearchDy < localLibraryHeaderDy, isTrue, reason: 'Remote section should be above local library header');
+    expect(localLibraryHeaderDy < playlistDy, isTrue, reason: 'Local library header should be above playlist header');
   });
 }
 
