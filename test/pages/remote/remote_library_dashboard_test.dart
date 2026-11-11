@@ -27,6 +27,10 @@ void main() {
     List<Map<String, dynamic>> playlists = const [],
     List<Map<String, dynamic>> favoriteAlbums = const [],
     ValueChanged<int>? onNavigateToTab,
+    RefreshCallback? onRefresh,
+    VoidCallback? onPlayAll,
+    VoidCallback? onShufflePlay,
+    VoidCallback? onDisconnect,
     int playlistCount = 0,
     int? genreCount,
     ThemeData? theme,
@@ -53,21 +57,104 @@ void main() {
         onNavigateToTab: onNavigateToTab ?? (_) {},
         onOpenAlbum: (_, _) {},
         onOpenPlaylist: (_) {},
-        onRefresh: () {},
-        onShuffleAll: () {},
-        onDisconnect: () {},
+        onRefresh: onRefresh ?? () async {},
+        onPlayAll: onPlayAll,
+        onShufflePlay: onShufflePlay,
+        onDisconnect: onDisconnect ?? () {},
       ),
     );
   }
 
-  testWidgets('顶部展示服务器名、类型与三组统计', (tester) async {
+  testWidgets('顶部展示服务器名与类型，删去统计行', (tester) async {
     await tester.pumpWidget(wrap());
 
     expect(find.text('My Navidrome'), findsOneWidget);
     expect(find.text('Navidrome / Subsonic'), findsOneWidget);
-    // 统计行把三个计数拼在一行里，逐项断言避免本地化文案变化时误判。
-    expect(find.textContaining('12'), findsWidgets);
-    expect(find.textContaining('48'), findsWidgets);
+    // 确认顶部不再展示「专辑 12 · 艺术家 3 · 歌曲 48」的统计行
+    expect(find.textContaining('· 艺术家'), findsNothing);
+  });
+
+  testWidgets('宽屏下右上角平铺展示播放全部、随机播放、刷新、断开连接', (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    var playAllCalled = false;
+    var shufflePlayCalled = false;
+    var refreshCalled = false;
+    var disconnectCalled = false;
+
+    await tester.pumpWidget(wrap(
+      onPlayAll: () => playAllCalled = true,
+      onShufflePlay: () => shufflePlayCalled = true,
+      onRefresh: () async => refreshCalled = true,
+      onDisconnect: () => disconnectCalled = true,
+    ));
+
+    // 随机播放按钮样式使用 Icons.shuffle_rounded，而非原先的 Icons.casino_outlined
+    expect(find.byIcon(Icons.casino_outlined), findsNothing);
+    expect(find.byIcon(Icons.shuffle_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.link_off_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    expect(playAllCalled, isTrue);
+
+    await tester.tap(find.byIcon(Icons.shuffle_rounded));
+    expect(shufflePlayCalled, isTrue);
+
+    await tester.tap(find.byIcon(Icons.refresh_rounded));
+    expect(refreshCalled, isTrue);
+
+    await tester.tap(find.byIcon(Icons.link_off_rounded));
+    expect(disconnectCalled, isTrue);
+  });
+
+  testWidgets('竖屏窄屏宽度不足时刷新按钮隐藏，断开连接直接展示且无更多按钮', (tester) async {
+    tester.view.physicalSize = const Size(380, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    var disconnectCalled = false;
+
+    await tester.pumpWidget(wrap(
+      onPlayAll: () {},
+      onShufflePlay: () {},
+      onDisconnect: () => disconnectCalled = true,
+    ));
+
+    // 播放全部与随机播放依然常驻
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.shuffle_rounded), findsOneWidget);
+
+    // 宽度不足时刷新按钮隐藏，断开连接直接展示，不使用更多按钮
+    expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
+    expect(find.byIcon(Icons.refresh_rounded), findsNothing);
+    expect(find.byIcon(Icons.link_off_rounded), findsOneWidget);
+
+    // 点击断开连接直接触发
+    await tester.tap(find.byIcon(Icons.link_off_rounded));
+    expect(disconnectCalled, isTrue);
+  });
+
+  testWidgets('概览页支持下拉刷新触发 onRefresh', (tester) async {
+    var refreshCalled = false;
+    await tester.pumpWidget(wrap(
+      onRefresh: () async {
+        refreshCalled = true;
+      },
+    ));
+
+    expect(find.byType(RefreshIndicator), findsOneWidget);
+    await tester.fling(find.byType(CustomScrollView), const Offset(0, 300), 1000);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(refreshCalled, isTrue);
   });
 
   testWidgets('六个快捷入口都在，点击回传对应分类索引', (tester) async {
@@ -152,7 +239,7 @@ void main() {
           onNavigateToTab: tappedTab.add,
           onOpenAlbum: (id, _) => openedAlbumId = id,
           onOpenPlaylist: (p) => openedPlaylist = p,
-          onRefresh: () {},
+          onRefresh: () async {},
           onShuffleAll: () {},
           onDisconnect: () {},
         ),
@@ -222,7 +309,7 @@ void main() {
           ],
           onNavigateToTab: (_) {},
           onOpenAlbum: (_, _) {},
-          onRefresh: () {},
+          onRefresh: () async {},
           onShuffleAll: () {},
           onDisconnect: () {},
         ),

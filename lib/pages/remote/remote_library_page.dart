@@ -32,6 +32,7 @@ import 'widgets/remote_library_genres_tab.dart';
 import 'widgets/remote_library_songs_tab.dart';
 import 'widgets/remote_library_playlists_tab.dart';
 import 'widgets/remote_library_search_tab.dart';
+import '../../player/audio/playback_source.dart';
 import '../../utils/song_locator_helper.dart';
 import '../../utils/remote_library_playback.dart';
 import '../../player/platform/right_queue_drawer_controller.dart';
@@ -1815,7 +1816,6 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
   }
 
   Widget _buildDashboard() {
-    final l10n = AppLocalizations.of(context)!;
     final favorites = _albums
         .where((a) => a['starred'] != null || a['isFavorite'] == true)
         .take(12)
@@ -1877,13 +1877,9 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
             },
             onDisconnect: _disconnectFromServer,
             onRefresh: _refreshAll,
-            onShuffleAll: () => _playRemoteEntities(
-              kind: RemoteLibraryEntityKind.album,
-              entities: _getFilteredAlbums(),
-              sourceSuffix: 'dashboard',
-              sourceName: l10n.albums,
-              shuffle: true,
-            ),
+            onPlayAll: () => _playAllSongs(shuffle: false),
+            onShufflePlay: () => _playAllSongs(shuffle: true),
+            onShuffleAll: () => _playAllSongs(shuffle: true),
           );
         },
       );
@@ -2559,6 +2555,50 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       return MiniPlayerWrapper(child: content);
     }
     return content;
+  }
+
+  /// 远程媒体库首页与歌曲页同构的「播放全部 / 随机播放」全库曲目。
+  Future<void> _playAllSongs({bool shuffle = false}) async {
+    final l10n = AppLocalizations.of(context)!;
+    final sourceId = 'remote-${widget.server.id}-songs';
+    final sourceName = l10n.songs;
+
+    if (shuffle) {
+      await playRemoteRandomSongs(
+        context: context,
+        ref: ref,
+        server: widget.server,
+        password: widget.password,
+        sourceId: sourceId,
+        sourceName: sourceName,
+      );
+      return;
+    }
+
+    if (_hasMoreSongs || _songs.isEmpty) {
+      await playAllRemoteSongs(
+        context: context,
+        ref: ref,
+        server: widget.server,
+        password: widget.password,
+        loadedSongs: _songs,
+        hasMore: true,
+        sourceId: sourceId,
+        sourceName: sourceName,
+        onBatchLoaded: _appendSongs,
+      );
+      return;
+    }
+
+    final audioService = ref.read(audioServiceProvider);
+    await audioService.playPlaylist(
+      List<MusicFile>.from(_songs),
+      source: PlaybackSource(
+        type: PlaybackSourceType.playlist,
+        id: sourceId,
+        name: sourceName,
+      ),
+    );
   }
 
   /// 分类 tab 的「播放全部 / 随机播放」统一下沉到这里。

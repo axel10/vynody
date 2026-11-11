@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../../player/remote/remote_server_models.dart';
 import '../../widgets/carousel_scroll_wrapper.dart';
+import '../../widgets/library_toolbar_buttons.dart';
 import '../../widgets/playback_ui_tuning.dart';
 import '../../widgets/remote_artwork_widget.dart';
 
@@ -41,7 +42,9 @@ class RemoteLibraryDashboardView extends StatelessWidget {
     required this.onOpenAlbum,
     this.onOpenPlaylist,
     required this.onRefresh,
-    required this.onShuffleAll,
+    this.onPlayAll,
+    this.onShufflePlay,
+    @Deprecated('Use onShufflePlay instead') this.onShuffleAll,
     required this.onDisconnect,
     this.contentTopPadding = 16,
     this.contentLeftPadding = 0.0,
@@ -82,8 +85,10 @@ class RemoteLibraryDashboardView extends StatelessWidget {
   /// 点封面直接进歌单详情。
   final void Function(Map<String, dynamic> playlist)? onOpenPlaylist;
 
-  final VoidCallback onRefresh;
-  final VoidCallback onShuffleAll;
+  final RefreshCallback onRefresh;
+  final VoidCallback? onPlayAll;
+  final VoidCallback? onShufflePlay;
+  final VoidCallback? onShuffleAll;
 
   /// 断开当前媒体库（一级栏目的显式退出动作）。
   ///
@@ -119,9 +124,13 @@ class RemoteLibraryDashboardView extends StatelessWidget {
           final double listHeight = cardWidth + 70.0;
           final double separatorWidth = isWide ? 16.0 : 14.0;
 
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
+          return RefreshIndicator(
+            onRefresh: onRefresh,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              slivers: [
               SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
@@ -132,11 +141,9 @@ class RemoteLibraryDashboardView extends StatelessWidget {
                   ),
                   child: _DashboardHeader(
                     server: server,
-                    albumCount: albumCount,
-                    artistCount: artistCount,
-                    songCount: songCount,
                     onRefresh: onRefresh,
-                    onShuffleAll: onShuffleAll,
+                    onPlayAll: onPlayAll,
+                    onShufflePlay: onShufflePlay ?? onShuffleAll,
                     onDisconnect: onDisconnect,
                   ),
                 ),
@@ -276,30 +283,27 @@ class RemoteLibraryDashboardView extends StatelessWidget {
                 ),
               ),
             ],
-          );
-        },
-      ),
-    );
+          ),
+        );
+      },
+    ),
+  );
   }
 }
 
 class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({
     required this.server,
-    required this.albumCount,
-    required this.artistCount,
-    required this.songCount,
+    this.onPlayAll,
+    this.onShufflePlay,
     required this.onRefresh,
-    required this.onShuffleAll,
     required this.onDisconnect,
   });
 
   final RemoteServer server;
-  final int albumCount;
-  final int artistCount;
-  final int songCount;
+  final VoidCallback? onPlayAll;
+  final VoidCallback? onShufflePlay;
   final VoidCallback onRefresh;
-  final VoidCallback onShuffleAll;
   final VoidCallback onDisconnect;
 
   @override
@@ -308,54 +312,76 @@ class _DashboardHeader extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final bool isJellyfin = server.type == RemoteServerType.jellyfin;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                server.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isPortrait =
+            MediaQuery.orientationOf(context) == Orientation.portrait;
+        // 竖屏下如果宽度不够（如 < 560，4 个按钮会严重挤压左侧文字），刷新按钮直接隐藏（由下拉刷新替代），
+        // 且不再使用「更多」按钮收纳，直接展示「断开连接」按钮
+        final bool hideRefresh =
+            (isPortrait && constraints.maxWidth < 560) ||
+            constraints.maxWidth < 480;
+
+        final actions = <Widget>[
+          if (onPlayAll != null)
+            libraryToolbarIconButton(
+              icon: Icons.play_arrow_rounded,
+              tooltip: l10n.playAll,
+              onPressed: onPlayAll,
             ),
-            IconButton(
-              icon: const Icon(Icons.casino_outlined, size: 20),
+          if (onShufflePlay != null)
+            libraryToolbarIconButton(
+              icon: Icons.shuffle_rounded,
               tooltip: l10n.shufflePlay,
-              onPressed: onShuffleAll,
+              onPressed: onShufflePlay,
             ),
-            IconButton(
-              icon: const Icon(Icons.refresh_rounded, size: 20),
+          if (!hideRefresh)
+            libraryToolbarIconButton(
+              icon: Icons.refresh_rounded,
               tooltip: l10n.refresh,
               onPressed: onRefresh,
             ),
-            IconButton(
-              icon: const Icon(Icons.link_off_rounded, size: 20),
-              tooltip: l10n.remoteDisconnect,
-              onPressed: onDisconnect,
+          libraryToolbarIconButton(
+            icon: Icons.link_off_rounded,
+            tooltip: l10n.remoteDisconnect,
+            onPressed: onDisconnect,
+          ),
+        ];
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    server.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isJellyfin ? 'Jellyfin' : 'Navidrome / Subsonic',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: actions,
             ),
           ],
-        ),
-        const SizedBox(height: 2),
-        Text(
-          isJellyfin ? 'Jellyfin' : 'Navidrome / Subsonic',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          '${l10n.albums} $albumCount · ${l10n.artists} $artistCount · '
-          '${l10n.songs} $songCount',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
