@@ -2036,13 +2036,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             if (delta.abs() > 0.01) {
               final newOffset = currentOffset + delta;
               _scrollController.position.correctPixels(newOffset);
-              if (kDebugMode) {
-                debugPrint(
-                  '[LyricsPanel] Anti-jitter scroll correction: '
-                  'anchor line=$k, delta=${delta.toStringAsFixed(1)}, '
-                  'offset: ${currentOffset.toStringAsFixed(1)} -> ${newOffset.toStringAsFixed(1)}',
-                );
-              }
             }
           }
         }

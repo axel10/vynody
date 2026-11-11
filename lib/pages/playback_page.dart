@@ -109,10 +109,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     return exists;
   }
 
-  /// 背景封面输入快照，用于只在「真正变化」时打一条 `[BgFlash]` 日志，
-  /// 避免页面每帧重建把日志刷屏。定位背景闪烁用，可随问题关闭一起删掉。
-  String? _lastBackgroundLogSignature;
-
   late final AnimationController _dismissAnimController;
   Animation<double>? _dismissAnimation;
 
@@ -1998,19 +1994,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                       audioService.getCachedArtwork(ScannerPathUtils.resolveIosSandboxPath(songPath)))
                   : null;
 
-              // [BgFlash] 输入快照：只在真正变化时打一条，用于定位背景闪烁来自
-              // 哪一次字节/路径变化（Navidrome 场景通常是「服务器封面」→「缓存文件内嵌封面」）。
-              if (kDebugMode) {
-                final signature =
-                    'song=$songKey cur=$isCurrentSong pend=$isPendingSong '
-                    'bytes=${cachedBytes?.length ?? 0}#${identityHashCode(cachedBytes)} '
-                    'art=$artworkPath thumb=$thumbnailPath';
-                if (signature != _lastBackgroundLogSignature) {
-                  _lastBackgroundLogSignature = signature;
-                  debugPrint('[BgFlash] bg inputs | $signature');
-                }
-              }
-
               // 与 CoverCarousel 保持完全一致的缓存尺寸与 ImageProvider 优先级，
               // 确保 100% 命中 Flutter ImageCache，直接复用已解码显存纹理，杜绝二次解码与重复内存占用。
               final bool isLowMidEnd = ref.read(isLowMidEndDeviceProvider);
@@ -2100,17 +2083,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
               // 过渡动画逻辑：新封面直接淡入盖在旧封面之上。
               // 这种方式避免了传统的“双向淡入淡出（Cross-fade）”可能导致的背景短暂变暗或跳动。
-              if (kDebugMode) {
-                final mode = content is StaticBlurredArtwork
-                    ? 'static_blurred'
-                    : (content.key?.toString().contains('bg_empty') ?? false)
-                        ? 'black_empty'
-                        : content.runtimeType.toString();
-                debugPrint(
-                  '[BgFlash] bg content | small=$isSmallWinValue mode=$mode '
-                  'song=$songKey',
-                );
-              }
               return _SafeBackgroundSwitcher(
                 songKey: songKey,
                 duration: const Duration(milliseconds: 1000),
