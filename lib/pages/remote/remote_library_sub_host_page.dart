@@ -112,13 +112,9 @@ class _RemoteLibrarySubHostPageState
         ? Duration.zero
         : const Duration(milliseconds: 250);
 
-    // 顶部安全边距：窗口化时 `RemoteLibraryPage` 已经补过 32，这里只让
-    // 系统状态栏（非窗口化）与横屏的 8dp 呼吸位。
-    final double topInset =
-        MediaQuery.paddingOf(context).top + (isLandscape ? 8.0 : 0.0);
-
-    // 横屏避让 Rail：外层 `MainLayout` 已不再对远程库做 `Padding(left:)`，
-    // 让位必须落在页面内部，否则整页会被 Rail 压住左边缘。
+    // 横屏避让 Rail 宽度，供顶栏浮动胶囊等宿主级组件定位。
+    // 分类根页面的安全边距由各 LibraryTabNavigator 根路由自行计算并避让，
+    // 使得 IndexedStack 保持全屏，子路由（详情页）自带的 avoidRail 可以精确生效一次。
     final double railWidth = ref.watch(effectiveSidebarRailWidthProvider(size));
 
     final Widget body = ScrollPastTopScope(
@@ -127,29 +123,45 @@ class _RemoteLibrarySubHostPageState
       builder: (context, isPastTop) => Stack(
         children: [
           Positioned.fill(
-            child: Padding(
-              padding: EdgeInsets.only(top: topInset, left: railWidth),
-              child: IndexedStack(
-                index: index,
-                children: [
-                  for (int i = 0; i < widget.tabs.length; i++)
-                    LibraryTabNavigator(
-                      navigatorKey: widget.navigatorKeys[i],
-                      builder: (tabContext) => LibraryHeaderActionsScope(
-                        tabIndex: i,
-                        controller: _headerActions,
-                        child: widget.tabs[i](tabContext),
-                      ),
-                      onHasChildRouteChanged: (hasChild) =>
-                          _handleChildRouteChanged(i, hasChild),
+            child: IndexedStack(
+              index: index,
+              children: [
+                for (int i = 0; i < widget.tabs.length; i++)
+                  LibraryTabNavigator(
+                    navigatorKey: widget.navigatorKeys[i],
+                    builder: (tabContext) => Consumer(
+                      builder: (context, ref, child) {
+                        final tabSize = MediaQuery.sizeOf(context);
+                        final tabIsLandscape =
+                            ref.watch(isEffectiveLandscapeProvider(tabSize));
+                        final tabTopInset =
+                            MediaQuery.paddingOf(context).top +
+                            (tabIsLandscape ? 8.0 : 0.0);
+                        final tabRailWidth = ref.watch(
+                          effectiveSidebarRailWidthProvider(tabSize),
+                        );
+                        return LibraryHeaderActionsScope(
+                          tabIndex: i,
+                          controller: _headerActions,
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              top: tabTopInset,
+                              left: tabRailWidth,
+                            ),
+                            child: widget.tabs[i](context),
+                          ),
+                        );
+                      },
                     ),
-                ],
-              ),
+                    onHasChildRouteChanged: (hasChild) =>
+                        _handleChildRouteChanged(i, hasChild),
+                  ),
+              ],
             ),
           ),
           Positioned(
             top: 0,
-            left: 0,
+            left: railWidth,
             right: 0,
             child: FloatingCapsuleHeader(
               visible: capsuleAllowed && isPastTop,

@@ -12,11 +12,11 @@ import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/pages/remote/remote_album_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
-import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/utils/app_icons.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import 'package:vynody/widgets/album_detail_widgets.dart';
 import 'package:vynody/widgets/app_top_nav_bar.dart';
+import 'package:vynody/pages/remote/remote_library_sub_host_page.dart';
 
 import '../../widgets/helpers/mobile_screenshot_harness.dart';
 
@@ -38,7 +38,6 @@ void main() {
 
   late Directory testTempDir;
   late TestSettingsService settingsService;
-  late MockAudioService audioService;
 
   final testServer = RemoteServer(
     id: 'test_server',
@@ -49,13 +48,7 @@ void main() {
     createdAt: DateTime.now(),
   );
 
-  setUpAll(() async {
-    testTempDir = await Directory.systemTemp.createTemp('remote_album_detail_test_');
-    PathProviderPlatform.instance = _FakePathProviderPlatform(testTempDir);
-    SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
-    settingsService = TestSettingsService(prefs);
-
+  MockAudioService createAudioService() {
     final snapshot = AudioSnapshot(
       isPlaying: false,
       isTransitioning: false,
@@ -94,10 +87,18 @@ void main() {
       sleepTimerDuration: null,
     );
 
-    audioService = MockAudioService(
+    return MockAudioService(
       snapshot: snapshot,
       visualizerStream: const Stream.empty(),
     );
+  }
+
+  setUpAll(() async {
+    testTempDir = await Directory.systemTemp.createTemp('remote_album_detail_test_');
+    PathProviderPlatform.instance = _FakePathProviderPlatform(testTempDir);
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    settingsService = TestSettingsService(prefs);
   });
 
   tearDownAll(() async {
@@ -109,11 +110,12 @@ void main() {
   });
 
   Widget createWidget({Size size = const Size(400, 800)}) {
+    final audio = createAudioService();
     return ProviderScope(
       overrides: [
         settingsServiceProvider.overrideWith((ref) => settingsService),
-        audioServiceStateProvider.overrideWith(() => audioService),
-        audioServiceProvider.overrideWith((ref) => audioService),
+        audioServiceStateProvider.overrideWith(() => audio),
+        audioServiceProvider.overrideWith((ref) => audio),
         audioCurrentMusicProvider.overrideWith((ref) => null),
       ],
       child: OKToast(
@@ -196,5 +198,89 @@ void main() {
     );
     expect(find.byType(AlbumLandscapeHeaderBanner), findsOneWidget);
     expect(find.text('Remote Album'), findsOneWidget);
+  });
+
+  testWidgets('RemoteAlbumDetailPage within RemoteLibrarySubHostPage has single railWidth padding in landscape', (tester) async {
+    const screenSize = Size(1200, 800);
+    tester.view.physicalSize = screenSize;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final navigatorKeys = List.generate(6, (_) => GlobalKey<NavigatorState>());
+
+    final audio = createAudioService();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settingsService),
+          audioServiceStateProvider.overrideWith(() => audio),
+          audioServiceProvider.overrideWith((ref) => audio),
+          audioCurrentMusicProvider.overrideWith((ref) => null),
+        ],
+        child: OKToast(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: MediaQuery(
+              data: const MediaQueryData(
+                size: screenSize,
+                padding: EdgeInsets.only(top: 24),
+              ),
+              child: Scaffold(
+                body: RemoteLibrarySubHostPage(
+                  initialIndex: 0,
+                  navigatorKeys: navigatorKeys,
+                  onBack: () {},
+                  onRefresh: (_) {},
+                  tabs: [
+                    (ctx) => ElevatedButton(
+                      onPressed: () {
+                        navigatorKeys[0].currentState?.push(
+                          MaterialPageRoute(
+                            builder: (_) => RemoteAlbumDetailPage(
+                              server: testServer,
+                              password: 'password',
+                              albumId: 'al-123',
+                              albumName: 'Remote Test Album',
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text('Open Album'),
+                    ),
+                    for (int i = 1; i < 6; i++) (ctx) => const SizedBox(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // 点击打开详情页
+    await tester.tap(find.text('Open Album'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.byType(RemoteAlbumDetailPage), findsOneWidget);
+
+    // 详情页自身作为全屏路由，其左侧贴合屏幕边缘 (0.0)
+    final detailPageFinder = find.byType(RemoteAlbumDetailPage);
+    final detailPageRect = tester.getRect(detailPageFinder);
+    expect(detailPageRect.left, equals(0.0));
+
+    // RemoteAlbumDetailPage 内的 Scaffold body 的左内边距正好是一次 railWidth
+    final scaffoldBodyFinder = find.descendant(
+      of: detailPageFinder,
+      matching: find.byType(Scaffold),
+    );
+    expect(scaffoldBodyFinder, findsOneWidget);
+    final scaffoldBodyWidget = tester.widget<Scaffold>(scaffoldBodyFinder);
+    final bodyPadding = scaffoldBodyWidget.body as Padding;
+    final edgeInsets = bodyPadding.padding as EdgeInsets;
+    // 横屏下 railWidth > 0 且仅被避让一次（默认展开态侧栏宽度为 216.0）
+    expect(edgeInsets.left, equals(216.0));
   });
 }
