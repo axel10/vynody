@@ -268,8 +268,13 @@ class RemoteLibrarySearchView extends ConsumerWidget {
     AppLocalizations l10n,
     ThemeData theme,
   ) {
+    const double coverSize = 100.0;
+    const double cardPadding = 5.0;
+    const double cardWidth = coverSize + cardPadding * 2;
+    const double cardHeight = 152.0;
+
     return SizedBox(
-      height: 124,
+      height: cardHeight,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: searchedAlbums.length,
@@ -284,8 +289,8 @@ class RemoteLibrarySearchView extends ConsumerWidget {
           final isSelected = selectedAlbumIds.contains(albumId);
 
           return Container(
-            width: 100,
-            margin: const EdgeInsets.only(right: 12),
+            width: cardWidth,
+            margin: const EdgeInsets.only(right: 8),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onSecondaryTapDown: (details) {
@@ -317,96 +322,115 @@ class RemoteLibrarySearchView extends ConsumerWidget {
               onLongPressStart: (details) {
                 onToggleAlbumSelection(albumId);
               },
-              child: InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () {
-                  if (isAlbumSelectionMode) {
-                    onToggleAlbumSelection(albumId);
-                  } else {
-                    RemoteLibraryNavUtils.openAlbum(
-                      context,
-                      server: server,
-                      password: password,
-                      albumId: albumId,
-                      albumName: title,
-                      artistName: artist,
-                      coverArtId: coverId,
-                    );
-                  }
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Stack(
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () {
+                    if (isAlbumSelectionMode) {
+                      onToggleAlbumSelection(albumId);
+                    } else {
+                      RemoteLibraryNavUtils.openAlbum(
+                        context,
+                        server: server,
+                        password: password,
+                        albumId: albumId,
+                        albumName: title,
+                        artistName: artist,
+                        coverArtId: coverId,
+                      );
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(cardPadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isAlbumSelectionMode && isSelected
-                                  ? theme.colorScheme.primary
-                                  : Colors.transparent,
-                              width: isAlbumSelectionMode && isSelected ? 2 : 0,
-                            ),
-                          ),
-                          child: RemoteArtworkWidget(
-                            server: server,
-                            password: password,
-                            coverArtId: coverId,
-                            size: 80,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                        if (isAlbumSelectionMode)
-                          Positioned.fill(
-                            child: Container(
+                        Stack(
+                          children: [
+                            Container(
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(6),
-                                color: isSelected
-                                    ? theme.colorScheme.primaryContainer
-                                        .withValues(alpha: 0.3)
-                                    : Colors.black26,
-                              ),
-                            ),
-                          ),
-                        if (isAlbumSelectionMode)
-                          Positioned(
-                            top: 4,
-                            left: 4,
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: Checkbox(
-                                value: isSelected,
-                                onChanged: (_) =>
-                                    onToggleAlbumSelection(albumId),
-                                fillColor:
-                                    WidgetStateProperty.all(Colors.white),
-                                checkColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(3),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isAlbumSelectionMode && isSelected
+                                      ? theme.colorScheme.primary
+                                      : Colors.transparent,
+                                  width: isAlbumSelectionMode && isSelected ? 2 : 0,
                                 ),
                               ),
+                              child: RemoteArtworkWidget(
+                                server: server,
+                                password: password,
+                                coverArtId: coverId,
+                                size: coverSize,
+                                width: coverSize,
+                                height: coverSize,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
                             ),
+                            if (isAlbumSelectionMode)
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(6),
+                                    color: isSelected
+                                        ? theme.colorScheme.primaryContainer
+                                            .withValues(alpha: 0.3)
+                                        : Colors.black26,
+                                  ),
+                                ),
+                              ),
+                            if (isAlbumSelectionMode)
+                              Positioned(
+                                top: 4,
+                                left: 4,
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: Checkbox(
+                                    value: isSelected,
+                                    onChanged: (_) =>
+                                        onToggleAlbumSelection(albumId),
+                                    fillColor:
+                                        WidgetStateProperty.all(Colors.white),
+                                    checkColor: Colors.black,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: isAlbumSelectionMode && isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w600,
+                            color: isAlbumSelectionMode && isSelected
+                                ? theme.colorScheme.primary
+                                : null,
                           ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          artist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: isAlbumSelectionMode && isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        color: isAlbumSelectionMode && isSelected
-                            ? theme.colorScheme.primary
-                            : null,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
