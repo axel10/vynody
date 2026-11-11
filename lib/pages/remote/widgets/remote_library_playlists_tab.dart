@@ -15,6 +15,7 @@ import '../../../utils/selection_utils.dart';
 import '../../../widgets/draggable_remote_playlist_item.dart';
 import '../../../widgets/folder_layout_utils.dart';
 import '../../../widgets/folder_zoom_gesture_layer.dart';
+import '../../../widgets/adaptive_pinned_header_scroll_view.dart';
 import '../../../widgets/library_action_bar.dart';
 import '../../../widgets/remote_playlist_zoom_item.dart';
 import 'remote_library_toolbar_widgets.dart';
@@ -468,123 +469,120 @@ class _RemoteLibraryPlaylistsViewState
         snapFolderZoomScale(ref.watch(settingsServiceProvider).folderZoomScale);
     final isPortrait =
         MediaQuery.orientationOf(context) == Orientation.portrait;
-    final toolbarSliver = widget.toolbar != null
-        ? SliverRemotePageHeaderSlot(child: widget.toolbar!)
-        : null;
 
-    return RefreshIndicator(
-      onRefresh: widget.onRefresh,
-      child: FolderZoomGestureLayer(
-        zoomGesturesEnabled: !widget.isSelectionMode,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            return CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                ?toolbarSliver,
-                if (entries.isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Text(
-                        widget.searchQuery.isEmpty
-                            ? l10n.noPlaylistsFound
-                            : l10n.noMatchingPlaylists,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+    return FolderZoomGestureLayer(
+      zoomGesturesEnabled: !widget.isSelectionMode,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          return AdaptivePinnedHeaderScrollView(
+            header: widget.toolbar,
+            headerSlotBuilder: (context, h, isSliver) => isSliver
+                ? SliverRemotePageHeaderSlot(child: h)
+                : RemotePageHeaderSlot(child: h),
+            onRefresh: widget.onRefresh,
+            slivers: [
+              if (entries.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      widget.searchQuery.isEmpty
+                          ? l10n.noPlaylistsFound
+                          : l10n.noMatchingPlaylists,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  )
-                else
-                  FolderZoomSliverBuilder(
-                    zoomScale: zoomScale,
-                    width: width,
-                    // 本页 loading/error 是裸 view、有内容才套 RefreshIndicator，
-                    // 即 ScrollView 的祖先结构会切换 —— 这种页面禁传 controller
-                    // （切分支那帧会炸在 sliver 布局里，整页空白）。
-                    builder: (context, metrics) {
-                      return SliverPadding(
-                        // 左右与顶部动作行同源、且不随档位变化。
-                        padding: EdgeInsets.only(
-                          left: kGridHorizontalPadding,
-                          right: kGridHorizontalPadding,
-                          top: isPortrait ? 8.0 : 16.0,
-                          bottom: widget.bottomOffset,
-                        ),
-                        // 顺序由 _sortEntries 决定；不可拖拽重排
-                        // （服务端没有歌单之间的排序接口）。
-                        sliver: SliverGrid(
-                          gridDelegate: SliverAnimatedZoomGridDelegate(
-                            metrics: metrics,
-                          ),
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final entry = entries[index];
-                              final isSelected = widget.selectedPlaylistIds
-                                  .contains(entry.id);
-                              return DraggableRemotePlaylistItem(
-                                server: widget.server,
-                                playlist: entry.raw,
-                                songCount: entry.songCount,
-                                isSelectionMode: widget.isSelectionMode,
-                                isSelected: isSelected,
-                                selectedPlaylistIds:
-                                    widget.selectedPlaylistIds,
-                                child: RemotePlaylistZoomItem(
-                                  server: widget.server,
-                                  password: widget.password,
-                                  title: entry.name,
-                                  songCount: entry.songCount,
-                                  coverArtId: entry.coverArt,
-                                  isPinned: entry.isPinned,
-                                  metrics: metrics,
-                                  index: index,
-                                  isSelected: isSelected,
-                                  isSelectionMode: widget.isSelectionMode,
-                                  onTap: () {
-                                    SelectionActionHelper.handleItemTap(
-                                      index: index,
-                                      itemKey: entry.id,
-                                      items: entries,
-                                      keySelector: (e) => e.id,
-                                      isSelectionMode: widget.isSelectionMode,
-                                      selectedKeys: widget.selectedPlaylistIds,
-                                      lastAnchorIndex:
-                                          widget.lastPlaylistAnchorIndex,
-                                      onUpdateAnchor: widget.onUpdateAnchor,
-                                      onSetSelection: widget.onSetSelection,
-                                      onToggleSelection:
-                                          widget.onToggleSelection,
-                                      onNormalTap: () => _openPlaylist(entry),
-                                    );
-                                  },
-                                  onLongPress: () {
-                                    widget.onUpdateAnchor(index);
-                                    widget.onToggleSelection(entry.id);
-                                  },
-                                  onSecondaryTapDown: entry.isPinned ||
-                                          widget.isSelectionMode
-                                      ? null
-                                      : (details) => _showContextMenu(
-                                            entry,
-                                            index,
-                                            details.globalPosition,
-                                          ),
-                                ),
-                              );
-                            },
-                            childCount: entries.length,
-                          ),
-                        ),
-                      );
-                    },
                   ),
-              ],
-            );
-          },
-        ),
+                )
+              else
+                FolderZoomSliverBuilder(
+                  zoomScale: zoomScale,
+                  width: width,
+                  // 本页 loading/error 是裸 view、有内容才套 RefreshIndicator，
+                  // 即 ScrollView 的祖先结构会切换 —— 这种页面禁传 controller
+                  // （切分支那帧会炸在 sliver 布局里，整页空白）。
+                  builder: (context, metrics) {
+                    return SliverPadding(
+                      // 左右与顶部动作行同源、且不随档位变化。
+                      padding: EdgeInsets.only(
+                        left: kGridHorizontalPadding,
+                        right: kGridHorizontalPadding,
+                        top: isPortrait ? 8.0 : 16.0,
+                        bottom: widget.bottomOffset,
+                      ),
+                      // 顺序由 _sortEntries 决定；不可拖拽重排
+                      // （服务端没有歌单之间的排序接口）。
+                      sliver: SliverGrid(
+                        gridDelegate: SliverAnimatedZoomGridDelegate(
+                          metrics: metrics,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final entry = entries[index];
+                            final isSelected = widget.selectedPlaylistIds
+                                .contains(entry.id);
+                            return DraggableRemotePlaylistItem(
+                              server: widget.server,
+                              playlist: entry.raw,
+                              songCount: entry.songCount,
+                              isSelectionMode: widget.isSelectionMode,
+                              isSelected: isSelected,
+                              selectedPlaylistIds:
+                                  widget.selectedPlaylistIds,
+                              child: RemotePlaylistZoomItem(
+                                server: widget.server,
+                                password: widget.password,
+                                title: entry.name,
+                                songCount: entry.songCount,
+                                coverArtId: entry.coverArt,
+                                isPinned: entry.isPinned,
+                                metrics: metrics,
+                                index: index,
+                                isSelected: isSelected,
+                                isSelectionMode: widget.isSelectionMode,
+                                onTap: () {
+                                  SelectionActionHelper.handleItemTap(
+                                    index: index,
+                                    itemKey: entry.id,
+                                    items: entries,
+                                    keySelector: (e) => e.id,
+                                    isSelectionMode: widget.isSelectionMode,
+                                    selectedKeys: widget.selectedPlaylistIds,
+                                    lastAnchorIndex:
+                                        widget.lastPlaylistAnchorIndex,
+                                    onUpdateAnchor: widget.onUpdateAnchor,
+                                    onSetSelection: widget.onSetSelection,
+                                    onToggleSelection:
+                                        widget.onToggleSelection,
+                                    onNormalTap: () => _openPlaylist(entry),
+                                  );
+                                },
+                                onLongPress: () {
+                                  widget.onUpdateAnchor(index);
+                                  widget.onToggleSelection(entry.id);
+                                },
+                                onSecondaryTapDown: entry.isPinned ||
+                                        widget.isSelectionMode
+                                    ? null
+                                    : (details) => _showContextMenu(
+                                          entry,
+                                          index,
+                                          details.globalPosition,
+                                        ),
+                              ),
+                            );
+                          },
+                          childCount: entries.length,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          );
+        },
       ),
     );
   }

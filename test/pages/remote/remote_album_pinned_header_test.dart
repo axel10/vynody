@@ -115,7 +115,7 @@ void main() {
     final initialToolbarPos = tester.getTopLeft(find.byKey(const ValueKey('remote_albums_toolbar')));
 
     // Drag the scrollable album grid upwards by 300px
-    await tester.drag(find.text('Album 2'), const Offset(0, -300));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -300));
     await tester.pumpAndSettle();
 
     final scrolledToolbarPos = tester.getTopLeft(find.byKey(const ValueKey('remote_albums_toolbar')));
@@ -157,7 +157,7 @@ void main() {
     final initialToolbarPos = tester.getTopLeft(find.byKey(const ValueKey('remote_albums_toolbar')));
 
     // Drag the scrollable album grid upwards by 80px
-    await tester.drag(find.text('Album 2'), const Offset(0, -80));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -80));
     await tester.pumpAndSettle();
 
     final scrolledToolbarPos = tester.getTopLeft(find.byKey(const ValueKey('remote_albums_toolbar')));

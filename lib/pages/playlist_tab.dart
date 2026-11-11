@@ -21,6 +21,7 @@ import '../widgets/draggable_playlist_item.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_zoom_gesture_layer.dart';
 import '../widgets/library_action_bar.dart';
+import '../widgets/adaptive_pinned_header_scroll_view.dart';
 import '../widgets/library_category_header.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
@@ -740,31 +741,13 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                       ),
                 ];
 
-                return isPortrait
-                    ? CustomScrollView(
-                        controller: _scrollController,
-                        slivers: [
-                          if (widget.contentTopPadding > 0)
-                            SliverToBoxAdapter(
-                              child: SizedBox(height: widget.contentTopPadding),
-                            ),
-                          SliverToBoxAdapter(child: header),
-                          ...playlistSlivers,
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          if (widget.contentTopPadding > 0)
-                            SizedBox(height: widget.contentTopPadding),
-                          header,
-                          Expanded(
-                            child: CustomScrollView(
-                              controller: _scrollController,
-                              slivers: playlistSlivers,
-                            ),
-                          ),
-                        ],
-                      );
+                return AdaptivePinnedHeaderScrollView(
+                  controller: _scrollController,
+                  header: header,
+                  topPadding: widget.contentTopPadding,
+                  isLandscape: !isPortrait,
+                  slivers: playlistSlivers,
+                );
               },
             ),
           ),
