@@ -11,6 +11,7 @@ import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/services/remote_download_service.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/remote_download_feedback.dart';
+import '../../../utils/remote_library_playback.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../utils/song_locator_helper.dart';
 import '../../../widgets/folder_layout_utils.dart';
@@ -152,6 +153,7 @@ class RemoteLibrarySongsView extends ConsumerStatefulWidget {
   final void Function(String songPath) onToggleSelection;
   final void Function(int? index) onUpdateAnchor;
   final void Function(MusicFile song) onToggleStar;
+  final void Function(List<MusicFile> newlyLoaded)? onSongsAppended;
   final RemoteLibrarySongsToolbar? toolbar;
 
   const RemoteLibrarySongsView({
@@ -176,6 +178,7 @@ class RemoteLibrarySongsView extends ConsumerStatefulWidget {
     required this.onToggleSelection,
     required this.onUpdateAnchor,
     required this.onToggleStar,
+    this.onSongsAppended,
     this.toolbar,
   });
 
@@ -210,6 +213,41 @@ class _RemoteLibrarySongsViewState
   Future<void> _playAll({bool shuffle = false}) async {
     if (widget.songs.isEmpty) return;
     final l10n = AppLocalizations.of(context)!;
+    final sourceId = 'remote-${widget.server.id}-songs';
+    final sourceName = l10n.songs;
+
+    // 非搜索状态下的全库播放增强逻辑
+    if (widget.searchQuery.trim().isEmpty) {
+      if (shuffle) {
+        // 服务端真·全库随机
+        await playRemoteRandomSongs(
+          context: context,
+          ref: ref,
+          server: widget.server,
+          password: widget.password,
+          sourceId: sourceId,
+          sourceName: sourceName,
+        );
+        return;
+      }
+
+      if (widget.hasMore) {
+        // 若还有未加载的分页，通过进度浮层续拉全库剩余曲目后播放
+        await playAllRemoteSongs(
+          context: context,
+          ref: ref,
+          server: widget.server,
+          password: widget.password,
+          loadedSongs: widget.songs,
+          hasMore: widget.hasMore,
+          sourceId: sourceId,
+          sourceName: sourceName,
+          onBatchLoaded: widget.onSongsAppended,
+        );
+        return;
+      }
+    }
+
     final audioService = ref.read(audioServiceProvider);
     final playlist = List<MusicFile>.from(widget.songs);
     if (shuffle) {
@@ -219,8 +257,8 @@ class _RemoteLibrarySongsViewState
       playlist,
       source: PlaybackSource(
         type: PlaybackSourceType.playlist,
-        id: 'remote-${widget.server.id}-songs',
-        name: l10n.songs,
+        id: sourceId,
+        name: sourceName,
       ),
     );
   }
@@ -245,6 +283,7 @@ class _RemoteLibrarySongsViewState
       },
     );
     if (queued != true) return;
+    if (!mounted) return;
 
     showRemoteDownloadQueuedFeedback(context, ref, widget.songs.length);
   }

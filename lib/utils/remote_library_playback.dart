@@ -159,3 +159,117 @@ Future<List<MusicFile>> _fetchGenreTracks(
   } catch (_) {}
   return tracks;
 }
+
+/// 从远端服务器拉取一批全库随机歌曲并直接播放（真·全库随机）。
+Future<void> playRemoteRandomSongs({
+  required BuildContext context,
+  required WidgetRef ref,
+  required RemoteServer server,
+  required String password,
+  required String sourceId,
+  required String sourceName,
+  int size = 500,
+}) async {
+  final client = RemoteMediaLibraryClient.create(
+    server: server,
+    password: password,
+  );
+
+  final songs = await runWithRemoteTrackLoadProgress<List<MusicFile>>(
+    context: context,
+    immediate: true,
+    task: () async {
+      final rawList = await client.getRandomSongs(size: size);
+      return rawList.map(client.buildMusicFile).toList();
+    },
+  );
+
+  if (songs == null || songs.isEmpty) return;
+  if (!context.mounted) return;
+
+  await ref.read(audioServiceProvider).playPlaylist(
+    songs,
+    source: PlaybackSource(
+      type: PlaybackSourceType.playlist,
+      id: sourceId,
+      name: sourceName,
+    ),
+  );
+}
+
+/// 播放全库歌曲：若现有歌曲尚未完全加载（hasMore == true），在进度浮层中继续
+/// 分页轮询拉取后续歌曲，拉取完成后全量播放；若已全部加载则直接起播。
+Future<void> playAllRemoteSongs({
+  required BuildContext context,
+  required WidgetRef ref,
+  required RemoteServer server,
+  required String password,
+  required List<MusicFile> loadedSongs,
+  required bool hasMore,
+  required String sourceId,
+  required String sourceName,
+  void Function(List<MusicFile> newlyLoaded)? onBatchLoaded,
+}) async {
+  if (!hasMore) {
+    if (loadedSongs.isEmpty) return;
+    await ref.read(audioServiceProvider).playPlaylist(
+      List<MusicFile>.from(loadedSongs),
+      source: PlaybackSource(
+        type: PlaybackSourceType.playlist,
+        id: sourceId,
+        name: sourceName,
+      ),
+    );
+    return;
+  }
+
+  final client = RemoteMediaLibraryClient.create(
+    server: server,
+    password: password,
+  );
+
+  final allSongs = await runWithRemoteTrackLoadProgress<List<MusicFile>>(
+    context: context,
+    immediate: true,
+    task: () async {
+      final progress = remoteTrackLoadProgress;
+      final collected = List<MusicFile>.from(loadedSongs);
+      var offset = loadedSongs.length;
+      const pageSize = 500;
+
+      while (true) {
+        progress.throwIfCancelled();
+        final rawSongs = await client.getSongs(
+          count: pageSize,
+          offset: offset,
+        );
+        if (rawSongs.isEmpty) break;
+
+        final newParsed = rawSongs.map(client.buildMusicFile).toList();
+        collected.addAll(newParsed);
+        progress.advance(newParsed.length);
+        if (onBatchLoaded != null && newParsed.isNotEmpty) {
+          onBatchLoaded(newParsed);
+        }
+
+        offset += rawSongs.length;
+        if (rawSongs.length < pageSize) {
+          break;
+        }
+      }
+      return collected;
+    },
+  );
+
+  if (allSongs == null || allSongs.isEmpty) return;
+  if (!context.mounted) return;
+
+  await ref.read(audioServiceProvider).playPlaylist(
+    allSongs,
+    source: PlaybackSource(
+      type: PlaybackSourceType.playlist,
+      id: sourceId,
+      name: sourceName,
+    ),
+  );
+}

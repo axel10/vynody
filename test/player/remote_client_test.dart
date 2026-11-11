@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/clients/jellyfin_client.dart';
+import 'package:vynody/player/remote/clients/remote_media_library_client.dart';
 import 'package:vynody/player/remote/clients/subsonic_client.dart';
 import 'package:vynody/player/remote/clients/webdav_client.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
@@ -373,6 +374,44 @@ void main() {
       expect(normalized['year'], 2024);
       expect(normalized['created'], '2024-05-01T12:00:00Z');
       expect(normalized['isFavorite'], true);
+    });
+  });
+
+  group('RemoteMediaLibraryClient getRandomSongs tests', () {
+    test('RemoteMediaLibraryClient exposes getRandomSongs contract', () {
+      final subsonicServer = RemoteServer(
+        id: 'test-subsonic-rnd',
+        name: 'Navi Test',
+        type: RemoteServerType.subsonic,
+        url: 'https://subsonic.example.com',
+        username: 'alice',
+        createdAt: DateTime.now(),
+      );
+
+      final client = RemoteMediaLibraryClient.create(
+        server: subsonicServer,
+        password: 'pass',
+      );
+
+      expect(client.getRandomSongs, isNotNull);
+    });
+
+    test('Jellyfin RemoteMediaLibraryClient exposes getRandomSongs contract', () {
+      final jellyfinServer = RemoteServer(
+        id: 'test-jellyfin-rnd',
+        name: 'Jellyfin Test',
+        type: RemoteServerType.jellyfin,
+        url: 'https://jellyfin.example.com',
+        username: 'alice',
+        createdAt: DateTime.now(),
+      );
+
+      final client = RemoteMediaLibraryClient.create(
+        server: jellyfinServer,
+        password: 'pass',
+      );
+
+      expect(client.getRandomSongs, isNotNull);
     });
   });
 }

@@ -2024,6 +2024,15 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     );
   }
 
+  void _appendSongs(List<MusicFile> newSongs) {
+    if (!mounted || newSongs.isEmpty) return;
+    setState(() {
+      _songs = [..._songs, ...newSongs];
+      _songOffset = _songs.length;
+      _hasMoreSongs = false;
+    });
+  }
+
   Widget _buildSongsTab() {
     return RemoteLibrarySongsView(
       toolbar: _buildSongsToolbar(),
@@ -2047,6 +2056,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       onToggleSelection: _toggleSongSelection,
       onUpdateAnchor: (a) => setState(() => _lastSongAnchorIndex = a),
       onToggleStar: _toggleSongStar,
+      onSongsAppended: _appendSongs,
     );
   }
 

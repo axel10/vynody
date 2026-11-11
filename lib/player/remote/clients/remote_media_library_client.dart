@@ -28,6 +28,9 @@ abstract class RemoteMediaLibraryClient {
     int offset = 0,
   });
 
+  /// 获取服务器端随机抽样的歌曲列表（真全库随机）。
+  Future<List<Map<String, dynamic>>> getRandomSongs({int size = 500});
+
   /// 流派列表，元素形如
   /// `{id, name, songCount, albumCount, coverArt}`。
   Future<List<Map<String, dynamic>>> getGenres();
@@ -157,6 +160,10 @@ class SubsonicMediaLibraryClient implements RemoteMediaLibraryClient {
     int offset = 0,
   }) =>
       client.getSongs(query: query, count: count, offset: offset);
+
+  @override
+  Future<List<Map<String, dynamic>>> getRandomSongs({int size = 500}) =>
+      client.getRandomSongs(size: size);
 
   @override
   Future<List<Map<String, dynamic>>> getGenres() => client.getGenres();
@@ -322,6 +329,10 @@ class JellyfinMediaLibraryClient implements RemoteMediaLibraryClient {
     int offset = 0,
   }) =>
       client.getSongs(query: query, count: count, offset: offset);
+
+  @override
+  Future<List<Map<String, dynamic>>> getRandomSongs({int size = 500}) =>
+      client.getRandomSongs(size: size);
 
   @override
   Future<List<Map<String, dynamic>>> getGenres() => client.getGenres();

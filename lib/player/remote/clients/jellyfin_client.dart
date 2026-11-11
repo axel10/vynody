@@ -780,6 +780,16 @@ class JellyfinClient {
         .toList();
   }
 
+  /// Fetches random songs from the Jellyfin server using server-side random sorting.
+  Future<List<Map<String, dynamic>>> getRandomSongs({int size = 500}) async {
+    return getSongs(
+      count: size,
+      offset: 0,
+      sortBy: 'Random',
+      sortAsc: true,
+    );
+  }
+
   /// Fetches music genres with song / album counts.
   ///
   /// 走通用 `/Genres` 端点：`/MusicGenres` 已被 Jellyfin 标记 Obsolete
