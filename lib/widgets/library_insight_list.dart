@@ -20,6 +20,8 @@ import 'draggable_album_item.dart';
 import 'draggable_song_item.dart';
 import 'folder_layout_utils.dart';
 import 'folder_zoom_gesture_layer.dart';
+import 'library_action_bar.dart';
+import 'library_header_actions.dart';
 import 'library_selection_panel.dart';
 import 'library_selection_scope.dart';
 import 'library_toolbar_buttons.dart';
@@ -51,6 +53,7 @@ class LibraryInsightList extends ConsumerStatefulWidget {
     this.centerAction,
     this.headerTrailing,
     this.headerAction,
+    this.extraActions = const <LibraryToolbarAction>[],
     this.customFilterBar,
     this.showTimeRange = false,
     this.selectedRange = LibraryTimeRange.allTime,
@@ -85,6 +88,15 @@ class LibraryInsightList extends ConsumerStatefulWidget {
   final Widget? centerAction;
   final Widget? headerTrailing;
   final Widget? headerAction;
+
+  /// 竖屏「更多」菜单里的附加动作（排序、时间范围等）。
+  ///
+  /// [headerTrailing] / [headerAction] 是任意 Widget，只能平铺在横屏动作行里；
+  /// 竖屏要折叠进「更多」，就必须以 [LibraryToolbarAction] 的形式给出。
+  /// 两者可以并存：横屏用 Widget、竖屏用这里（例如时间范围既有下拉控件、
+  /// 又要在菜单里展开成四个选项）。
+  final List<LibraryToolbarAction> extraActions;
+
   final Widget? customFilterBar;
   final bool showTimeRange;
   final LibraryTimeRange selectedRange;
@@ -188,6 +200,22 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
     return songs;
   }
 
+  /// 展开搜索。从滚动后浮出的胶囊「更多」里触发时页头已滚出视口，
+  /// 必须先把列表滚回顶部，否则输入框出现在看不见的地方。
+  void _openSearch() {
+    if (_scrollController.hasClients && _scrollController.offset > 0) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    }
+    setState(() => _isSearchExpanded = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocusNode.requestFocus();
+    });
+  }
+
   void _openAlbum(TimeMachineAlbumEntry entry) {
     if (entry.songs.isEmpty) return;
     final album = _summaryFor(entry);
@@ -277,6 +305,10 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
+    // 依赖必须在本层的 build 里建立：真正注册发生在下面 LayoutBuilder 的
+    // builder 中，那里再去依赖祖先会跨越 build 阶段。
+    final headerActionsScope = LibraryHeaderActionsScope.maybeOf(context);
+
     final visibleSongs = _isAlbums
         ? const <LibraryInsightSongEntry>[]
         : _filterSongs(widget.songs);
@@ -351,6 +383,48 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
 
         final zoomButton = LibraryZoomButton(scope: currentScope);
 
+        // 竖屏动作行与滚动后浮出的顶栏胶囊共用这一份清单：
+        // 播放全部 / 随机 / 搜索在页头常驻，其余（时间范围、排序、视图档位）
+        // 与分类页一样折叠进「更多」。
+        final resolvedActions = <LibraryToolbarAction>[
+          LibraryToolbarAction(
+            icon: Icons.play_arrow_rounded,
+            label: l10n.playAll,
+            onPressed: visibleCount > 0
+                ? () => _playAll(visibleSongs, visibleAlbums)
+                : null,
+          ),
+          LibraryToolbarAction(
+            icon: Icons.shuffle_rounded,
+            label: l10n.shufflePlay,
+            onPressed: visibleCount > 0
+                ? () => _playAll(visibleSongs, visibleAlbums, shuffle: true)
+                : null,
+          ),
+          LibraryToolbarAction(
+            icon: Icons.search_rounded,
+            label: l10n.search,
+            onPressed: _openSearch,
+          ),
+          ...widget.extraActions,
+          LibraryToolbarAction(
+            icon: Icons.grid_view_rounded,
+            label: l10n.listView,
+            wideButton: zoomButton,
+            menuEntries: (ctx) => [
+              libraryToolbarMenuEntry(
+                context: ctx,
+                icon: Icons.grid_view_rounded,
+                label: l10n.listView,
+                onTap: () => showLibraryZoomPopover(ctx, scope: currentScope),
+              ),
+            ],
+          ),
+        ];
+        headerActionsScope?.controller.register(
+          headerActionsScope.tabIndex,
+          resolvedActions,
+        );
         final headerWidget = Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
@@ -460,28 +534,17 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                                       children: [
                                         playAllButton,
                                         shufflePlayButton,
-                                        const Spacer(),
-                                        IconButton(
+                                        libraryToolbarIconButton(
+                                          icon: Icons.search_rounded,
                                           tooltip: l10n.search,
-                                          icon: const Icon(Icons.search_rounded),
-                                          onPressed: () {
-                                            setState(() {
-                                              _isSearchExpanded = true;
-                                            });
-                                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                                              if (mounted) {
-                                                _searchFocusNode.requestFocus();
-                                              }
-                                            });
-                                          },
+                                          onPressed: _openSearch,
                                         ),
-                                        if (widget.headerTrailing != null) widget.headerTrailing!,
-                                        if (widget.headerAction != null) ...[
-                                          const SizedBox(width: 6),
-                                          widget.headerAction!,
-                                        ],
-                                        const SizedBox(width: 6),
-                                        zoomButton,
+                                        const Spacer(),
+                                        // 竖屏一律折叠：时间范围 / 排序 / 视图档位
+                                        // 全部进「更多」，与分类页 LibraryActionBar 同口径。
+                                        libraryToolbarMoreButton(
+                                          actions: () => resolvedActions,
+                                        ),
                                       ],
                                     ),
                             ),

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../player/platform/right_queue_drawer_controller.dart';import '../../l10n/app_localizations.dart';
-import '../../utils/layout_constants.dart';
-import '../../widgets/app_top_nav_bar.dart';
+import '../../player/platform/right_queue_drawer_controller.dart';
+import '../../l10n/app_localizations.dart';
+import '../../widgets/floating_capsule_header.dart';
+import '../../widgets/library_action_bar.dart';
+import '../../widgets/library_header_actions.dart';
 import '../../widgets/library_selection_scope.dart';
 import '../../widgets/library_tab_navigator.dart';
+import '../../widgets/scroll_past_top.dart';
 import '../main_layout_riverpod.dart';
 
 /// 远程媒体库二级分类宿主，与本地库的 `LibrarySubHostPage` 同构。
@@ -22,7 +25,6 @@ import '../main_layout_riverpod.dart';
 class RemoteLibrarySubHostPage extends ConsumerStatefulWidget {
   const RemoteLibrarySubHostPage({
     super.key,
-    required this.titles,
     required this.tabs,
     required this.navigatorKeys,
     required this.onBack,
@@ -31,9 +33,6 @@ class RemoteLibrarySubHostPage extends ConsumerStatefulWidget {
     this.selectionPanel,
     this.onPopBlocked,
   });
-
-  /// 与 [tabs] 一一对应的分类标题（顶栏浮动胶囊用）。
-  final List<String> titles;
 
   /// 各分类的根页面构建器，一条对应一个独立导航域。
   final List<WidgetBuilder> tabs;
@@ -63,12 +62,13 @@ class RemoteLibrarySubHostPage extends ConsumerStatefulWidget {
 
 class _RemoteLibrarySubHostPageState
     extends ConsumerState<RemoteLibrarySubHostPage> {
+  /// 各分类页头动作的注册表，供滚动后浮出的顶栏胶囊取「更多」菜单内容。
+  final LibraryHeaderActionsController _headerActions =
+      LibraryHeaderActionsController();
+
   /// 栈里压了详情页的分类索引。详情页自带顶栏，位置与宿主顶栏重合，
   /// 不收起就会盖住详情页的返回按钮（与本地库同一处理）。
   final Set<int> _tabsWithChildRoutes = {};
-
-  /// 各分类是否已向上滚动离开顶部（浮动胶囊的显隐依据）。
-  final Map<int, bool> _tabScrolledPastTop = {};
 
   /// provider 被置 null（回概览）时冻结上一帧索引，避免离场瞬间跳回第一个分类。
   late int _lastIndex = (widget.initialIndex ?? 0).clamp(
@@ -95,17 +95,18 @@ class _RemoteLibrarySubHostPageState
       _lastIndex = active.clamp(0, widget.tabs.length - 1);
     }
     final int index = _lastIndex;
+    // IndexedStack 里所有分类都会 build，注册表必须按当前索引分账。
+    _headerActions.setActiveTab(index);
 
     final bool isSelectionActive = ref.watch(isLibrarySelectionActiveProvider);
     final bool tabHasChildRoute = _tabsWithChildRoutes.contains(index);
-    final bool isPastTop = _tabScrolledPastTop[index] ?? false;
 
     // 与本地 `LibrarySubHostPage` 同一套规则：
     // * 横屏由 Rail 承担分类导航与「回概览」，胶囊收起来避免和栏目标题重复；
     // * 竖屏没有 Rail，页头又是 sliver（滚上去会把返回键带走），所以只在
     //   离开顶部后浮出胶囊。
-    final bool hideTopNavBar =
-        isLandscape || tabHasChildRoute || !isPastTop;
+    final bool capsuleAllowed =
+        !isLandscape && !tabHasChildRoute && !isSelectionActive;
 
     final Duration headerDuration = tabHasChildRoute
         ? Duration.zero
@@ -120,25 +121,12 @@ class _RemoteLibrarySubHostPageState
     // 让位必须落在页面内部，否则整页会被 Rail 压住左边缘。
     final double railWidth = ref.watch(effectiveSidebarRailWidthProvider(size));
 
-    final String? title = index < widget.titles.length
-        ? widget.titles[index]
-        : null;
-
-    final Widget body = Stack(
-      children: [
-        Positioned.fill(
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              if (notification.metrics.axis != Axis.vertical) return false;
-              if (tabHasChildRoute) return false;
-              final bool past =
-                  notification.metrics.pixels >
-                  kHeaderFloatingCapsuleThreshold;
-              if ((_tabScrolledPastTop[index] ?? false) != past) {
-                setState(() => _tabScrolledPastTop[index] = past);
-              }
-              return false;
-            },
+    final Widget body = ScrollPastTopScope(
+      tabIndex: index,
+      enabled: !isLandscape && !tabHasChildRoute,
+      builder: (context, isPastTop) => Stack(
+        children: [
+          Positioned.fill(
             child: Padding(
               padding: EdgeInsets.only(top: topInset, left: railWidth),
               child: IndexedStack(
@@ -147,7 +135,11 @@ class _RemoteLibrarySubHostPageState
                   for (int i = 0; i < widget.tabs.length; i++)
                     LibraryTabNavigator(
                       navigatorKey: widget.navigatorKeys[i],
-                      builder: widget.tabs[i],
+                      builder: (tabContext) => LibraryHeaderActionsScope(
+                        tabIndex: i,
+                        controller: _headerActions,
+                        child: widget.tabs[i](tabContext),
+                      ),
                       onHasChildRouteChanged: (hasChild) =>
                           _handleChildRouteChanged(i, hasChild),
                     ),
@@ -155,47 +147,37 @@ class _RemoteLibrarySubHostPageState
               ),
             ),
           ),
-        ),
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: AnimatedSlide(
-            offset: hideTopNavBar ? const Offset(0, -1.0) : Offset.zero,
-            duration: headerDuration,
-            curve: Curves.easeInOutCubic,
-            child: AnimatedOpacity(
-              opacity: hideTopNavBar ? 0.0 : 1.0,
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: FloatingCapsuleHeader(
+              visible: capsuleAllowed && isPastTop,
               duration: headerDuration,
-              curve: Curves.easeInOutCubic,
-              child: IgnorePointer(
-                ignoring: hideTopNavBar,
-                // 胶囊与内容区同源避让：`Padding(left: railWidth)` 已经在外层
-                // 生效，这里只补 4/8 的呼吸位。
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 4, left: 8, right: 8),
-                  child: AppTopNavBar(
-                    title: title ?? '',
-                    titleKey: ValueKey('remote_library_sub_title_$index'),
-                    isFloatingCapsule: true,
-                    onBack: widget.onBack,
-                    // 定位与下载管理器已随各分类页头常驻，胶囊只补一个刷新：
-                    // 页头滚走之后仍需要「重试当前分类」的入口。
-                    actions: [
-                      IconButton(
-                        icon: const Icon(Icons.refresh_rounded, size: 20),
-                        tooltip: AppLocalizations.of(context)!.refresh,
-                        onPressed: () => widget.onRefresh(index),
-                      ),
-                    ],
-                  ),
+              // 胶囊与内容区同源避让：`Padding(left: railWidth)` 已经在外层
+              // 生效，这里只补 4/8 的呼吸位。
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4, left: 8, right: 8),
+                // 竖屏滚动离开顶部后只剩「返回 + 更多」。刷新不属于页头动作行
+                // （每页页头都没有它），作为固定项附在菜单末尾 —— 页头滚走之后
+                // 仍然需要「重试当前分类」的入口。
+                child: LibraryTopNavCapsule(
+                  controller: _headerActions,
+                  onBack: widget.onBack,
+                  extraActions: <LibraryToolbarAction>[
+                    LibraryToolbarAction(
+                      icon: Icons.refresh_rounded,
+                      label: AppLocalizations.of(context)!.refresh,
+                      onPressed: () => widget.onRefresh(index),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        ),
-        if (widget.selectionPanel != null) widget.selectionPanel!,
-      ],
+          if (widget.selectionPanel != null) widget.selectionPanel!,
+        ],
+      ),
     );
 
     return PopScope(

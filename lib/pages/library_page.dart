@@ -5,9 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../l10n/app_localizations.dart';
-import 'albums_tab.dart';
-import 'artists_tab.dart';
+import 'albums_tab.dart';import 'artists_tab.dart';
 import 'most_played_tab.dart';
 import 'recently_played_tab.dart';
 import 'playlist_tab.dart';
@@ -20,9 +18,11 @@ import 'main_layout_riverpod.dart';
 import '../player/library/library_overview_providers.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_tab_navigator.dart';
-import '../widgets/auto_hide_header.dart';
 import '../widgets/app_top_nav_bar.dart';
+import '../widgets/floating_capsule_header.dart';
+import '../widgets/library_header_actions.dart';
 import '../widgets/library_large_title.dart';
+import '../widgets/scroll_past_top.dart';
 import '../utils/layout_constants.dart';
 import '../utils/app_log.dart';
 import '../utils/app_orientation_manager.dart';
@@ -325,15 +325,16 @@ class LibrarySubHostPage extends ConsumerStatefulWidget {
 class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
   final Set<int> _builtSubTabs = {};
 
+  /// 各分类页头动作的注册表，供滚动后浮出的顶栏胶囊取「更多」菜单内容。
+  final LibraryHeaderActionsController _headerActions =
+      LibraryHeaderActionsController();
+
   /// 栈里压了三级页面的子分类索引。
   ///
   /// 三级详情页自带 [AppTopNavBar]，位置与宿主顶栏完全重合；宿主顶栏是 Stack 里
   /// 后画的那个，会盖在 `IndexedStack` 之上。若不放它让位，用户看到的是子分类标题，
   /// 点左上角返回实际弹掉的是二级宿主（直接回媒体库首页），而不是当前分类的详情页。
   final Set<int> _tabsWithChildRoutes = {};
-
-  /// 记录各子分类当前是否已向上滚动离开顶部（用于折叠大标题联动）
-  final Map<int, bool> _tabScrolledPastTop = {};
 
   late final List<GlobalKey<NavigatorState>> _tabNavigatorKeys =
       widget.tabNavigatorKeys ??
@@ -407,7 +408,6 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final size = MediaQuery.sizeOf(context);
     final bool isLandscape = ref.watch(isEffectiveLandscapeProvider(size));
 
@@ -421,35 +421,17 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     }
     final int clampedIndex = _lastSubIndex;
     _builtSubTabs.add(clampedIndex);
-
-    final String title = switch (clampedIndex) {
-      0 => l10n.playlist,
-      1 => l10n.recentlyPlayed,
-      2 => l10n.mostPlayed,
-      3 => l10n.recentlyAdded,
-      4 => l10n.albums,
-      5 => l10n.artists,
-      6 => l10n.ratedSongs,
-      7 => l10n.genres,
-      8 => l10n.years,
-      _ => l10n.list,
-    };
+    // 胶囊只读当前分类的动作；IndexedStack 里所有已建分类都会 build，
+    // 必须先钉住 activeTab，注册表才能按索引分账。
+    _headerActions.setActiveTab(clampedIndex);
 
     final isSelectionActive = ref.watch(isLibrarySelectionActiveProvider);
     final is3DViewActive =
         (clampedIndex == 4) && ref.watch(isAlbum3DViewActiveProvider);
 
-    final bool isPastTop =
-        is3DViewActive || (_tabScrolledPastTop[clampedIndex] ?? false);
-
     // 当前分类压着三级页面时宿主顶栏必须让位：
     // 详情页自带同位置的 AppTopNavBar，而宿主这条在 Stack 里后画，会整个盖住它。
-    // 横屏下各子分类顶部操作区均已常驻固定（自带返回键与标题），无需外层浮动胶囊；
-    // 竖屏（移动端）保持原样：向下滚动离开顶部时，才出现浮动胶囊返回顶栏。
     final bool tabHasChildRoute = _tabsWithChildRoutes.contains(clampedIndex);
-    final bool hideTopNavBar = tabHasChildRoute ||
-        isLandscape ||
-        !isPastTop;
 
     // 让位给详情页时必须是瞬时的：详情页顶栏本来就在同一位置，
     // 播一段淡出只会让两个标题交叠闪一下。3D 视图收起仍走 250ms 过渡。
@@ -457,87 +439,64 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
         ? Duration.zero
         : const Duration(milliseconds: 250);
 
-    final scaffold = NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification.metrics.axis != Axis.vertical) return false;
-        if (_tabsWithChildRoutes.contains(clampedIndex)) return false;
-        // 横屏下各子分类顶栏均已固定常驻，无需监听滚动触发浮动胶囊
-        if (isLandscape) {
-          return false;
-        }
-        final past = notification.metrics.pixels > 36.0;
-        if ((_tabScrolledPastTop[clampedIndex] ?? false) != past) {
-          setState(() {
-            _tabScrolledPastTop[clampedIndex] = past;
-          });
-        }
-        return false;
-      },
-      child: AutoHideHeaderScope(
-        enabled: false,
-        forceVisible: isSelectionActive || (!isLandscape && is3DViewActive),
-        builder: (context, isHeaderVisible) => Scaffold(
-          key: const ValueKey('library_subhost_scaffold'),
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              IndexedStack(
-                sizing: StackFit.expand,
-                index: clampedIndex,
-                children: [
-                  for (int i = 0; i < 9; i++)
-                    _builtSubTabs.contains(i)
-                        ? LibraryTabNavigator(
-                            key: ValueKey('library_tab_navigator_$i'),
-                            navigatorKey: _tabNavigatorKeys[i],
-                            builder: (_) => _buildSubTabRoot(i),
-                            onHasChildRouteChanged: (hasChild) =>
-                                _handleTabChildRouteChanged(i, hasChild),
-                          )
-                        : const SizedBox.shrink(),
-                ],
-              ),
-              Positioned(
-                top: 0,
-                left: railWidth,
-                right: 0,
-                height: headerHeight,
-                child: AnimatedSlide(
-                  offset: hideTopNavBar ? const Offset(0, -1.0) : Offset.zero,
-                  duration: headerDuration,
-                  curve: Curves.easeInOutCubic,
-                  child: AnimatedOpacity(
-                      opacity: hideTopNavBar ? 0.0 : 1.0,
-                      duration: headerDuration,
-                      curve: Curves.easeInOutCubic,
-                      child: IgnorePointer(
-                        ignoring: hideTopNavBar,
-                        child: AutoHideHeader(
-                          isVisible: isHeaderVisible,
-                          child: AppTopNavBar(
-                            key: const ValueKey('library_subhost_top_bar'),
-                            title: title,
-                            parentTitle: l10n.list,
-                            titleOpacity: 1.0,
-                            isFloatingCapsule: true,
-                            onBack: () {
-                              Navigator.of(context).maybePop();
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+    // 竖屏滚离顶部后才浮出「返回 + 更多」：
+    // 横屏各子分类顶栏固定常驻（自带返回键与标题），详情页压栈要让位，
+    // 多选态底部已有选中面板 —— 胶囊再挂一枚「更多」只会挤占视线。
+    final bool capsuleAllowed =
+        !isLandscape && !tabHasChildRoute && !isSelectionActive;
+
+    final scaffold = ScrollPastTopScope(
+      tabIndex: clampedIndex,
+      enabled: !isLandscape && !tabHasChildRoute,
+      builder: (context, isPastTop) => Scaffold(
+        key: const ValueKey('library_subhost_scaffold'),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            IndexedStack(
+              sizing: StackFit.expand,
+              index: clampedIndex,
+              children: [
+                for (int i = 0; i < 9; i++)
+                  _builtSubTabs.contains(i)
+                      ? LibraryTabNavigator(
+                          key: ValueKey('library_tab_navigator_$i'),
+                          navigatorKey: _tabNavigatorKeys[i],
+                          builder: (_) => _buildSubTabRoot(i),
+                          onHasChildRouteChanged: (hasChild) =>
+                              _handleTabChildRouteChanged(i, hasChild),
+                        )
+                      : const SizedBox.shrink(),
               ],
             ),
-          ),
+            Positioned(
+              top: 0,
+              left: railWidth,
+              right: 0,
+              height: headerHeight,
+              child: FloatingCapsuleHeader(
+                // 3D 视图收起时也算「已离开常规列表」，胶囊跟着浮出。
+                visible: capsuleAllowed && (isPastTop || is3DViewActive),
+                duration: headerDuration,
+                // 竖屏滚动离开顶部后只剩「返回 + 更多」：页头动作全部收进
+                // 更多菜单（与页头动作行同一份清单）。标题不在这里渲染。
+                child: LibraryTopNavCapsule(
+                  key: const ValueKey('library_subhost_top_bar'),
+                  controller: _headerActions,
+                  onBack: () {
+                    Navigator.of(context).maybePop();
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
-      );
+      ),
+    );
 
     // PopScope 必须常驻、只切换 canPop。
     // 若按 isSelectionActive 在「包一层 PopScope」与「直接返回 scaffold」之间切换，
-    // 根节点类型会从 AutoHideHeaderScope 变成 PopScope，Flutter 会销毁并重建整棵子树：
+    // 根节点类型会从 ScrollPastTopScope 变成 PopScope，Flutter 会销毁并重建整棵子树：
     // 各子 tab 的 State 连同选中项一起被 dispose，mixin 的 dispose 又会 clear 共享的多选状态，
     // 于是表现为「一进入多选就立刻退出」。
     //
@@ -577,15 +536,19 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
         final double topPadding = isLandscape ? (safeTop + 8.0) : safeTop;
         final double leftPadding =
             ref.watch(effectiveSidebarRailWidthProvider(size));
-        return LibrarySubHostScope(
-          onBack: _handleSubHostBack,
-          topPadding: topPadding,
-          leftPadding: leftPadding,
-          child: _buildSubTab(
-            index,
+        return LibraryHeaderActionsScope(
+          tabIndex: index,
+          controller: _headerActions,
+          child: LibrarySubHostScope(
+            onBack: _handleSubHostBack,
             topPadding: topPadding,
             leftPadding: leftPadding,
-            onBack: _handleSubHostBack,
+            child: _buildSubTab(
+              index,
+              topPadding: topPadding,
+              leftPadding: leftPadding,
+              onBack: _handleSubHostBack,
+            ),
           ),
         );
       },

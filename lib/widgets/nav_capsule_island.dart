@@ -17,6 +17,12 @@ const double kNavCapsuleButtonSize = kNavCapsuleHeight;
 /// 浮动胶囊内部图标尺寸
 const double kNavCapsuleIconSize = 28.0;
 
+/// [NavActionsCapsule] 只承载单个动作时，按钮内容盒的边长。
+///
+/// 胶囊高 44、[NavActionsCapsule] 内横向内边距各 4，内容必须 ≤42.4（44 减去
+/// 玻璃描边 0.8×2）才能被收进正圆。给 40（页头按钮盒的口径）会撑成横向胶囊。
+const double kNavCapsuleSingleActionSize = kNavCapsuleHeight - 8;
+
 /// 浮动胶囊距离顶部安全区域（状态栏/标题栏）的额外间距
 const double kNavCapsuleTopOffset = 0.0;
 
@@ -102,6 +108,8 @@ class NavCapsuleIsland extends StatelessWidget {
 
     final Widget capsuleBody = Container(
       height: kNavCapsuleHeight,
+      // 只有返回键时锁宽，保证是正圆而不是被描边撑出的椭圆。
+      width: hasActions ? null : kNavCapsuleHeight,
       decoration: BoxDecoration(
         borderRadius: shapeRadius,
         // boxShadow: AppBlur.glassShadow(context),
@@ -114,6 +122,12 @@ class NavCapsuleIsland extends StatelessWidget {
             height: kNavCapsuleHeight,
             decoration: BoxDecoration(
               color: AppBlur.heavySurface(context),
+              borderRadius: shapeRadius,
+            ),
+            // 描边走 foreground：`BoxDecoration.border` 会算进 Container 的
+            // 内边距（decoration.padding），把 44 的内容区压成 42.4 —— 锁宽
+            // 之后就直接溢出 1.6，圆角也随之落在椭圆上。
+            foregroundDecoration: BoxDecoration(
               borderRadius: shapeRadius,
               border: AppBlur.glassBorder(context),
             ),
@@ -146,6 +160,10 @@ class NavCapsuleIsland extends StatelessWidget {
 }
 
 /// 独立的浮动操作按钮胶囊组件，用于右侧承载独立的操作按钮组。
+///
+/// 只有一个动作时钉死成 44×44 的正圆：**不能只靠 `minWidth`** —— 容器宽度由
+/// 内容决定，内容一旦宽于 44（例如页头口径的 40 按钮 + 两端内边距 8 + 玻璃
+/// 描边 1.6 = 45.6），就会撑成横向椭圆，圆角落在短轴上。多个动作时才走横排。
 class NavActionsCapsule extends StatelessWidget {
   const NavActionsCapsule({
     super.key,
@@ -159,10 +177,19 @@ class NavActionsCapsule extends StatelessWidget {
     if (actions.isEmpty) return const SizedBox.shrink();
 
     final shapeRadius = BorderRadius.circular(kNavCapsuleRadius);
+    final bool isSingle = actions.length == 1;
+
+    // 单动作：宽高都锁死，内容居中，不再留横向内边距。
+    final BoxConstraints box = isSingle
+        ? const BoxConstraints.tightFor(
+            width: kNavCapsuleHeight,
+            height: kNavCapsuleHeight,
+          )
+        : const BoxConstraints(minWidth: kNavCapsuleHeight);
 
     return Container(
       height: kNavCapsuleHeight,
-      constraints: const BoxConstraints(minWidth: kNavCapsuleHeight),
+      constraints: box,
       decoration: BoxDecoration(
         borderRadius: shapeRadius,
         // boxShadow: AppBlur.glassShadow(context),
@@ -173,19 +200,27 @@ class NavActionsCapsule extends StatelessWidget {
           filter: AppBlur.heavyFilter,
           child: Container(
             height: kNavCapsuleHeight,
-            constraints: const BoxConstraints(minWidth: kNavCapsuleHeight),
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            constraints: box,
+            padding: isSingle
+                ? EdgeInsets.zero
+                : const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
               color: AppBlur.heavySurface(context),
+              borderRadius: shapeRadius,
+            ),
+            // 描边走前景，理由同 NavCapsuleIsland：`border` 会算进内边距。
+            foregroundDecoration: BoxDecoration(
               borderRadius: shapeRadius,
               border: AppBlur.glassBorder(context),
             ),
             alignment: Alignment.center,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: actions,
-            ),
+            child: isSingle
+                ? actions.single
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: actions,
+                  ),
           ),
         ),
       ),

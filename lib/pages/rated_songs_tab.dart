@@ -7,6 +7,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import '../widgets/library_action_bar.dart';
 import '../widgets/library_insight_list.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/section_type_toggle.dart';
@@ -180,6 +181,14 @@ class _RatedSongsTabState extends ConsumerState<RatedSongsTab> {
             icon: const Icon(Icons.sort_rounded),
             onPressed: () => _showSortDialog(context, l10n),
           ),
+          // 竖屏「更多」里的排序入口；横屏仍走上面的 headerAction。
+          extraActions: [
+            LibraryToolbarAction(
+              icon: Icons.sort_rounded,
+              label: l10n.sort,
+              onPressed: () => _showSortDialog(context, l10n),
+            ),
+          ],
           emptyText: l10n.emptyRatedSongs,
           // 行尾只有「★ 4」这种窄内容，按实际宽度预留：留 140.0 会在文本列与
           // 星级之间空出一大块。

@@ -1890,16 +1890,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     }
 
   Widget _buildSubHost() {
-    final l10n = AppLocalizations.of(context)!;
     return RemoteLibrarySubHostPage(
-      titles: [
-        l10n.albums,
-        l10n.artists,
-        l10n.genres,
-        l10n.songs,
-        l10n.playlists,
-        l10n.search,
-      ],
       initialIndex: ref.read(remoteLibraryActiveTabIndexProvider),
       navigatorKeys: _tabNavigatorKeys,
       onBack: _closeSubHost,

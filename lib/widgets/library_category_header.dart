@@ -5,6 +5,7 @@ import '../dialogs/library_source_filter_dialog.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 import 'library_action_bar.dart';
+import 'library_header_actions.dart';
 import 'library_large_title.dart';
 
 /// 本地媒体库二级分类列表（专辑、艺术家、流派、年份、歌单）的统一页头。
@@ -120,6 +121,15 @@ class LibraryCategoryHeader extends ConsumerWidget {
           )
         : null;
 
+    // 把动作清单登记给滚动后浮出的顶栏胶囊：竖屏滚走页头之后，右侧「更多」
+    // 里必须是同一份动作（同一批闭包），否则会出现「页头能播、胶囊播的是旧列表」。
+    // 依赖在自己的 build 里建立（回调是在 LibraryActionBar 的 build 中触发的，
+    // 那里再去依赖祖先会跨越 build 阶段）；回调只写注册表，不触发重建。
+    final scope = LibraryHeaderActionsScope.maybeOf(context);
+    void registerActions(List<LibraryToolbarAction> resolved) {
+      scope?.controller.register(scope.tabIndex, resolved);
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -143,6 +153,7 @@ class LibraryCategoryHeader extends ConsumerWidget {
               onPlayAll: onPlayAll,
               onShufflePlay: onShufflePlay,
               actions: actions,
+              onResolvedActions: registerActions,
               countLabel: largeTitleBlock == null ? countLabel : null,
             )
           : Column(
@@ -165,6 +176,7 @@ class LibraryCategoryHeader extends ConsumerWidget {
                   onPlayAll: onPlayAll,
                   onShufflePlay: onShufflePlay,
                   actions: actions,
+                  onResolvedActions: registerActions,
                   countLabel: largeTitleBlock == null ? countLabel : null,
                 ),
               ],

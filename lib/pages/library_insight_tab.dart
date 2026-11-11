@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/library_action_bar.dart';
 import '../widgets/library_insight_list.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/section_type_toggle.dart';
@@ -107,6 +108,24 @@ class LibraryInsightTab extends ConsumerWidget {
         selected: filterState.range,
         onChanged: filterNotifier.setRange,
       ),
+      // 竖屏「更多」里的时间范围：横屏仍是上面那个下拉控件，竖屏折叠成
+      // 四个选项（下拉控件是 Widget，进不了菜单）。
+      extraActions: [
+        LibraryToolbarAction(
+          icon: Icons.schedule_rounded,
+          label: TimeRangeDropdown.formatRangeLabel(l10n, filterState.range),
+          menuEntries: (ctx) => [
+            for (final range in LibraryTimeRange.values)
+              libraryToolbarMenuEntry(
+                context: ctx,
+                icon: Icons.schedule_rounded,
+                label: TimeRangeDropdown.formatRangeLabel(l10n, range),
+                selected: range == filterState.range,
+                onTap: () => filterNotifier.setRange(range),
+              ),
+          ],
+        ),
+      ],
       contentTopPadding: contentTopPadding,
       contentLeftPadding: contentLeftPadding,
       onBack: onBack,

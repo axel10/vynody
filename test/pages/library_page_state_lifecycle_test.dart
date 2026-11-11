@@ -361,16 +361,14 @@ void main() {
     await settle(tester);
 
     final hostBar = find.byKey(const ValueKey('library_subhost_top_bar'));
-    // 最近的 AnimatedOpacity 是 AutoHideHeader 内部那个（跟随滚动隐藏），
-    // 宿主顶栏的「让位」开关是再外面一层，所以要取第 2 个祖先。
+    // 宿主顶栏的显隐现在是 `FloatingCapsuleHeader` 里唯一的那层 AnimatedOpacity。
     double hostBarOpacity() => tester
         .widget<AnimatedOpacity>(
-          find.ancestor(of: hostBar, matching: find.byType(AnimatedOpacity)).at(1),
+          find.ancestor(of: hostBar, matching: find.byType(AnimatedOpacity)).first,
         )
         .opacity;
     // 让位时同时要屏蔽点击，否则透明的那条仍会抢走详情页返回键的触摸。
-    // 这条栏在自己的 AnimatedOpacity 之下还套了 AutoHideHeader 的 IgnorePointer，
-    // 所以按「任一祖先 IgnorePointer 生效」判断，不依赖层数。
+    // 按「任一祖先 IgnorePointer 生效」判断，不依赖层数。
     bool hostBarBlocked() => tester
         .widgetList<IgnorePointer>(
           find.ancestor(of: hostBar, matching: find.byType(IgnorePointer)),

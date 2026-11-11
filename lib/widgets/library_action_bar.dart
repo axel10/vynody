@@ -129,6 +129,73 @@ PopupMenuEntry<void> libraryToolbarMenuEntry({
   );
 }
 
+/// 生成一条默认的「更多」菜单项（没有自定义 [LibraryToolbarAction.menuEntries] 时使用）。
+PopupMenuEntry<void> _libraryToolbarDefaultMenuEntry(
+  BuildContext context,
+  LibraryToolbarAction action,
+) {
+  return libraryToolbarMenuEntry(
+    context: context,
+    icon: action.icon,
+    label: action.label,
+    onTap: action.onPressed,
+    color: action.color,
+    showBadge: action.showBadge,
+  );
+}
+
+/// 竖屏「更多」按钮及其菜单的**唯一实现**。
+///
+/// 页头动作行（[LibraryActionBar]）与滚动后浮出的顶栏胶囊
+/// （`LibraryTopNavCapsule`）共用本函数 —— 两处菜单的构造方式、条目排版、
+/// 徽标与选中态必须完全一致，否则同一个动作会有两种长相。
+///
+/// [actions] 传取值函数而不是列表：菜单在展开那一刻才求值，始终拿到调用方
+/// 最新一次 build 生成的闭包（「播放全部」捕获的是当前可见列表）。
+Widget libraryToolbarMoreButton({
+  required List<LibraryToolbarAction> Function() actions,
+  String? tooltip,
+  double buttonSize = LibraryToolbarMetrics.buttonSize,
+  double iconSize = LibraryToolbarMetrics.iconSize,
+  Color? color,
+}) {
+  return Builder(
+    builder: (context) {
+      final theme = Theme.of(context);
+      final l10n = AppLocalizations.of(context);
+      return PopupMenuButton<void>(
+        tooltip: tooltip ?? l10n?.more,
+        padding: EdgeInsets.zero,
+        splashRadius: 20,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        color: theme.colorScheme.surfaceContainerHigh,
+        itemBuilder: (menuContext) {
+          final available = actions();
+          if (available.isEmpty) {
+            return const <PopupMenuEntry<void>>[];
+          }
+          return <PopupMenuEntry<void>>[
+            for (final action in available)
+              ...(action.menuEntries?.call(context) ??
+                  <PopupMenuEntry<void>>[
+                    _libraryToolbarDefaultMenuEntry(context, action),
+                  ]),
+          ];
+        },
+        child: SizedBox(
+          width: buttonSize,
+          height: buttonSize,
+          child: Icon(
+            Icons.more_vert_rounded,
+            size: iconSize,
+            color: color ?? theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    },
+  );
+}
+
 /// 本地媒体库与远程媒体库共用的顶部动作行。
 ///
 /// - 横屏：搜索框最左 → 播放全部 / 随机播放 → 其余全部按钮平铺（不折叠）；
@@ -155,6 +222,7 @@ class LibraryActionBar extends StatefulWidget {
     this.actions = const <LibraryToolbarAction>[],
     this.countLabel,
     this.leading,
+    this.onResolvedActions,
   });
 
   final bool isWide;
@@ -182,6 +250,14 @@ class LibraryActionBar extends StatefulWidget {
   /// 传了它，横屏就回到「标题在左、搜索框与按钮组在右」的单行页头；
   /// 不传则搜索框独自占据行首。竖屏忽略本参数 —— 标题由调用方放在本行上方。
   final Widget? leading;
+
+  /// 本行实际渲染的全部动作（含播放全部 / 随机 / 搜索），按竖屏「更多」菜单
+  /// 需要的顺序给出。
+  ///
+  /// 页头把它登记给 [LibraryHeaderActionsController]，供滚动后浮出的顶栏胶囊
+  /// 复用同一份清单。本行保持原有的分流规则：播放组与搜索常驻、`keepInNarrow`
+  /// 贴「更多」左侧、其余进菜单；胶囊则把整份清单都收进菜单。
+  final ValueChanged<List<LibraryToolbarAction>>? onResolvedActions;
 
   @override
   State<LibraryActionBar> createState() => _LibraryActionBarState();
@@ -216,6 +292,17 @@ class _LibraryActionBarState extends State<LibraryActionBar> {
   }
 
   void _openSearch() {
+    // 从滚动后浮出的胶囊「更多」里触发时，页头（连同这一行的搜索按钮）已经
+    // 滚出视口上方，直接展开只会得到一个看不见的输入框。先滚回顶部。
+    // 横屏页头在 Column 里、不在 Scrollable 内，maybeOf 返回 null，此处自然跳过。
+    final ScrollPosition? position = Scrollable.maybeOf(context)?.position;
+    if (position != null && position.hasPixels && position.pixels > 0) {
+      position.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    }
     setState(() => _isSearching = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focusNode.requestFocus();
@@ -237,43 +324,6 @@ class _LibraryActionBarState extends State<LibraryActionBar> {
       onPressed: action.onPressed,
       color: action.color,
       wrapIcon: action.showBadge ? (icon) => Badge(smallSize: 8, child: icon) : null,
-    );
-  }
-
-  PopupMenuEntry<void> _defaultMenuEntry(LibraryToolbarAction action) {
-    return libraryToolbarMenuEntry(
-      context: context,
-      icon: action.icon,
-      label: action.label,
-      onTap: action.onPressed,
-      color: action.color,
-      showBadge: action.showBadge,
-    );
-  }
-
-  Widget _buildOverflowButton(List<LibraryToolbarAction> actions) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    return PopupMenuButton<void>(
-      tooltip: l10n.more,
-      padding: EdgeInsets.zero,
-      splashRadius: 20,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      color: theme.colorScheme.surfaceContainerHigh,
-      itemBuilder: (context) => <PopupMenuEntry<void>>[
-        for (final action in actions)
-          ...(action.menuEntries?.call(this.context) ??
-              <PopupMenuEntry<void>>[_defaultMenuEntry(action)]),
-      ],
-      child: SizedBox(
-        width: LibraryToolbarMetrics.buttonSize,
-        height: LibraryToolbarMetrics.buttonSize,
-        child: Icon(
-          Icons.more_vert_rounded,
-          size: LibraryToolbarMetrics.iconSize,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      ),
     );
   }
 
@@ -305,6 +355,32 @@ class _LibraryActionBarState extends State<LibraryActionBar> {
           onPressed: widget.onShufflePlay,
         ),
     ];
+
+    // 竖屏「更多」菜单与胶囊共用的完整清单。播放组与搜索在本行是独立按钮、
+    // 不在 widget.actions 里，必须在这里补进清单，否则滚动后它们会从菜单里消失。
+    //
+    // 回调只做「登记」，不得在内部 setState —— 这里正处于本行的 build 阶段。
+    widget.onResolvedActions?.call(<LibraryToolbarAction>[
+      if (widget.onPlayAll != null)
+        LibraryToolbarAction(
+          icon: Icons.play_arrow_rounded,
+          label: l10n.playAll,
+          onPressed: widget.onPlayAll,
+        ),
+      if (widget.onShufflePlay != null)
+        LibraryToolbarAction(
+          icon: Icons.shuffle_rounded,
+          label: l10n.shufflePlay,
+          onPressed: widget.onShufflePlay,
+        ),
+      if (widget.showSearch)
+        LibraryToolbarAction(
+          icon: Icons.search_rounded,
+          label: l10n.search,
+          onPressed: _openSearch,
+        ),
+      ...widget.actions,
+    ]);
 
     if (widget.isWide) {
       final countText = widget.countLabel != null && widget.countLabel!.isNotEmpty
@@ -415,7 +491,9 @@ class _LibraryActionBarState extends State<LibraryActionBar> {
                   const Spacer(),
                   for (final action in narrowActions) _buildActionButton(action),
                   if (overflowActions.isNotEmpty)
-                    _buildOverflowButton(overflowActions),
+                    libraryToolbarMoreButton(
+                      actions: () => overflowActions,
+                    ),
                 ],
               ),
       ),

@@ -6,6 +6,7 @@ import '../utils/layout_constants.dart';
 import 'auto_hide_header.dart';
 import 'detail_page_shell.dart';
 import 'mini_player_wrapper.dart';
+import 'scroll_past_top.dart';
 
 /// 顶栏构建器。
 ///
@@ -93,20 +94,6 @@ class RemotePageShell extends ConsumerStatefulWidget {
 }
 
 class _RemotePageShellState extends ConsumerState<RemotePageShell> {
-  bool _isPastTop = false;
-
-  bool _onScroll(ScrollNotification notification) {
-    if (notification.metrics.axis != Axis.vertical) return false;
-    final bool past =
-        notification.metrics.pixels > kHeaderFloatingCapsuleThreshold;
-    if (_isPastTop != past) {
-      setState(() => _isPastTop = past);
-    }
-    return false;
-  }
-
-  bool _ignoreScroll(ScrollNotification notification) => false;
-
   @override
   Widget build(BuildContext context) {
     final Size size = MediaQuery.sizeOf(context);
@@ -118,11 +105,9 @@ class _RemotePageShellState extends ConsumerState<RemotePageShell> {
         ? kWindowedPageTopInset
         : 0.0;
 
-    Widget content = NotificationListener<ScrollNotification>(
-      onNotification: widget.enableFloatingCapsule
-          ? _onScroll
-          : _ignoreScroll,
-      child: AutoHideHeaderScope(
+    Widget content = ScrollPastTopScope(
+      enabled: widget.enableFloatingCapsule,
+      builder: (context, isPastTop) => AutoHideHeaderScope(
         enabled: false,
         forceVisible: widget.forceHeaderVisible,
         builder: (context, isHeaderVisible) => Scaffold(
@@ -140,7 +125,7 @@ class _RemotePageShellState extends ConsumerState<RemotePageShell> {
                     child: widget.navBarBuilder(
                       context,
                       isHeaderVisible,
-                      _isPastTop,
+                      isPastTop,
                     ),
                   ),
                 ),

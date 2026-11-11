@@ -6,6 +6,7 @@ import '../utils/layout_constants.dart';
 import 'app_top_nav_bar.dart';
 import 'auto_hide_header.dart';
 import 'mini_player_wrapper.dart';
+import 'scroll_past_top.dart';
 
 /// 艺术家 / 流派 / 年份等实体详情页的统一外壳。
 ///
@@ -50,7 +51,6 @@ class DetailPageShell extends ConsumerStatefulWidget {
 
 class _DetailPageShellState extends ConsumerState<DetailPageShell> {
   late final ScrollController _scrollController;
-  bool _isPastTop = false;
 
   @override
   void initState() {
@@ -71,16 +71,8 @@ class _DetailPageShellState extends ConsumerState<DetailPageShell> {
     final double leftPadding =
         ref.watch(effectiveSidebarRailWidthProvider(size));
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification.metrics.axis != Axis.vertical) return false;
-        final past = notification.metrics.pixels > 36.0;
-        if (_isPastTop != past) {
-          setState(() => _isPastTop = past);
-        }
-        return false;
-      },
-      child: AutoHideHeaderScope(
+    return ScrollPastTopScope(
+      builder: (context, isPastTop) => AutoHideHeaderScope(
         enabled: false,
         builder: (context, isHeaderVisible) {
           final Widget content = Scaffold(
@@ -103,7 +95,7 @@ class _DetailPageShellState extends ConsumerState<DetailPageShell> {
                         title: widget.title,
                         parentTitle: widget.parentTitle,
                         titleKey: widget.titleKey,
-                        isFloatingCapsule: _isPastTop,
+                        isFloatingCapsule: isPastTop,
                         contentMaxWidth: widget.contentMaxWidth,
                         onBack:
                             widget.onGoBack ?? () => Navigator.of(context).maybePop(),
