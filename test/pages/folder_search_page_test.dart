@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,13 +13,59 @@ import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/pages/folder_search_page.dart';
+import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/audio_service.dart';
+import 'package:vynody/player/audio/audio_snapshot.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/widgets/folder_zoom_item.dart';
 import 'package:vynody/widgets/library_large_title.dart';
 import 'package:vynody/widgets/library_search_field.dart';
 
 import 'package:vynody/player/settings/settings_service.dart';
+
+/// 多选面板会读 [audioServiceProvider]。真实 AudioService 在 widget 测试环境里
+/// 没有 Rust 动态库，卸载时 dispose 会抛未捕获异常，所以给一个空转替身。
+class _SilentAudioService extends AudioService {
+  @override
+  AudioSnapshot build() => AudioSnapshot(
+    isPlaying: false,
+    isTransitioning: false,
+    isLastActionNext: null,
+    currentMusic: null,
+    position: Duration.zero,
+    duration: Duration.zero,
+    volume: 1.0,
+    isMuted: false,
+    playbackQueue: const [],
+    currentIndex: 0,
+    isRandomMode: false,
+    isShuffleRandomMode: false,
+    playbackMode: AppPlaybackMode.queue,
+    equalizerConfig: EqualizerConfig(
+      enabled: false,
+      bandCount: 10,
+      preampDb: 0.0,
+      bassBoostDb: 0.0,
+      bassBoostFrequencyHz: 80.0,
+      bassBoostQ: 1.0,
+      bandGainsDb: Float32List(10),
+    ),
+    currentVisualizerOptions: const VisualizerOptimizationOptions(
+      frequencyGroups: 100,
+    ),
+    randomHistory: const [],
+    randomQueue: const [],
+    historyCursor: 0,
+    deckCursor: 0,
+    isVisualizerEnabled: false,
+    dynamicStartColor: null,
+    dynamicEndColor: null,
+    isLyricsActive: false,
+    sleepTimerRemaining: null,
+    sleepTimerDuration: null,
+  );
+}
 
 class _FakePathProviderPlatform extends Fake
     with MockPlatformInterfaceMixin
@@ -67,6 +115,12 @@ class _StubScannerService extends ScannerService {
     }
     return super.getSongCountForFolder(folder);
   }
+
+  /// 搜索结果的文件夹是空壳，按集合展开时要靠这里补歌曲。
+  @override
+  Future<List<MusicFile>> getSongsForFolder(MusicFolder folder) async {
+    return folder.files;
+  }
 }
 
 void main() {
@@ -93,10 +147,13 @@ void main() {
     required ScannerService scanner,
     MusicFolder? currentFolder,
   }) {
+    final audioService = _SilentAudioService();
     return ProviderScope(
       overrides: [
         settingsServiceProvider.overrideWith((ref) => settingsService),
         scannerServiceProvider.overrideWith((ref) => scanner),
+        audioServiceStateProvider.overrideWith(() => _SilentAudioService()),
+        audioServiceProvider.overrideWith((ref) => audioService),
         audioCurrentMusicProvider.overrideWith((ref) => null),
         audioIsPlayingProvider.overrideWith((ref) => false),
       ],
@@ -259,5 +316,49 @@ void main() {
     final titlePos = tester.getTopLeft(find.byType(LibraryLargeTitle));
     // safeTop is 48.0, topPadding is 48.0, with +16 offset the title starts at dy >= 64.0
     expect(titlePos.dy, greaterThanOrEqualTo(64.0));
+  });
+
+  testWidgets('文件夹与歌曲可以混选，跨分节共用一个选择集', (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final currentFolder = MusicFolder(path: '/root/music', name: 'music');
+    final subFolder = MusicFolder(
+      path: '/root/music/RockFolder',
+      name: 'RockFolder',
+    );
+    final song = MusicFile(
+      path: '/root/music/rock_song.mp3',
+      name: 'rock_song.mp3',
+      title: 'Rock Song',
+      artist: 'Rock Band',
+    );
+
+    final stubScanner = _StubScannerService(
+      mockSongs: [song],
+      mockFolders: [subFolder],
+      mockSongCounts: {'/root/music/RockFolder': 18},
+    );
+
+    await tester.pumpWidget(createSubject(
+      scanner: stubScanner,
+      currentFolder: currentFolder,
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'rock');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // 先长按文件夹进多选，再长按另一段的歌曲追加。
+    await tester.longPress(find.text('RockFolder'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('已选 1 项'), findsOneWidget);
+
+    await tester.longPress(find.text('Rock Song'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('已选 2 项'), findsOneWidget);
   });
 }

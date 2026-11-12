@@ -20,6 +20,12 @@ enum LibrarySelectionScope {
   navidrome,
   bottomSheet,
 
+  /// 两个本地搜索页各自独立的多选作用域：搜索结果是「跨分节的一整屏」，
+  /// 选择集里可以同时有歌曲 / 专辑 / 艺术家 / 歌单 / 文件夹，所以不能复用
+  /// 分类页的作用域，否则在搜索页里选中的东西会被分类页读走。
+  librarySearch,
+  folderSearch,
+
   /// 最近播放 / 最多播放 / 最近添加三个二级页各自独立的多选作用域。
   /// 三页与专辑 Tab 都常驻在同一个 IndexedStack 里，必须互不串扰。
   recentlyPlayed,

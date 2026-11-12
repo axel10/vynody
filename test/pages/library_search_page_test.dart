@@ -203,4 +203,74 @@ void main() {
     expect(find.text('专辑 (1)'), findsOneWidget);
     expect(find.text('艺术家 (1)'), findsOneWidget);
   });
+
+  testWidgets('长按歌曲进多选，底部出现选择面板', (tester) async {
+    final scanner = _StubScannerService(dbSongs);
+    await pumpPage(tester, scanner: scanner);
+
+    await tester.enterText(find.byType(TextField), 'weezer');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.longPress(find.text('Blue Track'));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('已选 1 项'), findsOneWidget);
+    expect(find.text('全选'), findsOneWidget);
+  });
+
+  testWidgets('专辑与歌曲可以混选，选择集不按分节拆', (tester) async {
+    final scanner = _StubScannerService(dbSongs);
+    await pumpPage(tester, scanner: scanner);
+
+    await tester.enterText(find.byType(TextField), 'weezer');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // 先长按专辑进多选，再长按歌曲追加。两者类型不同，仍应落在同一个选择集里。
+    await tester.longPress(find.text('Blue Album'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.longPress(find.text('Blue Track'));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('已选 2 项'), findsOneWidget);
+  });
+
+  testWidgets('全选跨段：艺术家 / 专辑 / 歌曲一起选中', (tester) async {
+    final scanner = _StubScannerService(dbSongs);
+    await pumpPage(tester, scanner: scanner);
+
+    await tester.enterText(find.byType(TextField), 'weezer');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.longPress(find.text('Blue Track'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('已选 1 项'), findsOneWidget);
+
+    await tester.tap(find.text('全选'));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 艺术家 1 + 专辑 1 + 歌曲 1
+    expect(find.text('已选 3 项'), findsOneWidget);
+  });
+
+  testWidgets('改搜索词时退出多选，避免选择集与页面条目脱节', (tester) async {
+    final scanner = _StubScannerService(dbSongs);
+    await pumpPage(tester, scanner: scanner);
+
+    await tester.enterText(find.byType(TextField), 'weezer');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.longPress(find.text('Blue Track'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('已选 1 项'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'blue');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('已选 1 项'), findsNothing);
+  });
 }
