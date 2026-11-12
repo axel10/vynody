@@ -4752,6 +4752,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchRemoteHint => 'Search songs, albums, artists...';
 
   @override
+  String get searchLibraryHint => 'Search songs, albums, artists, playlists...';
+
+  @override
   String errorLoadingAlbums(String error) {
     return 'Error loading albums: $error';
   }

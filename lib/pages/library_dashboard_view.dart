@@ -54,11 +54,15 @@ class LibraryDashboardView extends ConsumerWidget {
   const LibraryDashboardView({
     super.key,
     required this.onNavigateToSubIndex,
+    required this.onOpenSearch,
     this.contentTopPadding = 32.0,
     this.contentLeftPadding = 0.0,
   });
 
   final ValueChanged<int> onNavigateToSubIndex;
+
+  /// 打开全局搜索页。搜索不属于任何分类，所以走独立路由而不是子分类索引。
+  final VoidCallback onOpenSearch;
   final double contentTopPadding;
   final double contentLeftPadding;
 
@@ -107,6 +111,7 @@ class LibraryDashboardView extends ConsumerWidget {
                         padding: const EdgeInsets.only(top: 14, bottom: 28),
                         child: _WideQuickAccessBar(
                           onTapSubIndex: onNavigateToSubIndex,
+                          onOpenSearch: onOpenSearch,
                           l10n: l10n,
                           contentLeftPadding: contentLeftPadding,
                           horizontalPadding: horizontalPadding,
@@ -119,6 +124,7 @@ class LibraryDashboardView extends ConsumerWidget {
                         ),
                         child: _PortraitLibraryMenuCard(
                           onTapSubIndex: onNavigateToSubIndex,
+                          onOpenSearch: onOpenSearch,
                           l10n: l10n,
                           contentLeftPadding: contentLeftPadding,
                           horizontalPadding: horizontalPadding,
@@ -320,12 +326,17 @@ class _DashboardHeader extends ConsumerWidget {
 class _WideQuickAccessBar extends ConsumerWidget {
   const _WideQuickAccessBar({
     required this.onTapSubIndex,
+    required this.onOpenSearch,
     required this.l10n,
     this.contentLeftPadding = 0.0,
     this.horizontalPadding = 32.0,
   });
 
   final ValueChanged<int> onTapSubIndex;
+
+  /// 搜索项不占子分类索引，用这个哨兵值区分「打开搜索页」。
+  static const int _searchEntryIndex = -1;
+  final VoidCallback onOpenSearch;
   final AppLocalizations l10n;
   final double contentLeftPadding;
   final double horizontalPadding;
@@ -349,6 +360,13 @@ class _WideQuickAccessBar extends ConsumerWidget {
     );
 
     final items = [
+      (
+        index: _searchEntryIndex,
+        title: l10n.search,
+        icon: Icons.search_rounded,
+        gradient: const [Color(0xFF8E8E93), Color(0xFF6D6D72)],
+        badgeText: null,
+      ),
       (
         index: 1,
         title: l10n.recentlyPlayed,
@@ -445,7 +463,13 @@ class _WideQuickAccessBar extends ConsumerWidget {
                   icon: item.icon,
                   gradient: item.gradient,
                   badgeText: item.badgeText,
-                  onTap: () => onTapSubIndex(item.index),
+                  onTap: () {
+                    if (item.index == _searchEntryIndex) {
+                      onOpenSearch();
+                    } else {
+                      onTapSubIndex(item.index);
+                    }
+                  },
                 ),
               );
             }).toList(),
@@ -609,12 +633,14 @@ class _LibraryMenuItem {
 class _PortraitLibraryMenuCard extends ConsumerWidget {
   const _PortraitLibraryMenuCard({
     required this.onTapSubIndex,
+    required this.onOpenSearch,
     required this.l10n,
     this.contentLeftPadding = 0.0,
     this.horizontalPadding = 16.0,
   });
 
   final ValueChanged<int> onTapSubIndex;
+  final VoidCallback onOpenSearch;
   final AppLocalizations l10n;
   final double contentLeftPadding;
   final double horizontalPadding;
@@ -641,6 +667,12 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
     );
 
     final items = [
+      _LibraryMenuItem(
+        icon: Icons.search_rounded,
+        iconGradient: const [Color(0xFF8E8E93), Color(0xFF6D6D72)],
+        title: l10n.search,
+        onTap: onOpenSearch,
+      ),
       _LibraryMenuItem(
         icon: Icons.queue_music_rounded,
         iconGradient: const [Color(0xFFFA243C), Color(0xFFE01E37)],

@@ -4594,6 +4594,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get searchRemoteHint => '노래, 앨범, 아티스트 검색...';
 
   @override
+  String get searchLibraryHint => '노래, 앨범, 아티스트, 재생 목록 검색...';
+
+  @override
   String errorLoadingAlbums(String error) {
     return '앨범 로드 실패: $error';
   }

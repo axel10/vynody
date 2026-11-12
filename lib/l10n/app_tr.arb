@@ -1952,6 +1952,7 @@
   "filterArtists": "Sanatçıları filtrele...",
   "searchPlaylists": "Çalma listelerinde ara...",
   "searchRemoteHint": "Şarkı, albüm, sanatçı ara...",
+  "searchLibraryHint": "Şarkı, albüm, sanatçı, çalma listesi ara...",
   "errorLoadingAlbums": "Albümler yüklenirken hata oluştu: {error}",
   "noAlbumsOnServer": "Sunucuda albüm bulunamadı",
   "noMatchingAlbums": "Eşleşen albüm yok",

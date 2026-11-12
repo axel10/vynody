@@ -1552,6 +1552,7 @@
   "filterArtists": "篩選藝術家...",
   "searchPlaylists": "搜尋歌單...",
   "searchRemoteHint": "搜尋歌曲、專輯、藝術家...",
+  "searchLibraryHint": "搜尋歌曲、專輯、藝術家、歌單...",
   "errorLoadingAlbums": "載入專輯失敗: {error}",
   "noAlbumsOnServer": "伺服端未找到專輯",
   "noMatchingAlbums": "沒有匹配的專輯",

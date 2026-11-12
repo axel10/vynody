@@ -1820,6 +1820,7 @@
   "filterArtists": "아티스트 필터링...",
   "searchPlaylists": "재생목록 검색...",
   "searchRemoteHint": "노래, 앨범, 아티스트 검색...",
+  "searchLibraryHint": "노래, 앨범, 아티스트, 재생 목록 검색...",
   "errorLoadingAlbums": "앨범 로드 실패: {error}",
   "noAlbumsOnServer": "서버에서 앨범을 찾을 수 없습니다",
   "noMatchingAlbums": "일치하는 앨범이 없습니다",

@@ -1919,6 +1919,7 @@
   "filterArtists": "アーティストを絞り込み...",
   "searchPlaylists": "プレイリストを検索...",
   "searchRemoteHint": "曲、アルバム、アーティストを検索...",
+  "searchLibraryHint": "曲、アルバム、アーティスト、プレイリストを検索...",
   "errorLoadingAlbums": "アルバムの読み込みに失敗しました: {error}",
   "noAlbumsOnServer": "サーバーにアルバムが見つかりません",
   "noMatchingAlbums": "一致するアルバムがありません",

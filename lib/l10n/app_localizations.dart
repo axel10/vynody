@@ -8457,6 +8457,12 @@ abstract class AppLocalizations {
   /// **'搜索歌曲、专辑、艺术家...'**
   String get searchRemoteHint;
 
+  /// No description provided for @searchLibraryHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索歌曲、专辑、艺术家、歌单...'**
+  String get searchLibraryHint;
+
   /// Error text when loading albums fails
   ///
   /// In zh, this message translates to:

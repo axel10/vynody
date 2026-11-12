@@ -1977,6 +1977,7 @@
   "filterArtists": "Filter artists...",
   "searchPlaylists": "Search playlists...",
   "searchRemoteHint": "Search songs, albums, artists...",
+  "searchLibraryHint": "Search songs, albums, artists, playlists...",
   "errorLoadingAlbums": "Error loading albums: {error}",
   "@errorLoadingAlbums": {
     "description": "Error text when loading albums fails",

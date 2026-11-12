@@ -4509,6 +4509,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchRemoteHint => '搜索歌曲、专辑、艺术家...';
 
   @override
+  String get searchLibraryHint => '搜索歌曲、专辑、艺术家、歌单...';
+
+  @override
   String errorLoadingAlbums(String error) {
     return '加载专辑失败: $error';
   }
@@ -10248,6 +10251,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get searchRemoteHint => '搜尋歌曲、專輯、藝術家...';
+
+  @override
+  String get searchLibraryHint => '搜尋歌曲、專輯、藝術家、歌單...';
 
   @override
   String errorLoadingAlbums(String error) {

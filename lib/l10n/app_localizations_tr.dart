@@ -4766,6 +4766,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get searchRemoteHint => 'Şarkı, albüm, sanatçı ara...';
 
   @override
+  String get searchLibraryHint => 'Şarkı, albüm, sanatçı, çalma listesi ara...';
+
+  @override
   String errorLoadingAlbums(String error) {
     return 'Albümler yüklenirken hata oluştu: $error';
   }

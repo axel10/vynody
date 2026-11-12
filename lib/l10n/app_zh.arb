@@ -2792,6 +2792,7 @@
   "filterArtists": "筛选艺术家...",
   "searchPlaylists": "搜索歌单...",
   "searchRemoteHint": "搜索歌曲、专辑、艺术家...",
+  "searchLibraryHint": "搜索歌曲、专辑、艺术家、歌单...",
   "errorLoadingAlbums": "加载专辑失败: {error}",
   "@errorLoadingAlbums": {
     "description": "Error text when loading albums fails",

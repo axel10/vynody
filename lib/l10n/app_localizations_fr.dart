@@ -4810,6 +4810,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get searchRemoteHint => 'Rechercher des titres, albums, artistes...';
 
   @override
+  String get searchLibraryHint =>
+      'Rechercher des titres, albums, artistes, playlists...';
+
+  @override
   String errorLoadingAlbums(String error) {
     return 'Erreur lors du chargement des albums : $error';
   }

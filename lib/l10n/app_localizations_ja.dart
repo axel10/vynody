@@ -4588,6 +4588,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get searchRemoteHint => '曲、アルバム、アーティストを検索...';
 
   @override
+  String get searchLibraryHint => '曲、アルバム、アーティスト、プレイリストを検索...';
+
+  @override
   String errorLoadingAlbums(String error) {
     return 'アルバムの読み込みに失敗しました: $error';
   }

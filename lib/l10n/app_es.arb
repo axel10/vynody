@@ -1820,6 +1820,7 @@
   "filterArtists": "Filtrar artistas...",
   "searchPlaylists": "Buscar listas de reproducción...",
   "searchRemoteHint": "Buscar canciones, álbumes, artistas...",
+  "searchLibraryHint": "Buscar canciones, álbumes, artistas, listas de reproducción...",
   "errorLoadingAlbums": "Error al cargar álbumes: {error}",
   "noAlbumsOnServer": "No se encontraron álbumes en el servidor",
   "noMatchingAlbums": "No hay álbumes coincidentes",

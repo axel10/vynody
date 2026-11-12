@@ -1820,6 +1820,7 @@
   "filterArtists": "Künstler filtern...",
   "searchPlaylists": "Playlists suchen...",
   "searchRemoteHint": "Titel, Alben, Künstler suchen...",
+  "searchLibraryHint": "Titel, Alben, Künstler, Playlists suchen...",
   "errorLoadingAlbums": "Fehler beim Laden der Alben: {error}",
   "noAlbumsOnServer": "Keine Alben auf dem Server gefunden",
   "noMatchingAlbums": "Keine passenden Alben",

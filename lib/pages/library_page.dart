@@ -14,6 +14,7 @@ import 'rated_songs_tab.dart';
 import 'genres_tab.dart';
 import 'years_tab.dart';
 import 'library_dashboard_view.dart';
+import 'library_search_page.dart';
 import 'main_layout_riverpod.dart';
 import '../player/library/library_overview_providers.dart';
 import '../widgets/library_selection_scope.dart';
@@ -198,9 +199,45 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
           contentTopPadding: topPadding,
           contentLeftPadding: leftPadding,
           onNavigateToSubIndex: (sub) => _openSubHost(sub),
+          onOpenSearch: () =>
+              _navigatorKey.currentState?.push(_buildSearchRoute()),
         );
       },
     );
+  }
+
+  /// 全局搜索页：压在局部 Navigator 上，返回手势与三级页面同一套机制。
+  ///
+  /// 它不属于任何子分类，所以不占 `libraryActiveTabIndexProvider` 的索引，
+  /// 也不会动各分类原有的路由栈。
+  Route<void> _buildSearchRoute() {
+    final page = Builder(
+      builder: (context) {
+        final size = MediaQuery.sizeOf(context);
+        final isLandscape = ref.watch(isEffectiveLandscapeProvider(size));
+        final double safeTop = getTitleBarTopPadding(
+          context,
+          defaultWindowPadding: isLandscape ? 32.0 : 36.0,
+        );
+        final double topPadding = isLandscape ? (safeTop + 8.0) : safeTop;
+        final double leftPadding =
+            ref.watch(effectiveSidebarRailWidthProvider(size));
+        return LibrarySearchPage(
+          contentTopPadding: topPadding,
+          contentLeftPadding: leftPadding,
+        );
+      },
+    );
+
+    return (Platform.isIOS || Platform.isMacOS)
+        ? CupertinoPageRoute<void>(
+            settings: const RouteSettings(name: 'library_search'),
+            builder: (_) => page,
+          )
+        : MaterialPageRoute<void>(
+            settings: const RouteSettings(name: 'library_search'),
+            builder: (_) => page,
+          );
   }
 
   Route<void> _buildSubHostRoute({
