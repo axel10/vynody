@@ -103,10 +103,12 @@ class PlaybackHeroCard extends ConsumerStatefulWidget {
     this.coverKey,
     this.lyricsKey,
     this.enableHero = true,
+    this.animateLyricsTransition = true,
   });
 
   final bool isMini;
   final bool isLyricsMode;
+  final bool animateLyricsTransition;
   final bool isLandscape;
   final bool isNext;
   final bool enableHero;
@@ -359,6 +361,9 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
   }
 
   Widget _buildFullCard(BuildContext context) {
+    final lyricsAnimDuration = widget.animateLyricsTransition
+        ? PlaybackHeroCardUiTuning.transitionDuration
+        : Duration.zero;
     const animDuration = PlaybackHeroCardUiTuning.transitionDuration;
     const animCurve = Curves.fastOutSlowIn;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
@@ -614,10 +619,9 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
                   );
 
             return TweenAnimationBuilder<double>(
-              duration: animDuration,
+              duration: lyricsAnimDuration,
               curve: animCurve,
               tween: Tween<double>(
-                begin: 0.0,
                 end: effectiveIsLyricsMode ? 1.0 : 0.0,
               ),
               child: child,

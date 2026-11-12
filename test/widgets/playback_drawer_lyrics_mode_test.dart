@@ -93,7 +93,11 @@ void main() {
               audio.setLyricsActive(true);
             }
           } else if (!next && previous == true) {
-            audio.setLyricsActive(false);
+            final defaultLyrics =
+                ref.read(settingsServiceProvider).defaultToLyricsModeOnPlaybackOpen;
+            if (!defaultLyrics) {
+              audio.setLyricsActive(false);
+            }
           }
         });
 
@@ -148,15 +152,15 @@ void main() {
       container.read(isPlaybackDrawerOpenProvider.notifier).setOpen(false);
       await tester.pump();
 
-      // Lyrics mode should be deactivated
-      expect(mockAudio.setLyricsActiveCalls, [true, false]);
+      // Lyrics mode should remain active during and after drawer exit to avoid glitching to normal mode
+      expect(mockAudio.setLyricsActiveCalls, [true]);
 
       // Reopen playback drawer
       container.read(isPlaybackDrawerOpenProvider.notifier).setOpen(true);
       await tester.pump();
 
-      // Lyrics mode should be reactivated on reopening
-      expect(mockAudio.setLyricsActiveCalls, [true, false, true]);
+      // Lyrics mode ensures active state on reopening (idempotent in AudioService)
+      expect(mockAudio.setLyricsActiveCalls, [true, true]);
     },
   );
 

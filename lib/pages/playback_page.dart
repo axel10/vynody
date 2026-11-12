@@ -86,6 +86,14 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   Timer? _volumeSliderTimer;
   final Map<String, Uint8List> _fileArtworkBytesCache = {};
   final Set<String> _loadingPaths = {};
+  bool _animateLyricsTransition = false;
+  Timer? _lyricsTransitionResetTimer;
+
+  void _resetLyricsTransitionAnimation() {
+    _lyricsTransitionResetTimer?.cancel();
+    _lyricsTransitionResetTimer = null;
+    _animateLyricsTransition = false;
+  }
 
   /// 文件存在性缓存（path → exists）。
   ///
@@ -339,6 +347,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     _pendingArtworkBytes = initialMusic?.artworkBytes;
     _pendingArtworkPath = initialMusic?.path;
 
+    if (ref.read(isPlaybackDrawerOpenProvider) &&
+        ref
+            .read(settingsServiceProvider)
+            .defaultToLyricsModeOnPlaybackOpen) {
+      _audioService?.setLyricsActive(true);
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted &&
           ref.read(isPlaybackDrawerOpenProvider) &&
@@ -397,6 +412,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
         audio.setLyricsActive(false);
       });
     }
+    _lyricsTransitionResetTimer?.cancel();
     _dismissAnimController.dispose();
     _dragOffsetNotifier.dispose();
     _scrubProgressNotifier.dispose();
@@ -486,6 +502,20 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     if (!settings.hasShownCoverTapLyricTip) {
       settings.hasShownCoverTapLyricTip = true;
     }
+    setState(() {
+      _animateLyricsTransition = true;
+    });
+    _lyricsTransitionResetTimer?.cancel();
+    _lyricsTransitionResetTimer = Timer(
+      PlaybackHeroCardUiTuning.transitionDuration,
+      () {
+        if (mounted) {
+          setState(() {
+            _animateLyricsTransition = false;
+          });
+        }
+      },
+    );
     final nextLyricsMode = !ref.read(audioIsLyricsActiveProvider);
     _audioService?.setLyricsActive(nextLyricsMode);
   }
@@ -1068,11 +1098,23 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
         _resetDismissDragOffset();
       }
       if (next && previous != true) {
+        _resetLyricsTransitionAnimation();
         if (ref.read(settingsServiceProvider).defaultToLyricsModeOnPlaybackOpen) {
           audio.setLyricsActive(true);
         }
       } else if (!next && previous == true) {
-        audio.setLyricsActive(false);
+        _resetLyricsTransitionAnimation();
+        final defaultLyrics =
+            ref.read(settingsServiceProvider).defaultToLyricsModeOnPlaybackOpen;
+        if (!defaultLyrics) {
+          // 如果未开启「进入默认歌词模式」，等抽屉完全滑出屏幕后（350ms）再在后台静默重置，
+          // 避免在抽屉退出动画（280ms）进行中把歌词模式切掉导致界面突变。
+          Future.delayed(const Duration(milliseconds: 350), () {
+            if (mounted && !ref.read(isPlaybackDrawerOpenProvider)) {
+              audio.setLyricsActive(false);
+            }
+          });
+        }
       }
     });
     ref.listen<bool>(
@@ -1197,6 +1239,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   isMini: false,
                   isLandscape: isLandscape,
                   isLyricsMode: isLyricsMode,
+                  animateLyricsTransition: _animateLyricsTransition,
                   isNext: isNext,
                   lyricsBottomSpacerHeight: lyricsBottomSpacerHeight,
                   lyricsBottomTabBarHeight: lyricsBottomTabBarHeight,
@@ -1281,7 +1324,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
             right: !isLandscape,
             bottom: false,
             child: AnimatedPadding(
-              duration: const Duration(milliseconds: 400),
+              duration: _animateLyricsTransition
+                  ? const Duration(milliseconds: 400)
+                  : Duration.zero,
               curve: Curves.fastOutSlowIn,
               padding: PlaybackPageUiTuning.contentPadding(
                 isLandscape: isLandscape,
@@ -1869,7 +1914,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     return Positioned.fill(
       child: ExcludeSemantics(
         child: AnimatedOpacity(
-          duration: PlaybackHeroCardUiTuning.transitionDuration,
+          duration: _animateLyricsTransition
+              ? PlaybackHeroCardUiTuning.transitionDuration
+              : Duration.zero,
           curve: Curves.fastOutSlowIn,
           opacity: targetOpacity,
           child: IgnorePointer(
@@ -1908,7 +1955,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
     return Positioned.fill(
       child: AnimatedOpacity(
-        duration: PlaybackHeroCardUiTuning.transitionDuration,
+        duration: _animateLyricsTransition
+            ? PlaybackHeroCardUiTuning.transitionDuration
+            : Duration.zero,
         curve: Curves.fastOutSlowIn,
         opacity: isSmallWin || !isLyricsMode ? 0.0 : 1.0,
         child: IgnorePointer(
