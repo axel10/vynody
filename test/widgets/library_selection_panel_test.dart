@@ -248,7 +248,7 @@ void main() {
         matching: find.byType(GenericSelectionPanel),
       ),
     );
-    expect(genericPanel.columns, 4);
+    expect(genericPanel.columns, isNull);
 
     final expandedWidgets = tester.widgetList<Expanded>(
       find.descendant(

@@ -97,7 +97,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
         title: title ?? l10n.selectedSongs(selectedSongs.length),
         onCancel: onCancel,
         actions: customActions!,
-        columns: columns ?? 4,
+        columns: columns,
       );
     }
 
@@ -150,6 +150,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
       SelectionActionItem(
         icon: Icons.queue_music_rounded,
         label: l10n.addToQueue,
+        shortLabel: l10n.queue,
         onPressed: (isEmpty || (onAddToQueue == null && isSongSelectionEmpty))
             ? null
             : () async {
@@ -165,6 +166,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
       SelectionActionItem(
         icon: Icons.playlist_add_rounded,
         label: l10n.addToPlaylist,
+        shortLabel: l10n.playlist,
         onPressed: (isEmpty || (onAddToPlaylist == null && isSongSelectionEmpty))
             ? null
             : () async {
@@ -368,7 +370,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
       title: title ?? l10n.selectedSongs(selectedSongs.length),
       onCancel: onCancel,
       actions: actions,
-      columns: columns ?? 4,
+      columns: columns,
     );
   }
 }

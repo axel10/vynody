@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/utils/app_orientation_manager.dart';
@@ -6,6 +7,9 @@ import 'package:vynody/utils/app_orientation_manager.dart';
 class SelectionActionItem {
   final IconData icon;
   final String label;
+
+  /// 宽度受限时的短标签（例如「添加到播放列表」简写为「播放列表」）。
+  final String? shortLabel;
   final VoidCallback? onPressed;
   final Color? iconColor;
   final bool isDestructive;
@@ -13,6 +17,7 @@ class SelectionActionItem {
   const SelectionActionItem({
     required this.icon,
     required this.label,
+    this.shortLabel,
     required this.onPressed,
     this.iconColor,
     this.isDestructive = false,
@@ -73,41 +78,17 @@ class _GenericSelectionPanelState extends State<GenericSelectionPanel> {
     final l10n = AppLocalizations.of(context)!;
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
+    final isTablet = MediaQuery.sizeOf(context).shortestSide >=
+        AppOrientationManager.tabletShortestSideBreakpoint;
+    final isDesktop = defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.linux;
 
-    final int columnCount = widget.columns ?? 4;
-
-    final actionRows = <Widget>[];
-    for (var i = 0; i < widget.actions.length; i += columnCount) {
-      final chunk = widget.actions.sublist(
-        i,
-        i + columnCount > widget.actions.length
-            ? widget.actions.length
-            : i + columnCount,
-      );
-
-      final rowChildren = <Widget>[];
-      for (var col = 0; col < columnCount; col++) {
-        if (col > 0) {
-          rowChildren.add(const SizedBox(width: 8));
-        }
-        if (col < chunk.length) {
-          rowChildren.add(
-            Expanded(
-              child: _buildActionButton(context, chunk[col]),
-            ),
-          );
-        } else {
-          rowChildren.add(const Expanded(child: SizedBox.shrink()));
-        }
-      }
-
-      actionRows.add(Row(children: rowChildren));
-    }
+    final isPhonePortrait = !isLandscape && !isTablet && !isDesktop;
+    final double maxPanelWidth = isPhonePortrait ? 372.0 : 620.0;
 
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
-    final isTablet = MediaQuery.sizeOf(context).shortestSide >=
-        AppOrientationManager.tabletShortestSideBreakpoint;
 
     final double safeBottom;
     if (isTablet) {
@@ -120,81 +101,133 @@ class _GenericSelectionPanelState extends State<GenericSelectionPanel> {
       safeBottom = bottomPadding > 0 ? bottomPadding : 12.0;
     }
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, safeBottom),
-      child: SafeArea(
-        top: false,
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: isLandscape ? 620 : 372),
-            child: Material(
-              elevation: 16,
-              color: theme.colorScheme.surface,
-              shadowColor: Colors.black26,
-              borderRadius: BorderRadius.circular(24),
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header row
-                    Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final parentWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        final double effectivePanelWidth =
+            (parentWidth - 32.0).clamp(0.0, maxPanelWidth);
+        // 卡片内部横向可用宽度（减去左右 padding 14 + 8 = 22）
+        final double contentWidth = effectivePanelWidth - 22.0;
+
+        // 手机竖屏固定 4 列；宽屏（横屏/平板/桌面）且内容宽度充足时显示 5 列
+        final bool canFitFive = !isPhonePortrait && contentWidth >= 400.0;
+        final int columnCount = widget.columns ??
+            ((canFitFive && widget.actions.length >= 5) ? 5 : 4);
+        final double colSpacing = columnCount >= 5 ? 6.0 : 8.0;
+
+        final actionRows = <Widget>[];
+        for (var i = 0; i < widget.actions.length; i += columnCount) {
+          final chunk = widget.actions.sublist(
+            i,
+            i + columnCount > widget.actions.length
+                ? widget.actions.length
+                : i + columnCount,
+          );
+
+          final rowChildren = <Widget>[];
+          for (var col = 0; col < columnCount; col++) {
+            if (col > 0) {
+              rowChildren.add(SizedBox(width: colSpacing));
+            }
+            if (col < chunk.length) {
+              rowChildren.add(
+                Expanded(
+                  child: _buildActionButton(context, chunk[col]),
+                ),
+              );
+            } else {
+              rowChildren.add(const Expanded(child: SizedBox.shrink()));
+            }
+          }
+
+          actionRows.add(Row(children: rowChildren));
+        }
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, safeBottom),
+          child: SafeArea(
+            top: false,
+            bottom: false,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxPanelWidth),
+                child: Material(
+                  elevation: 16,
+                  color: theme.colorScheme.surface,
+                  shadowColor: Colors.black26,
+                  borderRadius: BorderRadius.circular(24),
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 4, 8, 10),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(width: 8),
-                        Text(
-                          widget.title,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        // Header row
+                        Row(
+                          children: [
+                            const SizedBox(width: 6),
+                            Text(
+                              widget.title,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 20),
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.all(6),
+                              constraints: const BoxConstraints(
+                                minWidth: 32,
+                                minHeight: 32,
+                              ),
+                              onPressed: widget.onCancel,
+                              tooltip: l10n.cancel,
+                            ),
+                          ],
                         ),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded),
-                          onPressed: widget.onCancel,
-                          tooltip: l10n.cancel,
+                        const SizedBox(height: 4),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxHeight: _maxActionAreaHeight,
+                          ),
+                          child: Scrollbar(
+                            controller: _scrollController,
+                            thumbVisibility: actionRows.length > 2,
+                            child: SingleChildScrollView(
+                              controller: _scrollController,
+                              physics: actionRows.length > 2
+                                  ? const BouncingScrollPhysics(
+                                      parent: AlwaysScrollableScrollPhysics(),
+                                    )
+                                  : const NeverScrollableScrollPhysics(),
+                              padding: EdgeInsets.only(
+                                right: actionRows.length > 2 ? 6.0 : 0.0,
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  for (var i = 0; i < actionRows.length; i++) ...[
+                                    if (i > 0) const SizedBox(height: _rowSpacing),
+                                    actionRows[i],
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxHeight: _maxActionAreaHeight,
-                      ),
-                      child: Scrollbar(
-                        controller: _scrollController,
-                        thumbVisibility: actionRows.length > 2,
-                        child: SingleChildScrollView(
-                          controller: _scrollController,
-                          physics: actionRows.length > 2
-                              ? const BouncingScrollPhysics(
-                                  parent: AlwaysScrollableScrollPhysics(),
-                                )
-                              : const NeverScrollableScrollPhysics(),
-                          padding: EdgeInsets.only(
-                            right: actionRows.length > 2 ? 6.0 : 0.0,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              for (var i = 0; i < actionRows.length; i++) ...[
-                                if (i > 0) const SizedBox(height: _rowSpacing),
-                                actionRows[i],
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -210,32 +243,53 @@ class _GenericSelectionPanelState extends State<GenericSelectionPanel> {
       height: _singleRowHeight,
       child: Opacity(
         opacity: isEnabled ? 1.0 : 0.38,
-        child: TextButton(
-          onPressed: action.onPressed,
-          style: TextButton.styleFrom(
-            foregroundColor: action.isDestructive
-                ? theme.colorScheme.error
-                : theme.colorScheme.onSurface,
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(action.icon, size: 22, color: effectiveIconColor),
-              const SizedBox(height: 3),
-              Text(
-                action.label,
-                textAlign: TextAlign.center,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            String label = action.label;
+            if (action.shortLabel != null && constraints.maxWidth > 0) {
+              final textScaler = MediaQuery.textScalerOf(context);
+              const textStyle = TextStyle(fontSize: 12);
+              final painter = TextPainter(
+                text: TextSpan(text: action.label, style: textStyle),
+                textDirection: Directionality.of(context),
+                textScaler: textScaler,
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12),
+              )..layout();
+
+              // TextButton 内部 padding 为 horizontal: 4 (合计 8)，外加 2 像素缓冲
+              if (painter.width > constraints.maxWidth - 10.0) {
+                label = action.shortLabel!;
+              }
+            }
+
+            return TextButton(
+              onPressed: action.onPressed,
+              style: TextButton.styleFrom(
+                foregroundColor: action.isDestructive
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.onSurface,
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-            ],
-          ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(action.icon, size: 22, color: effectiveIconColor),
+                  const SizedBox(height: 3),
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );

@@ -111,4 +111,174 @@ void main() {
     expect(find.byType(Scrollbar), findsOneWidget);
     expect(find.byType(SingleChildScrollView), findsOneWidget);
   });
+
+  testWidgets('GenericSelectionPanel keeps 4 columns in phone portrait even when actions >= 5', (tester) async {
+    final fiveActions = List.generate(
+      5,
+      (i) => SelectionActionItem(
+        icon: Icons.star,
+        label: 'Action $i',
+        onPressed: () {},
+      ),
+    );
+
+    // 模拟典型手机竖屏（宽度 390，高度 844，竖屏，最短边 < 600）
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.android),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('zh'),
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(390, 844),
+          ),
+          child: Scaffold(
+            body: Center(
+              child: GenericSelectionPanel(
+                title: '手机竖屏多选',
+                onCancel: () {},
+                actions: fiveActions,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final expandedWidgets = tester.widgetList<Expanded>(
+      find.descendant(
+        of: find.byType(Row).last,
+        matching: find.byType(Expanded),
+      ),
+    );
+    // 手机竖屏下固定一行 4 个
+    expect(expandedWidgets.length, 4);
+  });
+
+  testWidgets('GenericSelectionPanel displays 5 columns when in wide screen (landscape) and actions >= 5', (tester) async {
+    final fiveActions = List.generate(
+      5,
+      (i) => SelectionActionItem(
+        icon: Icons.star,
+        label: 'Action $i',
+        onPressed: () {},
+      ),
+    );
+
+    // 模拟横屏环境
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.android),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('zh'),
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(844, 390),
+          ),
+          child: Scaffold(
+            body: Center(
+              child: GenericSelectionPanel(
+                title: '横屏多选',
+                onCancel: () {},
+                actions: fiveActions,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final expandedWidgets = tester.widgetList<Expanded>(
+      find.descendant(
+        of: find.byType(Row).last,
+        matching: find.byType(Expanded),
+      ),
+    );
+    expect(expandedWidgets.length, 5);
+  });
+
+  testWidgets('GenericSelectionPanel falls back to shortLabel when item width is constrained', (tester) async {
+    final actions = [
+      SelectionActionItem(
+        icon: Icons.playlist_add_rounded,
+        label: '添加到播放列表',
+        shortLabel: '播放列表',
+        onPressed: () {},
+      ),
+      SelectionActionItem(
+        icon: Icons.queue_music_rounded,
+        label: '添加到队列',
+        shortLabel: '队列',
+        onPressed: () {},
+      ),
+      SelectionActionItem(
+        icon: Icons.star,
+        label: '收藏',
+        onPressed: () {},
+      ),
+    ];
+
+    // 在较窄宽度（例如 320）下，单项按钮宽度不足以显示长文本「添加到播放列表」
+    await tester.pumpWidget(
+      _wrap(
+        SizedBox(
+          width: 320,
+          child: GenericSelectionPanel(
+            title: '已选 1 首',
+            onCancel: () {},
+            actions: actions,
+            columns: 4,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('播放列表'), findsOneWidget);
+    expect(find.text('添加到播放列表'), findsNothing);
+    expect(find.text('队列'), findsOneWidget);
+    expect(find.text('添加到队列'), findsNothing);
+  });
+
+  testWidgets('GenericSelectionPanel keeps full label when item width is sufficiently wide', (tester) async {
+    final actions = [
+      SelectionActionItem(
+        icon: Icons.playlist_add_rounded,
+        label: '添加到播放列表',
+        shortLabel: '播放列表',
+        onPressed: () {},
+      ),
+      SelectionActionItem(
+        icon: Icons.queue_music_rounded,
+        label: '添加到队列',
+        shortLabel: '队列',
+        onPressed: () {},
+      ),
+    ];
+
+    // 在超宽容器（例如 600）且只有两列时，单项按钮宽度极其充裕
+    await tester.pumpWidget(
+      _wrap(
+        SizedBox(
+          width: 600,
+          child: GenericSelectionPanel(
+            title: '已选 1 首',
+            onCancel: () {},
+            actions: actions,
+            columns: 2,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('添加到播放列表'), findsOneWidget);
+    expect(find.text('播放列表'), findsNothing);
+    expect(find.text('添加到队列'), findsOneWidget);
+    expect(find.text('队列'), findsNothing);
+  });
 }
