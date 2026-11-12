@@ -14,6 +14,8 @@ import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import '../pages/main_layout.dart' show navigateToMainTab;
+import 'layout_constants.dart' show kMainTabRemoteLibrary;
 
 class SongHighlightNotifier extends Notifier<String?> {
   Timer? _timer;
@@ -340,8 +342,7 @@ class SongLocatorHelper {
     }
 
     // 远程库是一级 tab，此刻页面可能还没构建过（拿不到 State），所以「打开这张
-    // 专辑」只能写成一次深链请求交给页面自己消费；切栏目交给 `MainLayout`，
-    // 它监听会话变化会自动把用户带到远程媒体库。
+    // 专辑」写成一次深链请求交给页面消费，同时显式切到远程媒体库 tab。
     ref.read(remoteLibraryPendingDetailProvider.notifier).set(
           NavidromeAlbumRoute(
             albumId: albumId,
@@ -353,6 +354,7 @@ class SongLocatorHelper {
         );
 
     ref.read(songHighlightProvider.notifier).highlight(songPath);
+    await navigateToMainTab(context, index: kMainTabRemoteLibrary);
     return true;
   }
 }

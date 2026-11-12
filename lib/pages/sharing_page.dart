@@ -2171,20 +2171,26 @@ class _SharingPageState extends ConsumerState<SharingPage>
                     if (!allowed) return;
                     if (!context.mounted) return;
 
-                    final pwd = await ref
-                        .read(remoteServersProvider.notifier)
-                        .getPassword(server.id);
-                    if (!context.mounted) return;
+                    final activeSession = ref.read(activeRemoteSessionProvider);
+                    if (activeSession == null || activeSession.server.id != server.id) {
+                      final pwd = await ref
+                          .read(remoteServersProvider.notifier)
+                          .getPassword(server.id);
+                      if (!context.mounted) return;
 
-                    ref.read(activeRemoteSessionProvider.notifier).setSession(
-                      ActiveRemoteSession(
-                        server: server,
-                        password: pwd ?? '',
-                      ),
-                    );
+                      ref.read(activeRemoteSessionProvider.notifier).setSession(
+                        ActiveRemoteSession(
+                          server: server,
+                          password: pwd ?? '',
+                        ),
+                      );
+                    }
+                    if (!context.mounted) return;
                     await navigateToMainTab(
                       context,
-                      index: kMainTabFolders,
+                      index: server.type.isMediaLibrary
+                          ? kMainTabRemoteLibrary
+                          : kMainTabFolders,
                       fromIndex: kMainTabSharing,
                     );
                   },

@@ -32,6 +32,7 @@ import '../widgets/folder_floating_action_button.dart';
 import '../widgets/folder_scan_widgets.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
+import 'main_layout.dart' show navigateToMainTab;
 
 /// 同一页里两段网格各自的身份（与 `SliverAnimatedZoomGridDelegate.section` 对齐）。
 ///
@@ -222,17 +223,25 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     if (!allowed) return;
     if (!context.mounted) return;
 
-    final pwd = await ref
-        .read(remoteServersProvider.notifier)
-        .getPassword(server.id);
-    if (!context.mounted) return;
+    final activeSession = ref.read(activeRemoteSessionProvider);
+    if (activeSession == null || activeSession.server.id != server.id) {
+      final pwd = await ref
+          .read(remoteServersProvider.notifier)
+          .getPassword(server.id);
+      if (!context.mounted) return;
 
-    ref.read(activeRemoteSessionProvider.notifier).setSession(
-      ActiveRemoteSession(
-        server: server,
-        password: pwd ?? '',
-      ),
-    );
+      ref.read(activeRemoteSessionProvider.notifier).setSession(
+        ActiveRemoteSession(
+          server: server,
+          password: pwd ?? '',
+        ),
+      );
+    }
+
+    if (server.type.isMediaLibrary) {
+      if (!context.mounted) return;
+      await navigateToMainTab(context, index: kMainTabRemoteLibrary);
+    }
   }
 
   Future<void> _handleRefresh() async {

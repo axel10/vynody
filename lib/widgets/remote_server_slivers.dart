@@ -12,7 +12,6 @@ import 'library_selection_panel.dart';
 import 'pro/pro_badge.dart';
 import 'zoom_reorder_ui.dart';
 import '../player/pro/pro_license_service.dart';
-import '../player/pro/pro_models.dart';
 import '../utils/drop_data_utils.dart';
 import 'drag/drag_preview_card.dart';
 
@@ -50,20 +49,6 @@ Future<void> showRemoteServerContextMenu({
       : (isJellyfin ? 'Jellyfin' : (isSmb ? 'SMB' : 'WebDAV'));
 
   final groups = <List<ContextMenuAction>>[
-    [
-      ContextMenuAction(
-        value: 'browse',
-        label: l10n.browseServer,
-        icon: isSubsonic
-            ? Icons.library_music_rounded
-            : (isSmb
-                ? Icons.folder_shared_outlined
-                : Icons.folder_copy_outlined),
-        accentColor: isSubsonic
-            ? Colors.orange
-            : (isSmb ? Colors.teal : Colors.blue),
-      ),
-    ],
     [
       ContextMenuAction(
         value: 'edit',
@@ -125,27 +110,7 @@ Future<void> showRemoteServerContextMenu({
 
   if (!context.mounted || selected == null) return;
 
-  if (selected == 'browse') {
-    final allowed = await checkProGate(
-      context,
-      ref,
-      feature: ProFeature.cloudLibrary,
-    );
-    if (!allowed) return;
-    if (!context.mounted) return;
-
-    final pwd = await ref
-        .read(remoteServersProvider.notifier)
-        .getPassword(server.id);
-    if (!context.mounted) return;
-
-    ref.read(activeRemoteSessionProvider.notifier).setSession(
-      ActiveRemoteSession(
-        server: server,
-        password: pwd ?? '',
-      ),
-    );
-  } else if (selected == 'multi_select' ||
+  if (selected == 'multi_select' ||
       selected == 'exit_multi_select') {
     onMultiSelect?.call();
   } else if (selected == 'edit') {

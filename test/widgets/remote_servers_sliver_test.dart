@@ -7,7 +7,6 @@ import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/widgets/remote_server_slivers.dart';
-import 'package:vynody/widgets/zoom_reorder_ui.dart';
 import 'package:zoomable_sliver_grid/zoomable_sliver_grid.dart';
 
 void main() {
@@ -132,8 +131,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(find.text(l10n.browseServer), findsOneWidget);
+    expect(find.text(l10n.browseServer), findsNothing);
     expect(find.text(l10n.editRemoteServer), findsOneWidget);
+    expect(find.text(l10n.delete), findsOneWidget);
   });
 
   testWidgets('非多选态下持有 reorderController 使用 ZoomReorderableSliverGrid 但隐藏手柄', (tester) async {
