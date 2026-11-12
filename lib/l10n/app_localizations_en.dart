@@ -6031,4 +6031,34 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get lyricsBlurEffectDescription =>
       'Apply Gaussian blur to unfocused lines in lyrics mode. Disabling this improves expansion and scroll frame rate.';
+
+  @override
+  String get searchResultsCurrentFolder => 'Current Folder & Subfolders';
+
+  @override
+  String get searchResultsGlobal => 'Global Results';
+
+  @override
+  String get searchResultsFolders => 'Matching Folders';
+
+  @override
+  String get searchResultsSongs => 'Matching Songs';
+
+  @override
+  String get remoteSearchCachedTitle => 'Cached Items';
+
+  @override
+  String get remoteSearchDeepAction => 'Deep search on remote server';
+
+  @override
+  String get remoteSearchDeepSearching => 'Deep searching remote directory...';
+
+  @override
+  String get remoteSearchDeepStop => 'Stop search';
+
+  @override
+  String get remoteSearchDeepCompleted => 'Deep search completed';
+
+  @override
+  String get searchFolderHint => 'Search songs or folders...';
 }

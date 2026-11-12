@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
@@ -33,6 +34,7 @@ import '../../utils/song_context_menu_utils.dart';
 import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
 import '../../widgets/folder_header_banner.dart';
+import 'remote_folder_search_page.dart';
 import '../../widgets/folder_layout_utils.dart';
 import '../../widgets/folder_content_slivers.dart';
 import '../../widgets/folder_zoom_gesture_layer.dart';
@@ -107,9 +109,8 @@ class _RemoteFolderBrowserPageState
   int? _lastSongAnchorIndex;
   int? _lastFolderAnchorIndex;
 
-  // Search & Scroll states
+  // Scroll states
   late final LibrarySelectionScopeController _selectionScopeNotifier;
-  late final TextEditingController _searchController;
   final ScrollController _scrollController = ScrollController();
   final ScrollController _breadcrumbsScrollController = ScrollController();
 
@@ -122,11 +123,33 @@ class _RemoteFolderBrowserPageState
   final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
   final ValueNotifier<bool> _isCoverVisible = ValueNotifier<bool>(true);
   final ValueNotifier<bool> _showFloatingActions = ValueNotifier<bool>(false);
-  bool _isSearching = false;
-  String _searchQuery = '';
   String? _highlightedSongPath;
   Timer? _highlightTimer;
   late final double _initialZoomScale;
+
+  void _openSearchPage() {
+    Navigator.of(context).push(
+      (Platform.isIOS || Platform.isMacOS)
+          ? CupertinoPageRoute<void>(
+              settings: const RouteSettings(name: 'remote_folder_search'),
+              builder: (_) => RemoteFolderSearchPage(
+                server: widget.server,
+                password: widget.password,
+                currentPath: _currentPath,
+                rootPath: _rootPath,
+              ),
+            )
+          : MaterialPageRoute<void>(
+              settings: const RouteSettings(name: 'remote_folder_search'),
+              builder: (_) => RemoteFolderSearchPage(
+                server: widget.server,
+                password: widget.password,
+                currentPath: _currentPath,
+                rootPath: _rootPath,
+              ),
+            ),
+    );
+  }
 
   @override
   void initState() {
@@ -134,7 +157,6 @@ class _RemoteFolderBrowserPageState
     _initialZoomScale = ref.read(settingsServiceProvider).folderZoomScale;
     _selectionScopeNotifier =
         ref.read(librarySelectionScopeProvider.notifier);
-    _searchController = TextEditingController();
     if (widget.server.type == RemoteServerType.smb) {
       _client = SmbClient(
         server: widget.server,
@@ -223,7 +245,6 @@ class _RemoteFolderBrowserPageState
   @override
   void dispose() {
     _highlightTimer?.cancel();
-    _searchController.dispose();
     _scrollController.dispose();
     _breadcrumbsScrollController.dispose();
     _scrollProgress.dispose();
@@ -263,15 +284,6 @@ class _RemoteFolderBrowserPageState
 
     _loadEpoch++;
     final currentEpoch = _loadEpoch;
-
-    // Reset search on directory change
-    if (_isSearching || _searchQuery.isNotEmpty) {
-      setState(() {
-        _isSearching = false;
-        _searchQuery = '';
-        _searchController.clear();
-      });
-    }
 
     if (!forceRefresh &&
         isSameServer &&
@@ -1216,26 +1228,7 @@ class _RemoteFolderBrowserPageState
     final info = RemoteMediaResolver.parseUri(songPath);
     final songFullPath = info?.trackIdOrPath ?? songPath;
 
-    final lowercaseQuery = _searchQuery.toLowerCase();
-    final List<WebDavFile> displayedItems;
-    if (_searchQuery.isEmpty) {
-      displayedItems = _items;
-    } else {
-      displayedItems = _items.where((item) {
-        if (item.name.toLowerCase().contains(lowercaseQuery)) return true;
-        final virtualUri =
-            RemoteMediaResolver.buildRemoteUri(widget.server, item.path);
-        final meta = _metadataMap[virtualUri] ??
-            ref.read(scannerServiceProvider).metadataMap[virtualUri];
-        if (meta != null) {
-          if (meta.title.toLowerCase().contains(lowercaseQuery)) return true;
-          if (meta.artist.toLowerCase().contains(lowercaseQuery)) return true;
-          if (meta.album.toLowerCase().contains(lowercaseQuery)) return true;
-        }
-        return false;
-      }).toList();
-    }
-
+    final displayedItems = _items;
     final matchedFolders = displayedItems.where((i) => i.isDirectory).toList();
     final matchedFiles = displayedItems.where((i) => !i.isDirectory).toList();
 
@@ -1361,30 +1354,9 @@ class _RemoteFolderBrowserPageState
     }
 
     // Search filtering within current directory
-    final lowercaseQuery = _searchQuery.toLowerCase();
-    final List<WebDavFile> displayedItems;
-    if (_searchQuery.isEmpty) {
-      displayedItems = _items;
-    } else {
-      displayedItems = _items.where((item) {
-        if (item.name.toLowerCase().contains(lowercaseQuery)) return true;
-        final virtualUri =
-            RemoteMediaResolver.buildRemoteUri(widget.server, item.path);
-        final meta = _metadataMap[virtualUri] ??
-            ref.read(scannerServiceProvider).metadataMap[virtualUri];
-        if (meta != null) {
-          if (meta.title.toLowerCase().contains(lowercaseQuery)) return true;
-          if (meta.artist.toLowerCase().contains(lowercaseQuery)) return true;
-          if (meta.album.toLowerCase().contains(lowercaseQuery)) return true;
-        }
-        return false;
-      }).toList();
-    }
-
+    final displayedItems = _items;
     final matchedFolders = displayedItems.where((i) => i.isDirectory).toList();
     final matchedFiles = displayedItems.where((i) => !i.isDirectory).toList();
-    final noSearchResults =
-        _searchQuery.isNotEmpty && displayedItems.isEmpty && !_isLoading;
 
     // 主体内容现在挂在 `FolderZoomSliverBuilder.builder` 里，换档动画期间每帧都会
     // 重新执行一次 —— 这份列表必须先算好，不能留在闭包里按帧重建
@@ -1580,15 +1552,9 @@ class _RemoteFolderBrowserPageState
                     : null,
                 ),
               ),
-              if (noSearchResults)
-                FolderEmptySearchResultsSliver(
-                  message: l10n.noMatchingFoldersOrSongs,
-                  isSearching: false,
-                )
-              else ...[
-                // 1. Subfolders Sliver (Grid or List according to zoomScale)
-                if (matchedFolders.isNotEmpty)
-                  WebDavSubfoldersSliver(
+              // 1. Subfolders Sliver (Grid or List according to zoomScale)
+              if (matchedFolders.isNotEmpty)
+                WebDavSubfoldersSliver(
                     folders: matchedFolders,
                     zoomScale: zoomScale,
                     crossAxisExtent: crossAxisExtent,
@@ -1680,8 +1646,6 @@ class _RemoteFolderBrowserPageState
                     ),
                     bottomPadding: 0,
                   ),
-
-              ],
               SliverPadding(
                 padding: EdgeInsets.only(
                   bottom: bottomOffset,
@@ -1722,7 +1686,7 @@ class _RemoteFolderBrowserPageState
 
     final page = AutoHideHeaderScope(
       enabled: false,
-      forceVisible: _isSelectionMode || _searchQuery.isNotEmpty,
+      forceVisible: _isSelectionMode,
       builder: (context, isHeaderVisible) {
         final scaffold = Scaffold(
       body: Stack(
@@ -2162,24 +2126,7 @@ class _RemoteFolderBrowserPageState
               ),
             ],
             actionButtonsScrollable: false,
-            isSearching: _isSearching,
-            searchController: _searchController,
-            searchQuery: _searchQuery,
-            searchHintText: l10n.searchInFolderAndSubfolders,
-            onSearchQueryChanged: (val) {
-              setState(() {
-                _searchQuery = val.trim();
-              });
-            },
-            onToggleSearch: (val) {
-              setState(() {
-                _isSearching = val;
-                if (!val) {
-                  _searchQuery = '';
-                  _searchController.clear();
-                }
-              });
-            },
+            onSearch: _openSearchPage,
           );
         },
       ),
@@ -2323,7 +2270,9 @@ class _RemoteFolderBrowserPageState
           FolderNavActionMenu<String>(
             style: style,
             onSelected: (value) {
-              if (value == 'locate') {
+              if (value == 'search') {
+                _openSearchPage();
+              } else if (value == 'locate') {
                 _locateCurrentSong();
               } else if (value == 'sort') {
                 _showSortDialog(context);
@@ -2340,6 +2289,16 @@ class _RemoteFolderBrowserPageState
               }
             },
             itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'search',
+                child: Row(
+                  children: [
+                    const Icon(Icons.search_rounded, size: 20),
+                    const SizedBox(width: 12),
+                    Text(l10n.search),
+                  ],
+                ),
+              ),
               if (currentMusic != null)
                 PopupMenuItem(
                   value: 'locate',
@@ -2411,6 +2370,17 @@ class _RemoteFolderBrowserPageState
         mainAxisSize: MainAxisSize.min,
         children: [
           FolderScanSpinner(style: style),
+          FolderNavIconButton(
+            style: style,
+            tooltip: l10n.search,
+            icon: Icon(
+              Icons.search_rounded,
+              size: 20,
+              color: style.iconColor,
+              shadows: style.shadows,
+            ),
+            onPressed: _openSearchPage,
+          ),
           if (currentMusic != null) ...[
             LocateSongNavButton(
               style: style,

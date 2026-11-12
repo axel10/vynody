@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
@@ -15,6 +17,7 @@ import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../dialogs/folder_sort_sheet.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/folder_header_banner.dart';
+import 'folder_search_page.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/default_cover_art.dart';
 import 'package:vynody/utils/folder_helpers.dart';
@@ -83,8 +86,6 @@ class FolderDetailView extends ConsumerStatefulWidget {
 
 class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   late final ScrollController _localScrollController;
-  late final TextEditingController _searchController;
-  final FocusNode _searchFocusNode = FocusNode();
   final ScrollController _breadcrumbsScrollController = ScrollController();
 
   /// `LayoutBuilder` 给的列表内容宽度（已扣除 rail / 最大宽度约束）。
@@ -93,11 +94,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
   /// 挂在标题横幅上：定位当前播放时实测横幅高度，不再靠 `190.0` 估算。
   final GlobalKey _bannerMeasureKey = GlobalKey();
-  bool _isSearching = false;
-  bool _isSearchLoading = false;
-  String _searchQuery = '';
-  List<MusicFile> _matchedSongs = [];
-  Timer? _searchDebounce;
   String? _lastHighlightedPath;
   final ValueNotifier<bool> _isCoverVisible = ValueNotifier<bool>(true);
   final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
@@ -106,30 +102,18 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   int? _lastFolderAnchorIndex;
   late final double _initialZoomScale;
 
-  void _performSearch(String query) {
-    _searchDebounce?.cancel();
-    if (query.isEmpty) {
-      setState(() {
-        _matchedSongs = [];
-        _isSearchLoading = false;
-      });
-      return;
-    }
-    setState(() {
-      _isSearchLoading = true;
-    });
-    _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
-      final results = await ref.read(scannerServiceProvider).searchSongs(
-        query,
-        folderPath: _effectiveFolder.path,
-      );
-      if (mounted) {
-        setState(() {
-          _matchedSongs = results;
-          _isSearchLoading = false;
-        });
-      }
-    });
+  void _openSearchPage() {
+    Navigator.of(context).push(
+      (Platform.isIOS || Platform.isMacOS)
+          ? CupertinoPageRoute<void>(
+              settings: const RouteSettings(name: 'folder_search'),
+              builder: (_) => FolderSearchPage(currentFolder: _effectiveFolder),
+            )
+          : MaterialPageRoute<void>(
+              settings: const RouteSettings(name: 'folder_search'),
+              builder: (_) => FolderSearchPage(currentFolder: _effectiveFolder),
+            ),
+    );
   }
 
   static MusicFolder? _findFolderInTree(MusicFolder root, String targetPath) {
@@ -185,7 +169,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   void initState() {
     super.initState();
     _initialZoomScale = ref.read(settingsServiceProvider).folderZoomScale;
-    _searchController = TextEditingController();
     final targetOffset = ref.read(scannerServiceProvider).getFolderScrollOffset(_effectiveFolder.path);
     _localScrollController = ScrollController(initialScrollOffset: targetOffset);
     _isCoverVisible.value = targetOffset < 160.0;
@@ -234,9 +217,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
   @override
   void dispose() {
-    _searchDebounce?.cancel();
-    _searchController.dispose();
-    _searchFocusNode.dispose();
     _localScrollController.removeListener(_onScroll);
     _localScrollController.dispose();
     _breadcrumbsScrollController.dispose();
@@ -244,25 +224,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     _isCoverVisible.dispose();
     _showFloatingActions.dispose();
     super.dispose();
-  }
-
-  List<MusicFolder> _findMatchingFolders(MusicFolder root, String query) {
-    final results = <MusicFolder>[];
-    final lowercaseQuery = query.toLowerCase();
-
-    void search(MusicFolder folder) {
-      if (folder.name.toLowerCase().contains(lowercaseQuery)) {
-        results.add(folder);
-      }
-      for (final sub in folder.subFolders) {
-        search(sub);
-      }
-    }
-
-    for (final sub in root.subFolders) {
-      search(sub);
-    }
-    return results;
   }
 
   void _scrollToHighlightedSong([String? targetPath]) {
@@ -273,13 +234,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     if (songPath == null) return;
 
     final folder = _effectiveFolder;
-    final matchedFolders = _searchQuery.isNotEmpty
-        ? _findMatchingFolders(folder, _searchQuery)
-        : folder.subFolders;
-    final matchedSongs = _searchQuery.isNotEmpty
-        ? _matchedSongs
-        : folder.files;
-    final fileIndex = matchedSongs.indexWhere((file) => p.equals(file.path, songPath));
+    final fileIndex = folder.files.indexWhere((file) => p.equals(file.path, songPath));
     if (fileIndex == -1) return;
 
     final hasPermission = ref.read(scannerServiceProvider).hasPermission;
@@ -303,7 +258,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     );
 
     fileOffset += policy.calculateScrollOffset(
-      folderCount: matchedFolders.length,
+      folderCount: folder.subFolders.length,
       songIndex: fileIndex,
     );
 
@@ -381,13 +336,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isPlaying = ref.watch(audioIsPlayingProvider);
 
-    final matchedFolders = _searchQuery.isNotEmpty
-        ? _findMatchingFolders(folder, _searchQuery)
-        : folder.subFolders;
-    final matchedSongs = _searchQuery.isNotEmpty
-        ? _matchedSongs
-        : folder.files;
-
     final showSelectionPanel =
         widget.isSelectionMode &&
         isUserRootSelectionContext(
@@ -416,9 +364,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     final songsCount = folder.songCount;
     final totalDurationMs = folder.totalDurationMs;
-
-    final showSearchLoading = _searchQuery.isNotEmpty && _isSearchLoading && matchedFolders.isEmpty && matchedSongs.isEmpty;
-    final noResults = _searchQuery.isNotEmpty && matchedFolders.isEmpty && matchedSongs.isEmpty && !_isSearchLoading;
 
     final double headerHeight = FolderNavBarScaffold.getBarHeight(context);
 
@@ -503,36 +448,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     ),
                   ],
                   actionButtonsScrollable: false,
-                  isSearching: _isSearching,
-                  searchController: _searchController,
-                  searchQuery: _searchQuery,
-                  searchHintText: l10n.searchInFolderAndSubfolders,
-                  searchFocusNode: _searchFocusNode,
-                  searchAutofocus: false,
-                  onSearchQueryChanged: (val) {
-                    setState(() {
-                      _searchQuery = val.trim();
-                    });
-                    _performSearch(val.trim());
-                  },
-                  onToggleSearch: (val) {
-                    setState(() {
-                      _isSearching = val;
-                      if (!val) {
-                        _searchQuery = '';
-                        _matchedSongs = [];
-                        _isSearchLoading = false;
-                        _searchFocusNode.unfocus();
-                      }
-                    });
-                    if (val) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted && !_searchFocusNode.hasFocus) {
-                          _searchFocusNode.requestFocus();
-                        }
-                      });
-                    }
-                  },
+                  onSearch: _openSearchPage,
                   heroTag: 'folder-cover-${folder.path}',
                   isHeroModeEnabled: isCoverVisible &&
                       (settings.folderZoomScale - _initialZoomScale).abs() <=
@@ -566,19 +482,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
               ),
             ),
           ),
-        if (showSearchLoading)
-          FolderEmptySearchResultsSliver(
-            message: l10n.searching,
-            isSearching: true,
-          )
-        else if (noResults)
-          FolderEmptySearchResultsSliver(
-            message: l10n.noMatchingFoldersOrSongs,
-            isSearching: false,
-          )
-        else ...[
-          FolderSubfoldersSliver(
-            folders: matchedFolders,
+        FolderSubfoldersSliver(
+          folders: folder.subFolders,
             zoomScale: settings.folderZoomScale,
             section: _kFolderSection,
             scanner: scanner,
@@ -591,7 +496,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
               SelectionActionHelper.handleItemTap(
                 index: subfolderIndex,
                 itemKey: subfolder.path,
-                items: matchedFolders,
+                items: folder.subFolders,
                 keySelector: (f) => f.path,
                 isSelectionMode: widget.isSelectionMode,
                 selectedKeys: widget.selectedFolderPaths,
@@ -621,12 +526,12 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             onShowFolderBottomSheet: widget.onShowFolderBottomSheet,
             onShowFolderContextMenu: widget.onShowFolderContextMenu,
           ),
-          if (matchedFolders.isNotEmpty && matchedSongs.isNotEmpty)
+          if (folder.subFolders.isNotEmpty && folder.files.isNotEmpty)
             FolderSectionHeaderSliver(
-              title: l10n.songsCountFormat(matchedSongs.length),
+              title: l10n.songsCountFormat(folder.files.length),
             ),
           FolderSongsSliver(
-            songs: matchedSongs,
+            songs: folder.files,
             zoomScale: settings.folderZoomScale,
             section: _kSongSection,
             currentSongPath: currentMusic?.path,
@@ -639,7 +544,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
               SelectionActionHelper.handleItemTap(
                 index: fileIndex,
                 itemKey: file.path,
-                items: matchedSongs,
+                items: folder.files,
                 keySelector: (s) => s.path,
                 isSelectionMode: widget.isSelectionMode,
                 selectedKeys: widget.selectedSongPaths,
@@ -658,7 +563,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   unawaited(() async {
                     try {
                       await audio.playPlaylist(
-                        matchedSongs,
+                        folder.files,
                         initialIndex: fileIndex,
                         source: PlaybackSource(
                           type: PlaybackSourceType.folder,
@@ -684,7 +589,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
               );
             },
             onSongLongPress: (file) =>
-                _enterSongSelection(file, matchedSongs),
+                _enterSongSelection(file, folder.files),
             onSongSecondaryTapDown: (file, details) {
               final songsToAdd = (widget.selectedSongPaths.isNotEmpty ||
                       widget.selectedFolderPaths.isNotEmpty)
@@ -698,7 +603,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 mode: SongContextMenuMode.full,
                 onMultiSelect: widget.isSelectionMode
                     ? null
-                    : () => _enterSongSelection(file, matchedSongs),
+                    : () => _enterSongSelection(file, folder.files),
                 onAddToPlaylist: () => showAddSongsToPlaylistDialog(
                   context,
                   ref.read(playlistServiceProvider),
@@ -712,7 +617,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             },
             bottomPadding: 0,
           ),
-        ],
         SliverPadding(
           padding: EdgeInsets.only(bottom: folderListBottomPadding),
         ),
@@ -729,7 +633,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     final page = AutoHideHeaderScope(
       enabled: false,
-      forceVisible: widget.isSelectionMode || _searchQuery.isNotEmpty,
+      forceVisible: widget.isSelectionMode,
       builder: (context, isHeaderVisible) {
         final scaffold = Scaffold(
           body: Stack(
@@ -1025,32 +929,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     );
   }
 
-  Future<void> _handleSearchAction() async {
-    // 1. 如果不在最顶部，先完全滚回最顶端并等待动画结束与静止
-    if (_localScrollController.hasClients &&
-        _localScrollController.offset > 0) {
-      await _localScrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.easeOutCubic,
-      );
-      await WidgetsBinding.instance.endOfFrame;
-    }
-
-    if (!mounted) return;
-
-    // 2. 页面完全停止在最顶端后，再展开搜索框
-    if (!_isSearching) {
-      setState(() {
-        _isSearching = true;
-      });
-      await WidgetsBinding.instance.endOfFrame;
-    }
-
-    // 3. 展开后再获取焦点，避免滚动过程中提前介入
-    if (mounted && !_searchFocusNode.hasFocus) {
-      _searchFocusNode.requestFocus();
-    }
+  void _handleSearchAction() {
+    _openSearchPage();
   }
 
   Widget _buildBreadcrumbs(MusicFolder current, ScannerService scanner, {bool isOverlay = false}) {
@@ -1073,7 +953,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         onShufflePlay: () => _handleShufflePlay(current),
         onSearch: _handleSearchAction,
         totalSongsCount: current.allSongs.length,
-        isSearching: _isSearching,
       ),
     );
   }

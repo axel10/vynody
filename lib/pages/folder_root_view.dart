@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import 'package:vynody/player/audio/playback_source.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/folder_header_banner.dart';
+import 'folder_search_page.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/default_cover_art.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
@@ -31,13 +33,12 @@ import '../widgets/folder_scan_widgets.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 
-/// 同一页里三段网格各自的身份（与 `SliverAnimatedZoomGridDelegate.section` 对齐）。
+/// 同一页里两段网格各自的身份（与 `SliverAnimatedZoomGridDelegate.section` 对齐）。
 ///
-/// 根目录、云服务器、搜索结果歌曲三段都参与缩放。换档时上面两段的高度变化要一起
+/// 根目录与云服务器两段都参与缩放。换档时上面一段的高度变化要一起
 /// 算进下游的位移里，所以必须由同一个 `FolderZoomSliverBuilder` 统一结算，靠它区分。
 const Object _kRootFolderSection = 'folder-root.folders';
 const Object _kRemoteServerSection = 'folder-root.servers';
-const Object _kRootSongSection = 'folder-root.songs';
 
 class FolderRootView extends ConsumerStatefulWidget {
   const FolderRootView({
@@ -86,11 +87,6 @@ class FolderRootView extends ConsumerStatefulWidget {
 
 class _FolderRootViewState extends ConsumerState<FolderRootView> {
   late final ScrollController _localScrollController;
-  late final TextEditingController _searchController;
-  final FocusNode _searchFocusNode = FocusNode();
-  bool _isSearching = false;
-  bool _isSearchLoading = false;
-  String _searchQuery = '';
   final ValueNotifier<bool> _showFloatingActions = ValueNotifier<bool>(false);
   int? _lastRootAnchorIndex;
 
@@ -103,42 +99,25 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
   final ZoomReorderController _cloudServerReorderController =
       ZoomReorderController();
 
-  List<MusicFile> _matchedSongs = [];
-  List<MusicFolder> _matchedFolders = [];
-  Timer? _searchDebounce;
   final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
 
-  void _performSearch(String query) {
-    _searchDebounce?.cancel();
-    if (query.isEmpty) {
-      setState(() {
-        _matchedSongs = [];
-        _matchedFolders = [];
-        _isSearchLoading = false;
-      });
-      return;
-    }
-    setState(() {
-      _isSearchLoading = true;
-    });
-    _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
-      final songs = await ref.read(scannerServiceProvider).searchSongs(query);
-      final folders =
-          await ref.read(scannerServiceProvider).searchFolders(query);
-      if (mounted) {
-        setState(() {
-          _matchedSongs = songs;
-          _matchedFolders = folders;
-          _isSearchLoading = false;
-        });
-      }
-    });
+  void _openSearchPage() {
+    Navigator.of(context).push(
+      (Platform.isIOS || Platform.isMacOS)
+          ? CupertinoPageRoute<void>(
+              settings: const RouteSettings(name: 'folder_search'),
+              builder: (_) => const FolderSearchPage(),
+            )
+          : MaterialPageRoute<void>(
+              settings: const RouteSettings(name: 'folder_search'),
+              builder: (_) => const FolderSearchPage(),
+            ),
+    );
   }
 
   @override
   void initState() {
     super.initState();
-    _searchController = TextEditingController();
     final targetOffset = ref.read(scannerServiceProvider).getFolderScrollOffset('root');
     _localScrollController = ScrollController(initialScrollOffset: targetOffset);
     _scrollProgress.value = (targetOffset / 160.0).clamp(0.0, 1.0);
@@ -222,9 +201,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
 
   @override
   void dispose() {
-    _searchDebounce?.cancel();
-    _searchController.dispose();
-    _searchFocusNode.dispose();
     _localScrollController.removeListener(_onScroll);
     _localScrollController.dispose();
     _scrollProgress.dispose();
@@ -232,32 +208,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     _reorderController.dispose();
     _cloudServerReorderController.dispose();
     super.dispose();
-  }
-
-  void _handleShowMenu(
-    BuildContext menuContext,
-    Offset position,
-    MusicFile file,
-  ) {
-    final songsToAdd = <MusicFile>[file];
-    showSongContextMenu(
-      menuContext,
-      position,
-      song: file,
-      songs: songsToAdd,
-      mode: SongContextMenuMode.full,
-      onAddToPlaylist: () => showAddSongsToPlaylistDialog(
-        menuContext,
-        ref.read(playlistServiceProvider),
-        songsToAdd,
-      ),
-      onPlayNext: () => ref
-          .read(audioServiceProvider)
-          .enqueueNext(songsToAdd),
-      onAddToQueue: () => ref
-          .read(audioServiceProvider)
-          .appendToQueue(songsToAdd),
-    );
   }
 
   Future<void> _openRemoteServer(
@@ -328,7 +278,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     final hasPermission = ref.watch(
       scannerServiceProvider.select((scanner) => scanner.hasPermission),
     );
-    final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
     final isLargeScreen = MediaQuery.of(context).size.width >= 1000;
@@ -380,39 +329,9 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
       return null;
     }();
 
-    final matchedRootFolders = _searchQuery.isNotEmpty
-        ? _matchedFolders
-        : rootFolders;
-
-    final matchedRemoteServers = _searchQuery.isNotEmpty
-        ? remoteServers.where((server) {
-            final q = _searchQuery.toLowerCase();
-            return server.name.toLowerCase().contains(q) ||
-                server.url.toLowerCase().contains(q);
-          }).toList()
-        : remoteServers;
-
-    final matchedSongs = _searchQuery.isNotEmpty
-        ? _matchedSongs
-        : <MusicFile>[];
-
-    final showSearchLoading = _searchQuery.isNotEmpty &&
-        _isSearchLoading &&
-        matchedRootFolders.isEmpty &&
-        matchedSongs.isEmpty &&
-        matchedRemoteServers.isEmpty;
-    final noResults = _searchQuery.isNotEmpty &&
-        matchedRootFolders.isEmpty &&
-        matchedSongs.isEmpty &&
-        matchedRemoteServers.isEmpty &&
-        !_isSearchLoading;
-
     final double localFoldersBottomPadding =
-        (matchedRemoteServers.isNotEmpty || matchedSongs.isNotEmpty)
-            ? 16.0
-            : rootListBottomPadding;
-    final double remoteServersBottomPadding =
-        matchedSongs.isNotEmpty ? 16.0 : rootListBottomPadding;
+        remoteServers.isNotEmpty ? 16.0 : rootListBottomPadding;
+    final double remoteServersBottomPadding = rootListBottomPadding;
 
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final double headerHeight = FolderNavBarScaffold.getBarHeight(context);
@@ -501,161 +420,78 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               ),
             ],
             actionButtonsScrollable: true,
-            isSearching: _isSearching,
-            searchController: _searchController,
-            searchQuery: _searchQuery,
-            searchHintText: '${l10n.search}...',
-            searchFocusNode: _searchFocusNode,
-            searchAutofocus: false,
-            onSearchQueryChanged: (val) {
-              setState(() {
-                _searchQuery = val.trim();
-              });
-              _performSearch(val.trim());
-            },
-            onToggleSearch: (val) {
-              setState(() {
-                _isSearching = val;
-                if (!val) {
-                  _searchQuery = '';
-                  _matchedSongs = [];
-                  _matchedFolders = [];
-                  _isSearchLoading = false;
-                  _searchFocusNode.unfocus();
-                }
-              });
-              if (val) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted && !_searchFocusNode.hasFocus) {
-                    _searchFocusNode.requestFocus();
-                  }
-                });
-              }
-            },
+            onSearch: _openSearchPage,
             heroTag: 'folder-cover-root',
             isHeroModeEnabled: true,
           ),
         ),
-        if (showSearchLoading)
-          FolderEmptySearchResultsSliver(
-            message: l10n.searching,
-            isSearching: true,
-          )
-        else if (noResults)
-          FolderEmptySearchResultsSliver(
-            message: l10n.noMatchingFoldersOrSongs,
-            isSearching: false,
-          )
-        else ...[
-          FolderSubfoldersSliver(
-            folders: matchedRootFolders,
-            zoomScale: settings.folderZoomScale,
-            section: _kRootFolderSection,
-            scanner: scanner,
-            isRoot: true,
-            isSelectionMode: isRootSelectionMode,
-            selectedFolderPaths: widget.selectedRootPaths,
-            reorderController: _searchQuery.isEmpty ? _reorderController : null,
-            showSystemMedia: Platform.isAndroid && _searchQuery.isEmpty,
-            hasPermission: hasPermission,
-            systemMediaTitle: l10n.systemMediaLibrary,
-            systemMediaSubtitle: l10n.needPermissionToScan,
-            crossAxisExtent: crossAxisExtent,
-            onNavigateTo: widget.onNavigateTo,
-            onFolderTap: (folder, index) {
-              SelectionActionHelper.handleItemTap(
-                index: index,
-                itemKey: folder.path,
-                items: matchedRootFolders,
-                keySelector: (f) => f.path,
-                isSelectionMode: isRootSelectionMode,
-                selectedKeys: widget.selectedRootPaths,
-                lastAnchorIndex: _lastRootAnchorIndex,
-                onUpdateAnchor: (a) => setState(() => _lastRootAnchorIndex = a),
-                onSetSelection: (keys) {
-                  for (final k in keys) {
-                    if (!widget.selectedRootPaths.contains(k)) {
-                      widget.onToggleRootSelection(k);
-                    }
+        FolderSubfoldersSliver(
+          folders: rootFolders,
+          zoomScale: settings.folderZoomScale,
+          section: _kRootFolderSection,
+          scanner: scanner,
+          isRoot: true,
+          isSelectionMode: isRootSelectionMode,
+          selectedFolderPaths: widget.selectedRootPaths,
+          reorderController: _reorderController,
+          showSystemMedia: Platform.isAndroid,
+          hasPermission: hasPermission,
+          systemMediaTitle: l10n.systemMediaLibrary,
+          systemMediaSubtitle: l10n.needPermissionToScan,
+          crossAxisExtent: crossAxisExtent,
+          onNavigateTo: widget.onNavigateTo,
+          onFolderTap: (folder, index) {
+            SelectionActionHelper.handleItemTap(
+              index: index,
+              itemKey: folder.path,
+              items: rootFolders,
+              keySelector: (f) => f.path,
+              isSelectionMode: isRootSelectionMode,
+              selectedKeys: widget.selectedRootPaths,
+              lastAnchorIndex: _lastRootAnchorIndex,
+              onUpdateAnchor: (a) => setState(() => _lastRootAnchorIndex = a),
+              onSetSelection: (keys) {
+                for (final k in keys) {
+                  if (!widget.selectedRootPaths.contains(k)) {
+                    widget.onToggleRootSelection(k);
                   }
-                },
-                onToggleSelection: (key) => widget.onToggleRootSelection(key),
-                onEnterSelectionMode: () => widget.onToggleRootSelectionMode(),
-                onNormalTap: () => widget.onNavigateTo(folder),
-              );
-            },
-            onFolderLongPress: (folder, index) {
-              _lastRootAnchorIndex = index;
-              if (!isRootSelectionMode) {
-                widget.onToggleRootSelectionMode();
-              }
-              widget.onToggleRootSelection(folder.path);
-            },
-            onToggleFolderSelection: widget.onToggleRootSelection,
-            onToggleSelectionMode: widget.onToggleRootSelectionMode,
-            onShowFolderContextMenu: widget.onShowFolderContextMenu,
-            bottomPadding: localFoldersBottomPadding,
-          ),
-          if (matchedRemoteServers.isNotEmpty) ...[
-            RemoteServersSectionHeaderSliver(
-              title: l10n.tabCloudServers,
-              count: matchedRemoteServers.length,
-              onAddServer: () => AddEditRemoteServerDialog.show(context, ref: ref),
-            ),
-            RemoteServersSliver(
-              servers: matchedRemoteServers,
-              zoomScale: settings.folderZoomScale,
-              section: _kRemoteServerSection,
-              isSelectionMode: widget.isCloudServerSelectionMode,
-              selectedServerIds: widget.selectedServerIds,
-              onToggleServerSelection: widget.onToggleServerSelection,
-              onExitSelectionMode: widget.onExitCloudServerSelection,
-              reorderController:
-                  _searchQuery.isEmpty ? _cloudServerReorderController : null,
-              crossAxisExtent: crossAxisExtent,
-              onOpenServer: (server) => _openRemoteServer(context, server),
-              bottomPadding: remoteServersBottomPadding,
-            ),
-          ],
-          if (matchedRootFolders.isNotEmpty && matchedSongs.isNotEmpty)
-            FolderSectionHeaderSliver(
-              title: l10n.songsCountFormat(matchedSongs.length),
-            ),
-          FolderSongsSliver(
-            songs: matchedSongs,
-            zoomScale: settings.folderZoomScale,
-            section: _kRootSongSection,
-            currentSongPath: currentMusic?.path,
-            isPlaying: ref.watch(audioIsPlayingProvider),
-            bottomPadding: rootListBottomPadding,
-            crossAxisExtent: crossAxisExtent,
-            onSongTap: (file, fileIndex) async {
-              unawaited(() async {
-                try {
-                  await audio.playPlaylist(
-                    matchedSongs,
-                    initialIndex: fileIndex,
-                    source: PlaybackSource(
-                      type: PlaybackSourceType.folder,
-                      id: 'search_results',
-                      name: l10n.search,
-                    ),
-                  );
-                } catch (e, st) {
-                  debugPrint(
-                    'FolderRootView: failed to start matched song playback: $e',
-                  );
-                  debugPrintStack(stackTrace: st);
                 }
-              }());
-
-              if (settings.openPlaybackOnDirectorySongTap) {
-                await widget.onOpenPlayback?.call();
-              }
-            },
-            onSongSecondaryTapDown: (file, details) {
-              _handleShowMenu(context, details.globalPosition, file);
-            },
+              },
+              onToggleSelection: (key) => widget.onToggleRootSelection(key),
+              onEnterSelectionMode: () => widget.onToggleRootSelectionMode(),
+              onNormalTap: () => widget.onNavigateTo(folder),
+            );
+          },
+          onFolderLongPress: (folder, index) {
+            _lastRootAnchorIndex = index;
+            if (!isRootSelectionMode) {
+              widget.onToggleRootSelectionMode();
+            }
+            widget.onToggleRootSelection(folder.path);
+          },
+          onToggleFolderSelection: widget.onToggleRootSelection,
+          onToggleSelectionMode: widget.onToggleRootSelectionMode,
+          onShowFolderContextMenu: widget.onShowFolderContextMenu,
+          bottomPadding: localFoldersBottomPadding,
+        ),
+        if (remoteServers.isNotEmpty) ...[
+          RemoteServersSectionHeaderSliver(
+            title: l10n.tabCloudServers,
+            count: remoteServers.length,
+            onAddServer: () => AddEditRemoteServerDialog.show(context, ref: ref),
+          ),
+          RemoteServersSliver(
+            servers: remoteServers,
+            zoomScale: settings.folderZoomScale,
+            section: _kRemoteServerSection,
+            isSelectionMode: widget.isCloudServerSelectionMode,
+            selectedServerIds: widget.selectedServerIds,
+            onToggleServerSelection: widget.onToggleServerSelection,
+            onExitSelectionMode: widget.onExitCloudServerSelection,
+            reorderController: _cloudServerReorderController,
+            crossAxisExtent: crossAxisExtent,
+            onOpenServer: (server) => _openRemoteServer(context, server),
+            bottomPadding: remoteServersBottomPadding,
           ),
         ],
       ],
@@ -671,8 +507,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
 
     return AutoHideHeaderScope(
       enabled: false,
-      forceVisible:
-          isRootSelectionMode || _searchQuery.isNotEmpty,
+      forceVisible: isRootSelectionMode,
       builder: (context, isHeaderVisible) => Scaffold(
         body: Stack(
           children: [
@@ -784,22 +619,22 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     ? LibrarySelectionPanel(
                         key: const ValueKey('cloud-server-selection-panel'),
                         title:
-                            '${l10n.multiSelect}  ·  ${widget.selectedServerIds.length} / ${matchedRemoteServers.length}',
+                            '${l10n.multiSelect}  ·  ${widget.selectedServerIds.length} / ${remoteServers.length}',
                         onCancel: widget.onExitCloudServerSelection,
                         customActions: [
                           SelectionActionItem(
                             icon: (widget.selectedServerIds.length ==
-                                        matchedRemoteServers.length &&
-                                    matchedRemoteServers.isNotEmpty)
+                                        remoteServers.length &&
+                                    remoteServers.isNotEmpty)
                                 ? Icons.deselect_rounded
                                 : Icons.select_all_rounded,
                             label: (widget.selectedServerIds.length ==
-                                        matchedRemoteServers.length &&
-                                    matchedRemoteServers.isNotEmpty)
+                                        remoteServers.length &&
+                                    remoteServers.isNotEmpty)
                                 ? l10n.deselectAll
                                 : l10n.selectAll,
                             onPressed: () => widget.onSelectAllCloudServers(
-                              matchedRemoteServers.map((s) => s.id),
+                              remoteServers.map((s) => s.id),
                             ),
                           ),
                           SelectionActionItem(
@@ -982,32 +817,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     }
   }
 
-  Future<void> _handleSearchAction() async {
-    // 1. 如果不在最顶部，先完全滚回最顶端并等待动画结束与静止
-    if (_localScrollController.hasClients &&
-        _localScrollController.offset > 0) {
-      await _localScrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.easeOutCubic,
-      );
-      await WidgetsBinding.instance.endOfFrame;
-    }
-
-    if (!mounted) return;
-
-    // 2. 页面完全停止在最顶端后，再展开搜索框
-    if (!_isSearching) {
-      setState(() {
-        _isSearching = true;
-      });
-      await WidgetsBinding.instance.endOfFrame;
-    }
-
-    // 3. 展开后再获取焦点，避免滚动过程中提前介入
-    if (mounted && !_searchFocusNode.hasFocus) {
-      _searchFocusNode.requestFocus();
-    }
+  void _handleSearchAction() {
+    _openSearchPage();
   }
 
   Widget _buildRootTopHeader(
@@ -1032,7 +843,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         onShufflePlay: onShufflePlay,
         onSearch: _handleSearchAction,
         totalSongsCount: totalSongsCount,
-        isSearching: _isSearching,
       ),
     );
   }

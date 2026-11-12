@@ -5746,6 +5746,36 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get lyricsBlurEffectDescription =>
       '为歌词模式下的非聚焦行提供高斯模糊效果；关闭后可显著提升展开与滚动的帧率。';
+
+  @override
+  String get searchResultsCurrentFolder => '当前目录及子目录结果';
+
+  @override
+  String get searchResultsGlobal => '全局其他目录结果';
+
+  @override
+  String get searchResultsFolders => '匹配的文件夹';
+
+  @override
+  String get searchResultsSongs => '匹配的歌曲';
+
+  @override
+  String get remoteSearchCachedTitle => '已缓存内容结果';
+
+  @override
+  String get remoteSearchDeepAction => '在服务器深层递归搜索当前目录';
+
+  @override
+  String get remoteSearchDeepSearching => '正在深层检索远程目录...';
+
+  @override
+  String get remoteSearchDeepStop => '停止搜索';
+
+  @override
+  String get remoteSearchDeepCompleted => '递归搜索完成';
+
+  @override
+  String get searchFolderHint => '搜索当前目录或全局歌曲、文件夹...';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).

@@ -10658,6 +10658,66 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'为歌词模式下的非聚焦行提供高斯模糊效果；关闭后可显著提升展开与滚动的帧率。'**
   String get lyricsBlurEffectDescription;
+
+  /// No description provided for @searchResultsCurrentFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前目录及子目录结果'**
+  String get searchResultsCurrentFolder;
+
+  /// No description provided for @searchResultsGlobal.
+  ///
+  /// In zh, this message translates to:
+  /// **'全局其他目录结果'**
+  String get searchResultsGlobal;
+
+  /// No description provided for @searchResultsFolders.
+  ///
+  /// In zh, this message translates to:
+  /// **'匹配的文件夹'**
+  String get searchResultsFolders;
+
+  /// No description provided for @searchResultsSongs.
+  ///
+  /// In zh, this message translates to:
+  /// **'匹配的歌曲'**
+  String get searchResultsSongs;
+
+  /// No description provided for @remoteSearchCachedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'已缓存内容结果'**
+  String get remoteSearchCachedTitle;
+
+  /// No description provided for @remoteSearchDeepAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'在服务器深层递归搜索当前目录'**
+  String get remoteSearchDeepAction;
+
+  /// No description provided for @remoteSearchDeepSearching.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在深层检索远程目录...'**
+  String get remoteSearchDeepSearching;
+
+  /// No description provided for @remoteSearchDeepStop.
+  ///
+  /// In zh, this message translates to:
+  /// **'停止搜索'**
+  String get remoteSearchDeepStop;
+
+  /// No description provided for @remoteSearchDeepCompleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'递归搜索完成'**
+  String get remoteSearchDeepCompleted;
+
+  /// No description provided for @searchFolderHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索当前目录或全局歌曲、文件夹...'**
+  String get searchFolderHint;
 }
 
 class _AppLocalizationsDelegate

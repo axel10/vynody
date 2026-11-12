@@ -2606,5 +2606,15 @@
   "blurEffect": "Frosted glass & blur effects",
   "blurEffectDescription": "Use frosted glass blur on the dock, dialogs, and floating sheets. Disabling reduces GPU render overhead and improves scrolling smoothness.",
   "lyricsBlurEffect": "Lyrics blur effect",
-  "lyricsBlurEffectDescription": "Apply Gaussian blur to unfocused lines in lyrics mode. Disabling this improves expansion and scroll frame rate."
+  "lyricsBlurEffectDescription": "Apply Gaussian blur to unfocused lines in lyrics mode. Disabling this improves expansion and scroll frame rate.",
+  "searchResultsCurrentFolder": "Current Folder & Subfolders",
+  "searchResultsGlobal": "Global Results",
+  "searchResultsFolders": "Matching Folders",
+  "searchResultsSongs": "Matching Songs",
+  "remoteSearchCachedTitle": "Cached Items",
+  "remoteSearchDeepAction": "Deep search on remote server",
+  "remoteSearchDeepSearching": "Deep searching remote directory...",
+  "remoteSearchDeepStop": "Stop search",
+  "remoteSearchDeepCompleted": "Deep search completed",
+  "searchFolderHint": "Search songs or folders..."
 }
