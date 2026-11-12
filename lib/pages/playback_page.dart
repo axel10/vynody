@@ -341,6 +341,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted &&
+          ref.read(isPlaybackDrawerOpenProvider) &&
           ref
               .read(settingsServiceProvider)
               .defaultToLyricsModeOnPlaybackOpen) {
@@ -1066,7 +1067,22 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       if (next && _dragOffsetNotifier.value != 0.0) {
         _resetDismissDragOffset();
       }
+      if (next && previous != true) {
+        if (ref.read(settingsServiceProvider).defaultToLyricsModeOnPlaybackOpen) {
+          audio.setLyricsActive(true);
+        }
+      } else if (!next && previous == true) {
+        audio.setLyricsActive(false);
+      }
     });
+    ref.listen<bool>(
+      settingsServiceProvider.select((s) => s.defaultToLyricsModeOnPlaybackOpen),
+      (previous, next) {
+        if (next && ref.read(isPlaybackDrawerOpenProvider)) {
+          audio.setLyricsActive(true);
+        }
+      },
+    );
     ref.listen<MusicFile?>(audioCurrentMusicProvider, (previous, next) {
       if (!mounted) return;
       if (isSmallWin) {
