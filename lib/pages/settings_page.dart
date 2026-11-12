@@ -17,6 +17,7 @@ import 'settings/sections/audio_section.dart';
 import 'settings/sections/general_section.dart';
 import 'settings/sections/lastfm_section.dart';
 import 'settings/sections/lyrics_section.dart';
+import 'settings/sections/proxy_section.dart';
 import 'settings/sections/scanning_section.dart';
 import 'settings/sections/shortcuts_section.dart';
 import 'settings/sections/storage_section.dart';
@@ -754,6 +755,7 @@ Widget buildSettingsSectionContent(
     SettingsSection.home => const SizedBox.shrink(),
     SettingsSection.general => GeneralSection(settings: settings),
     SettingsSection.audio => AudioSection(settings: settings),
+    SettingsSection.proxy => ProxySection(settings: settings),
     SettingsSection.scanning => ScanningSection(settings: settings),
     SettingsSection.tags => TagsSection(settings: settings),
     SettingsSection.transcode => TranscodeSection(settings: settings),

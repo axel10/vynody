@@ -13,6 +13,7 @@ enum SettingsSection {
   home,
   general,
   audio,
+  proxy,
   scanning,
   tags,
   transcode,
@@ -30,6 +31,7 @@ enum SettingsSection {
       SettingsSection.home => l10n.settings,
       SettingsSection.general => l10n.generalSectionTitle,
       SettingsSection.audio => l10n.audioSettings,
+      SettingsSection.proxy => l10n.proxySettingsTitle,
       SettingsSection.scanning => l10n.scanSectionTitle,
       SettingsSection.tags => l10n.tags,
       SettingsSection.transcode => l10n.transcodeSectionTitle,
@@ -48,6 +50,7 @@ enum SettingsSection {
       SettingsSection.home => Icons.settings,
       SettingsSection.general => Icons.tune_rounded,
       SettingsSection.audio => Icons.graphic_eq_rounded,
+      SettingsSection.proxy => Icons.vpn_lock_rounded,
       SettingsSection.scanning => Icons.search_rounded,
       SettingsSection.tags => Icons.label_outline_rounded,
       SettingsSection.transcode => Icons.swap_horiz_rounded,
@@ -68,7 +71,9 @@ enum SettingsSection {
   SettingsSectionGroup? get group {
     return switch (this) {
       SettingsSection.home => null,
-      SettingsSection.general || SettingsSection.audio =>
+      SettingsSection.general ||
+      SettingsSection.audio ||
+      SettingsSection.proxy =>
         SettingsSectionGroup.core,
       SettingsSection.scanning ||
       SettingsSection.tags ||
@@ -87,6 +92,9 @@ enum SettingsSection {
   bool get isAvailable {
     if (this == SettingsSection.home) return false;
     if (this == SettingsSection.windows) return Platform.isWindows;
+    if (this == SettingsSection.proxy) {
+      return Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    }
     return true;
   }
 

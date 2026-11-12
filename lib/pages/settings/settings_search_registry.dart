@@ -155,13 +155,6 @@ final List<SettingSearchItem> settingsSearchRegistry = [
       title: (l10n) => l10n.closeWindowActionTitle,
       description: (l10n) => l10n.closeWindowActionDescription,
     ),
-    SettingSearchItem(
-      id: 'general.proxy',
-      section: SettingsSection.general,
-      icon: Icons.vpn_lock_rounded,
-      title: (l10n) => l10n.proxySettingsTitle,
-      description: (l10n) => l10n.proxySettingsDescription,
-    ),
   ],
   SettingSearchItem(
     id: 'general.reset_onboarding',
@@ -222,6 +215,17 @@ final List<SettingSearchItem> settingsSearchRegistry = [
     title: (l10n) => l10n.enableFadeEffect,
     description: (l10n) => l10n.enableFadeEffectDescription,
   ),
+
+  // --- 网络代理设置 (Proxy) ---
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ...[
+    SettingSearchItem(
+      id: 'proxy.mode',
+      section: SettingsSection.proxy,
+      icon: Icons.vpn_lock_rounded,
+      title: (l10n) => l10n.proxySettingsTitle,
+      description: (l10n) => l10n.proxySettingsDescription,
+    ),
+  ],
 
   // --- 扫描设置 (Scanning) ---
   SettingSearchItem(

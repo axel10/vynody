@@ -11,6 +11,7 @@ import 'package:vynody/pages/settings/sections/about_section.dart';
 import 'package:vynody/pages/settings/sections/acoustid_section.dart';
 import 'package:vynody/pages/settings/sections/audio_section.dart';
 import 'package:vynody/pages/settings/sections/general_section.dart';
+import 'package:vynody/pages/settings/sections/proxy_section.dart';
 import 'package:vynody/pages/settings/sections/shortcuts_section.dart';
 import 'package:vynody/pages/settings/sections/tags_section.dart';
 import 'package:vynody/pages/settings/sections/transcode_section.dart';
@@ -29,10 +30,11 @@ void main() {
   });
 
   test('SettingsSection enum provides correct metadata', () {
-    // 12 个真实分组 + home 伪条目（首页本身不是一个设置页）。
-    expect(SettingsSection.values.length, 13);
+    // 13 个真实分组 + home 伪条目（首页本身不是一个设置页）。
+    expect(SettingsSection.values.length, 14);
     expect(SettingsSection.visibleSections.contains(SettingsSection.general), isTrue);
     expect(SettingsSection.visibleSections.contains(SettingsSection.audio), isTrue);
+    expect(SettingsSection.visibleSections.contains(SettingsSection.proxy), isTrue);
     expect(SettingsSection.visibleSections.contains(SettingsSection.lyrics), isTrue);
     expect(SettingsSection.visibleSections.contains(SettingsSection.about), isTrue);
   });
@@ -333,5 +335,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(settings.rewindToStartOnPrevious, isFalse);
+  });
+
+  testWidgets('ProxySection renders correctly', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+    final settings = SettingsService(prefs);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settings),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
+          home: Scaffold(
+            body: ProxySection(settings: settings),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+    expect(find.text(l10n.proxySettingsTitle), findsWidgets);
+    expect(find.text(l10n.proxyMode), findsOneWidget);
   });
 }
