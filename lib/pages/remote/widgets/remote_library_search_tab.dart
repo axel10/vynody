@@ -261,181 +261,194 @@ class RemoteLibrarySearchView extends ConsumerWidget {
     );
   }
 
-  /// 专辑段保持独立的横向懒加载列表，作为外层 builder 的单个定高 item 挂入。
-  Widget _albumStrip(
+  /// 专辑段改为竖向封面网格，网格数学与远程流派详情页同一套：
+  /// 列数按 168 一列自适应，行高按封面 + 标题/艺人两行文本预留。
+  /// 多选、右键菜单、长按多选行为原样保留，只从横向列表换成网格。
+  Widget _albumGridSliver(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
     ThemeData theme,
+    double contentWidth,
   ) {
-    const double coverSize = 100.0;
-    const double cardPadding = 5.0;
-    const double cardWidth = coverSize + cardPadding * 2;
-    const double cardHeight = 152.0;
+    final columns = (contentWidth / 168).floor().clamp(2, 6);
+    const spacing = 14.0;
+    final cellWidth = (contentWidth - spacing * (columns - 1)) / columns;
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final cellHeight = cellWidth + 54 * textScale;
 
-    return SizedBox(
-      height: cardHeight,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: searchedAlbums.length,
-        itemBuilder: (context, index) {
-          final album = searchedAlbums[index];
-          final albumId = album['id'] as String? ?? '';
-          final title = album['name'] as String? ??
-              album['title'] as String? ??
-              l10n.unknownAlbum;
-          final artist = album['artist'] as String? ?? l10n.unknownArtist;
-          final coverId = album['coverArt'] as String?;
-          final isSelected = selectedAlbumIds.contains(albumId);
+    return SliverGrid(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        crossAxisSpacing: spacing,
+        mainAxisSpacing: 18,
+        mainAxisExtent: cellHeight,
+      ),
+      delegate: SliverChildBuilderDelegate(
+        (context, index) => _albumCard(
+          context,
+          ref,
+          l10n,
+          theme,
+          searchedAlbums[index],
+          cellWidth,
+        ),
+        childCount: searchedAlbums.length,
+      ),
+    );
+  }
 
-          return Container(
-            width: cardWidth,
-            margin: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onSecondaryTapDown: (details) {
-                if (!isAlbumSelectionMode) {
-                  showRemoteAlbumContextMenu(
-                    context: context,
-                    globalPosition: details.globalPosition,
-                    ref: ref,
-                    server: server,
-                    password: password,
-                    albumId: albumId,
-                    albumTitle: title,
-                    artistName: artist,
-                    coverArtId: coverId,
-                    onViewDetails: () {
-                      RemoteLibraryNavUtils.openAlbum(
-                        context,
-                        server: server,
-                        password: password,
-                        albumId: albumId,
-                        albumName: title,
-                        artistName: artist,
-                        coverArtId: coverId,
-                      );
-                    },
-                  );
-                }
-              },
-              onLongPressStart: (details) {
-                onToggleAlbumSelection(albumId);
-              },
-              child: Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(10),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () {
-                    if (isAlbumSelectionMode) {
-                      onToggleAlbumSelection(albumId);
-                    } else {
-                      RemoteLibraryNavUtils.openAlbum(
-                        context,
-                        server: server,
-                        password: password,
-                        albumId: albumId,
-                        albumName: title,
-                        artistName: artist,
-                        coverArtId: coverId,
-                      );
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(cardPadding),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: isAlbumSelectionMode && isSelected
-                                      ? theme.colorScheme.primary
-                                      : Colors.transparent,
-                                  width: isAlbumSelectionMode && isSelected ? 2 : 0,
-                                ),
-                              ),
-                              child: RemoteArtworkWidget(
-                                server: server,
-                                password: password,
-                                coverArtId: coverId,
-                                size: coverSize,
-                                width: coverSize,
-                                height: coverSize,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                            ),
-                            if (isAlbumSelectionMode)
-                              Positioned.fill(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(6),
-                                    color: isSelected
-                                        ? theme.colorScheme.primaryContainer
-                                            .withValues(alpha: 0.3)
-                                        : Colors.black26,
-                                  ),
-                                ),
-                              ),
-                            if (isAlbumSelectionMode)
-                              Positioned(
-                                top: 4,
-                                left: 4,
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: Checkbox(
-                                    value: isSelected,
-                                    onChanged: (_) =>
-                                        onToggleAlbumSelection(albumId),
-                                    fillColor:
-                                        WidgetStateProperty.all(Colors.white),
-                                    checkColor: Colors.black,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(3),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: isAlbumSelectionMode && isSelected
-                                ? FontWeight.bold
-                                : FontWeight.w600,
-                            color: isAlbumSelectionMode && isSelected
-                                ? theme.colorScheme.primary
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          artist,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+  Widget _albumCard(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    ThemeData theme,
+    Map<String, dynamic> album,
+    double coverSize,
+  ) {
+    final albumId = album['id'] as String? ?? '';
+    final title = album['name'] as String? ??
+        album['title'] as String? ??
+        l10n.unknownAlbum;
+    final artist = album['artist'] as String? ?? l10n.unknownArtist;
+    final coverId = album['coverArt'] as String?;
+    final isSelected = selectedAlbumIds.contains(albumId);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onSecondaryTapDown: (details) {
+        if (!isAlbumSelectionMode) {
+          showRemoteAlbumContextMenu(
+            context: context,
+            globalPosition: details.globalPosition,
+            ref: ref,
+            server: server,
+            password: password,
+            albumId: albumId,
+            albumTitle: title,
+            artistName: artist,
+            coverArtId: coverId,
+            onViewDetails: () {
+              RemoteLibraryNavUtils.openAlbum(
+                context,
+                server: server,
+                password: password,
+                albumId: albumId,
+                albumName: title,
+                artistName: artist,
+                coverArtId: coverId,
+              );
+            },
+          );
+        }
+      },
+      onLongPressStart: (details) {
+        onToggleAlbumSelection(albumId);
+      },
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () {
+            if (isAlbumSelectionMode) {
+              onToggleAlbumSelection(albumId);
+            } else {
+              RemoteLibraryNavUtils.openAlbum(
+                context,
+                server: server,
+                password: password,
+                albumId: albumId,
+                albumName: title,
+                artistName: artist,
+                coverArtId: coverId,
+              );
+            }
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isAlbumSelectionMode && isSelected
+                            ? theme.colorScheme.primary
+                            : Colors.transparent,
+                        width: isAlbumSelectionMode && isSelected ? 2 : 0,
+                      ),
+                    ),
+                    child: RemoteArtworkWidget(
+                      server: server,
+                      password: password,
+                      coverArtId: coverId,
+                      size: coverSize,
+                      width: coverSize,
+                      height: coverSize,
+                      borderRadius: BorderRadius.circular(6),
                     ),
                   ),
+                  if (isAlbumSelectionMode)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          color: isSelected
+                              ? theme.colorScheme.primaryContainer
+                                  .withValues(alpha: 0.3)
+                              : Colors.black26,
+                        ),
+                      ),
+                    ),
+                  if (isAlbumSelectionMode)
+                    Positioned(
+                      top: 4,
+                      left: 4,
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Checkbox(
+                          value: isSelected,
+                          onChanged: (_) => onToggleAlbumSelection(albumId),
+                          fillColor: WidgetStateProperty.all(Colors.white),
+                          checkColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: isAlbumSelectionMode && isSelected
+                      ? FontWeight.bold
+                      : FontWeight.w600,
+                  color: isAlbumSelectionMode && isSelected
+                      ? theme.colorScheme.primary
+                      : null,
                 ),
               ),
-            ),
-          );
-        },
+              const SizedBox(height: 1),
+              Text(
+                artist,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -546,15 +559,10 @@ class RemoteLibrarySearchView extends ConsumerWidget {
         searchedAlbums.isEmpty &&
         searchedArtists.isEmpty;
 
-    // 三段按固定 section 映射到同一个 ListView.builder：
-    // artists = [header, ...N 行, spacer]，albums = [header, 横向条, spacer]，
-    // songs = [header, ...M 行]。旧实现用 `ListView(children: [...])` 全量
-    // 展开，几百条结果会一次性建出所有 RemoteArtworkWidget 并同时发封面请求。
-    final artistLen =
-        searchedArtists.isEmpty ? 0 : searchedArtists.length + 2;
-    final albumLen = searchedAlbums.isEmpty ? 0 : 3;
-    final songLen = searchedSongs.isEmpty ? 0 : searchedSongs.length + 1;
-    final itemCount = artistLen + albumLen + songLen;
+    // 各段拆成独立 sliver 挂进 CustomScrollView：专辑段改为竖向封面网格
+    // （SliverGrid 保持懒加载），其余段落仍是按需构建的行列表。
+    // 水平 16 内边距由外层 Padding 统一扣，列数按可用宽度自适应。
+    final hasResults = !isEmpty;
 
     return RemoteContentConstraint(
       padding: EdgeInsets.zero,
@@ -562,7 +570,7 @@ class RemoteLibrarySearchView extends ConsumerWidget {
         children: [
           if (toolbar != null) RemotePageHeaderSlot(child: toolbar!),
           Expanded(
-            child: isEmpty
+            child: !hasResults
                 ? Center(
                     child: isSearching
                         ? const CircularProgressIndicator()
@@ -574,40 +582,77 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                                 color: theme.colorScheme.onSurfaceVariant),
                           ),
                   )
-                : ListView.builder(
-                    padding: EdgeInsets.fromLTRB(16, 4, 16, bottomOffset),
-                    itemCount: itemCount,
-                    itemBuilder: (context, index) {
-                      if (index < artistLen) {
-                        if (index == 0) {
-                          return _sectionHeader(
-                              '${l10n.artists} (${searchedArtists.length})');
-                        }
-                        if (index == artistLen - 1) {
-                          return const SizedBox(height: 12);
-                        }
-                        return _artistRow(context, ref, l10n, theme,
-                            searchedArtists[index - 1]);
-                      }
-                      var local = index - artistLen;
-                      if (local < albumLen) {
-                        if (local == 0) {
-                          return _sectionHeader(
-                              '${l10n.albums} (${searchedAlbums.length})');
-                        }
-                        if (local == albumLen - 1) {
-                          return const SizedBox(height: 12);
-                        }
-                        return _albumStrip(context, ref, l10n, theme);
-                      }
-                      local -= albumLen;
-                      if (local == 0) {
-                        return _sectionHeader(
-                            '${l10n.songs} (${searchedSongs.length})');
-                      }
-                      final songIndex = local - 1;
-                      return _songRow(context, ref, l10n, theme,
-                          searchedSongs[songIndex], songIndex);
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final contentWidth = constraints.maxWidth - 32;
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: CustomScrollView(
+                          slivers: [
+                            const SliverPadding(
+                              padding: EdgeInsets.only(top: 4),
+                            ),
+                            if (searchedArtists.isNotEmpty) ...[
+                              SliverToBoxAdapter(
+                                child: _sectionHeader(
+                                    '${l10n.artists} (${searchedArtists.length})'),
+                              ),
+                              SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) => _artistRow(
+                                      context,
+                                      ref,
+                                      l10n,
+                                      theme,
+                                      searchedArtists[index]),
+                                  childCount: searchedArtists.length,
+                                ),
+                              ),
+                              const SliverToBoxAdapter(
+                                child: SizedBox(height: 12),
+                              ),
+                            ],
+                            if (searchedAlbums.isNotEmpty) ...[
+                              SliverToBoxAdapter(
+                                child: _sectionHeader(
+                                    '${l10n.albums} (${searchedAlbums.length})'),
+                              ),
+                              _albumGridSliver(
+                                context,
+                                ref,
+                                l10n,
+                                theme,
+                                contentWidth,
+                              ),
+                              const SliverToBoxAdapter(
+                                child: SizedBox(height: 12),
+                              ),
+                            ],
+                            if (searchedSongs.isNotEmpty) ...[
+                              SliverToBoxAdapter(
+                                child: _sectionHeader(
+                                    '${l10n.songs} (${searchedSongs.length})'),
+                              ),
+                              SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) => _songRow(
+                                      context,
+                                      ref,
+                                      l10n,
+                                      theme,
+                                      searchedSongs[index],
+                                      index),
+                                  childCount: searchedSongs.length,
+                                ),
+                              ),
+                            ],
+                            SliverPadding(
+                              padding: EdgeInsets.only(bottom: bottomOffset),
+                            ),
+                          ],
+                        ),
+                      );
                     },
                   ),
           ),

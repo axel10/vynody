@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -150,15 +151,14 @@ class _LibrarySearchPageState extends ConsumerState<LibrarySearchPage> {
             _query,
           ).take(_entityLimit).toList(growable: false);
 
-    // 四段共用同一个懒加载列表：命中歌曲可能上千条，一次性建出所有行
-    // 会同时发起大量封面解析。顺序与远程搜索页一致，歌曲放最后一段，
-    // 前面的段落各自带一条尾部间距。
-    final artistLen = artists.isEmpty ? 0 : artists.length + 2;
-    final playlistLen = playlists.isEmpty ? 0 : playlists.length + 2;
-    final albumLen = albums.isEmpty ? 0 : 3;
-    final songLen = _songs.isEmpty ? 0 : _songs.length + 1;
-    final itemCount = artistLen + playlistLen + albumLen + songLen;
-    final hasResults = itemCount > 0;
+    // 各段拆成独立 sliver 挂进 CustomScrollView：专辑段改为竖向封面网格
+    // （SliverGrid 保持懒加载），其余段落仍是按需构建的行列表。顺序与远程
+    // 搜索页一致，歌曲放最后一段。
+    final hasResults =
+        artists.isNotEmpty || playlists.isNotEmpty || albums.isNotEmpty || _songs.isNotEmpty;
+    final contentWidth =
+        math.min(size.width - leftPadding, kSingleColumnContentMaxWidth) -
+        horizontalPadding * 2;
 
     return Scaffold(
       body: Padding(
@@ -209,66 +209,89 @@ class _LibrarySearchPageState extends ConsumerState<LibrarySearchPage> {
                             ),
                           ),
                         )
-                      : ListView.builder(
-                          padding: EdgeInsets.fromLTRB(
-                            horizontalPadding,
-                            4,
-                            horizontalPadding,
-                            bottomInset,
+                      : Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: horizontalPadding,
                           ),
-                          itemCount: itemCount,
-                          itemBuilder: (context, index) {
-                            if (index < artistLen) {
-                              if (index == 0) {
-                                return _sectionHeader(
-                                  '${l10n.artists} (${artists.length})',
-                                );
-                              }
-                              if (index == artistLen - 1) {
-                                return const SizedBox(height: 12);
-                              }
-                              return _artistRow(context, artists[index - 1]);
-                            }
-                            var local = index - artistLen;
-                            if (local < playlistLen) {
-                              if (local == 0) {
-                                return _sectionHeader(
-                                  '${l10n.playlists} (${playlists.length})',
-                                );
-                              }
-                              if (local == playlistLen - 1) {
-                                return const SizedBox(height: 12);
-                              }
-                              return _playlistRow(
-                                context,
-                                playlists[local - 1],
-                              );
-                            }
-                            local -= playlistLen;
-                            if (local < albumLen) {
-                              if (local == 0) {
-                                return _sectionHeader(
-                                  '${l10n.albums} (${albums.length})',
-                                );
-                              }
-                              if (local == albumLen - 1) {
-                                return const SizedBox(height: 12);
-                              }
-                              return _albumStrip(context, theme, albums);
-                            }
-                            local -= albumLen;
-                            if (local == 0) {
-                              return _sectionHeader(
-                                '${l10n.songs} (${_songs.length})',
-                              );
-                            }
-                            return _songRow(
-                              context,
-                              ref,
-                              _songs[local - 1],
-                              local - 1,
-                            );
-                          },
+                          child: CustomScrollView(
+                            slivers: [
+                              const SliverPadding(
+                                padding: EdgeInsets.only(top: 4),
+                              ),
+                              if (artists.isNotEmpty) ...[
+                                SliverToBoxAdapter(
+                                  child: _sectionHeader(
+                                    '${l10n.artists} (${artists.length})',
+                                  ),
+                                ),
+                                SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) =>
+                                        _artistRow(context, artists[index]),
+                                    childCount: artists.length,
+                                  ),
+                                ),
+                                const SliverToBoxAdapter(
+                                  child: SizedBox(height: 12),
+                                ),
+                              ],
+                              if (playlists.isNotEmpty) ...[
+                                SliverToBoxAdapter(
+                                  child: _sectionHeader(
+                                    '${l10n.playlists} (${playlists.length})',
+                                  ),
+                                ),
+                                SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) =>
+                                        _playlistRow(context, playlists[index]),
+                                    childCount: playlists.length,
+                                  ),
+                                ),
+                                const SliverToBoxAdapter(
+                                  child: SizedBox(height: 12),
+                                ),
+                              ],
+                              if (albums.isNotEmpty) ...[
+                                SliverToBoxAdapter(
+                                  child: _sectionHeader(
+                                    '${l10n.albums} (${albums.length})',
+                                  ),
+                                ),
+                                _albumGridSliver(
+                                  context,
+                                  theme,
+                                  albums,
+                                  contentWidth,
+                                ),
+                                const SliverToBoxAdapter(
+                                  child: SizedBox(height: 12),
+                                ),
+                              ],
+                              if (_songs.isNotEmpty) ...[
+                                SliverToBoxAdapter(
+                                  child: _sectionHeader(
+                                    '${l10n.songs} (${_songs.length})',
+                                  ),
+                                ),
+                                SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) => _songRow(
+                                      context,
+                                      ref,
+                                      _songs[index],
+                                      index,
+                                    ),
+                                    childCount: _songs.length,
+                                  ),
+                                ),
+                              ],
+                              SliverPadding(
+                                padding:
+                                    EdgeInsets.only(bottom: bottomInset),
+                              ),
+                            ],
+                          ),
                         ),
                 ),
               ],
@@ -392,59 +415,65 @@ class _LibrarySearchPageState extends ConsumerState<LibrarySearchPage> {
     );
   }
 
-  Widget _albumStrip(
+  /// 专辑段改为竖向封面网格，网格数学与远程流派详情页同一套：
+  /// 列数按 168 一列自适应，行高按封面 + 标题/艺人两行文本预留。
+  Widget _albumGridSliver(
     BuildContext context,
     ThemeData theme,
     List<AlbumSummary> albums,
+    double contentWidth,
   ) {
-    const coverSize = 100.0;
-    const cardWidth = coverSize + 10.0;
+    final columns = (contentWidth / 168).floor().clamp(2, 6);
+    const spacing = 14.0;
+    final cellWidth = (contentWidth - spacing * (columns - 1)) / columns;
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final cellHeight = cellWidth + 54 * textScale;
 
-    return SizedBox(
-      height: 152,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: albums.length,
-        itemBuilder: (context, index) {
+    return SliverGrid(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        crossAxisSpacing: spacing,
+        mainAxisSpacing: 18,
+        mainAxisExtent: cellHeight,
+      ),
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
           final album = albums[index];
-          return Container(
-            width: cardWidth,
-            margin: const EdgeInsets.only(right: 8),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: () => _openAlbumDetail(album),
-              child: Padding(
-                padding: const EdgeInsets.all(5),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AlbumCover(album: album, size: coverSize),
-                    const SizedBox(height: 6),
-                    Text(
-                      album.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      album.artist,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+          return InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => _openAlbumDetail(album),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AlbumCover(
+                  album: album,
+                  size: cellWidth,
+                  borderRadius: const BorderRadius.all(Radius.circular(10)),
                 ),
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  album.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  album.artist,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           );
         },
+        childCount: albums.length,
       ),
     );
   }
