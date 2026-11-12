@@ -285,7 +285,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       return count;
     }
     final normalized = _normalizePath(folder.path);
-    return _folderSongCounts[normalized] ?? 0;
+    final resolvedNormalized = _normalizePath(
+      ScannerPathUtils.resolveIosSandboxPath(folder.path),
+    );
+    return _folderSongCounts[normalized] ??
+        _folderSongCounts[resolvedNormalized] ??
+        0;
   }
 
   int getSongDurationForFolder(MusicFolder folder) {
@@ -297,7 +302,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       return duration;
     }
     final normalized = _normalizePath(folder.path);
-    return _folderSongDurations[normalized] ?? 0;
+    final resolvedNormalized = _normalizePath(
+      ScannerPathUtils.resolveIosSandboxPath(folder.path),
+    );
+    return _folderSongDurations[normalized] ??
+        _folderSongDurations[resolvedNormalized] ??
+        0;
   }
 
   void _updateFolderRepSongCache(MusicFolder folder, String songPath, SongMetadata updated) {
@@ -739,15 +749,19 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       final normalized = _normalizePath(
         ScannerPathUtils.resolveIosSandboxPath(path),
       );
-      final stat = statsByPath[normalized];
+      final rawNormalized = _normalizePath(path);
+      final stat = statsByPath[normalized] ?? statsByPath[rawNormalized];
       if (stat != null) {
         _folderSongCounts[normalized] = stat.songCount;
+        _folderSongCounts[rawNormalized] = stat.songCount;
         _folderSongDurations[normalized] = stat.totalDurationMs;
+        _folderSongDurations[rawNormalized] = stat.totalDurationMs;
       } else {
         // 表里没有（该目录还没落盘过，或上次扫描中断）：退回一次聚合，
         // 宁可慢这一次也不要让搜索结果露出 0 首。
-        _folderSongCounts[normalized] =
-            await _repository.getSongCountUnderPath(path);
+        final count = await _repository.getSongCountUnderPath(path);
+        _folderSongCounts[normalized] = count;
+        _folderSongCounts[rawNormalized] = count;
       }
 
       final sortSettings = _resolveSortSettingsForFolder(path);
@@ -759,6 +773,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
       if (repSongMeta != null) {
         _folderRepresentativeSongs[normalized] = repSongMeta;
+        _folderRepresentativeSongs[rawNormalized] = repSongMeta;
       }
 
       results.add(MusicFolder(path: path, name: p.basename(path)));

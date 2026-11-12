@@ -13,7 +13,9 @@ import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/pages/folder_search_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
+import 'package:vynody/widgets/folder_zoom_item.dart';
 import 'package:vynody/widgets/library_large_title.dart';
+import 'package:vynody/widgets/library_search_field.dart';
 
 import 'package:vynody/player/settings/settings_service.dart';
 
@@ -35,10 +37,12 @@ class _StubScannerService extends ScannerService {
   _StubScannerService({
     required this.mockSongs,
     required this.mockFolders,
+    this.mockSongCounts = const {},
   }) : super(autoInitialize: false);
 
   final List<MusicFile> mockSongs;
   final List<MusicFolder> mockFolders;
+  final Map<String, int> mockSongCounts;
 
   @override
   Future<List<MusicFile>> searchSongs(
@@ -54,6 +58,14 @@ class _StubScannerService extends ScannerService {
   @override
   Future<List<MusicFolder>> searchFolders(String query) async {
     return mockFolders;
+  }
+
+  @override
+  int getSongCountForFolder(MusicFolder folder) {
+    if (mockSongCounts.containsKey(folder.path)) {
+      return mockSongCounts[folder.path]!;
+    }
+    return super.getSongCountForFolder(folder);
   }
 }
 
@@ -162,6 +174,68 @@ void main() {
     expect(find.text('Song A'), findsOneWidget);
     expect(find.textContaining('全局其他目录结果'), findsOneWidget);
     expect(find.text('Song B'), findsOneWidget);
+  });
+
+  testWidgets(
+      'FolderSearchPage displays section header between folders and songs, and displays non-zero song count for folders',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final currentFolder = MusicFolder(
+      path: '/root/music',
+      name: 'music',
+    );
+    final subFolder = MusicFolder(
+      path: '/root/music/RockFolder',
+      name: 'RockFolder',
+      // files is intentionally empty to simulate search result model
+    );
+    final song = MusicFile(
+      path: '/root/music/rock_song.mp3',
+      name: 'rock_song.mp3',
+      title: 'Rock Song',
+      artist: 'Rock Band',
+    );
+
+    final stubScanner = _StubScannerService(
+      mockSongs: [song],
+      mockFolders: [subFolder],
+      mockSongCounts: {
+        '/root/music/RockFolder': 18,
+      },
+    );
+
+    await tester.pumpWidget(createSubject(
+      scanner: stubScanner,
+      currentFolder: currentFolder,
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'rock');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // 验证当前目录标题
+    expect(find.textContaining('当前目录及子目录结果'), findsOneWidget);
+    // 验证文件夹渲染
+    expect(find.text('RockFolder'), findsOneWidget);
+    // 验证文件夹歌曲数量不是 0，而是从 scanner.getSongCountForFolder 获得的 18
+    expect(find.text('18 首歌曲'), findsOneWidget);
+    // 验证在文件夹和歌曲之间展示了分节标题
+    expect(find.text('匹配的歌曲 (1)'), findsOneWidget);
+    // 验证歌曲渲染
+    expect(find.text('Rock Song'), findsOneWidget);
+
+    // 验证分节标题、搜索框与内容均左对齐
+    final searchFieldLeft =
+        tester.getTopLeft(find.byType(LibrarySearchField)).dx;
+    final sectionHeaderLeft = tester.getTopLeft(find.text('匹配的歌曲 (1)')).dx;
+    final folderItemLeft = tester.getTopLeft(find.byType(FolderZoomItem)).dx;
+    expect(searchFieldLeft, equals(sectionHeaderLeft));
+    expect(sectionHeaderLeft, equals(folderItemLeft));
   });
 
   testWidgets(

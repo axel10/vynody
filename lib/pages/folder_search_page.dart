@@ -279,7 +279,10 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage> {
     final double topPadding = widget.contentTopPadding ??
         (isLandscape ? (safeTop + 8.0) : safeTop);
     final double leftPadding = widget.contentLeftPadding ?? 0.0;
-    final horizontalPadding = size.width >= 780 ? 32.0 : 16.0;
+    final horizontalPadding = folderContentHorizontalPadding(
+      isPortrait: isPortrait,
+      gridMorph: 0.0,
+    );
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final settings = ref.watch(settingsServiceProvider);
@@ -391,6 +394,22 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage> {
                                               bottomPadding: 0.0,
                                               onNavigateTo: _navigateToFolder,
                                             ),
+                                          if (_currentFolderFolders.isNotEmpty &&
+                                              _currentFolderSongs.isNotEmpty) ...[
+                                            const SliverToBoxAdapter(
+                                              child: SizedBox(height: 12),
+                                            ),
+                                            SliverToBoxAdapter(
+                                              child: SearchSectionHeader(
+                                                title:
+                                                    '${l10n.searchResultsSongs} (${_currentFolderSongs.length})',
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: sectionHPad,
+                                                  vertical: 8.0,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                           if (_currentFolderSongs.isNotEmpty)
                                             FolderSongsSliver(
                                               songs: _currentFolderSongs,
@@ -453,6 +472,22 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage> {
                                               bottomPadding: 0.0,
                                               onNavigateTo: _navigateToFolder,
                                             ),
+                                          if (_globalFolders.isNotEmpty &&
+                                              _globalSongs.isNotEmpty) ...[
+                                            const SliverToBoxAdapter(
+                                              child: SizedBox(height: 12),
+                                            ),
+                                            SliverToBoxAdapter(
+                                              child: SearchSectionHeader(
+                                                title:
+                                                    '${l10n.searchResultsSongs} (${_globalSongs.length})',
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: sectionHPad,
+                                                  vertical: 8.0,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                           if (_globalSongs.isNotEmpty)
                                             FolderSongsSliver(
                                               songs: _globalSongs,

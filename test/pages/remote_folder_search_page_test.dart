@@ -148,6 +148,63 @@ void main() {
   });
 
   testWidgets(
+      'RemoteFolderSearchPage displays section header between folders and songs when both match',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final session = ActiveRemoteSession(
+      server: server,
+      password: 'secret',
+      initialPath: '/music',
+      webDavDirectoryCache: {
+        '/music': [
+          WebDavFile(
+            path: '/music/classic_folder',
+            name: 'classic_folder',
+            isDirectory: true,
+            contentLength: 0,
+            lastModified: DateTime.now(),
+          ),
+          WebDavFile(
+            path: '/music/classic_song.mp3',
+            name: 'classic_song.mp3',
+            isDirectory: false,
+            contentLength: 2048,
+            lastModified: DateTime.now(),
+          ),
+        ],
+      },
+    );
+
+    await tester.pumpWidget(createSubject(sessionState: session));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'classic');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    // 应该展示已缓存内容结果
+    expect(find.text('已缓存内容结果'), findsOneWidget);
+    // 应该展示匹配的文件夹
+    expect(find.text('classic_folder'), findsOneWidget);
+    // 应该在文件夹和歌曲之间展示分节标题
+    expect(find.text('匹配的歌曲 (1)'), findsOneWidget);
+    // 应该展示匹配的歌曲
+    expect(find.widgetWithText(SongZoomItem, 'classic_song'), findsOneWidget);
+
+    // 验证分节标题、搜索框与内容均左对齐
+    final searchFieldLeft =
+        tester.getTopLeft(find.byType(LibrarySearchField)).dx;
+    final sectionHeaderLeft = tester.getTopLeft(find.text('匹配的歌曲 (1)')).dx;
+    final songItemLeft = tester.getTopLeft(find.byType(SongZoomItem)).dx;
+    expect(searchFieldLeft, equals(sectionHeaderLeft));
+    expect(sectionHeaderLeft, equals(songItemLeft));
+  });
+
+  testWidgets(
       'RemoteFolderSearchPage avoids top system status bar when padding is not provided',
       (tester) async {
     tester.view.physicalSize = const Size(800, 1200);

@@ -395,7 +395,10 @@ class _RemoteFolderSearchPageState
     final double topPadding = widget.contentTopPadding ??
         (isLandscape ? (safeTop + 8.0) : safeTop);
     final double leftPadding = widget.contentLeftPadding ?? 0.0;
-    final horizontalPadding = size.width >= 780 ? 32.0 : 16.0;
+    final horizontalPadding = folderContentHorizontalPadding(
+      isPortrait: isPortrait,
+      gridMorph: 0.0,
+    );
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final settings = ref.watch(settingsServiceProvider);
@@ -502,6 +505,22 @@ class _RemoteFolderSearchPageState
                                             crossAxisExtent: crossAxisExtent,
                                             section: 'cached_folders',
                                           ),
+                                        if (_cachedFolders.isNotEmpty &&
+                                            _cachedSongs.isNotEmpty) ...[
+                                          const SliverToBoxAdapter(
+                                            child: SizedBox(height: 12),
+                                          ),
+                                          SliverToBoxAdapter(
+                                            child: SearchSectionHeader(
+                                              title:
+                                                  '${l10n.searchResultsSongs} (${_cachedSongs.length})',
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: sectionHPad,
+                                                vertical: 8.0,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                         if (_cachedSongs.isNotEmpty)
                                           WebDavSongsSliver(
                                             files: _cachedSongs,
@@ -558,6 +577,22 @@ class _RemoteFolderSearchPageState
                                             crossAxisExtent: crossAxisExtent,
                                             section: 'deep_folders',
                                           ),
+                                        if (_deepFolders.isNotEmpty &&
+                                            _deepSongs.isNotEmpty) ...[
+                                          const SliverToBoxAdapter(
+                                            child: SizedBox(height: 12),
+                                          ),
+                                          SliverToBoxAdapter(
+                                            child: SearchSectionHeader(
+                                              title:
+                                                  '${l10n.searchResultsSongs} (${_deepSongs.length})',
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: sectionHPad,
+                                                vertical: 8.0,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                         if (_deepSongs.isNotEmpty)
                                           WebDavSongsSliver(
                                             files: _deepSongs,

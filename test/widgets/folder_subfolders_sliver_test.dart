@@ -7,17 +7,18 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/widgets/folder_content_slivers.dart';
-import 'package:vynody/widgets/zoom_reorder_ui.dart';
 import 'package:zoomable_sliver_grid/zoomable_sliver_grid.dart';
 
 class _FakeScannerService extends ScannerService {
   List<String>? lastReorderedPaths;
+  Map<String, int> folderSongCounts = {};
 
   @override
   bool isRootPathAvailable(String path) => true;
 
   @override
-  int getSongCountForFolder(MusicFolder folder) => folder.songCount;
+  int getSongCountForFolder(MusicFolder folder) =>
+      folderSongCounts[folder.path] ?? folder.songCount;
 
   @override
   MusicFile? getRepresentativeSongForFolder(MusicFolder folder) => null;
@@ -73,6 +74,7 @@ void main() {
         scannerServiceProvider.overrideWith((ref) => scanner),
       ],
       child: MaterialApp(
+        locale: const Locale('zh'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
@@ -127,7 +129,7 @@ void main() {
     expect(localData['paths'], equals(['/music/pop/song1.mp3']));
 
     // 触发重排
-    grid.onReorder({0}, 2);
+    grid.onReorder!({0}, 2);
     expect(scanner.lastReorderedPaths, equals(['/music/rock', '/music/pop']));
   });
 
@@ -172,5 +174,29 @@ void main() {
 
     expect(find.byType(ZoomReorderableSliverGrid), findsNothing);
     expect(find.byType(SliverGrid), findsOneWidget);
+  });
+
+  testWidgets('子目录视图（isRoot: false）能正确通过 scanner.getSongCountForFolder 获取歌曲数量', (tester) async {
+    final emptyModelFolder = MusicFolder(
+      path: '/music/ambient',
+      name: 'Ambient',
+      // files 为空，folder.songCount 为 0
+    );
+    final scanner = _FakeScannerService()
+      ..folderSongCounts['/music/ambient'] = 25;
+
+    await tester.pumpWidget(
+      buildTestWidget(
+        scanner: scanner,
+        folders: [emptyModelFolder],
+        isRoot: false,
+        isSelectionMode: false,
+        reorderController: null,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 应该显示 25 首歌曲而非 0
+    expect(find.text('25 首歌曲'), findsOneWidget);
   });
 }
