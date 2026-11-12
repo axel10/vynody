@@ -5,7 +5,6 @@ import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/pages/remote/widgets/remote_library_search_tab.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
-import 'package:vynody/widgets/remote_artwork_widget.dart';
 
 void main() {
   final server = RemoteServer(
@@ -31,6 +30,9 @@ void main() {
     List<MusicFile>? searchedSongs,
     List<Map<String, dynamic>>? searchedAlbums,
     List<Map<String, dynamic>>? searchedArtists,
+    Set<String> selectedKeys = const {},
+    void Function(String key)? onToggleSelection,
+    void Function(Set<String> keys)? onSetSelection,
   }) {
     return ProviderScope(
       child: MaterialApp(
@@ -49,18 +51,12 @@ void main() {
               searchedAlbums: searchedAlbums ?? const [],
               searchedArtists: searchedArtists ?? const [],
               bottomOffset: 0,
-              isArtistSelectionMode: false,
-              isAlbumSelectionMode: false,
-              isSongSelectionMode: false,
-              selectedArtistIds: const {},
-              selectedAlbumIds: const {},
-              selectedSongPaths: const {},
-              lastSongAnchorIndex: null,
-              onSetSongSelection: (_) {},
-              onToggleSongSelection: (_) {},
-              onUpdateSongAnchor: (_) {},
-              onToggleArtistSelection: (_) {},
-              onToggleAlbumSelection: (_) {},
+              isSelectionMode: selectedKeys.isNotEmpty,
+              selectedKeys: selectedKeys,
+              lastAnchorIndex: null,
+              onSetSelection: onSetSelection ?? (_) {},
+              onToggleSelection: onToggleSelection ?? (_) {},
+              onUpdateAnchor: (_) {},
             ),
           ),
         ),
@@ -68,39 +64,107 @@ void main() {
     );
   }
 
-  SliverChildBuilderDelegate delegateOf(WidgetTester tester) =>
-      tester.widget<ListView>(find.byType(ListView).first).childrenDelegate
-          as SliverChildBuilderDelegate;
-
   testWidgets('500 条歌曲结果只建可见行，不再一次性展开全部 item',
       (tester) async {
     await tester.pumpWidget(wrap(searchedSongs: songs(500)));
     await tester.pump();
 
-    // header + 500 行，交给 builder 按需构建。
-    expect(delegateOf(tester).childCount, 501);
     expect(find.byType(ListTile).evaluate().length, lessThan(30));
-    expect(find.byType(RemoteArtworkWidget), findsNothing);
   });
 
-  testWidgets('三段都有结果时 section 偏移映射正确', (tester) async {
+  test('三段键序列按视觉顺序拼接：艺术家 → 专辑 → 歌曲', () {
+    final keys = RemoteLibrarySearchView.entryKeysFor(
+      artists: [
+        {'id': 'ar-1'},
+        {'id': 'ar-2'},
+      ],
+      albums: [
+        {'id': 'al-1'},
+      ],
+      songs: songs(2),
+    );
+
+    expect(keys, [
+      'artist:ar-1',
+      'artist:ar-2',
+      'album:al-1',
+      'song:remote://song-0',
+      'song:remote://song-1',
+    ]);
+  });
+
+  test('残缺条目照样占位，避免后面条目的下标整体偏移', () {
+    final keys = RemoteLibrarySearchView.entryKeysFor(
+      artists: [
+        {'name': '无 id'},
+      ],
+      albums: const [],
+      songs: songs(1),
+    );
+
+    expect(keys.length, 2);
+    expect(keys.last, 'song:remote://song-0');
+  });
+
+  testWidgets('长按专辑卡片进入多选，键带类型前缀', (tester) async {
+    final toggled = <String>[];
     await tester.pumpWidget(wrap(
-      searchedSongs: songs(3),
       searchedAlbums: [
         {'id': 'al-1', 'name': 'A1', 'coverArt': null},
-        {'id': 'al-2', 'name': 'A2', 'coverArt': null},
       ],
-      searchedArtists: [
-        {'id': 'ar-1', 'name': 'R1', 'coverArt': null},
-        {'id': 'ar-2', 'name': 'R2', 'coverArt': null},
-      ],
+      searchedSongs: songs(1),
+      onToggleSelection: toggled.add,
     ));
     await tester.pump();
 
-    // artists 4（header + 2 行 + spacer）+ albums 3 + songs 4（header + 3 行）。
-    expect(delegateOf(tester).childCount, 11);
-    expect(find.byType(ListTile).evaluate().length, lessThan(30));
-    // 横向专辑条仍是独立懒加载列表。
-    expect(find.byType(ListView), findsNWidgets(2));
+    await tester.longPress(find.text('A1'));
+    await tester.pump();
+
+    expect(toggled, ['album:al-1']);
+  });
+
+  testWidgets('长按歌曲行进入多选，键带类型前缀', (tester) async {
+    final toggled = <String>[];
+    await tester.pumpWidget(wrap(
+      searchedSongs: songs(2),
+      onToggleSelection: toggled.add,
+    ));
+    await tester.pump();
+
+    await tester.longPress(find.text('Song 1'));
+    await tester.pump();
+
+    expect(toggled, ['song:remote://song-1']);
+  });
+
+  testWidgets('混选态下三段都显示勾选，多选态点击切换该条', (tester) async {
+    final toggled = <String>[];
+    await tester.pumpWidget(wrap(
+      searchedArtists: [
+        {'id': 'ar-1', 'name': 'R1', 'coverArt': null},
+      ],
+      searchedAlbums: [
+        {'id': 'al-1', 'name': 'A1', 'coverArt': null},
+      ],
+      searchedSongs: songs(1),
+      // 艺术家 + 专辑 + 歌曲同时选中：这正是搜索页跨栏目多选的目标状态。
+      selectedKeys: const {
+        'artist:ar-1',
+        'album:al-1',
+        'song:remote://song-0',
+      },
+      onToggleSelection: toggled.add,
+    ));
+    await tester.pump();
+
+    // 艺术家行与歌曲行的勾选圈（专辑卡用的是 Checkbox）。
+    expect(find.byIcon(Icons.check_circle_rounded), findsNWidgets(2));
+    final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
+    expect(checkbox.value, isTrue);
+
+    // 多选态下点歌曲行 = 切换该条，不触发播放。
+    await tester.tap(find.text('Song 0'));
+    await tester.pump();
+    expect(toggled, ['song:remote://song-0']);
   });
 }

@@ -33,6 +33,7 @@ import 'widgets/remote_library_songs_tab.dart';
 import 'widgets/remote_library_playlists_tab.dart';
 import 'widgets/remote_library_search_tab.dart';
 import '../../player/audio/playback_source.dart';
+import '../../utils/search_selection_utils.dart';
 import '../../utils/song_locator_helper.dart';
 import '../../utils/remote_library_playback.dart';
 import '../../player/platform/right_queue_drawer_controller.dart';
@@ -170,15 +171,23 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
   final Set<String> _selectedPlaylistIds = {};
   final Set<String> _selectedSongPaths = {};
 
+  /// 搜索页的统一选择集：键 `<类型>:<id>`，与本地搜索页同一套格式
+  /// （`search_selection_utils.dart`）。搜索一段里同时出现艺术家 / 专辑 / 歌曲，
+  /// 上面四套「按类型各存一份」的集合会互相排斥，所以搜索页单独用这一份，
+  /// 集合类条目按「它包含的全部歌曲」参与批量动作。
+  final Set<String> _searchSelectedKeys = {};
+
   int? _lastAlbumAnchorIndex;
   int? _lastArtistAnchorIndex;
   int? _lastPlaylistAnchorIndex;
   int? _lastSongAnchorIndex;
+  int? _lastSearchAnchorIndex;
 
   bool get _isAlbumSelectionMode => _selectedAlbumIds.isNotEmpty;
   bool get _isArtistSelectionMode => _selectedArtistIds.isNotEmpty;
   bool get _isPlaylistSelectionMode => _selectedPlaylistIds.isNotEmpty;
   bool get _isSongSelectionMode => _selectedSongPaths.isNotEmpty;
+  bool get _isSearchSelectionMode => _searchSelectedKeys.isNotEmpty;
   /// 搜索分类的索引（专辑 0 / 艺术家 1 / 流派 2 / 歌曲 3 / 播放列表 4 / 搜索 5）。
   static const int _kSearchTabIndex = 5;
 
@@ -190,7 +199,8 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       _isAlbumSelectionMode ||
       _isArtistSelectionMode ||
       _isPlaylistSelectionMode ||
-      _isSongSelectionMode;
+      _isSongSelectionMode ||
+      _isSearchSelectionMode;
 
   void _updateSelectionScope([bool? forceActive]) {
     final active = forceActive ?? _isSelectionMode;
@@ -207,26 +217,79 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     if (_selectedAlbumIds.isNotEmpty ||
         _selectedArtistIds.isNotEmpty ||
         _selectedPlaylistIds.isNotEmpty ||
-        _selectedSongPaths.isNotEmpty) {
+        _selectedSongPaths.isNotEmpty ||
+        _searchSelectedKeys.isNotEmpty) {
       setState(() {
         _selectedAlbumIds.clear();
         _selectedArtistIds.clear();
         _selectedPlaylistIds.clear();
         _selectedSongPaths.clear();
+        _searchSelectedKeys.clear();
         _lastAlbumAnchorIndex = null;
         _lastArtistAnchorIndex = null;
         _lastPlaylistAnchorIndex = null;
         _lastSongAnchorIndex = null;
+        _lastSearchAnchorIndex = null;
       });
       _updateSelectionScope(false);
     }
   }
 
+  /// 清空「按类型各存一份」的四套集合与各自锚点。
+  ///
+  /// 搜索页的选择集是另一套（可混选），进搜索页多选时先把它清掉，保证全局
+  /// 始终只有一套选择集在生效 —— 否则面板会同时收到两种模式的统计。
+  void _clearTypedSelections() {
+    _selectedAlbumIds.clear();
+    _selectedArtistIds.clear();
+    _selectedPlaylistIds.clear();
+    _selectedSongPaths.clear();
+    _lastAlbumAnchorIndex = null;
+    _lastArtistAnchorIndex = null;
+    _lastPlaylistAnchorIndex = null;
+    _lastSongAnchorIndex = null;
+  }
+
+  /// 搜索页的选择集变化（Shift 连选整段覆盖也走这里）。
+  void _setSearchSelection(Set<String> keys) {
+    setState(() {
+      _clearTypedSelections();
+      _searchSelectedKeys
+        ..clear()
+        ..addAll(keys);
+    });
+    _updateSelectionScope();
+  }
+
+  void _toggleSearchSelection(String key) {
+    setState(() {
+      _clearTypedSelections();
+      if (!_searchSelectedKeys.remove(key)) {
+        _searchSelectedKeys.add(key);
+      }
+    });
+    _updateSelectionScope();
+  }
+
+  void _toggleSelectAllSearch(List<String> keys) {
+    final all = keys.toSet();
+    setState(() {
+      _clearTypedSelections();
+      if (_searchSelectedKeys.length == all.length && all.isNotEmpty) {
+        _searchSelectedKeys.clear();
+      } else {
+        _searchSelectedKeys
+          ..clear()
+          ..addAll(all);
+      }
+    });
+    _updateSelectionScope();
+  }
+
   void _setAlbumSelection(Set<String> keys) {
     setState(() {
-      _selectedArtistIds.clear();
-      _selectedPlaylistIds.clear();
-      _selectedSongPaths.clear();
+      _clearTypedSelections();
+      _searchSelectedKeys.clear();
       _selectedAlbumIds
         ..clear()
         ..addAll(keys);
@@ -236,9 +299,8 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
 
   void _setArtistSelection(Set<String> keys) {
     setState(() {
-      _selectedAlbumIds.clear();
-      _selectedPlaylistIds.clear();
-      _selectedSongPaths.clear();
+      _clearTypedSelections();
+      _searchSelectedKeys.clear();
       _selectedArtistIds
         ..clear()
         ..addAll(keys);
@@ -248,9 +310,8 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
 
   void _setPlaylistSelection(Set<String> keys) {
     setState(() {
-      _selectedAlbumIds.clear();
-      _selectedArtistIds.clear();
-      _selectedSongPaths.clear();
+      _clearTypedSelections();
+      _searchSelectedKeys.clear();
       _selectedPlaylistIds
         ..clear()
         ..addAll(keys);
@@ -260,9 +321,8 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
 
   void _setSongSelection(Set<String> keys) {
     setState(() {
-      _selectedAlbumIds.clear();
-      _selectedArtistIds.clear();
-      _selectedPlaylistIds.clear();
+      _clearTypedSelections();
+      _searchSelectedKeys.clear();
       _selectedSongPaths
         ..clear()
         ..addAll(keys);
@@ -275,6 +335,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       _selectedArtistIds.clear();
       _selectedPlaylistIds.clear();
       _selectedSongPaths.clear();
+      _searchSelectedKeys.clear();
       if (_selectedAlbumIds.contains(albumId)) {
         _selectedAlbumIds.remove(albumId);
       } else {
@@ -293,6 +354,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       _selectedArtistIds.clear();
       _selectedPlaylistIds.clear();
       _selectedSongPaths.clear();
+      _searchSelectedKeys.clear();
       if (_selectedAlbumIds.length == allIds.length && allIds.isNotEmpty) {
         _selectedAlbumIds.clear();
       } else {
@@ -308,6 +370,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       _selectedAlbumIds.clear();
       _selectedPlaylistIds.clear();
       _selectedSongPaths.clear();
+      _searchSelectedKeys.clear();
       if (_selectedArtistIds.contains(artistId)) {
         _selectedArtistIds.remove(artistId);
       } else {
@@ -326,6 +389,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       _selectedAlbumIds.clear();
       _selectedPlaylistIds.clear();
       _selectedSongPaths.clear();
+      _searchSelectedKeys.clear();
       if (_selectedArtistIds.length == allIds.length && allIds.isNotEmpty) {
         _selectedArtistIds.clear();
       } else {
@@ -341,6 +405,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       _selectedAlbumIds.clear();
       _selectedArtistIds.clear();
       _selectedSongPaths.clear();
+      _searchSelectedKeys.clear();
       if (_selectedPlaylistIds.contains(playlistId)) {
         _selectedPlaylistIds.remove(playlistId);
       } else {
@@ -359,6 +424,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       _selectedAlbumIds.clear();
       _selectedArtistIds.clear();
       _selectedSongPaths.clear();
+      _searchSelectedKeys.clear();
       if (_selectedPlaylistIds.length == allIds.length && allIds.isNotEmpty) {
         _selectedPlaylistIds.clear();
       } else {
@@ -374,6 +440,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       _selectedAlbumIds.clear();
       _selectedArtistIds.clear();
       _selectedPlaylistIds.clear();
+      _searchSelectedKeys.clear();
       if (_selectedSongPaths.contains(songPath)) {
         _selectedSongPaths.remove(songPath);
       } else {
@@ -389,6 +456,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       _selectedAlbumIds.clear();
       _selectedArtistIds.clear();
       _selectedPlaylistIds.clear();
+      _searchSelectedKeys.clear();
       if (_selectedSongPaths.length == allPaths.length && allPaths.isNotEmpty) {
         _selectedSongPaths.clear();
       } else {
@@ -403,25 +471,23 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
   /// 里的单曲下载一致 ——
   /// 专辑 Tab → `专辑/曲目`；艺术家 Tab → 各 `艺术家/专辑/曲目`；
   /// 歌单 Tab → 各 `歌单/曲目`；歌曲 Tab → `专辑/曲目`；
-  /// 搜索 Tab → 勾艺术家走艺术家，勾专辑 / 歌曲走专辑。
+  /// 搜索 Tab → 艺术家走艺术家、专辑 / 歌曲走专辑，可同时存在（混选）。
   Future<List<RemoteDownloadBatch>> _fetchSelectedDownloadBatches() {
     final songsSource = _currentTabIndex == _kSearchTabIndex ? _searchedSongs : _songs;
     return RemoteLibrarySelectionActions.fetchSelectedBatches(
       server: widget.server,
       password: widget.password,
-      isAlbumSelectionMode: _isAlbumSelectionMode,
-      isArtistSelectionMode: _isArtistSelectionMode,
-      isPlaylistSelectionMode: _isPlaylistSelectionMode,
-      isSongSelectionMode: _isSongSelectionMode,
+      searchSelectedKeys: _searchSelectedKeys,
       selectedAlbumIds: _selectedAlbumIds,
       selectedArtistIds: _selectedArtistIds,
       selectedPlaylistIds: _selectedPlaylistIds,
       selectedSongPaths: _selectedSongPaths,
       searchedSongs: songsSource,
       songs: songsSource,
-      // 专辑列表项自带 songCount，多选下载时用它当加载进度的分母。
+      // 专辑列表项自带 songCount，多选下载时用它当加载进度的分母；搜索结果的
+      // 专辑条目也带这个字段，一并收进来，搜索页的进度才有刻度。
       albumSongCounts: {
-        for (final album in _albums)
+        for (final album in [..._albums, ..._searchedAlbums])
           if (album['id'] != null)
             album['id'].toString(): album['songCount'] is int
                 ? album['songCount'] as int
@@ -445,6 +511,25 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     final batches = await _fetchSelectedDownloadBatches();
     return [for (final batch in batches) ...batch.songs];
   }
+
+  /// 搜索页条目的扁平键序列（视觉顺序：艺术家 → 专辑 → 歌曲）。
+  ///
+  /// 与视图内部算 base 索引用的是同一个函数，保证「全选」和「Shift 连选」
+  /// 认的是同一份下标。
+  List<String> _searchEntryKeys() => RemoteLibrarySearchView.entryKeysFor(
+        artists: _searchedArtists,
+        albums: _searchedAlbums,
+        songs: _searchedSongs,
+      );
+
+  /// 搜索页里「直接勾选的曲目」（不含由专辑 / 艺术家集合展开出来的歌）。
+  ///
+  /// 面板只在两类地方用它：单曲专属动作的判空，以及云端收藏时区分「收藏这张
+  /// 专辑」与「收藏这几首歌」。
+  List<MusicFile> get _directSearchSelectedSongs => [
+        for (final song in _searchedSongs)
+          if (_searchSelectedKeys.contains(songSelectionKey(song.path))) song,
+      ];
 
   List<MusicFile> _getFilteredSongs() {
     final sig = Object.hash(
@@ -2099,18 +2184,18 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       searchedArtists: _searchedArtists,
       isSearching: _isSearching,
       bottomOffset: _listBottomOffset,
-      isArtistSelectionMode: _isArtistSelectionMode,
-      isAlbumSelectionMode: _isAlbumSelectionMode,
-      isSongSelectionMode: _isSongSelectionMode,
-      selectedArtistIds: _selectedArtistIds,
-      selectedAlbumIds: _selectedAlbumIds,
-      selectedSongPaths: _selectedSongPaths,
-      lastSongAnchorIndex: _lastSongAnchorIndex,
-      onSetSongSelection: _setSongSelection,
-      onToggleSongSelection: _toggleSongSelection,
-      onUpdateSongAnchor: (a) => setState(() => _lastSongAnchorIndex = a),
-      onToggleArtistSelection: _toggleArtistSelection,
-      onToggleAlbumSelection: _toggleAlbumSelection,
+      // 搜索页整页一套选择集（可混选），与本地搜索页同一套键格式。
+      isSelectionMode: _isSearchSelectionMode,
+      selectedKeys: _searchSelectedKeys,
+      lastAnchorIndex: _lastSearchAnchorIndex,
+      onSetSelection: _setSearchSelection,
+      onToggleSelection: _toggleSearchSelection,
+      onUpdateAnchor: (a) => setState(() => _lastSearchAnchorIndex = a),
+      // 多选态下右键歌曲作用于整份选择集：专辑 / 艺术家的曲目要现拉，
+      // 复用与下载同一份批次解析，落盘层级也一并保持一致。
+      resolveSelectionBatches: _isSearchSelectionMode
+          ? _fetchSelectedDownloadBatches
+          : null,
     );
   }
 
@@ -2123,7 +2208,16 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     VoidCallback? panelDelete;
     String? panelDeleteLabel;
 
-    if (_isAlbumSelectionMode) {
+    final entryKeys =
+        _isSearchSelectionMode ? _searchEntryKeys() : const <String>[];
+
+    if (_isSearchSelectionMode) {
+      // 搜索页是混选：标题只报「已选 N 项」，全选覆盖整页命中条目。
+      panelTitle = l10n.selectedItemsCount(_searchSelectedKeys.length);
+      panelToggleSelectAll = () => _toggleSelectAllSearch(entryKeys);
+      panelIsAllSelected = entryKeys.isNotEmpty &&
+          _searchSelectedKeys.containsAll(entryKeys);
+    } else if (_isAlbumSelectionMode) {
       final filteredAlbums = _currentTabIndex == _kSearchTabIndex
           ? _searchedAlbums
           : _getFilteredAlbums();
@@ -2169,6 +2263,16 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
           _selectedSongPaths.length == songs.length && songs.isNotEmpty;
     }
 
+    // 面板的动作对象：搜索页是「直接勾选的曲目」（集合类条目由 onFetchSongs
+    // 现拉），歌曲 Tab 是勾中的曲目，其余 Tab 没有曲目维度。
+    final directSongs = _isSearchSelectionMode
+        ? _directSearchSelectedSongs
+        : _isSongSelectionMode
+            ? (_currentTabIndex == _kSearchTabIndex ? _searchedSongs : _songs)
+                .where((s) => _selectedSongPaths.contains(s.path))
+                .toList()
+            : const <MusicFile>[];
+
     return AnimatedSelectionPanel(
       isVisible: _isSelectionMode,
       child: RemoteSongSelectionPanel(
@@ -2178,13 +2282,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
         actions: RemoteSelectionActions.library,
         server: widget.server,
         password: widget.password,
-        selectedSongs: _isSongSelectionMode
-            ? (_currentTabIndex == _kSearchTabIndex
-                      ? _searchedSongs
-                      : _songs)
-                  .where((s) => _selectedSongPaths.contains(s.path))
-                  .toList()
-            : const [],
+        selectedSongs: directSongs,
         allSongs: _isSongSelectionMode
             ? (_currentTabIndex == _kSearchTabIndex ? _searchedSongs : _songs)
             : const [],
@@ -2194,8 +2292,20 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
         onToggleSelectAll: panelToggleSelectAll ?? () {},
         onFetchSongs: _fetchSelectedSongs,
         onClearSelection: _cancelSelection,
-        selectedAlbumIds: _isAlbumSelectionMode ? _selectedAlbumIds : null,
-        selectedArtistIds: _isArtistSelectionMode ? _selectedArtistIds : null,
+        // 搜索页的专辑 / 艺术家也从统一选择集里拆出来，云端收藏才能分别命中
+        // 「收藏这张专辑」与「收藏这位艺术家」。
+        selectedAlbumIds: _isAlbumSelectionMode
+            ? _selectedAlbumIds
+            : _isSearchSelectionMode
+                ? selectionIdsOfKind(
+                    _searchSelectedKeys, SearchEntryKind.album)
+                : null,
+        selectedArtistIds: _isArtistSelectionMode
+            ? _selectedArtistIds
+            : _isSearchSelectionMode
+                ? selectionIdsOfKind(
+                    _searchSelectedKeys, SearchEntryKind.artist)
+                : null,
         onStarredChanged: (starredIds) {
           setState(() {
             _starredSongIds.addAll(starredIds);

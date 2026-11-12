@@ -434,6 +434,10 @@ Future<void> _handleAlbumMenuSelection({
 /// [downloadLayout] / [downloadCollectionFolder] 描述曲目所在页面的目录维度
 /// （艺术家页传 artist + 艺术家名，歌单页传 playlist + 歌单名），
 /// 保证单曲下载的落盘结构与同页面批量下载一致。
+///
+/// [resolveSelectionBatches] 是多选态的「动作对象」注入点：传了它，播放下一首 /
+/// 加入队列 / 加入歌单 / 收藏 / 下载都作用于整份选择集（拉曲目时套进度浮层），
+/// 与本地搜索页的多选右键一致；不传则仍只作用于 `song` 这一首。
 /// Shows context menu for a remote song.
 ///
 /// [downloadLayout] / [downloadCollectionFolder] 描述曲目所在页面的目录维度
@@ -453,6 +457,7 @@ Future<void> showRemoteSongContextMenu({
   RemoteDownloadLayout downloadLayout = RemoteDownloadLayout.album,
   String? downloadCollectionFolder,
   VoidCallback? onMultiSelect,
+  Future<List<RemoteDownloadBatch>> Function()? resolveSelectionBatches,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final theme = Theme.of(context);
@@ -584,6 +589,7 @@ Future<void> showRemoteSongContextMenu({
     onRemoveFromPlaylist: onRemoveFromPlaylist,
     downloadLayout: downloadLayout,
     downloadCollectionFolder: downloadCollectionFolder,
+    resolveSelectionBatches: resolveSelectionBatches,
   );
 }
 
@@ -602,42 +608,99 @@ Future<void> _handleSongMenuSelection({
   VoidCallback? onRemoveFromPlaylist,
   RemoteDownloadLayout downloadLayout = RemoteDownloadLayout.album,
   String? downloadCollectionFolder,
+  Future<List<RemoteDownloadBatch>> Function()? resolveSelectionBatches,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final audio = ref.read(audioServiceProvider);
 
+  // 多选态下的动作对象是整份选择集，而不是被右键的这一首。批次只解析一次，
+  // 同一份菜单里的连续动作（比如先加队列再收藏）不会重复拉曲目。
+  List<RemoteDownloadBatch>? resolvedBatches;
+  Future<List<RemoteDownloadBatch>> loadBatches() async {
+    final cached = resolvedBatches;
+    if (cached != null) return cached;
+    final resolved = await runWithRemoteTrackLoadProgress<List<RemoteDownloadBatch>>(
+      context: context,
+      immediate: true,
+      task: resolveSelectionBatches!,
+    );
+    return resolvedBatches = resolved ?? const <RemoteDownloadBatch>[];
+  }
+
+  Future<List<MusicFile>> actionSongs() async {
+    if (resolveSelectionBatches == null) return [song];
+    return [for (final batch in await loadBatches()) ...batch.songs];
+  }
+
   switch (selected) {
     case 'play_next':
-      await audio.enqueueNext([song]);
+      final list = await actionSongs();
+      if (list.isEmpty) break;
+      await audio.enqueueNext(list);
       showToast(l10n.addedToQueue);
       break;
     case 'add_to_queue':
-      await audio.appendToQueue([song]);
+      final list = await actionSongs();
+      if (list.isEmpty) break;
+      await audio.appendToQueue(list);
       showToast(l10n.addedToQueue);
       break;
     case 'add_to_playlist':
     case 'add_to_server_playlist':
+      final list = await actionSongs();
+      if (list.isEmpty) break;
       if (context.mounted) {
         await RemoteAddToPlaylistDialog.show(
           context,
           ref: ref,
           server: server,
           password: password,
-          songs: [song],
+          songs: list,
         );
       }
       break;
     case 'add_to_local_playlist':
+      final list = await actionSongs();
+      if (list.isEmpty) break;
       final playlistService = ref.read(playlistServiceProvider);
       if (context.mounted) {
-        await showAddSongsToPlaylistDialog(context, playlistService, [song]);
+        await showAddSongsToPlaylistDialog(context, playlistService, list);
       }
       break;
     case 'star':
-      final ok = await client.star(id: trackId);
-      showToast(ok ? l10n.starredSuccess : l10n.starFailed);
+      if (resolveSelectionBatches == null) {
+        final ok = await client.star(id: trackId);
+        showToast(ok ? l10n.starredSuccess : l10n.starFailed);
+        break;
+      }
+      final list = await actionSongs();
+      var successCount = 0;
+      for (final target in list) {
+        final id = RemoteMediaResolver.extractTrackId(target) ??
+            (target.id != null && target.id! > 0 ? target.id.toString() : '');
+        if (id.isEmpty) continue;
+        if (await client.star(id: id)) successCount++;
+      }
+      showToast(successCount > 0 ? l10n.starredSuccess : l10n.starFailed);
       break;
     case 'download':
+      if (resolveSelectionBatches != null) {
+        // 混选下载要保留各自的落盘层级（艺术家 / 歌单 / 专辑），所以走分组入队
+        // 而不是把曲目拍平。
+        final batches = await loadBatches();
+        if (batches.isEmpty) break;
+        await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
+              RemoteDownloadRequest.grouped(
+                server: server,
+                password: password,
+                batches: batches,
+              ),
+            );
+        final count =
+            batches.fold<int>(0, (sum, batch) => sum + batch.songs.length);
+        showRemoteDownloadQueuedFeedback(context, ref, count);
+        break;
+      }
       await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
             RemoteDownloadRequest(
               server: server,

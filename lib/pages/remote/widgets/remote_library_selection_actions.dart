@@ -18,6 +18,7 @@ import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/remote_download_feedback.dart';
 import '../../../player/library/playlist_service.dart';
 import '../../../player/remote/proxy/remote_media_resolver.dart';
+import '../../../utils/search_selection_utils.dart';
 
 class RemoteLibrarySelectionActions {
   static const String starredPlaylistId = '__navidrome_starred_songs__';
@@ -91,17 +92,18 @@ class RemoteLibrarySelectionActions {
   /// 勾了几个歌单就出几个歌单批次，每批各带自己的目录名。这样批量下载的
   /// 目录结构与「同一页面里下载单曲」完全一致，也不会把多个艺术家的同名
   /// 专辑混到一个目录里。
+  ///
+  /// 四组是**累加**关系，不再互斥：搜索页可以同时勾艺术家、专辑和几首歌，
+  /// 三者的批次会一起入队。其余分类页同一时刻只有一类非空，行为与从前一致。
   static Future<List<RemoteDownloadBatch>> fetchSelectedBatches({
     required RemoteServer server,
     required String password,
-    required bool isAlbumSelectionMode,
-    required bool isArtistSelectionMode,
-    required bool isPlaylistSelectionMode,
-    required bool isSongSelectionMode,
-    required Set<String> selectedAlbumIds,
-    required Set<String> selectedArtistIds,
-    required Set<String> selectedPlaylistIds,
-    required Set<String> selectedSongPaths,
+    Set<String> selectedAlbumIds = const {},
+    Set<String> selectedArtistIds = const {},
+    Set<String> selectedPlaylistIds = const {},
+    Set<String> selectedSongPaths = const {},
+    // 搜索页的统一选择集：键 `<类型>:<id>`，先按类型拆开再并入上面的集合。
+    Set<String> searchSelectedKeys = const {},
     List<MusicFile> searchedSongs = const [],
     List<MusicFile>? songs,
     Map<String, int> albumSongCounts = const {},
@@ -114,15 +116,33 @@ class RemoteLibrarySelectionActions {
     );
     final progress = remoteTrackLoadProgress;
     final batches = <RemoteDownloadBatch>[];
-    if (isAlbumSelectionMode) {
+
+    final albumIds = {
+      ...selectedAlbumIds,
+      ...selectionIdsOfKind(searchSelectedKeys, SearchEntryKind.album),
+    };
+    final artistIds = {
+      ...selectedArtistIds,
+      ...selectionIdsOfKind(searchSelectedKeys, SearchEntryKind.artist),
+    };
+    final playlistIds = {
+      ...selectedPlaylistIds,
+      ...selectionIdsOfKind(searchSelectedKeys, SearchEntryKind.playlist),
+    };
+    final songPaths = {
+      ...selectedSongPaths,
+      ...selectionIdsOfKind(searchSelectedKeys, SearchEntryKind.song),
+    };
+
+    if (albumIds.isNotEmpty) {
       // 专辑列表项自带 songCount，几张加起来就是分母；每拉完一张专辑再
       // 累加已加载数，这样「共 N 首、已加载 M 首」才有真实刻度。
       var expectedTotal = 0;
-      for (final albumId in selectedAlbumIds) {
+      for (final albumId in albumIds) {
         expectedTotal += albumSongCounts[albumId] ?? 0;
       }
       progress.addToTotal(expectedTotal);
-      for (final albumId in selectedAlbumIds) {
+      for (final albumId in albumIds) {
         progress.throwIfCancelled();
         final tracks =
             await fetchSubsonicAlbumTracks(client, server, albumId);
@@ -131,8 +151,10 @@ class RemoteLibrarySelectionActions {
         }
         progress.advance(tracks.length);
       }
-    } else if (isArtistSelectionMode) {
-      for (final artistId in selectedArtistIds) {
+    }
+
+    if (artistIds.isNotEmpty) {
+      for (final artistId in artistIds) {
         progress.throwIfCancelled();
         final tracks =
             await fetchSubsonicArtistTracks(client, server, artistId);
@@ -148,9 +170,11 @@ class RemoteLibrarySelectionActions {
           );
         }
       }
-    } else if (isPlaylistSelectionMode) {
+    }
+
+    if (playlistIds.isNotEmpty) {
       // 歌单列表不带曲目数，拿不到分母，但已加载数照样往上走。
-      for (final playlistId in selectedPlaylistIds) {
+      for (final playlistId in playlistIds) {
         progress.throwIfCancelled();
         final tracks =
             await fetchSubsonicPlaylistTracks(client, server, playlistId);
@@ -165,11 +189,13 @@ class RemoteLibrarySelectionActions {
         }
         progress.advance(tracks.length);
       }
-    } else if (isSongSelectionMode) {
+    }
+
+    if (songPaths.isNotEmpty) {
       final pool = songs ?? searchedSongs;
       final selected = [
         for (final song in pool)
-          if (selectedSongPaths.contains(song.path)) song,
+          if (songPaths.contains(song.path)) song,
       ];
       if (selected.isNotEmpty) {
         batches.add(RemoteDownloadBatch(songs: selected));
@@ -182,14 +208,11 @@ class RemoteLibrarySelectionActions {
   static Future<List<MusicFile>> fetchSelectedSongs({
     required RemoteServer server,
     required String password,
-    required bool isAlbumSelectionMode,
-    required bool isArtistSelectionMode,
-    required bool isPlaylistSelectionMode,
-    required bool isSongSelectionMode,
-    required Set<String> selectedAlbumIds,
-    required Set<String> selectedArtistIds,
-    required Set<String> selectedPlaylistIds,
-    required Set<String> selectedSongPaths,
+    Set<String> selectedAlbumIds = const {},
+    Set<String> selectedArtistIds = const {},
+    Set<String> selectedPlaylistIds = const {},
+    Set<String> selectedSongPaths = const {},
+    Set<String> searchSelectedKeys = const {},
     List<MusicFile> searchedSongs = const [],
     List<MusicFile>? songs,
     Map<String, int> albumSongCounts = const {},
@@ -197,14 +220,11 @@ class RemoteLibrarySelectionActions {
     final batches = await fetchSelectedBatches(
       server: server,
       password: password,
-      isAlbumSelectionMode: isAlbumSelectionMode,
-      isArtistSelectionMode: isArtistSelectionMode,
-      isPlaylistSelectionMode: isPlaylistSelectionMode,
-      isSongSelectionMode: isSongSelectionMode,
       selectedAlbumIds: selectedAlbumIds,
       selectedArtistIds: selectedArtistIds,
       selectedPlaylistIds: selectedPlaylistIds,
       selectedSongPaths: selectedSongPaths,
+      searchSelectedKeys: searchSelectedKeys,
       searchedSongs: searchedSongs,
       songs: songs,
       albumSongCounts: albumSongCounts,
@@ -369,6 +389,7 @@ class RemoteLibrarySelectionActions {
     required VoidCallback onClearSelection,
     Set<String>? selectedAlbumIds,
     Set<String>? selectedArtistIds,
+    List<MusicFile>? directSongs,
     void Function(List<String> starredTrackIds)? onStarredChanged,
     void Function(List<String> starredArtistIds)? onStarredArtistsChanged,
   }) async {
@@ -387,81 +408,61 @@ class RemoteLibrarySelectionActions {
         if (!context.mounted) return;
       }
 
+      final albumIds = selectedAlbumIds ?? const <String>{};
+      final artistIds = selectedArtistIds ?? const <String>{};
       int successCount = 0;
+      final successfulArtistIds = <String>[];
 
-      // 1. Album multi-selection mode
-      if (selectedAlbumIds != null && selectedAlbumIds.isNotEmpty) {
-        final albumIds = selectedAlbumIds.toList();
-        for (final albumId in albumIds) {
-          final ok = await client.star(albumId: albumId);
-          if (ok) successCount++;
-        }
-        onClearSelection();
-        if (context.mounted) {
-          if (successCount > 0) {
-            showToast(l10n.batchAddedToCloudFavorites);
-          } else {
-            showToast(l10n.starFailed);
-          }
-        }
-        return;
+      // 1. 专辑
+      for (final albumId in albumIds) {
+        if (await client.star(albumId: albumId)) successCount++;
       }
 
-      // 2. Artist multi-selection mode
-      if (selectedArtistIds != null && selectedArtistIds.isNotEmpty) {
-        final artistIds = selectedArtistIds.toList();
-        final successfulArtistIds = <String>[];
-        for (final artistId in artistIds) {
-          final ok = await client.star(artistId: artistId);
-          if (ok) {
-            successCount++;
-            successfulArtistIds.add(artistId);
-          }
+      // 2. 艺术家
+      for (final artistId in artistIds) {
+        if (await client.star(artistId: artistId)) {
+          successCount++;
+          successfulArtistIds.add(artistId);
         }
-        if (successfulArtistIds.isNotEmpty) {
-          onStarredArtistsChanged?.call(successfulArtistIds);
-        }
-        onClearSelection();
-        if (context.mounted) {
-          if (successCount > 0) {
-            showToast(l10n.batchAddedToCloudFavorites);
-          } else {
-            showToast(l10n.starFailed);
-          }
-        }
-        return;
+      }
+      if (successfulArtistIds.isNotEmpty) {
+        onStarredArtistsChanged?.call(successfulArtistIds);
       }
 
-      // 3. Songs mode (songs tab, search tab, or detail pages)
-      final songs = await _withLoading(
-        context: context,
-        message: l10n.loadingAlbumTracks,
-        indicatorColor: brandColor,
-        task: onFetchSongs,
-      );
-      if (songs == null || songs.isEmpty) return;
-
-      final validTrackIds = <String>[];
-      for (final song in songs) {
-        final trackId = RemoteMediaResolver.extractTrackId(song) ??
-            (song.id != null && song.id! > 0 ? song.id.toString() : '');
-        if (trackId.isNotEmpty) {
-          validTrackIds.add(trackId);
-        }
+      // 3. 曲目
+      //
+      // 优先用调用方已经算好的「直接勾选曲目」：搜索页混选时一张专辑展开出来
+      // 的歌不该再逐首收藏一遍，勾中的那几首才算。只有整份选择里没有任何集合
+      // （详情页、歌曲 Tab）时才回退到 onFetchSongs 现拉。
+      List<MusicFile> trackSongs;
+      if (directSongs != null) {
+        trackSongs = directSongs;
+      } else if (albumIds.isEmpty && artistIds.isEmpty) {
+        final fetched = await _withLoading(
+          context: context,
+          message: l10n.loadingAlbumTracks,
+          indicatorColor: brandColor,
+          task: onFetchSongs,
+        );
+        trackSongs = fetched ?? const <MusicFile>[];
+      } else {
+        trackSongs = const <MusicFile>[];
       }
 
       final successfulTrackIds = <String>[];
-      for (final id in validTrackIds) {
-        final ok = await client.star(id: id);
-        if (ok) {
+      for (final song in trackSongs) {
+        final trackId = RemoteMediaResolver.extractTrackId(song) ??
+            (song.id != null && song.id! > 0 ? song.id.toString() : '');
+        if (trackId.isEmpty) continue;
+        if (await client.star(id: trackId)) {
           successCount++;
-          successfulTrackIds.add(id);
+          successfulTrackIds.add(trackId);
         }
       }
-
       if (successfulTrackIds.isNotEmpty) {
         onStarredChanged?.call(successfulTrackIds);
       }
+
       onClearSelection();
       if (context.mounted) {
         if (successCount > 0) {

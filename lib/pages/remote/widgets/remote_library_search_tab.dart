@@ -6,7 +6,9 @@ import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/remote_server_riverpod.dart';
+import '../../../player/remote/services/remote_download_service.dart';
 import '../../../utils/remote_context_menu_utils.dart';
+import '../../../utils/search_selection_utils.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../widgets/library_large_title.dart';
 import '../../../widgets/remote_artwork_widget.dart';
@@ -78,6 +80,15 @@ class RemoteLibrarySearchToolbar extends StatelessWidget {
   }
 }
 
+/// 远程媒体库搜索页的结果区。
+///
+/// 多选与本地搜索页同构：艺术家 / 专辑 / 歌曲三段共用**一套**选择集，键是
+/// `<类型>:<id>`（见 `search_selection_utils.dart`）。勾选艺术家或专辑时按
+/// 「它包含的全部歌曲」参与批量动作，所以同一页里可以自由混选，Shift 连选也
+/// 能按视觉顺序（艺术家 → 专辑 → 歌曲）跨段连起来。
+///
+/// 索引与键必须同源：页面视觉顺序由 [entryKeysFor] 唯一决定，视图内部按这个
+/// 序列算各段 base 索引，调用方算「全选」也用同一份，禁止各自推一遍。
 class RemoteLibrarySearchView extends ConsumerWidget {
   final RemoteServer server;
   final String password;
@@ -87,18 +98,25 @@ class RemoteLibrarySearchView extends ConsumerWidget {
   final List<Map<String, dynamic>> searchedArtists;
   final bool isSearching;
   final double bottomOffset;
-  final bool isArtistSelectionMode;
-  final bool isAlbumSelectionMode;
-  final bool isSongSelectionMode;
-  final Set<String> selectedArtistIds;
-  final Set<String> selectedAlbumIds;
-  final Set<String> selectedSongPaths;
-  final int? lastSongAnchorIndex;
-  final void Function(Set<String> keys) onSetSongSelection;
-  final void Function(String path) onToggleSongSelection;
-  final void Function(int? index) onUpdateSongAnchor;
-  final void Function(String artistId) onToggleArtistSelection;
-  final void Function(String albumId) onToggleAlbumSelection;
+
+  /// 整页是否处于多选态（选择集非空）。
+  final bool isSelectionMode;
+
+  /// 当前选择集，键为 `album:<id>` / `artist:<id>` / `song:<path>`。
+  final Set<String> selectedKeys;
+
+  /// Shift 连选的锚点（[entryKeysFor] 序列里的下标）。
+  final int? lastAnchorIndex;
+
+  final void Function(Set<String> keys) onSetSelection;
+  final void Function(String key) onToggleSelection;
+  final void Function(int? index) onUpdateAnchor;
+
+  /// 多选态下右键歌曲时，把整份选择集展开成曲目批次。
+  ///
+  /// 远程的专辑 / 艺术家条目不带曲目，展开必须走网络，所以交给页面注入。
+  final Future<List<RemoteDownloadBatch>> Function()? resolveSelectionBatches;
+
   final Widget? toolbar;
 
   const RemoteLibrarySearchView({
@@ -111,20 +129,33 @@ class RemoteLibrarySearchView extends ConsumerWidget {
     required this.searchedArtists,
     this.isSearching = false,
     required this.bottomOffset,
-    required this.isArtistSelectionMode,
-    required this.isAlbumSelectionMode,
-    required this.isSongSelectionMode,
-    required this.selectedArtistIds,
-    required this.selectedAlbumIds,
-    required this.selectedSongPaths,
-    required this.lastSongAnchorIndex,
-    required this.onSetSongSelection,
-    required this.onToggleSongSelection,
-    required this.onUpdateSongAnchor,
-    required this.onToggleArtistSelection,
-    required this.onToggleAlbumSelection,
+    required this.isSelectionMode,
+    required this.selectedKeys,
+    required this.lastAnchorIndex,
+    required this.onSetSelection,
+    required this.onToggleSelection,
+    required this.onUpdateAnchor,
+    this.resolveSelectionBatches,
     this.toolbar,
   });
+
+  /// 页面条目的扁平键序列，顺序即视觉顺序：艺术家 → 专辑 → 歌曲。
+  ///
+  /// 全选、Shift 连选、各段 base 索引都只认这一份，避免「键的顺序」和
+  /// 「行渲染的顺序」各推一遍后错位。空 id 也照样占位，否则某一段里出现
+  /// 一条残缺数据就会让后面所有条目的下标整体偏移。
+  static List<String> entryKeysFor({
+    required List<Map<String, dynamic>> artists,
+    required List<Map<String, dynamic>> albums,
+    required List<MusicFile> songs,
+  }) {
+    return [
+      for (final artist in artists)
+        artistSelectionKey(artist['id']?.toString() ?? ''),
+      for (final album in albums) albumSelectionKey(album['id']?.toString() ?? ''),
+      for (final song in songs) songSelectionKey(song.path),
+    ];
+  }
 
   String _buildSongSubtitle(MusicFile song, AppLocalizations l10n) {
     final album = song.album?.trim();
@@ -147,18 +178,52 @@ class RemoteLibrarySearchView extends ConsumerWidget {
         ),
       );
 
+  /// 长按 / 右键「多选」共用的入口：记锚点再切一条。
+  void _enterSelection(int index, String key) {
+    onUpdateAnchor(index);
+    onToggleSelection(key);
+  }
+
+  /// 三段行共用的一条点击：Shift 连选、Ctrl 点选、普通点击各走各的。
+  ///
+  /// 键从 `entryKeys[index]` 取，索引与键天然同源；`onNormalTap` 只在非多选态
+  /// 且没按修饰键时执行（进详情 / 播放）。
+  void _handleTap({
+    required int index,
+    required String key,
+    required List<String> entryKeys,
+    required VoidCallback onNormalTap,
+  }) {
+    SelectionActionHelper.handleItemTap<String, String>(
+      index: index,
+      itemKey: key,
+      items: entryKeys,
+      keySelector: (entry) => entry,
+      isSelectionMode: isSelectionMode,
+      selectedKeys: selectedKeys,
+      lastAnchorIndex: lastAnchorIndex,
+      onUpdateAnchor: onUpdateAnchor,
+      onSetSelection: onSetSelection,
+      onToggleSelection: onToggleSelection,
+      onNormalTap: onNormalTap,
+    );
+  }
+
   Widget _artistRow(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
     ThemeData theme,
     Map<String, dynamic> artist,
+    int index,
+    List<String> entryKeys,
   ) {
     final artistId = artist['id'] as String? ?? '';
     final artistName = artist['name'] as String? ?? l10n.unknownArtist;
     final coverArtId = artist['coverArt'] as String?;
     final albumCount = artist['albumCount'] as int?;
-    final isMultiSelected = selectedArtistIds.contains(artistId);
+    final key = entryKeys[index];
+    final isSelected = isSelectionMode && selectedKeys.contains(key);
     final isStarred = (ref
                 .watch(activeRemoteSessionProvider)
                 ?.navidromeStarredArtistIds
@@ -167,58 +232,51 @@ class RemoteLibrarySearchView extends ConsumerWidget {
         artist['isFavorite'] == true ||
         artist['starred'] != null;
 
+    void openDetails() {
+      RemoteLibraryNavUtils.openArtist(
+        context,
+        server: server,
+        password: password,
+        artistId: artistId,
+        artistName: artistName,
+        coverArtId: coverArtId,
+        albumCount: albumCount,
+      );
+    }
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      // 多选态下菜单照常弹，只是不再提供「多选」入口 —— 与本地搜索页一致。
       onSecondaryTapDown: (details) {
-        if (!isArtistSelectionMode) {
-          showRemoteArtistContextMenu(
-            context: context,
-            globalPosition: details.globalPosition,
-            ref: ref,
-            server: server,
-            password: password,
-            artistId: artistId,
-            artistName: artistName,
-            isStarred: isStarred,
-            onViewDetails: () {
-              RemoteLibraryNavUtils.openArtist(
-                context,
-                server: server,
-                password: password,
-                artistId: artistId,
-                artistName: artistName,
-                coverArtId: coverArtId,
-                albumCount: albumCount,
-              );
-            },
-          );
-        }
+        showRemoteArtistContextMenu(
+          context: context,
+          globalPosition: details.globalPosition,
+          ref: ref,
+          server: server,
+          password: password,
+          artistId: artistId,
+          artistName: artistName,
+          isStarred: isStarred,
+          onMultiSelect: isSelectionMode
+              ? null
+              : () => _enterSelection(index, key),
+          onViewDetails: openDetails,
+        );
       },
-      onLongPressStart: (details) {
-        onToggleArtistSelection(artistId);
-      },
+      onLongPressStart: (details) => _enterSelection(index, key),
       child: Material(
-        color: isArtistSelectionMode && isMultiSelected
+        color: isSelected
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            if (isArtistSelectionMode) {
-              onToggleArtistSelection(artistId);
-            } else {
-              RemoteLibraryNavUtils.openArtist(
-                context,
-                server: server,
-                password: password,
-                artistId: artistId,
-                artistName: artistName,
-                coverArtId: coverArtId,
-                albumCount: albumCount,
-              );
-            }
-          },
+          onTap: () => _handleTap(
+            index: index,
+            key: key,
+            entryKeys: entryKeys,
+            onNormalTap: openDetails,
+          ),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 8),
             leading: ClipRRect(
@@ -233,23 +291,19 @@ class RemoteLibrarySearchView extends ConsumerWidget {
             title: Text(
               artistName,
               style: TextStyle(
-                fontWeight: isArtistSelectionMode && isMultiSelected
-                    ? FontWeight.bold
-                    : null,
-                color: isArtistSelectionMode && isMultiSelected
-                    ? theme.colorScheme.primary
-                    : null,
+                fontWeight: isSelected ? FontWeight.bold : null,
+                color: isSelected ? theme.colorScheme.primary : null,
               ),
             ),
             subtitle: albumCount != null
                 ? Text(l10n.albumCount(albumCount))
                 : null,
-            trailing: isArtistSelectionMode
+            trailing: isSelectionMode
                 ? Icon(
-                    isMultiSelected
+                    isSelected
                         ? Icons.check_circle_rounded
                         : Icons.radio_button_unchecked_rounded,
-                    color: isMultiSelected
+                    color: isSelected
                         ? theme.colorScheme.primary
                         : theme.colorScheme.outlineVariant,
                     size: 20,
@@ -263,13 +317,14 @@ class RemoteLibrarySearchView extends ConsumerWidget {
 
   /// 专辑段改为竖向封面网格，网格数学与远程流派详情页同一套：
   /// 列数按 168 一列自适应，行高按封面 + 标题/艺人两行文本预留。
-  /// 多选、右键菜单、长按多选行为原样保留，只从横向列表换成网格。
   Widget _albumGridSliver(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
     ThemeData theme,
     double contentWidth,
+    int baseIndex,
+    List<String> entryKeys,
   ) {
     final columns = (contentWidth / 168).floor().clamp(2, 6);
     const spacing = 14.0;
@@ -291,6 +346,8 @@ class RemoteLibrarySearchView extends ConsumerWidget {
           l10n,
           theme,
           searchedAlbums[index],
+          baseIndex + index,
+          entryKeys,
           cellWidth,
         ),
         childCount: searchedAlbums.length,
@@ -304,6 +361,8 @@ class RemoteLibrarySearchView extends ConsumerWidget {
     AppLocalizations l10n,
     ThemeData theme,
     Map<String, dynamic> album,
+    int index,
+    List<String> entryKeys,
     double coverSize,
   ) {
     final albumId = album['id'] as String? ?? '';
@@ -312,59 +371,52 @@ class RemoteLibrarySearchView extends ConsumerWidget {
         l10n.unknownAlbum;
     final artist = album['artist'] as String? ?? l10n.unknownArtist;
     final coverId = album['coverArt'] as String?;
-    final isSelected = selectedAlbumIds.contains(albumId);
+    final key = entryKeys[index];
+    final isSelected = isSelectionMode && selectedKeys.contains(key);
+
+    void openDetails() {
+      RemoteLibraryNavUtils.openAlbum(
+        context,
+        server: server,
+        password: password,
+        albumId: albumId,
+        albumName: title,
+        artistName: artist,
+        coverArtId: coverId,
+      );
+    }
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onSecondaryTapDown: (details) {
-        if (!isAlbumSelectionMode) {
-          showRemoteAlbumContextMenu(
-            context: context,
-            globalPosition: details.globalPosition,
-            ref: ref,
-            server: server,
-            password: password,
-            albumId: albumId,
-            albumTitle: title,
-            artistName: artist,
-            coverArtId: coverId,
-            onViewDetails: () {
-              RemoteLibraryNavUtils.openAlbum(
-                context,
-                server: server,
-                password: password,
-                albumId: albumId,
-                albumName: title,
-                artistName: artist,
-                coverArtId: coverId,
-              );
-            },
-          );
-        }
+        showRemoteAlbumContextMenu(
+          context: context,
+          globalPosition: details.globalPosition,
+          ref: ref,
+          server: server,
+          password: password,
+          albumId: albumId,
+          albumTitle: title,
+          artistName: artist,
+          coverArtId: coverId,
+          onMultiSelect: isSelectionMode
+              ? null
+              : () => _enterSelection(index, key),
+          onViewDetails: openDetails,
+        );
       },
-      onLongPressStart: (details) {
-        onToggleAlbumSelection(albumId);
-      },
+      onLongPressStart: (details) => _enterSelection(index, key),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
-          onTap: () {
-            if (isAlbumSelectionMode) {
-              onToggleAlbumSelection(albumId);
-            } else {
-              RemoteLibraryNavUtils.openAlbum(
-                context,
-                server: server,
-                password: password,
-                albumId: albumId,
-                albumName: title,
-                artistName: artist,
-                coverArtId: coverId,
-              );
-            }
-          },
+          onTap: () => _handleTap(
+            index: index,
+            key: key,
+            entryKeys: entryKeys,
+            onNormalTap: openDetails,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -375,10 +427,10 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isAlbumSelectionMode && isSelected
+                        color: isSelected
                             ? theme.colorScheme.primary
                             : Colors.transparent,
-                        width: isAlbumSelectionMode && isSelected ? 2 : 0,
+                        width: isSelected ? 2 : 0,
                       ),
                     ),
                     child: RemoteArtworkWidget(
@@ -391,7 +443,7 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),
-                  if (isAlbumSelectionMode)
+                  if (isSelectionMode)
                     Positioned.fill(
                       child: Container(
                         decoration: BoxDecoration(
@@ -403,7 +455,7 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  if (isAlbumSelectionMode)
+                  if (isSelectionMode)
                     Positioned(
                       top: 4,
                       left: 4,
@@ -412,7 +464,7 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                         height: 20,
                         child: Checkbox(
                           value: isSelected,
-                          onChanged: (_) => onToggleAlbumSelection(albumId),
+                          onChanged: (_) => onToggleSelection(key),
                           fillColor: WidgetStateProperty.all(Colors.white),
                           checkColor: Colors.black,
                           shape: RoundedRectangleBorder(
@@ -429,12 +481,8 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: isAlbumSelectionMode && isSelected
-                      ? FontWeight.bold
-                      : FontWeight.w600,
-                  color: isAlbumSelectionMode && isSelected
-                      ? theme.colorScheme.primary
-                      : null,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  color: isSelected ? theme.colorScheme.primary : null,
                 ),
               ),
               const SizedBox(height: 1),
@@ -459,63 +507,55 @@ class RemoteLibrarySearchView extends ConsumerWidget {
     AppLocalizations l10n,
     ThemeData theme,
     MusicFile song,
+    int songIndex,
     int index,
+    List<String> entryKeys,
   ) {
-    final isSelected = selectedSongPaths.contains(song.path);
+    final key = entryKeys[index];
+    final isSelected = isSelectionMode && selectedKeys.contains(key);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onSecondaryTapDown: (details) {
-        if (!isSongSelectionMode) {
-          showRemoteSongContextMenu(
-            context: context,
-            globalPosition: details.globalPosition,
-            ref: ref,
-            server: server,
-            password: password,
-            song: song,
-            onMultiSelect: () {
-              onUpdateSongAnchor(index);
-              onToggleSongSelection(song.path);
-            },
-          );
-        }
+        showRemoteSongContextMenu(
+          context: context,
+          globalPosition: details.globalPosition,
+          ref: ref,
+          server: server,
+          password: password,
+          song: song,
+          onMultiSelect: isSelectionMode
+              ? null
+              : () => _enterSelection(index, key),
+          // 多选态下整份选择集才是动作对象：专辑 / 艺术家的曲目要现拉，
+          // 由页面注入的批次解析负责。非多选态仍是单曲。
+          resolveSelectionBatches:
+              isSelectionMode ? resolveSelectionBatches : null,
+        );
       },
-      onLongPressStart: (details) {
-        onUpdateSongAnchor(index);
-        onToggleSongSelection(song.path);
-      },
+      onLongPressStart: (details) => _enterSelection(index, key),
       child: Material(
-        color: isSongSelectionMode && isSelected
+        color: isSelected
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: () {
-            SelectionActionHelper.handleItemTap(
-              index: index,
-              itemKey: song.path,
-              items: searchedSongs,
-              keySelector: (s) => s.path,
-              isSelectionMode: isSongSelectionMode,
-              selectedKeys: selectedSongPaths,
-              lastAnchorIndex: lastSongAnchorIndex,
-              onUpdateAnchor: onUpdateSongAnchor,
-              onSetSelection: onSetSongSelection,
-              onToggleSelection: onToggleSongSelection,
-              onNormalTap: () async {
-                final audioService = ref.read(audioServiceProvider);
-                await audioService.playPlaylist(
-                  searchedSongs,
-                  initialIndex: index,
-                );
-              },
-            );
-          },
+          onTap: () => _handleTap(
+            index: index,
+            key: key,
+            entryKeys: entryKeys,
+            onNormalTap: () async {
+              final audioService = ref.read(audioServiceProvider);
+              await audioService.playPlaylist(
+                searchedSongs,
+                initialIndex: songIndex,
+              );
+            },
+          ),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            leading: isSongSelectionMode
+            leading: isSelectionMode
                 ? Icon(
                     isSelected
                         ? Icons.check_circle_rounded
@@ -531,12 +571,8 @@ class RemoteLibrarySearchView extends ConsumerWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontWeight: isSongSelectionMode && isSelected
-                    ? FontWeight.bold
-                    : FontWeight.normal,
-                color: isSongSelectionMode && isSelected
-                    ? theme.colorScheme.primary
-                    : null,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? theme.colorScheme.primary : null,
               ),
             ),
             subtitle: Text(
@@ -563,6 +599,16 @@ class RemoteLibrarySearchView extends ConsumerWidget {
     // （SliverGrid 保持懒加载），其余段落仍是按需构建的行列表。
     // 水平 16 内边距由外层 Padding 统一扣，列数按可用宽度自适应。
     final hasResults = !isEmpty;
+
+    // 视觉顺序的唯一来源：艺术家 → 专辑 → 歌曲。各段 base 索引也按它算，
+    // 与调用方算「全选」用的是同一份序列。
+    final entryKeys = RemoteLibrarySearchView.entryKeysFor(
+      artists: searchedArtists,
+      albums: searchedAlbums,
+      songs: searchedSongs,
+    );
+    final albumBase = searchedArtists.length;
+    final songBase = albumBase + searchedAlbums.length;
 
     return RemoteContentConstraint(
       padding: EdgeInsets.zero,
@@ -605,7 +651,9 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                                       ref,
                                       l10n,
                                       theme,
-                                      searchedArtists[index]),
+                                      searchedArtists[index],
+                                      index,
+                                      entryKeys),
                                   childCount: searchedArtists.length,
                                 ),
                               ),
@@ -624,6 +672,8 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                                 l10n,
                                 theme,
                                 contentWidth,
+                                albumBase,
+                                entryKeys,
                               ),
                               const SliverToBoxAdapter(
                                 child: SizedBox(height: 12),
@@ -642,7 +692,9 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                                       l10n,
                                       theme,
                                       searchedSongs[index],
-                                      index),
+                                      index,
+                                      songBase + index,
+                                      entryKeys),
                                   childCount: searchedSongs.length,
                                 ),
                               ),

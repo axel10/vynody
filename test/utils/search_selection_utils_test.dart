@@ -49,6 +49,26 @@ void main() {
     test('键去掉首尾空白，避免同一路径两种写法各占一条', () {
       expect(songSelectionKey('  /a/b.mp3 '), songSelectionKey('/a/b.mp3'));
     });
+
+    test('按类型把统一选择集拆回 id / 路径', () {
+      final keys = <String>{
+        albumSelectionKey('al-1'),
+        artistSelectionKey('ar-1'),
+        songSelectionKey('/a.mp3'),
+        songSelectionKey('/b.mp3'),
+        // 空 id 不占一条：拆出来的空串对上层没有意义。
+        albumSelectionKey(''),
+      };
+
+      expect(selectionIdsOfKind(keys, SearchEntryKind.album), {'al-1'});
+      expect(selectionIdsOfKind(keys, SearchEntryKind.artist), {'ar-1'});
+      expect(
+        selectionIdsOfKind(keys, SearchEntryKind.song),
+        {'/a.mp3', '/b.mp3'},
+      );
+      expect(selectionIdsOfKind(keys, SearchEntryKind.playlist), isEmpty);
+      expect(selectionIdsOfKind(const {}, SearchEntryKind.song), isEmpty);
+    });
   });
 
   group('SearchEntry', () {

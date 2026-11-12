@@ -29,6 +29,23 @@ String artistSelectionKey(String queryKey) =>
 String playlistSelectionKey(String id) =>
     _keyOf(SearchEntryKind.playlist, id.trim());
 
+/// 从统一选择集里剥出某一类的 id / 路径。
+///
+/// 远程搜索页把艺术家 / 专辑 / 歌曲放进同一个 `Set<String>`，交给批量动作时
+/// 又要按类型分开（收藏要分「收藏专辑」与「收藏曲目」），所以需要这一步反向
+/// 拆分。前缀只认 `<kind>:`，不认识的键原样忽略。
+Set<String> selectionIdsOfKind(Set<String> keys, SearchEntryKind kind) {
+  final prefix = '${kind.name}:';
+  final ids = <String>{};
+  for (final key in keys) {
+    if (key.startsWith(prefix)) {
+      final id = key.substring(prefix.length);
+      if (id.isNotEmpty) ids.add(id);
+    }
+  }
+  return ids;
+}
+
 /// 一条搜索结果条目的最小描述。
 ///
 /// 只带「展开成歌曲」与「画勾选态」需要的东西，不复制实体本身——实体对象

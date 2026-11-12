@@ -167,6 +167,9 @@ class RemoteSongSelectionPanel extends ConsumerWidget {
               password: password,
               selectedAlbumIds: selectedAlbumIds,
               selectedArtistIds: selectedArtistIds,
+              // 面板手里的曲目就是「直接勾中的那些」：集合类条目（专辑 /
+              // 艺术家）展开出来的歌不该被逐首再收藏一遍。
+              directSongs: selectedSongs,
               onFetchSongs: onFetchSongs,
               onClearSelection: onClearSelection,
               onStarredChanged: onStarredChanged,
