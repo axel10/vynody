@@ -2001,6 +2001,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
         icon: Icons.refresh_rounded,
         label: l10n.refresh,
         hideInNarrow: true,
+        collapseInWide: true,
         onPressed: () {
           final tabIndex = ref.read(remoteLibraryActiveTabIndexProvider);
           if (tabIndex != null) {

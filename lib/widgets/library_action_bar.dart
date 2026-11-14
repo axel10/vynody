@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
@@ -45,6 +47,7 @@ class LibraryToolbarAction {
     this.keepInNarrow = false,
     this.hideInWide = false,
     this.hideInNarrow = false,
+    this.collapseInWide = false,
     this.wideButton,
     this.menuEntries,
   });
@@ -75,6 +78,10 @@ class LibraryToolbarAction {
   /// 竖屏不显示（既不外露也不进「更多」），仅在横屏展示。
   /// 例如远程媒体库横屏顶部的手动刷新按钮（竖屏已有下拉刷新）。
   final bool hideInNarrow;
+
+  /// 横屏也收进「更多」菜单（不平铺在顶部栏）。
+  /// 适用于低频或重操作（如「全部下载」「刷新」），避免横屏按钮过多导致拥挤或溢出。
+  final bool collapseInWide;
 
   final Widget? wideButton;
 
@@ -386,28 +393,77 @@ class _LibraryActionBarState extends State<LibraryActionBar> {
     ]);
 
     if (widget.isWide) {
+      final countStyle = theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w500,
+      );
       final countText = widget.countLabel != null && widget.countLabel!.isNotEmpty
           ? Text(
               widget.countLabel!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
-              ),
+              style: countStyle,
             )
           : null;
+      double countReserveWidth = 0.0;
+      if (countText != null) {
+        final painter = TextPainter(
+          text: TextSpan(text: widget.countLabel!, style: countStyle),
+          maxLines: 1,
+          textDirection: Directionality.of(context),
+        )..layout();
+        countReserveWidth = math.min(painter.width, 160.0) + 12.0;
+      }
+
+      final visibleWideActions =
+          widget.actions.where((a) => !a.hideInWide).toList(growable: false);
+      final candidateActions = visibleWideActions
+          .where((a) => !a.collapseInWide)
+          .toList(growable: false);
+      final hasAlwaysCollapsed =
+          visibleWideActions.any((a) => a.collapseInWide);
 
       return ConstrainedBox(
         // 只兜底不锁死：横屏这一行可能并进大标题（比 44 高），锁死会把它裁掉。
         constraints: const BoxConstraints(minHeight: kLibraryActionBarHeight),
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth;
+            final leadingMaxWidth = widget.leading != null
+                ? (maxWidth * 0.38).clamp(0.0, 360.0).toDouble()
+                : 0.0;
             // 桌面迷你窗横屏时可用宽度可能不到 400，搜索框按宽度收缩，
             // 免得「240 搜索框 + 全部动作按钮」把 Row 撑出 overflow。
-            final searchWidth = (constraints.maxWidth * 0.28)
-                .clamp(120.0, kLibraryActionBarSearchWidth)
-                .toDouble();
+            final searchWidth = widget.showSearch
+                ? (maxWidth * 0.28)
+                    .clamp(120.0, kLibraryActionBarSearchWidth)
+                    .toDouble()
+                : 0.0;
+
+            final fixedWidth =
+                (widget.leading != null ? leadingMaxWidth + 16.0 : 0.0) +
+                    (widget.showSearch ? searchWidth + 8.0 : 0.0) +
+                    playButtons.length * LibraryToolbarMetrics.buttonSize +
+                    countReserveWidth;
+            final availableForActions = math.max(0.0, maxWidth - fixedWidth);
+            const btnSize = LibraryToolbarMetrics.buttonSize;
+
+            final bool needsMoreButton = hasAlwaysCollapsed ||
+                candidateActions.length * btnSize > availableForActions;
+            final int maxFlatCount = needsMoreButton
+                ? ((availableForActions - btnSize) / btnSize)
+                    .floor()
+                    .clamp(0, candidateActions.length)
+                : candidateActions.length;
+
+            final flatSet = candidateActions.take(maxFlatCount).toSet();
+            final flatActions = candidateActions
+                .where(flatSet.contains)
+                .toList(growable: false);
+            final wideMoreActions = visibleWideActions
+                .where((a) => a.collapseInWide || !flatSet.contains(a))
+                .toList(growable: false);
+
             return Row(
               children: [
                 if (widget.leading != null) ...[
@@ -415,9 +471,7 @@ class _LibraryActionBarState extends State<LibraryActionBar> {
                   // 结果按钮组停在中间而不是贴右（且 Flex 不会回收 loose 子项的
                   // 剩余空间）。这里按可用宽度直接收口，剩余全给 Spacer。
                   ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: constraints.maxWidth * 0.45,
-                    ),
+                    constraints: BoxConstraints(maxWidth: leadingMaxWidth),
                     child: widget.leading!,
                   ),
                   const SizedBox(width: 16),
@@ -431,8 +485,11 @@ class _LibraryActionBarState extends State<LibraryActionBar> {
                   const SizedBox(width: 8),
                 ],
                 ...playButtons,
-                for (final action in widget.actions)
-                  if (!action.hideInWide) _buildActionButton(action),
+                for (final action in flatActions) _buildActionButton(action),
+                if (wideMoreActions.isNotEmpty)
+                  libraryToolbarMoreButton(
+                    actions: () => wideMoreActions,
+                  ),
                 if (countText != null) ...[
                   const SizedBox(width: 12),
                   // 必须用 Expanded 顶住剩余空间再靠右摆放：写成

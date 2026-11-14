@@ -10,6 +10,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
+import 'package:vynody/widgets/library_action_bar.dart';
 import 'package:vynody/widgets/library_zoom_popover.dart';
 import 'package:vynody/widgets/song_zoom_item.dart';
 
@@ -33,6 +34,9 @@ void main() {
   Future<SettingsService> pumpToolbar(
     WidgetTester tester, {
     required Size size,
+    List<LibraryToolbarAction> trailingActions = const <LibraryToolbarAction>[],
+    String? title,
+    String? countLabel,
   }) async {
     tester.view.physicalSize = size * 2.0;
     tester.view.devicePixelRatio = 2.0;
@@ -52,6 +56,9 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: RemoteLibrarySongsToolbar(
+              title: title,
+              countLabel: countLabel,
+              trailingActions: trailingActions,
               searchController: TextEditingController(),
               searchFocusNode: FocusNode(),
               searchQuery: '',
@@ -205,17 +212,52 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
   }
 
-  testWidgets('横屏：所有按钮平铺，不出现「更多」按钮', (tester) async {
+  testWidgets('横屏：常用按钮平铺，「全部下载」收进「更多」菜单', (tester) async {
     await pumpToolbar(tester, size: const Size(844, 390));
 
     expect(find.byType(TextField), findsOneWidget);
     expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
     expect(find.byIcon(Icons.shuffle_rounded), findsOneWidget);
     expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.download_rounded), findsOneWidget);
     expect(find.byIcon(Icons.sort_rounded), findsOneWidget);
     expect(find.byType(LibraryZoomButton), findsOneWidget);
-    expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
+    expect(find.byIcon(Icons.download_for_offline_rounded), findsNothing);
+    expect(find.byIcon(Icons.more_vert_rounded), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.more_vert_rounded));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.download_for_offline_rounded), findsOneWidget);
+  });
+
+  testWidgets('窄横屏含大标题与库级尾缀按钮时不溢出', (tester) async {
+    await pumpToolbar(
+      tester,
+      size: const Size(560, 390),
+      title: '歌曲',
+      countLabel: '1234 首 · 82:15:30',
+      trailingActions: [
+        LibraryToolbarAction(
+          icon: Icons.refresh_rounded,
+          label: '刷新',
+          hideInNarrow: true,
+          collapseInWide: true,
+          onPressed: () {},
+        ),
+        LibraryToolbarAction(
+          icon: Icons.my_location_rounded,
+          label: '定位当前播放',
+          onPressed: () {},
+        ),
+        LibraryToolbarAction(
+          icon: Icons.download_rounded,
+          label: '下载管理',
+          onPressed: () {},
+        ),
+      ],
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.byIcon(Icons.more_vert_rounded), findsOneWidget);
   });
 
   testWidgets('竖屏：只有播放组 + 搜索 + 红心 + 更多，其余收进菜单',
@@ -228,14 +270,14 @@ void main() {
     expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
     expect(find.byIcon(Icons.more_vert_rounded), findsOneWidget);
     expect(find.byIcon(Icons.sort_rounded), findsNothing);
-    expect(find.byIcon(Icons.download_rounded), findsNothing);
+    expect(find.byIcon(Icons.download_for_offline_rounded), findsNothing);
     expect(find.byType(LibraryZoomButton), findsNothing);
 
     await tester.tap(find.byIcon(Icons.more_vert_rounded));
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.sort_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.download_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.download_for_offline_rounded), findsOneWidget);
     // 竖屏此前不显示视图档位，现在从「更多」里加回来。
     expect(find.byIcon(Icons.grid_view_rounded), findsOneWidget);
   });

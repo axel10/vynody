@@ -116,8 +116,9 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
           onToggle: onToggleStarredOnly,
         ),
         LibraryToolbarAction(
-          icon: Icons.download_rounded,
+          icon: Icons.download_for_offline_rounded,
           label: l10n.downloadAllTracks,
+          collapseInWide: true,
           onPressed: onDownloadAll,
         ),
         LibraryToolbarAction(
