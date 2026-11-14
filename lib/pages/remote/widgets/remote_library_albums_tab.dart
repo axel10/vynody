@@ -6,6 +6,7 @@ import '../../../dialogs/sort_options_dialog.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/library_action_bar.dart';
 import '../../../player/audio/audio_riverpod.dart';
+import '../../../player/platform/right_queue_drawer_controller.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_context_menu_utils.dart';
@@ -16,6 +17,7 @@ import '../../../widgets/folder_zoom_gesture_layer.dart';
 import '../../../widgets/library_zoom_popover.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../../../widgets/adaptive_pinned_header_scroll_view.dart';
+import '../../../widgets/library_large_title.dart';
 import 'remote_library_common_widgets.dart';
 import 'remote_library_toolbar_widgets.dart';
 
@@ -195,6 +197,10 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
     final albumZoomScale = ref.watch(
       settingsServiceProvider.select((s) => s.albumZoomScale),
     );
+    final topPadding = LibrarySubHostScope.maybeOf(context)?.topPadding ?? 0.0;
+    final isLandscape = ref.watch(
+      isEffectiveLandscapeProvider(MediaQuery.sizeOf(context)),
+    );
 
     return FolderZoomGestureLayer(
       scope: LibraryZoomScope.album,
@@ -212,6 +218,8 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
               constraints: BoxConstraints(maxWidth: contentWidth),
               child: AdaptivePinnedHeaderScrollView(
                 header: toolbar,
+                topPadding: topPadding,
+                isLandscape: isLandscape,
                 headerSlotBuilder: (context, h, isSliver) => isSliver
                     ? SliverRemotePageHeaderSlot(child: h)
                     : RemotePageHeaderSlot(child: h),

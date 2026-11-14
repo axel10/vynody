@@ -135,7 +135,7 @@ void main() {
   }
 
   testWidgets(
-      'RemotePlaylistDetailPage renders AppTopNavBar without actions and aligns to contentMaxWidth',
+      'RemotePlaylistDetailPage renders AppTopNavBar with refresh action in landscape only and aligns to contentMaxWidth',
       (tester) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -144,15 +144,23 @@ void main() {
     await tester.pumpWidget(createWidget());
     await tester.pump();
 
-    // Verify AppTopNavBar is rendered without actions
+    // Verify AppTopNavBar is rendered with only refresh action in landscape
     expect(find.byType(AppTopNavBar), findsOneWidget);
     expect(find.byIcon(kAppBackIcon), findsOneWidget);
+    expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
     expect(find.byIcon(Icons.download_rounded), findsNothing);
     expect(find.byIcon(Icons.my_location_rounded), findsNothing);
 
     // Verify contentMaxWidth is set
     final navBar = tester.widget<AppTopNavBar>(find.byType(AppTopNavBar));
     expect(navBar.contentMaxWidth, equals(kFolderPageMaxWidth));
-    expect(navBar.actions, isNull);
+    expect(navBar.actions, hasLength(1));
+
+    // Portrait hides top-bar refresh action (uses pull-to-refresh)
+    tester.view.physicalSize = const Size(400, 800);
+    await tester.pumpWidget(createWidget(size: const Size(400, 800)));
+    await tester.pump();
+    final portraitNavBar = tester.widget<AppTopNavBar>(find.byType(AppTopNavBar));
+    expect(portraitNavBar.actions, isNull);
   });
 }

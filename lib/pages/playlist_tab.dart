@@ -10,6 +10,7 @@ import '../models/music_file.dart';
 import '../player/audio/audio_riverpod.dart';
 import '../player/audio/playback_source.dart';
 import '../player/library/playlist_service.dart';
+import '../player/platform/right_queue_drawer_controller.dart';
 import '../utils/app_log.dart';
 import '../utils/app_snack_bar.dart';
 import '../utils/drop_data_utils.dart';
@@ -776,7 +777,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                   controller: _scrollController,
                   header: header,
                   topPadding: widget.contentTopPadding,
-                  isLandscape: !isPortrait,
+                  isLandscape: ref.watch(
+                    isEffectiveLandscapeProvider(MediaQuery.sizeOf(context)),
+                  ),
                   slivers: playlistSlivers,
                 );
               },

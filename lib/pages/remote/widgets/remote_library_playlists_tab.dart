@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../player/audio/audio_riverpod.dart';
+import '../../../player/platform/right_queue_drawer_controller.dart';
 import '../../../player/remote/clients/remote_media_library_client.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
@@ -17,6 +18,7 @@ import '../../../widgets/folder_layout_utils.dart';
 import '../../../widgets/folder_zoom_gesture_layer.dart';
 import '../../../widgets/adaptive_pinned_header_scroll_view.dart';
 import '../../../widgets/library_action_bar.dart';
+import '../../../widgets/library_large_title.dart';
 import '../../../widgets/remote_playlist_zoom_item.dart';
 import 'remote_library_toolbar_widgets.dart';
 
@@ -469,6 +471,10 @@ class _RemoteLibraryPlaylistsViewState
         snapFolderZoomScale(ref.watch(settingsServiceProvider).folderZoomScale);
     final isPortrait =
         MediaQuery.orientationOf(context) == Orientation.portrait;
+    final topPadding = LibrarySubHostScope.maybeOf(context)?.topPadding ?? 0.0;
+    final isLandscape = ref.watch(
+      isEffectiveLandscapeProvider(MediaQuery.sizeOf(context)),
+    );
 
     return FolderZoomGestureLayer(
       zoomGesturesEnabled: !widget.isSelectionMode,
@@ -477,6 +483,8 @@ class _RemoteLibraryPlaylistsViewState
           final width = constraints.maxWidth;
           return AdaptivePinnedHeaderScrollView(
             header: widget.toolbar,
+            topPadding: topPadding,
+            isLandscape: isLandscape,
             headerSlotBuilder: (context, h, isSliver) => isSliver
                 ? SliverRemotePageHeaderSlot(child: h)
                 : RemotePageHeaderSlot(child: h),

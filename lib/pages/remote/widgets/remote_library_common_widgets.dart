@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/layout_constants.dart';
+import '../../../widgets/app_tooltip.dart';
+import '../../../widgets/nav_capsule_island.dart';
 
 /// 分类页页头在普通布局里的插槽。
 ///
@@ -266,6 +268,36 @@ class RemoteLibraryErrorView extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 详情页顶部导航栏的横屏刷新按钮，尺寸与 [NavCapsuleIsland] 内动作键对齐。
+class RemoteTopNavRefreshButton extends StatelessWidget {
+  const RemoteTopNavRefreshButton({
+    super.key,
+    required this.onRefresh,
+    this.isLoading = false,
+  });
+
+  final VoidCallback onRefresh;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AppTooltip(
+      message: l10n.refresh,
+      useRootOverlay: true,
+      child: IconButton(
+        icon: const Icon(Icons.refresh_rounded, size: kNavCapsuleIconSize),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints.tightFor(
+          width: kNavCapsuleButtonSize,
+          height: kNavCapsuleButtonSize,
+        ),
+        onPressed: isLoading ? null : onRefresh,
       ),
     );
   }

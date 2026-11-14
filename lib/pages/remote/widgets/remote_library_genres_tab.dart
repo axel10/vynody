@@ -7,6 +7,7 @@ import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_library_playback.dart';
 import '../../../widgets/library_action_bar.dart';
+import '../../../widgets/library_large_title.dart';
 import '../../../widgets/library_master_pane_header.dart';
 import '../../../widgets/master_detail_scaffold.dart';
 import '../../../widgets/remote_artwork_widget.dart';
@@ -168,6 +169,7 @@ class _RemoteLibraryGenresViewState
         }
       },
       routeName: 'remote_genre_detail',
+      contentTopPadding: LibrarySubHostScope.maybeOf(context)?.topPadding ?? 0.0,
       hasPlayingMusic: hasPlayingMusic,
       onRefresh: widget.onRefresh,
       masterPaneHeaderBuilder: (headerContext) => LibraryMasterPaneHeader(

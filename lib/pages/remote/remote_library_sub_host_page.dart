@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../player/platform/right_queue_drawer_controller.dart';
 import '../../l10n/app_localizations.dart';
-import '../../widgets/floating_capsule_header.dart';
 import '../../widgets/library_action_bar.dart';
 import '../../widgets/library_header_actions.dart';
+import '../../widgets/library_large_title.dart';
 import '../../widgets/library_selection_scope.dart';
+import '../../widgets/library_sub_host_layout.dart';
 import '../../widgets/library_tab_navigator.dart';
 import '../../widgets/scroll_past_top.dart';
 import '../main_layout_riverpod.dart';
@@ -32,6 +32,7 @@ class RemoteLibrarySubHostPage extends ConsumerStatefulWidget {
     this.initialIndex,
     this.selectionPanel,
     this.onPopBlocked,
+    this.capsuleDisabledTabs = const <int>{},
   });
 
   /// 各分类的根页面构建器，一条对应一个独立导航域。
@@ -54,6 +55,9 @@ class RemoteLibrarySubHostPage extends ConsumerStatefulWidget {
 
   /// 多选态下被系统返回拦住时的回调（取消多选）。由父页提供。
   final VoidCallback? onPopBlocked;
+
+  /// 自带固定顶栏的分类索引（如搜索页），竖屏滚动时不浮出宿主返回胶囊。
+  final Set<int> capsuleDisabledTabs;
 
   @override
   ConsumerState<RemoteLibrarySubHostPage> createState() =>
@@ -87,8 +91,9 @@ class _RemoteLibrarySubHostPageState
 
   @override
   Widget build(BuildContext context) {
-    final Size size = MediaQuery.sizeOf(context);
-    final bool isLandscape = ref.watch(isEffectiveLandscapeProvider(size));
+    final hostInsets = LibrarySubHostInsets.of(context, ref);
+    final bool isLandscape = hostInsets.isLandscape;
+    final double railWidth = hostInsets.railWidth;
 
     final int? active = ref.watch(remoteLibraryActiveTabIndexProvider);
     if (active != null) {
@@ -100,26 +105,21 @@ class _RemoteLibrarySubHostPageState
 
     final bool isSelectionActive = ref.watch(isLibrarySelectionActiveProvider);
     final bool tabHasChildRoute = _tabsWithChildRoutes.contains(index);
+    final bool isCapsuleTabDisabled = widget.capsuleDisabledTabs.contains(index);
 
     // 与本地 `LibrarySubHostPage` 同一套规则：
     // * 横屏由 Rail 承担分类导航与「回概览」，胶囊收起来避免和栏目标题重复；
     // * 竖屏没有 Rail，页头又是 sliver（滚上去会把返回键带走），所以只在
-    //   离开顶部后浮出胶囊。
+    //   离开顶部后浮出胶囊（自带固定页头的分类如搜索页除外）。
     final bool capsuleAllowed =
-        !isLandscape && !tabHasChildRoute && !isSelectionActive;
-
-    final Duration headerDuration = tabHasChildRoute
-        ? Duration.zero
-        : const Duration(milliseconds: 250);
-
-    // 横屏避让 Rail 宽度，供顶栏浮动胶囊等宿主级组件定位。
-    // 分类根页面的安全边距由各 LibraryTabNavigator 根路由自行计算并避让，
-    // 使得 IndexedStack 保持全屏，子路由（详情页）自带的 avoidRail 可以精确生效一次。
-    final double railWidth = ref.watch(effectiveSidebarRailWidthProvider(size));
+        !isLandscape &&
+        !tabHasChildRoute &&
+        !isSelectionActive &&
+        !isCapsuleTabDisabled;
 
     final Widget body = ScrollPastTopScope(
       tabIndex: index,
-      enabled: !isLandscape && !tabHasChildRoute,
+      enabled: !isLandscape && !tabHasChildRoute && !isCapsuleTabDisabled,
       builder: (context, isPastTop) => Stack(
         children: [
           Positioned.fill(
@@ -131,24 +131,21 @@ class _RemoteLibrarySubHostPageState
                     navigatorKey: widget.navigatorKeys[i],
                     builder: (tabContext) => Consumer(
                       builder: (context, ref, child) {
-                        final tabSize = MediaQuery.sizeOf(context);
-                        final tabIsLandscape =
-                            ref.watch(isEffectiveLandscapeProvider(tabSize));
-                        final tabTopInset =
-                            MediaQuery.paddingOf(context).top +
-                            (tabIsLandscape ? 8.0 : 0.0);
-                        final tabRailWidth = ref.watch(
-                          effectiveSidebarRailWidthProvider(tabSize),
-                        );
+                        final tabInsets = LibrarySubHostInsets.of(context, ref);
                         return LibraryHeaderActionsScope(
                           tabIndex: i,
                           controller: _headerActions,
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              top: tabTopInset,
-                              left: tabRailWidth,
+                          child: LibrarySubHostScope(
+                            onBack: widget.onBack,
+                            topPadding: tabInsets.topPadding,
+                            leftPadding: tabInsets.railWidth,
+                            child: Padding(
+                              padding: EdgeInsets.only(left: tabInsets.railWidth),
+                              child: Builder(
+                                builder: (scopeContext) =>
+                                    widget.tabs[i](scopeContext),
+                              ),
                             ),
-                            child: widget.tabs[i](context),
                           ),
                         );
                       },
@@ -159,33 +156,22 @@ class _RemoteLibrarySubHostPageState
               ],
             ),
           ),
-          Positioned(
-            top: 0,
-            left: railWidth,
-            right: 0,
-            child: FloatingCapsuleHeader(
-              visible: capsuleAllowed && isPastTop,
-              duration: headerDuration,
-              // 胶囊与内容区同源避让：`Padding(left: railWidth)` 已经在外层
-              // 生效，这里只补 4/8 的呼吸位。
-              child: Padding(
-                padding: const EdgeInsets.only(top: 4, left: 8, right: 8),
-                // 竖屏滚动离开顶部后只剩「返回 + 更多」。刷新不属于页头动作行
-                // （每页页头都没有它），作为固定项附在菜单末尾 —— 页头滚走之后
-                // 仍然需要「重试当前分类」的入口。
-                child: LibraryTopNavCapsule(
-                  controller: _headerActions,
-                  onBack: widget.onBack,
-                  extraActions: <LibraryToolbarAction>[
-                    LibraryToolbarAction(
-                      icon: Icons.refresh_rounded,
-                      label: AppLocalizations.of(context)!.refresh,
-                      onPressed: () => widget.onRefresh(index),
-                    ),
-                  ],
-                ),
+          LibraryFloatingNavCapsuleOverlay(
+            railWidth: railWidth,
+            visible: capsuleAllowed && isPastTop,
+            tabHasChildRoute: tabHasChildRoute,
+            controller: _headerActions,
+            onBack: widget.onBack,
+            // 竖屏滚动离开顶部后只剩「返回 + 更多」。刷新不属于页头动作行
+            // （每页页头都没有它），作为固定项附在菜单末尾 —— 页头滚走之后
+            // 仍然需要「重试当前分类」的入口。
+            extraActions: <LibraryToolbarAction>[
+              LibraryToolbarAction(
+                icon: Icons.refresh_rounded,
+                label: AppLocalizations.of(context)!.refresh,
+                onPressed: () => widget.onRefresh(index),
               ),
-            ),
+            ],
           ),
           if (widget.selectionPanel != null) widget.selectionPanel!,
         ],

@@ -25,6 +25,7 @@ import '../../utils/remote_download_feedback.dart';
 import '../../widgets/library_selection_scope.dart';
 import '../../widgets/playback_ui_tuning.dart';
 import '../../widgets/remote_page_shell.dart';
+import 'widgets/remote_library_common_widgets.dart';
 import 'widgets/remote_song_selection_panel.dart';
 import '../../widgets/app_top_nav_bar.dart';
 import '../../widgets/folder_layout_utils.dart';
@@ -1044,7 +1045,9 @@ class _RemotePlaylistDetailContentState
       final double iconSize = isPortrait ? 20.0 : 18.0;
       final double buttonSpacing = isPortrait ? 10.0 : 8.0;
 
-      scrollBody = FolderZoomGestureLayer(
+      scrollBody = RefreshIndicator(
+        onRefresh: () => _loadPlaylistDetails(forceRefresh: true),
+        child: FolderZoomGestureLayer(
         reorderActive: _reorderController.reorderActive,
         zoomGesturesEnabled: !isSelectionMode,
         child: LayoutBuilder(
@@ -1739,6 +1742,7 @@ class _RemotePlaylistDetailContentState
             );
           },
         ),
+      ),
       );
     }
 
@@ -1754,6 +1758,14 @@ class _RemotePlaylistDetailContentState
         isFloatingCapsule: isPastTop,
         contentMaxWidth: kFolderPageMaxWidth,
         onBack: _handleBack,
+        actions: isLandscape
+            ? [
+                RemoteTopNavRefreshButton(
+                  isLoading: _isLoading,
+                  onRefresh: () => _loadPlaylistDetails(forceRefresh: true),
+                ),
+              ]
+            : null,
       ),
       selectionPanel: (!_isLoading && _error == null)
           ? AnimatedSelectionPanel(

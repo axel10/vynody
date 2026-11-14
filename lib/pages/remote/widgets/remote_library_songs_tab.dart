@@ -6,6 +6,7 @@ import '../../../models/music_file.dart';
 import '../../../dialogs/remote_track_load_progress_dialog.dart';
 import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/audio/playback_source.dart';
+import '../../../player/platform/right_queue_drawer_controller.dart';
 import '../../../player/remote/proxy/remote_media_resolver.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/services/remote_download_service.dart';
@@ -14,9 +15,11 @@ import '../../../utils/remote_download_feedback.dart';
 import '../../../utils/remote_library_playback.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../utils/song_locator_helper.dart';
+import '../../../widgets/adaptive_pinned_header_scroll_view.dart';
 import '../../../widgets/folder_layout_utils.dart';
 import '../../../widgets/folder_zoom_gesture_layer.dart';
 import '../../../widgets/library_action_bar.dart';
+import '../../../widgets/library_large_title.dart';
 import '../../../widgets/library_zoom_popover.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../../../widgets/song_zoom_item.dart';
@@ -361,30 +364,11 @@ class _RemoteLibrarySongsViewState
     final songZoomScale = ref.watch(
       settingsServiceProvider.select((s) => s.songZoomScale),
     );
-
-    final headerSliver = SliverRemotePageHeaderSlot(
-      child: _buildHeader(context),
+    final topPadding = LibrarySubHostScope.maybeOf(context)?.topPadding ?? 0.0;
+    final isLandscape = ref.watch(
+      isEffectiveLandscapeProvider(MediaQuery.sizeOf(context)),
     );
-
-    if (widget.songs.isEmpty) {
-      return CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          headerSliver,
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: Text(
-                widget.searchQuery.isEmpty
-                    ? l10n.noSongsOnServer
-                    : l10n.noMatchingSongs,
-                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
+    final header = _buildHeader(context);
 
     return FolderZoomGestureLayer(
       scope: LibraryZoomScope.song,
@@ -410,14 +394,32 @@ class _RemoteLibrarySongsViewState
                   }
                   return false;
                 },
-                child: RefreshIndicator(
+                child: AdaptivePinnedHeaderScrollView(
+                  header: header,
+                  topPadding: topPadding,
+                  isLandscape: isLandscape,
+                  headerSlotBuilder: (context, h, isSliver) => isSliver
+                      ? SliverRemotePageHeaderSlot(child: h)
+                      : RemotePageHeaderSlot(child: h),
                   onRefresh: widget.onRefresh,
-                  child: CustomScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: [
-                      headerSliver,
-
-                      FolderZoomSliverBuilder(
+                  slivers: widget.songs.isEmpty
+                      ? [
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Center(
+                              child: Text(
+                                widget.searchQuery.isEmpty
+                                    ? l10n.noSongsOnServer
+                                    : l10n.noMatchingSongs,
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ]
+                      : [
+                          FolderZoomSliverBuilder(
                         zoomScale: snapFolderZoomScale(songZoomScale),
                         width: contentWidth,
                         builder: (context, metrics) {
@@ -681,8 +683,7 @@ class _RemoteLibrarySongsViewState
                         SliverToBoxAdapter(
                           child: SizedBox(height: widget.bottomOffset + 16),
                         ),
-                    ],
-                  ),
+                        ],
                 ),
               ),
             ),

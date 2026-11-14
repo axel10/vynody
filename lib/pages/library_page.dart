@@ -20,9 +20,9 @@ import '../player/library/library_overview_providers.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_tab_navigator.dart';
 import '../widgets/app_top_nav_bar.dart';
-import '../widgets/floating_capsule_header.dart';
 import '../widgets/library_header_actions.dart';
 import '../widgets/library_large_title.dart';
+import '../widgets/library_sub_host_layout.dart';
 import '../widgets/scroll_past_top.dart';
 import '../utils/layout_constants.dart';
 import '../utils/app_log.dart';
@@ -445,12 +445,9 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final bool isLandscape = ref.watch(isEffectiveLandscapeProvider(size));
-
-    final double railWidth =
-        ref.watch(effectiveSidebarRailWidthProvider(size));
-    final double headerHeight = AppTopNavBar.getBarHeight(context);
+    final hostInsets = LibrarySubHostInsets.of(context, ref);
+    final bool isLandscape = hostInsets.isLandscape;
+    final double railWidth = hostInsets.railWidth;
 
     final int? activeIndex = ref.watch(libraryActiveTabIndexProvider);
     if (activeIndex != null) {
@@ -469,12 +466,6 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     // 当前分类压着三级页面时宿主顶栏必须让位：
     // 详情页自带同位置的 AppTopNavBar，而宿主这条在 Stack 里后画，会整个盖住它。
     final bool tabHasChildRoute = _tabsWithChildRoutes.contains(clampedIndex);
-
-    // 让位给详情页时必须是瞬时的：详情页顶栏本来就在同一位置，
-    // 播一段淡出只会让两个标题交叠闪一下。3D 视图收起仍走 250ms 过渡。
-    final Duration headerDuration = tabHasChildRoute
-        ? Duration.zero
-        : const Duration(milliseconds: 250);
 
     // 竖屏滚离顶部后才浮出「返回 + 更多」：
     // 横屏各子分类顶栏固定常驻（自带返回键与标题），详情页压栈要让位，
@@ -506,25 +497,16 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
                       : const SizedBox.shrink(),
               ],
             ),
-            Positioned(
-              top: 0,
-              left: railWidth,
-              right: 0,
-              height: headerHeight,
-              child: FloatingCapsuleHeader(
-                // 3D 视图收起时也算「已离开常规列表」，胶囊跟着浮出。
-                visible: capsuleAllowed && (isPastTop || is3DViewActive),
-                duration: headerDuration,
-                // 竖屏滚动离开顶部后只剩「返回 + 更多」：页头动作全部收进
-                // 更多菜单（与页头动作行同一份清单）。标题不在这里渲染。
-                child: LibraryTopNavCapsule(
-                  key: const ValueKey('library_subhost_top_bar'),
-                  controller: _headerActions,
-                  onBack: () {
-                    Navigator.of(context).maybePop();
-                  },
-                ),
-              ),
+            LibraryFloatingNavCapsuleOverlay(
+              railWidth: railWidth,
+              // 3D 视图收起时也算「已离开常规列表」，胶囊跟着浮出。
+              visible: capsuleAllowed && (isPastTop || is3DViewActive),
+              tabHasChildRoute: tabHasChildRoute,
+              controller: _headerActions,
+              capsuleKey: const ValueKey('library_subhost_top_bar'),
+              onBack: () {
+                Navigator.of(context).maybePop();
+              },
             ),
           ],
         ),
@@ -564,26 +546,18 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
   Widget _buildSubTabRoot(int index) {
     return Builder(
       builder: (tabContext) {
-        final size = MediaQuery.sizeOf(tabContext);
-        final bool isLandscape = ref.watch(isEffectiveLandscapeProvider(size));
-        final double safeTop = getTitleBarTopPadding(
-          tabContext,
-          defaultWindowPadding: isLandscape ? 32.0 : 36.0,
-        );
-        final double topPadding = isLandscape ? (safeTop + 8.0) : safeTop;
-        final double leftPadding =
-            ref.watch(effectiveSidebarRailWidthProvider(size));
+        final insets = LibrarySubHostInsets.of(tabContext, ref);
         return LibraryHeaderActionsScope(
           tabIndex: index,
           controller: _headerActions,
           child: LibrarySubHostScope(
             onBack: _handleSubHostBack,
-            topPadding: topPadding,
-            leftPadding: leftPadding,
+            topPadding: insets.topPadding,
+            leftPadding: insets.railWidth,
             child: _buildSubTab(
               index,
-              topPadding: topPadding,
-              leftPadding: leftPadding,
+              topPadding: insets.topPadding,
+              leftPadding: insets.railWidth,
               onBack: _handleSubHostBack,
             ),
           ),

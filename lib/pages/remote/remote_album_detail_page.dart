@@ -26,6 +26,7 @@ import '../../utils/remote_download_feedback.dart';
 import '../../widgets/library_selection_scope.dart';
 import '../../widgets/playback_ui_tuning.dart';
 import '../../widgets/remote_page_shell.dart';
+import 'widgets/remote_library_common_widgets.dart';
 import 'widgets/remote_song_selection_panel.dart';
 
 class RemoteAlbumDetailPage extends ConsumerStatefulWidget {
@@ -830,6 +831,14 @@ class _RemoteAlbumDetailPageState
         isFloatingCapsule: isPastTop,
         contentMaxWidth: kSingleColumnContentMaxWidth,
         onBack: _handleBack,
+        actions: !isPortrait
+            ? [
+                RemoteTopNavRefreshButton(
+                  isLoading: _isLoading,
+                  onRefresh: () => _loadAlbumDetails(forceRefresh: true),
+                ),
+              ]
+            : null,
       ),
       selectionPanel: (!_isLoading && _error == null)
           ? AnimatedSelectionPanel(

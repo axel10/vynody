@@ -23,6 +23,7 @@ import '../../player/remote/remote_library_navigation.dart';
 import '../../utils/remote_context_menu_utils.dart';
 import '../../utils/remote_download_feedback.dart';
 import '../../widgets/library_selection_scope.dart';
+import 'widgets/remote_library_common_widgets.dart';
 import 'widgets/remote_library_selection_actions.dart';
 import 'widgets/remote_song_selection_panel.dart';
 import 'widgets/remote_library_toolbar_widgets.dart';
@@ -56,6 +57,8 @@ class RemoteArtistDetailPage extends ConsumerStatefulWidget {
 
 class _RemoteArtistDetailPageState
     extends ConsumerState<RemoteArtistDetailPage> {
+  final GlobalKey<RemoteArtistDetailContentState> _contentKey =
+      GlobalKey<RemoteArtistDetailContentState>();
   late final ScrollController _scrollController;
   final ValueNotifier<bool> _isHeaderVisible = ValueNotifier<bool>(true);
   final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
@@ -94,6 +97,8 @@ class _RemoteArtistDetailPageState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final double barHeight = getBarHeight(context);
+    final bool isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
 
     return RemotePageShell(
       // 远程库已是一级 tab，外层不再 `Padding(left: railWidth)`：
@@ -101,6 +106,7 @@ class _RemoteArtistDetailPageState
       avoidRail: true,
       enableFloatingCapsule: true,
       contentBuilder: (context) => RemoteArtistDetailContent(
+        key: _contentKey,
         server: widget.server,
         password: widget.password,
         artistId: widget.artistId,
@@ -125,6 +131,14 @@ class _RemoteArtistDetailPageState
         isFloatingCapsule: isPastTop,
         contentMaxWidth: kFolderPageMaxWidth,
         onBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
+        actions: isLandscape
+            ? [
+                RemoteTopNavRefreshButton(
+                  isLoading: _isLoading,
+                  onRefresh: () => _contentKey.currentState?.refresh(),
+                ),
+              ]
+            : null,
       ),
     );
   }
@@ -156,7 +170,7 @@ class RemoteArtistDetailContent extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<RemoteArtistDetailContent> createState() =>
-      _RemoteArtistDetailContentState();
+      RemoteArtistDetailContentState();
 }
 
 class _RemoteAlbumSectionData {
@@ -233,11 +247,13 @@ class _RemoteAlbumSectionData {
   }
 }
 
-class _RemoteArtistDetailContentState
+class RemoteArtistDetailContentState
     extends ConsumerState<RemoteArtistDetailContent>
     with
         SelectionStateMixin<RemoteArtistDetailContent, String>,
         SongSelectionMixin<RemoteArtistDetailContent> {
+  Future<void> refresh() => _loadArtistData(forceRefresh: true);
+
   bool _isLoading = true;
   String? _error;
   List<_RemoteAlbumSectionData> _albumSections = [];

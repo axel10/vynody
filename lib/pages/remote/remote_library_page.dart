@@ -1978,6 +1978,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
       onRefresh: _refreshTab,
       onPopBlocked: _cancelSelection,
       selectionPanel: _buildSelectionPanel(),
+      capsuleDisabledTabs: const {RemoteLibraryDashboardView.tabSearch},
       tabs: [
         (context) => _buildAlbumsTab(),
         (context) => _buildArtistsTab(),
@@ -2001,7 +2002,6 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
         icon: Icons.refresh_rounded,
         label: l10n.refresh,
         hideInNarrow: true,
-        collapseInWide: true,
         onPressed: () {
           final tabIndex = ref.read(remoteLibraryActiveTabIndexProvider);
           if (tabIndex != null) {
@@ -2567,15 +2567,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
 
     Widget content;
     if (hasConnectionError) {
-      content = PopScope(
-        // 连接失败页挂在 IndexedStack 的一级槽位里，不能让系统返回弹掉根路由：
-        // 只清会话，交给 `MainLayout` 撤栏目并切回媒体源。
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          ref.read(activeRemoteSessionProvider.notifier).clear();
-        },
-        child: Scaffold(
+      final Widget errorScaffold = Scaffold(
           appBar: AppBar(
             elevation: 0,
             scrolledUnderElevation: 0,
@@ -2663,7 +2655,27 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
               ),
             ),
           ),
-        ),
+        );
+      final bool isWindowMode = isWindowedEnvironment(context);
+      content = PopScope(
+        // 连接失败页挂在 IndexedStack 的一级槽位里，不能让系统返回弹掉根路由：
+        // 只清会话，交给 `MainLayout` 撤栏目并切回媒体源。
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          ref.read(activeRemoteSessionProvider.notifier).clear();
+        },
+        child: isWindowMode
+            ? Material(
+                color: theme.colorScheme.surface,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 32),
+                    Expanded(child: errorScaffold),
+                  ],
+                ),
+              )
+            : errorScaffold,
       );
     } else {
       content = Navigator(
@@ -2674,20 +2686,6 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
               ? _buildSubHost()
               : _buildDashboard(),
           settings,
-        ),
-      );
-    }
-
-    final bool isWindowMode = isWindowedEnvironment(context);
-
-    if (isWindowMode) {
-      content = Material(
-        color: theme.colorScheme.surface,
-        child: Column(
-          children: [
-            const SizedBox(height: 32),
-            Expanded(child: content),
-          ],
         ),
       );
     }

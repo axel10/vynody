@@ -135,9 +135,9 @@ class RemoteLibraryDashboardView extends StatelessWidget {
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     contentLeftPadding + horizontalPadding,
-                    contentTopPadding + 8,
+                    contentTopPadding + 16,
                     horizontalPadding,
-                    12,
+                    8,
                   ),
                   child: _DashboardHeader(
                     server: server,

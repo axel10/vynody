@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../dialogs/sort_options_dialog.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/library_action_bar.dart';
+import '../../../widgets/library_large_title.dart';
 import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_context_menu_utils.dart';
@@ -249,6 +250,7 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
       selectedKey: selectedArtistId,
       onSelectedKeyChanged: onSelectArtistId,
       routeName: 'remote_artist_detail',
+      contentTopPadding: LibrarySubHostScope.maybeOf(context)?.topPadding ?? 0.0,
       hasPlayingMusic: hasPlayingMusic,
       isSelectionMode: isSelectionMode,
       onRefresh: onRefresh,

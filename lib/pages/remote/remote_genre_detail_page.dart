@@ -24,7 +24,7 @@ import '../../widgets/app_top_nav_bar.dart';
 import '../../utils/layout_constants.dart';
 
 /// 远程流派详情页：竖屏时由流派列表 push 进入。
-class RemoteGenreDetailPage extends ConsumerWidget {
+class RemoteGenreDetailPage extends ConsumerStatefulWidget {
   final RemoteServer server;
   final String password;
   final String genreId;
@@ -39,7 +39,16 @@ class RemoteGenreDetailPage extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RemoteGenreDetailPage> createState() =>
+      _RemoteGenreDetailPageState();
+}
+
+class _RemoteGenreDetailPageState extends ConsumerState<RemoteGenreDetailPage> {
+  final GlobalKey<RemoteGenreDetailContentState> _contentKey =
+      GlobalKey<RemoteGenreDetailContentState>();
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final hasPlayingMusic = ref.watch(audioCurrentMusicProvider) != null;
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
@@ -47,26 +56,36 @@ class RemoteGenreDetailPage extends ConsumerWidget {
       hasPlayingMusic: hasPlayingMusic,
     );
     final double barHeight = AppTopNavBar.getBarHeight(context);
+    final bool isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
 
     return RemotePageShell(
       // 远程库已是一级 tab，外层不再 `Padding(left: railWidth)`：
       // 横屏时让位必须落在页面内部，否则整页被 Rail 压住左边缘。
       avoidRail: true,
       contentBuilder: (context) => RemoteGenreDetailContent(
-        server: server,
-        password: password,
-        genreId: genreId,
-        genreName: genreName,
+        key: _contentKey,
+        server: widget.server,
+        password: widget.password,
+        genreId: widget.genreId,
+        genreName: widget.genreName,
         bottomOffset: bottomOffset,
         topPadding: barHeight + 8,
       ),
       navBarBuilder: (context, _, isPastTop) => AppTopNavBar(
-        title: genreName,
+        title: widget.genreName,
         parentTitle: l10n.genres,
-        titleKey: ValueKey('remote_genre_title_$genreId'),
+        titleKey: ValueKey('remote_genre_title_${widget.genreId}'),
         isFloatingCapsule: isPastTop,
         contentMaxWidth: kFolderPageMaxWidth,
         onBack: () => Navigator.of(context).maybePop(),
+        actions: isLandscape
+            ? [
+                RemoteTopNavRefreshButton(
+                  onRefresh: () => _contentKey.currentState?.refresh(),
+                ),
+              ]
+            : null,
       ),
     );
   }
@@ -110,11 +129,12 @@ class RemoteGenreDetailContent extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<RemoteGenreDetailContent> createState() =>
-      _RemoteGenreDetailContentState();
+      RemoteGenreDetailContentState();
 }
 
-class _RemoteGenreDetailContentState
+class RemoteGenreDetailContentState
     extends ConsumerState<RemoteGenreDetailContent> {
+  Future<void> refresh() => _load();
   /// 单页条数。两端都支持 count/offset，Jellyfin 走 StartIndex/Limit。
   static const int _pageSize = 500;
 

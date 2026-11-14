@@ -647,11 +647,13 @@ class RemoteLibrarySearchView extends ConsumerWidget {
     );
     final albumBase = searchedArtists.length;
     final songBase = albumBase + searchedAlbums.length;
+    final topPadding = LibrarySubHostScope.maybeOf(context)?.topPadding ?? 0.0;
 
     return RemoteContentConstraint(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
+          if (topPadding > 0) SizedBox(height: topPadding),
           if (toolbar != null) RemotePageHeaderSlot(child: toolbar!),
           Expanded(
             child: !hasResults
