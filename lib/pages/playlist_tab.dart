@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../dialogs/sort_options_dialog.dart';
 import '../l10n/app_localizations.dart';
+import '../models/music_file.dart';
 import '../player/audio/audio_riverpod.dart';
 import '../player/audio/playback_source.dart';
 import '../player/library/playlist_service.dart';
@@ -308,6 +309,32 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
     return list;
   }
 
+  void _playAllVisible(
+    List<Playlist> visiblePlaylists, {
+    bool shuffle = false,
+  }) {
+    final songs = <MusicFile>[];
+    final seen = <String>{};
+    for (final playlist in visiblePlaylists) {
+      for (final song in playlist.songs) {
+        if (seen.add(song.path)) {
+          songs.add(song);
+        }
+      }
+    }
+    if (songs.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    final queue = shuffle ? (List<MusicFile>.of(songs)..shuffle()) : songs;
+    ref.read(audioServiceProvider).playPlaylist(
+          queue,
+          source: PlaybackSource(
+            type: PlaybackSourceType.playlist,
+            id: shuffle ? 'all_playlists_shuffled' : 'all_playlists',
+            name: l10n.playlist,
+          ),
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     // 监听侧边栏等发起的歌单详情导航请求
@@ -387,6 +414,10 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                             _searchController.clear();
                           });
                         },
+                        onPlayAll: () =>
+                            _playAllVisible(playlists, shuffle: false),
+                        onShufflePlay: () =>
+                            _playAllVisible(playlists, shuffle: true),
                         onSortPressed: () => _showSortDialog(context),
                         showSourceFilter: false,
                         extraActions: [

@@ -11,7 +11,9 @@ import 'package:vynody/pages/main_layout_riverpod.dart';
 import 'package:vynody/pages/playlist_detail_page.dart';
 import 'package:vynody/pages/playlist_tab.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/library/playlist_service.dart';
+import 'package:vynody/widgets/library_category_header.dart';
 import 'package:zoomable_sliver_grid/zoomable_sliver_grid.dart';
 
 import '../widgets/helpers/mobile_screenshot_harness.dart' hide Playlist;
@@ -561,4 +563,111 @@ void main() {
     expect(dragItem, isNotNull);
     expect(dragItem.localData, containsPair('paths', ['/test/music/rock.mp3']));
   });
+
+  testWidgets('PlaylistTab header exposes Play All and Shuffle Play actions',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final recordingAudio = _RecordingAudioService(
+      snapshot: snapshot,
+      visualizerStream: const Stream.empty(),
+    );
+
+    final p1 = await playlistService.createPlaylist('歌单A');
+    final p2 = await playlistService.createPlaylist('歌单B');
+    const song1 = MusicFile(
+      path: '/test/music/a.mp3',
+      name: 'a.mp3',
+      title: 'Song A',
+    );
+    const song2 = MusicFile(
+      path: '/test/music/b.mp3',
+      name: 'b.mp3',
+      title: 'Song B',
+    );
+    const song3 = MusicFile(
+      path: '/test/music/c.mp3',
+      name: 'c.mp3',
+      title: 'Song C',
+    );
+    await playlistService.addSongsToPlaylist(p1.id, [song1, song2]);
+    await playlistService.addSongsToPlaylist(p2.id, [song2, song3]);
+
+    final container = ProviderContainer(
+      overrides: [
+        settingsServiceProvider.overrideWith((ref) => settingsService),
+        audioServiceProvider.overrideWith((ref) => recordingAudio),
+        audioSnapshotProvider.overrideWith((ref) => snapshot),
+        audioCurrentMusicProvider.overrideWith((ref) => null),
+        scannerServiceProvider.overrideWith((ref) => scannerService),
+        playlistServiceProvider.overrideWith((ref) => playlistService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(buildTestWidget(container: container));
+    await tester.pumpAndSettle();
+
+    final headerFinder = find.byType(LibraryCategoryHeader);
+    final playAllFinder = find.descendant(
+      of: headerFinder,
+      matching: find.byIcon(Icons.play_arrow_rounded),
+    );
+    final shuffleFinder = find.descendant(
+      of: headerFinder,
+      matching: find.byIcon(Icons.shuffle_rounded),
+    );
+    expect(playAllFinder, findsOneWidget);
+    expect(shuffleFinder, findsOneWidget);
+
+    await tester.tap(playAllFinder);
+    await tester.pump();
+
+    expect(recordingAudio.lastQueue?.map((s) => s.path).toList(), [
+      '/test/music/a.mp3',
+      '/test/music/b.mp3',
+      '/test/music/c.mp3',
+    ]);
+    expect(recordingAudio.lastSource?.type, PlaybackSourceType.playlist);
+    expect(recordingAudio.lastSource?.id, 'all_playlists');
+
+    await tester.tap(shuffleFinder);
+    await tester.pump();
+
+    expect(recordingAudio.lastQueue?.map((s) => s.path).toSet(), {
+      '/test/music/a.mp3',
+      '/test/music/b.mp3',
+      '/test/music/c.mp3',
+    });
+    expect(recordingAudio.lastQueue?.length, 3);
+    expect(recordingAudio.lastSource?.type, PlaybackSourceType.playlist);
+    expect(recordingAudio.lastSource?.id, 'all_playlists_shuffled');
+  });
+}
+
+class _RecordingAudioService extends MockAudioService {
+  _RecordingAudioService({
+    required super.snapshot,
+    required super.visualizerStream,
+  });
+
+  List<MusicFile>? lastQueue;
+  PlaybackSource? lastSource;
+
+  @override
+  Future<void> playPlaylist(
+    List<MusicFile> playlist, {
+    int initialIndex = 0,
+    PlaybackSource? source,
+    bool autoPlay = true,
+    bool expandToParentPlaylist = true,
+  }) async {
+    lastQueue = playlist;
+    lastSource = source;
+  }
 }
