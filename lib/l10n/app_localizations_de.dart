@@ -6107,32 +6107,33 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wendet Gaußsche Unschärfe auf nicht fokussierte Zeilen im Songtext-Modus an.';
 
   @override
-  String get searchResultsCurrentFolder => '当前目录及子目录结果';
+  String get searchResultsCurrentFolder => 'Aktueller Ordner & Unterordner';
 
   @override
-  String get searchResultsGlobal => '全局其他目录结果';
+  String get searchResultsGlobal => 'Globale Ergebnisse';
 
   @override
-  String get searchResultsFolders => '匹配的文件夹';
+  String get searchResultsFolders => 'Passende Ordner';
 
   @override
-  String get searchResultsSongs => '匹配的歌曲';
+  String get searchResultsSongs => 'Passende Songs';
 
   @override
-  String get remoteSearchCachedTitle => '已缓存内容结果';
+  String get remoteSearchCachedTitle => 'Zwischengespeicherte Elemente';
 
   @override
-  String get remoteSearchDeepAction => '在服务器深层递归搜索当前目录';
+  String get remoteSearchDeepAction => 'Tiefensuche auf dem Remote-Server';
 
   @override
-  String get remoteSearchDeepSearching => '正在深层检索远程目录...';
+  String get remoteSearchDeepSearching =>
+      'Remote-Verzeichnis wird tief durchsucht...';
 
   @override
-  String get remoteSearchDeepStop => '停止搜索';
+  String get remoteSearchDeepStop => 'Suche stoppen';
 
   @override
-  String get remoteSearchDeepCompleted => '递归搜索完成';
+  String get remoteSearchDeepCompleted => 'Tiefensuche abgeschlossen';
 
   @override
-  String get searchFolderHint => '搜索当前目录或全局歌曲、文件夹...';
+  String get searchFolderHint => 'Songs oder Ordner durchsuchen...';
 }

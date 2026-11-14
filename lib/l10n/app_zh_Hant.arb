@@ -1930,5 +1930,15 @@
   "blurEffect": "毛玻璃與模糊效果",
   "blurEffectDescription": "在底列、彈窗及浮層使用毛玻璃模糊效果；關閉後可顯著降低 GPU 渲染開銷並提升滑動流暢度。",
   "lyricsBlurEffect": "歌詞毛玻璃效果",
-  "lyricsBlurEffectDescription": "為歌詞模式下的非聚焦行提供高斯模糊效果；關閉後可顯著提升展開與滾動的幀率。"
+  "lyricsBlurEffectDescription": "為歌詞模式下的非聚焦行提供高斯模糊效果；關閉後可顯著提升展開與滾動的幀率。",
+  "searchResultsCurrentFolder": "目前目錄及子目錄結果",
+  "searchResultsGlobal": "全域其他目錄結果",
+  "searchResultsFolders": "符合的資料夾",
+  "searchResultsSongs": "符合的歌曲",
+  "remoteSearchCachedTitle": "已快取的項目",
+  "remoteSearchDeepAction": "在遠端伺服器深層遞迴搜尋目前目錄",
+  "remoteSearchDeepSearching": "正在深層搜尋遠端目錄...",
+  "remoteSearchDeepStop": "停止搜尋",
+  "remoteSearchDeepCompleted": "深層搜尋完成",
+  "searchFolderHint": "搜尋目前目錄或全域歌曲、資料夾..."
 }

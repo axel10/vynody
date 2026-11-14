@@ -5845,32 +5845,32 @@ class AppLocalizationsJa extends AppLocalizations {
       '歌詞モードの非フォーカス行にガウスぼかしを適用します。オフにすると展開やスクロールのフレームレートが向上します。';
 
   @override
-  String get searchResultsCurrentFolder => '当前目录及子目录结果';
+  String get searchResultsCurrentFolder => '現在のフォルダとサブフォルダ';
 
   @override
-  String get searchResultsGlobal => '全局其他目录结果';
+  String get searchResultsGlobal => '全体の検索結果';
 
   @override
-  String get searchResultsFolders => '匹配的文件夹';
+  String get searchResultsFolders => '一致するフォルダ';
 
   @override
-  String get searchResultsSongs => '匹配的歌曲';
+  String get searchResultsSongs => '一致する曲';
 
   @override
-  String get remoteSearchCachedTitle => '已缓存内容结果';
+  String get remoteSearchCachedTitle => 'キャッシュ済みの項目';
 
   @override
-  String get remoteSearchDeepAction => '在服务器深层递归搜索当前目录';
+  String get remoteSearchDeepAction => 'リモートサーバーを詳細検索';
 
   @override
-  String get remoteSearchDeepSearching => '正在深层检索远程目录...';
+  String get remoteSearchDeepSearching => 'リモートディレクトリを詳細検索中...';
 
   @override
-  String get remoteSearchDeepStop => '停止搜索';
+  String get remoteSearchDeepStop => '検索を停止';
 
   @override
-  String get remoteSearchDeepCompleted => '递归搜索完成';
+  String get remoteSearchDeepCompleted => '詳細検索が完了しました';
 
   @override
-  String get searchFolderHint => '搜索当前目录或全局歌曲、文件夹...';
+  String get searchFolderHint => '曲やフォルダを検索...';
 }

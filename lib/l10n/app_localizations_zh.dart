@@ -11520,4 +11520,34 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get lyricsBlurEffectDescription =>
       '為歌詞模式下的非聚焦行提供高斯模糊效果；關閉後可顯著提升展開與滾動的幀率。';
+
+  @override
+  String get searchResultsCurrentFolder => '目前目錄及子目錄結果';
+
+  @override
+  String get searchResultsGlobal => '全域其他目錄結果';
+
+  @override
+  String get searchResultsFolders => '符合的資料夾';
+
+  @override
+  String get searchResultsSongs => '符合的歌曲';
+
+  @override
+  String get remoteSearchCachedTitle => '已快取的項目';
+
+  @override
+  String get remoteSearchDeepAction => '在遠端伺服器深層遞迴搜尋目前目錄';
+
+  @override
+  String get remoteSearchDeepSearching => '正在深層搜尋遠端目錄...';
+
+  @override
+  String get remoteSearchDeepStop => '停止搜尋';
+
+  @override
+  String get remoteSearchDeepCompleted => '深層搜尋完成';
+
+  @override
+  String get searchFolderHint => '搜尋目前目錄或全域歌曲、資料夾...';
 }

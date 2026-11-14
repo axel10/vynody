@@ -6119,32 +6119,34 @@ class AppLocalizationsEs extends AppLocalizations {
       'Aplica desenfoque gaussiano a las líneas no enfocadas en el modo de letras.';
 
   @override
-  String get searchResultsCurrentFolder => '当前目录及子目录结果';
+  String get searchResultsCurrentFolder => 'Carpeta actual y subcarpetas';
 
   @override
-  String get searchResultsGlobal => '全局其他目录结果';
+  String get searchResultsGlobal => 'Resultados globales';
 
   @override
-  String get searchResultsFolders => '匹配的文件夹';
+  String get searchResultsFolders => 'Carpetas coincidentes';
 
   @override
-  String get searchResultsSongs => '匹配的歌曲';
+  String get searchResultsSongs => 'Canciones coincidentes';
 
   @override
-  String get remoteSearchCachedTitle => '已缓存内容结果';
+  String get remoteSearchCachedTitle => 'Elementos en caché';
 
   @override
-  String get remoteSearchDeepAction => '在服务器深层递归搜索当前目录';
+  String get remoteSearchDeepAction =>
+      'Búsqueda profunda en el servidor remoto';
 
   @override
-  String get remoteSearchDeepSearching => '正在深层检索远程目录...';
+  String get remoteSearchDeepSearching =>
+      'Buscando en profundidad en el directorio remoto...';
 
   @override
-  String get remoteSearchDeepStop => '停止搜索';
+  String get remoteSearchDeepStop => 'Detener búsqueda';
 
   @override
-  String get remoteSearchDeepCompleted => '递归搜索完成';
+  String get remoteSearchDeepCompleted => 'Búsqueda profunda completada';
 
   @override
-  String get searchFolderHint => '搜索当前目录或全局歌曲、文件夹...';
+  String get searchFolderHint => 'Buscar canciones o carpetas...';
 }

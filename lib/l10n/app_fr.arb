@@ -2215,5 +2215,15 @@
   "blurEffect": "Effets de verre dépoli et de flou",
   "blurEffectDescription": "Utilise le flou d'arrière-plan sur le dock, les dialogues et les panneaux. Désactiver réduit la charge GPU et fluidifie l'affichage.",
   "lyricsBlurEffect": "Effet de flou des paroles",
-  "lyricsBlurEffectDescription": "Applique un flou gaussien aux lignes non actives en mode paroles."
+  "lyricsBlurEffectDescription": "Applique un flou gaussien aux lignes non actives en mode paroles.",
+  "searchResultsCurrentFolder": "Dossier actuel et sous-dossiers",
+  "searchResultsGlobal": "Résultats globaux",
+  "searchResultsFolders": "Dossiers correspondants",
+  "searchResultsSongs": "Chansons correspondantes",
+  "remoteSearchCachedTitle": "Éléments en cache",
+  "remoteSearchDeepAction": "Recherche approfondie sur le serveur distant",
+  "remoteSearchDeepSearching": "Recherche approfondie dans le répertoire distant...",
+  "remoteSearchDeepStop": "Arrêter la recherche",
+  "remoteSearchDeepCompleted": "Recherche approfondie terminée",
+  "searchFolderHint": "Rechercher des chansons ou des dossiers..."
 }

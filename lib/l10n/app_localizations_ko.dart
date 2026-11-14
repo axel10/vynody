@@ -5850,32 +5850,32 @@ class AppLocalizationsKo extends AppLocalizations {
       '가사 모드의 비포커스 라인에 가우시안 블러를 적용합니다. 끄면 전개 및 스크롤 프레임 속도가 향상됩니다.';
 
   @override
-  String get searchResultsCurrentFolder => '当前目录及子目录结果';
+  String get searchResultsCurrentFolder => '현재 폴더 및 하위 폴더';
 
   @override
-  String get searchResultsGlobal => '全局其他目录结果';
+  String get searchResultsGlobal => '전체 검색 결과';
 
   @override
-  String get searchResultsFolders => '匹配的文件夹';
+  String get searchResultsFolders => '일치하는 폴더';
 
   @override
-  String get searchResultsSongs => '匹配的歌曲';
+  String get searchResultsSongs => '일치하는 노래';
 
   @override
-  String get remoteSearchCachedTitle => '已缓存内容结果';
+  String get remoteSearchCachedTitle => '캐시된 항목';
 
   @override
-  String get remoteSearchDeepAction => '在服务器深层递归搜索当前目录';
+  String get remoteSearchDeepAction => '원격 서버에서 정밀 검색';
 
   @override
-  String get remoteSearchDeepSearching => '正在深层检索远程目录...';
+  String get remoteSearchDeepSearching => '원격 디렉토리 정밀 검색 중...';
 
   @override
-  String get remoteSearchDeepStop => '停止搜索';
+  String get remoteSearchDeepStop => '검색 중지';
 
   @override
-  String get remoteSearchDeepCompleted => '递归搜索完成';
+  String get remoteSearchDeepCompleted => '정밀 검색 완료';
 
   @override
-  String get searchFolderHint => '搜索当前目录或全局歌曲、文件夹...';
+  String get searchFolderHint => '노래 또는 폴더 검색...';
 }

@@ -2215,5 +2215,15 @@
   "blurEffect": "Efectos de desenfoque y cristal esmerilado",
   "blurEffectDescription": "Usa desenfoque tipo cristal en el dock, diálogos y paneles flotantes. Desactivarlo reduce la carga de GPU y mejora la fluidez.",
   "lyricsBlurEffect": "Efecto de desenfoque de letras",
-  "lyricsBlurEffectDescription": "Aplica desenfoque gaussiano a las líneas no enfocadas en el modo de letras."
+  "lyricsBlurEffectDescription": "Aplica desenfoque gaussiano a las líneas no enfocadas en el modo de letras.",
+  "searchResultsCurrentFolder": "Carpeta actual y subcarpetas",
+  "searchResultsGlobal": "Resultados globales",
+  "searchResultsFolders": "Carpetas coincidentes",
+  "searchResultsSongs": "Canciones coincidentes",
+  "remoteSearchCachedTitle": "Elementos en caché",
+  "remoteSearchDeepAction": "Búsqueda profunda en el servidor remoto",
+  "remoteSearchDeepSearching": "Buscando en profundidad en el directorio remoto...",
+  "remoteSearchDeepStop": "Detener búsqueda",
+  "remoteSearchDeepCompleted": "Búsqueda profunda completada",
+  "searchFolderHint": "Buscar canciones o carpetas..."
 }

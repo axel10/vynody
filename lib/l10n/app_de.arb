@@ -2215,5 +2215,15 @@
   "blurEffect": "Milchglas- & Unschärfeeffekte",
   "blurEffectDescription": "Verwendet Milchglas-Unschärfe auf Dock, Dialogen und schwebenden Fenstern. Die Deaktivierung reduziert den GPU-Aufwand und verbessert die Bildrate.",
   "lyricsBlurEffect": "Songtext-Unschärfeeffekt",
-  "lyricsBlurEffectDescription": "Wendet Gaußsche Unschärfe auf nicht fokussierte Zeilen im Songtext-Modus an."
+  "lyricsBlurEffectDescription": "Wendet Gaußsche Unschärfe auf nicht fokussierte Zeilen im Songtext-Modus an.",
+  "searchResultsCurrentFolder": "Aktueller Ordner & Unterordner",
+  "searchResultsGlobal": "Globale Ergebnisse",
+  "searchResultsFolders": "Passende Ordner",
+  "searchResultsSongs": "Passende Songs",
+  "remoteSearchCachedTitle": "Zwischengespeicherte Elemente",
+  "remoteSearchDeepAction": "Tiefensuche auf dem Remote-Server",
+  "remoteSearchDeepSearching": "Remote-Verzeichnis wird tief durchsucht...",
+  "remoteSearchDeepStop": "Suche stoppen",
+  "remoteSearchDeepCompleted": "Tiefensuche abgeschlossen",
+  "searchFolderHint": "Songs oder Ordner durchsuchen..."
 }

@@ -2314,5 +2314,15 @@
   "blurEffect": "すりガラス・ぼかし効果",
   "blurEffectDescription": "ドック、ダイアログ、フローティングシートですりガラスのぼかしを使用します。無効にすると GPU 負荷が軽減され滑らかさが向上します。",
   "lyricsBlurEffect": "歌詞のぼかし効果",
-  "lyricsBlurEffectDescription": "歌詞モードの非フォーカス行にガウスぼかしを適用します。オフにすると展開やスクロールのフレームレートが向上します。"
+  "lyricsBlurEffectDescription": "歌詞モードの非フォーカス行にガウスぼかしを適用します。オフにすると展開やスクロールのフレームレートが向上します。",
+  "searchResultsCurrentFolder": "現在のフォルダとサブフォルダ",
+  "searchResultsGlobal": "全体の検索結果",
+  "searchResultsFolders": "一致するフォルダ",
+  "searchResultsSongs": "一致する曲",
+  "remoteSearchCachedTitle": "キャッシュ済みの項目",
+  "remoteSearchDeepAction": "リモートサーバーを詳細検索",
+  "remoteSearchDeepSearching": "リモートディレクトリを詳細検索中...",
+  "remoteSearchDeepStop": "検索を停止",
+  "remoteSearchDeepCompleted": "詳細検索が完了しました",
+  "searchFolderHint": "曲やフォルダを検索..."
 }

@@ -2347,5 +2347,15 @@
   "blurEffect": "Buzlu cam ve bulanıklık efektleri",
   "blurEffectDescription": "Dock, iletişim kutuları ve kayan panellerde bulanıklık efekti kullanır. Kapatılması GPU yükünü azaltır ve akıcılığı artırır.",
   "lyricsBlurEffect": "Şarkı sözü bulanıklık efekti",
-  "lyricsBlurEffectDescription": "Şarkı sözü modundaki odaklanmamış satırlara Gauss bulanıklığı uygular."
+  "lyricsBlurEffectDescription": "Şarkı sözü modundaki odaklanmamış satırlara Gauss bulanıklığı uygular.",
+  "searchResultsCurrentFolder": "Geçerli Klasör ve Alt Klasörler",
+  "searchResultsGlobal": "Genel Sonuçlar",
+  "searchResultsFolders": "Eşleşen Klasörler",
+  "searchResultsSongs": "Eşleşen Şarkılar",
+  "remoteSearchCachedTitle": "Önbelleğe Alınmış Öğeler",
+  "remoteSearchDeepAction": "Uzak sunucuda derin arama yap",
+  "remoteSearchDeepSearching": "Uzak dizin derinlemesine aranıyor...",
+  "remoteSearchDeepStop": "Aramayı durdur",
+  "remoteSearchDeepCompleted": "Derin arama tamamlandı",
+  "searchFolderHint": "Şarkı veya klasör ara..."
 }

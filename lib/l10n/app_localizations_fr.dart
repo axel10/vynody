@@ -6120,32 +6120,34 @@ class AppLocalizationsFr extends AppLocalizations {
       'Applique un flou gaussien aux lignes non actives en mode paroles.';
 
   @override
-  String get searchResultsCurrentFolder => '当前目录及子目录结果';
+  String get searchResultsCurrentFolder => 'Dossier actuel et sous-dossiers';
 
   @override
-  String get searchResultsGlobal => '全局其他目录结果';
+  String get searchResultsGlobal => 'Résultats globaux';
 
   @override
-  String get searchResultsFolders => '匹配的文件夹';
+  String get searchResultsFolders => 'Dossiers correspondants';
 
   @override
-  String get searchResultsSongs => '匹配的歌曲';
+  String get searchResultsSongs => 'Chansons correspondantes';
 
   @override
-  String get remoteSearchCachedTitle => '已缓存内容结果';
+  String get remoteSearchCachedTitle => 'Éléments en cache';
 
   @override
-  String get remoteSearchDeepAction => '在服务器深层递归搜索当前目录';
+  String get remoteSearchDeepAction =>
+      'Recherche approfondie sur le serveur distant';
 
   @override
-  String get remoteSearchDeepSearching => '正在深层检索远程目录...';
+  String get remoteSearchDeepSearching =>
+      'Recherche approfondie dans le répertoire distant...';
 
   @override
-  String get remoteSearchDeepStop => '停止搜索';
+  String get remoteSearchDeepStop => 'Arrêter la recherche';
 
   @override
-  String get remoteSearchDeepCompleted => '递归搜索完成';
+  String get remoteSearchDeepCompleted => 'Recherche approfondie terminée';
 
   @override
-  String get searchFolderHint => '搜索当前目录或全局歌曲、文件夹...';
+  String get searchFolderHint => 'Rechercher des chansons ou des dossiers...';
 }
