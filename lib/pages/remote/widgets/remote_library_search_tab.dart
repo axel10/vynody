@@ -12,6 +12,7 @@ import '../../../utils/search_selection_utils.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../widgets/library_large_title.dart';
 import '../../../widgets/remote_artwork_widget.dart';
+import '../../../widgets/song_thumbnail.dart';
 import 'remote_library_common_widgets.dart';
 import 'remote_library_toolbar_widgets.dart';
 
@@ -157,12 +158,13 @@ class RemoteLibrarySearchView extends ConsumerWidget {
     ];
   }
 
+  /// 与本地搜索页同一口径：艺术家在前、专辑在后，都没有就落「未知艺术家」。
   String _buildSongSubtitle(MusicFile song, AppLocalizations l10n) {
     final album = song.album?.trim();
     final artist = song.artist?.trim();
     final parts = [
-      if (album != null && album.isNotEmpty) album,
       if (artist != null && artist.isNotEmpty) artist,
+      if (album != null && album.isNotEmpty) album,
     ];
     if (parts.isNotEmpty) {
       return parts.join(' - ');
@@ -176,6 +178,17 @@ class RemoteLibrarySearchView extends ConsumerWidget {
           title,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
+      );
+
+  /// 多选态下的勾选圈，行类的 leading 统一换成它（与本地搜索页同一套）。
+  Widget _selectionLeading(ThemeData theme, bool selected) => Icon(
+        selected
+            ? Icons.check_circle_rounded
+            : Icons.radio_button_unchecked_rounded,
+        color: selected
+            ? theme.colorScheme.primary
+            : theme.colorScheme.outlineVariant,
+        size: 20,
       );
 
   /// 长按 / 右键「多选」共用的入口：记锚点再切一条。
@@ -222,6 +235,10 @@ class RemoteLibrarySearchView extends ConsumerWidget {
     final artistName = artist['name'] as String? ?? l10n.unknownArtist;
     final coverArtId = artist['coverArt'] as String?;
     final albumCount = artist['albumCount'] as int?;
+    // 服务端口径：Jellyfin 归一化带 songCount，Subsonic/Navidrome 的 search3
+    // 不返回（ ArtistID3 没这个字段）。有就展示「N 首歌曲 · N 张专辑」，
+    // 没有就只展示专辑数，不为它补发请求。
+    final songCount = (artist['songCount'] as num?)?.toInt() ?? 0;
     final key = entryKeys[index];
     final isSelected = isSelectionMode && selectedKeys.contains(key);
     final isStarred = (ref
@@ -278,35 +295,41 @@ class RemoteLibrarySearchView extends ConsumerWidget {
             onNormalTap: openDetails,
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: RemoteArtworkWidget(
-                server: server,
-                password: password,
-                coverArtId: coverArtId,
-                size: 40,
-              ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            // 多选态不隐藏头像，与歌曲条目一致：复选框占位、内容整体右移。
+            leading: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isSelectionMode) ...[
+                  _selectionLeading(theme, isSelected),
+                  const SizedBox(width: 10),
+                ],
+                ClipOval(
+                  child: RemoteArtworkWidget(
+                    server: server,
+                    password: password,
+                    coverArtId: coverArtId,
+                    size: 44,
+                    isArtist: true,
+                  ),
+                ),
+              ],
             ),
             title: Text(
               artistName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontWeight: isSelected ? FontWeight.bold : null,
                 color: isSelected ? theme.colorScheme.primary : null,
               ),
             ),
-            subtitle: albumCount != null
-                ? Text(l10n.albumCount(albumCount))
-                : null,
-            trailing: isSelectionMode
-                ? Icon(
-                    isSelected
-                        ? Icons.check_circle_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                    color: isSelected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.outlineVariant,
-                    size: 20,
+            subtitle: albumCount != null || songCount > 0
+                ? Text(
+                    [
+                      if (songCount > 0) l10n.songsCountFormat(songCount),
+                      if (albumCount != null) l10n.albumCount(albumCount),
+                    ].join(' · '),
                   )
                 : null,
           ),
@@ -553,32 +576,47 @@ class RemoteLibrarySearchView extends ConsumerWidget {
               );
             },
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            leading: isSelectionMode
-                ? Icon(
-                    isSelected
-                        ? Icons.check_circle_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                    color: isSelected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.outlineVariant,
-                    size: 20,
-                  )
-                : const Icon(Icons.music_note_rounded),
-            title: Text(
-              song.title ?? song.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? theme.colorScheme.primary : null,
-              ),
-            ),
-            subtitle: Text(
-              _buildSongSubtitle(song, l10n),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Row(
+              children: [
+                if (isSelectionMode) ...[
+                  _selectionLeading(theme, isSelected),
+                  const SizedBox(width: 10),
+                ],
+                SongThumbnail.fromSong(
+                  song,
+                  size: 44,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        song.title ?? song.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color:
+                              isSelected ? theme.colorScheme.primary : null,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _buildSongSubtitle(song, l10n),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),

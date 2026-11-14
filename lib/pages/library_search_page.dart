@@ -725,6 +725,13 @@ class _LibrarySearchPageState extends ConsumerState<LibrarySearchPage>
     final key = artistSelectionKey(artist.queryKey);
     final isSelected = isSelectionMode && selectedKeys.contains(key);
 
+    // 专辑数与详情页分组口径一致：按专辑名去空格转小写归组，
+    // 缺失专辑的歌统一算作「未知专辑」一组。
+    final albumCount = artist.songs
+        .map((song) => song.album?.trim().toLowerCase() ?? '')
+        .toSet()
+        .length;
+
     void openDetails() {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
@@ -762,17 +769,20 @@ class _LibrarySearchPageState extends ConsumerState<LibrarySearchPage>
             allKeys: entryKeys,
             onNormalTap: openDetails,
           ),
-          leading: isSelectionMode
-              ? SizedBox(
-                  width: 44,
-                  child: Center(
-                    child: _selectionLeading(theme, isSelected),
-                  ),
-                )
-              : ArtistAvatar(
-                  diameter: 44,
-                  imagePath: artist.cachedImagePath,
-                ),
+          // 多选态不隐藏头像，与歌曲条目一致：复选框占位、内容整体右移。
+          leading: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSelectionMode) ...[
+                _selectionLeading(theme, isSelected),
+                const SizedBox(width: 10),
+              ],
+              ArtistAvatar(
+                diameter: 44,
+                imagePath: artist.cachedImagePath,
+              ),
+            ],
+          ),
           title: Text(
             artist.name,
             maxLines: 1,
@@ -782,7 +792,9 @@ class _LibrarySearchPageState extends ConsumerState<LibrarySearchPage>
               color: isSelected ? theme.colorScheme.primary : null,
             ),
           ),
-          subtitle: Text(l10n.songsCountFormat(artist.songCount)),
+          subtitle: Text(
+            '${l10n.songsCountFormat(artist.songCount)} · ${l10n.albumCount(albumCount)}',
+          ),
         ),
       ),
     );
