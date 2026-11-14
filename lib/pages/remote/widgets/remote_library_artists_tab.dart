@@ -8,6 +8,8 @@ import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
+import '../../../widgets/artist_avatar.dart';
+import '../../../widgets/detail_content_scaffold.dart';
 import '../../../widgets/draggable_remote_artist_item.dart';
 import '../../../widgets/folder_layout_utils.dart';
 import '../../../widgets/folder_zoom_gesture_layer.dart';
@@ -410,8 +412,12 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
           style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
         ),
       ),
-      emptyDetailBuilder: (context) => Center(
-        child: Text(l10n.noArtistSelected),
+      emptyDetailBuilder: (context) => DetailEmptyPane(
+        icon: ArtistMicIcon(
+          size: 56,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        label: l10n.noArtistSelected,
       ),
     );
   }

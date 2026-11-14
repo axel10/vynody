@@ -338,6 +338,7 @@ class AlbumSectionSliver extends ConsumerWidget {
     this.horizontalPadding,
     this.onOpenAlbum,
     this.playbackSourceBuilder,
+    this.onSongSecondaryTapDown,
     this.showRemoteBadge = true,
   });
 
@@ -363,6 +364,13 @@ class AlbumSectionSliver extends ConsumerWidget {
   /// 远程媒体库的专辑有服务端下发的稳定 id，需要用自己的标识，
   /// 否则同一张专辑在「远程直连」与「混入本地库」两条路径下会被当成两个来源。
   final PlaybackSource Function(AlbumSection section)? playbackSourceBuilder;
+
+  /// 自定义曲目右键菜单回调；留空时使用本地曲目的默认右键菜单。
+  final void Function(
+    AlbumSection section,
+    TapDownDetails details,
+    MusicFile song,
+  )? onSongSecondaryTapDown;
 
   /// 封面右上角是否显示远程来源云朵角标。
   ///
@@ -551,8 +559,9 @@ class AlbumSectionSliver extends ConsumerWidget {
             showRemoteIndicator:
                 isMixedSection && RemoteMediaHelper.isRemote(section.songs[i]),
             onTap: () => onSongTap(section, i),
-            onSecondaryTapDown: (details) =>
-                _showSongMenu(context, ref, details, section.songs[i]),
+            onSecondaryTapDown: (details) => onSongSecondaryTapDown != null
+                ? onSongSecondaryTapDown!(section, details, section.songs[i])
+                : _showSongMenu(context, ref, details, section.songs[i]),
             onLongPress: () => onSongLongPress(section, section.songs[i]),
             isSelectionMode: isSelectionMode,
             isSelected: selectedSongPaths.contains(section.songs[i].path),

@@ -29,6 +29,7 @@ import '../widgets/library_category_header.dart';
 import '../widgets/library_master_pane_header.dart';
 import '../widgets/library_toolbar_buttons.dart';
 import '../widgets/artist_context_menu.dart';
+import '../widgets/detail_content_scaffold.dart';
 import '../widgets/master_detail_scaffold.dart';
 import 'main_layout_riverpod.dart';
 
@@ -805,23 +806,12 @@ class _ArtistDetailPane extends StatelessWidget {
     final theme = Theme.of(context);
     final currentArtist = artist;
     if (currentArtist == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ArtistMicIcon(
-              size: 56,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              emptyLabel,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+      return DetailEmptyPane(
+        icon: ArtistMicIcon(
+          size: 56,
+          color: theme.colorScheme.onSurfaceVariant,
         ),
+        label: emptyLabel,
       );
     }
 
