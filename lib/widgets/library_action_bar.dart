@@ -44,6 +44,7 @@ class LibraryToolbarAction {
     this.showBadge = false,
     this.keepInNarrow = false,
     this.hideInWide = false,
+    this.hideInNarrow = false,
     this.wideButton,
     this.menuEntries,
   });
@@ -70,6 +71,10 @@ class LibraryToolbarAction {
   /// 横屏不显示（但竖屏仍进「更多」）。
   /// 主从分栏页的排序被收进左栏顶部，页头这行不能再重复放一份。
   final bool hideInWide;
+
+  /// 竖屏不显示（既不外露也不进「更多」），仅在横屏展示。
+  /// 例如远程媒体库横屏顶部的手动刷新按钮（竖屏已有下拉刷新）。
+  final bool hideInNarrow;
 
   final Widget? wideButton;
 
@@ -377,7 +382,7 @@ class _LibraryActionBarState extends State<LibraryActionBar> {
           label: l10n.search,
           onPressed: _openSearch,
         ),
-      ...widget.actions,
+      ...widget.actions.where((a) => !a.hideInNarrow),
     ]);
 
     if (widget.isWide) {
@@ -450,10 +455,12 @@ class _LibraryActionBarState extends State<LibraryActionBar> {
       );
     }
 
-    final narrowActions =
-        widget.actions.where((a) => a.keepInNarrow).toList(growable: false);
-    final overflowActions =
-        widget.actions.where((a) => !a.keepInNarrow).toList(growable: false);
+    final narrowActions = widget.actions
+        .where((a) => !a.hideInNarrow && a.keepInNarrow)
+        .toList(growable: false);
+    final overflowActions = widget.actions
+        .where((a) => !a.hideInNarrow && !a.keepInNarrow)
+        .toList(growable: false);
 
     return SizedBox(
       height: kLibraryActionBarHeight,

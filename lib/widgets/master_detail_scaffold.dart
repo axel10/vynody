@@ -57,6 +57,7 @@ class MasterDetailScaffold<T> extends ConsumerStatefulWidget {
     this.wrapWithInkWell = false,
     this.portraitScrollWrapper,
     this.portraitSliverBuilder,
+    this.onRefresh,
   });
 
   /// 列表数据源
@@ -146,6 +147,9 @@ class MasterDetailScaffold<T> extends ConsumerStatefulWidget {
     BoxConstraints constraints,
     double bottomOffset,
   )? portraitSliverBuilder;
+
+  /// 下拉刷新回调；提供后会在竖屏主视图与横屏左栏包裹 [RefreshIndicator]。
+  final Future<void> Function()? onRefresh;
 
   @override
   ConsumerState<MasterDetailScaffold<T>> createState() =>
@@ -416,64 +420,99 @@ class _MasterDetailScaffoldState<T>
                                   child: widget.masterPaneHeaderBuilder!(context),
                                 ),
                               Expanded(
-                                child: items.isEmpty
-                                    ? (widget.emptyMasterBuilder != null
-                                        ? widget.emptyMasterBuilder!(context)
-                                        : const SizedBox.shrink())
-                                    : Scrollbar(
-                                        controller: _effectiveScrollController,
-                                        // 静止时不常驻显示滚动条，仅在滚动/拖动时淡入，
-                                        // 滚动结束后自动淡出（与左侧 Rail 的滚动条行为保持一致）。
-                                        thumbVisibility: false,
-                                        child: ListView.builder(
-                                          controller: _effectiveScrollController,
-                                          padding: EdgeInsets.fromLTRB(
-                                            8,
-                                            8,
-                                            8 + _masterScrollbarReserve,
-                                            bottomPadding,
+                                child: () {
+                                  Widget masterBody = items.isEmpty
+                                      ? (widget.onRefresh != null
+                                          ? LayoutBuilder(
+                                              builder: (ctx, box) =>
+                                                  SingleChildScrollView(
+                                                physics:
+                                                    const AlwaysScrollableScrollPhysics(),
+                                                child: SizedBox(
+                                                  height: box.maxHeight,
+                                                  child: widget
+                                                              .emptyMasterBuilder !=
+                                                          null
+                                                      ? widget
+                                                          .emptyMasterBuilder!(
+                                                          ctx,
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                              ),
+                                            )
+                                          : (widget.emptyMasterBuilder != null
+                                              ? widget.emptyMasterBuilder!(
+                                                  context)
+                                              : const SizedBox.shrink()))
+                                      : Scrollbar(
+                                          controller:
+                                              _effectiveScrollController,
+                                          // 静止时不常驻显示滚动条，仅在滚动/拖动时淡入，
+                                          // 滚动结束后自动淡出（与左侧 Rail 的滚动条行为保持一致）。
+                                          thumbVisibility: false,
+                                          child: ListView.builder(
+                                            controller:
+                                                _effectiveScrollController,
+                                            physics: widget.onRefresh != null
+                                                ? const AlwaysScrollableScrollPhysics()
+                                                : null,
+                                            padding: EdgeInsets.fromLTRB(
+                                              8,
+                                              8,
+                                              8 + _masterScrollbarReserve,
+                                              bottomPadding,
+                                            ),
+                                            itemCount: items.length,
+                                            itemBuilder: (context, index) {
+                                              final item = items[index];
+                                              final isSelected =
+                                                  widget.itemKey(item) ==
+                                                      _effectiveSelectedKey;
+                                              void handleTap() =>
+                                                  _handleMasterTap(
+                                                      item, index, true);
+
+                                              final itemWidget =
+                                                  widget.masterItemBuilder(
+                                                context,
+                                                item,
+                                                index,
+                                                isSelected,
+                                                true,
+                                                handleTap,
+                                              );
+
+                                              return Padding(
+                                                key: ValueKey(
+                                                    widget.itemKey(item)),
+                                                padding: const EdgeInsets.only(
+                                                    bottom: 2),
+                                                child: widget.wrapWithInkWell
+                                                    ? InkWell(
+                                                        onTap: handleTap,
+                                                        onLongPress: widget
+                                                                    .onItemLongPress !=
+                                                                null
+                                                            ? () => widget
+                                                                    .onItemLongPress!(
+                                                                item, index)
+                                                            : null,
+                                                        child: itemWidget,
+                                                      )
+                                                    : itemWidget,
+                                              );
+                                            },
                                           ),
-                                          itemCount: items.length,
-                                          itemBuilder: (context, index) {
-                                            final item = items[index];
-                                            final isSelected =
-                                                widget.itemKey(item) ==
-                                                    _effectiveSelectedKey;
-                                            void handleTap() => _handleMasterTap(
-                                                item, index, true);
-
-                                            final itemWidget =
-                                                widget.masterItemBuilder(
-                                              context,
-                                              item,
-                                              index,
-                                              isSelected,
-                                              true,
-                                              handleTap,
-                                            );
-
-                                            return Padding(
-                                              key: ValueKey(
-                                                  widget.itemKey(item)),
-                                              padding:
-                                                  const EdgeInsets.only(bottom: 2),
-                                              child: widget.wrapWithInkWell
-                                                  ? InkWell(
-                                                      onTap: handleTap,
-                                                      onLongPress: widget
-                                                                  .onItemLongPress !=
-                                                              null
-                                                          ? () => widget
-                                                              .onItemLongPress!(
-                                                                  item, index)
-                                                          : null,
-                                                      child: itemWidget,
-                                                    )
-                                                  : itemWidget,
-                                            );
-                                          },
-                                        ),
-                                      ),
+                                        );
+                                  if (widget.onRefresh != null) {
+                                    masterBody = RefreshIndicator(
+                                      onRefresh: widget.onRefresh!,
+                                      child: masterBody,
+                                    );
+                                  }
+                                  return masterBody;
+                                }(),
                               ),
                             ],
                           ),
@@ -501,11 +540,12 @@ class _MasterDetailScaffoldState<T>
             isSelectionMode: widget.isSelectionMode,
           );
 
-          mainContent = Padding(
-            padding: EdgeInsets.only(left: widget.contentLeftPadding),
-            child: CustomScrollView(
-              controller: _effectiveScrollController,
-              slivers: [
+          Widget portraitScrollView = CustomScrollView(
+            controller: _effectiveScrollController,
+            physics: widget.onRefresh != null
+                ? const AlwaysScrollableScrollPhysics()
+                : null,
+            slivers: [
                 if (widget.contentTopPadding > 0)
                   SliverToBoxAdapter(
                     child: SizedBox(height: widget.contentTopPadding),
@@ -569,7 +609,16 @@ class _MasterDetailScaffoldState<T>
                     ),
                   ),
               ],
-            ),
+            );
+          if (widget.onRefresh != null) {
+            portraitScrollView = RefreshIndicator(
+              onRefresh: widget.onRefresh!,
+              child: portraitScrollView,
+            );
+          }
+          mainContent = Padding(
+            padding: EdgeInsets.only(left: widget.contentLeftPadding),
+            child: portraitScrollView,
           );
 
           if (widget.portraitScrollWrapper != null) {

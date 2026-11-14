@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../dialogs/sort_options_dialog.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../widgets/library_action_bar.dart';
+import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_library_playback.dart';
-import '../../../widgets/folder_layout_utils.dart';
+import '../../../widgets/library_action_bar.dart';
+import '../../../widgets/library_master_pane_header.dart';
+import '../../../widgets/master_detail_scaffold.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../remote_genre_detail_page.dart';
 import 'remote_library_common_widgets.dart';
@@ -97,37 +99,46 @@ class _RemoteLibraryGenresViewState
     return list;
   }
 
-  Map<String, dynamic>? _resolveSelected(List<Map<String, dynamic>> visible) {
-    if (visible.isEmpty) return null;
-    final selectedId = _selectedGenreId;
-    if (selectedId == null) return visible.first;
-    for (final genre in visible) {
-      if (_genreId(genre) == selectedId) return genre;
+  Future<void> _openSortDialog(
+    BuildContext dialogHostContext,
+    AppLocalizations l10n,
+  ) async {
+    final result = await showSortOptionsDialog<String>(
+      context: dialogHostContext,
+      title: l10n.sort,
+      currentField: _sortField,
+      sortAscending: _sortAsc,
+      options: _sortOptions(l10n),
+    );
+    if (result != null) {
+      setState(() {
+        _sortField = result.field;
+        _sortAsc = result.sortAscending;
+      });
     }
-    return visible.first;
   }
 
-  void _openGenreDetail(Map<String, dynamic> genre) {
-    final id = _genreId(genre);
-    final name = genre['name'] as String? ??
-        AppLocalizations.of(context)!.genres;
-    setState(() => _selectedGenreId = id);
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => RemoteGenreDetailPage(
-          server: widget.server,
-          password: widget.password,
-          genreId: id,
-          genreName: name,
+  List<SortOptionItem<String>> _sortOptions(AppLocalizations l10n) => [
+        SortOptionItem(
+          value: 'name',
+          label: l10n.sortByName,
+          icon: Icons.sort_by_alpha_rounded,
         ),
-      ),
-    );
-  }
+        SortOptionItem(
+          value: 'songCount',
+          label: l10n.sortTrackCount,
+          icon: Icons.format_list_numbered_rounded,
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final hasPlayingMusic = ref.watch(
+      audioCurrentMusicProvider.select((m) => m != null),
+    );
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
     if (widget.isLoading) {
       return RemoteLibraryLoadingView(
@@ -143,137 +154,68 @@ class _RemoteLibraryGenresViewState
     }
 
     final visible = _visibleGenres;
-    final toolbar = _buildToolbar(context, l10n);
+    final countLabel = isZh
+        ? '共 ${visible.length} 个流派'
+        : '${visible.length} ${l10n.genres}';
 
-    if (widget.genres.isEmpty) {
-      return Column(
-        children: [
-          RemotePageHeaderSlot(child: toolbar),
-          Expanded(
-            child: Center(
-              child: Text(
-                l10n.emptyList,
-                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 750;
-
-        if (isWide) {
-          final selected = _resolveSelected(visible);
-          return Row(
-            children: [
-              SizedBox(
-                width: 330,
-                child: Column(
-                  children: [
-                    RemotePageHeaderSlot(
-                      child: _buildToolbar(context, l10n, narrow: true),
-                    ),
-                    Expanded(
-                      child: _buildGenreList(
-                        visible,
-                        selectedId: selected == null ? null : _genreId(selected),
-                        isWide: true,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const VerticalDivider(width: 1),
-              Expanded(
-                child: selected == null
-                    ? Center(
-                        child: Text(
-                          l10n.emptyList,
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      )
-                    : RemoteGenreDetailContent(
-                        key: ValueKey('remote-genre-${_genreId(selected)}'),
-                        server: widget.server,
-                        password: widget.password,
-                        genreId: _genreId(selected),
-                        genreName: selected['name'] as String? ?? l10n.genres,
-                        bottomOffset: widget.bottomOffset,
-                      ),
-              ),
-            ],
-          );
+    return MasterDetailScaffold<Map<String, dynamic>>(
+      items: visible,
+      itemKey: _genreId,
+      selectedKey: _selectedGenreId,
+      onSelectedKeyChanged: (id) {
+        if (_selectedGenreId != id) {
+          setState(() => _selectedGenreId = id);
         }
-
-        return Column(
-          children: [
-            RemotePageHeaderSlot(child: toolbar),
-            Expanded(
-              child: _buildGenreList(
-                visible,
-                selectedId: null,
-                isWide: false,
-              ),
-            ),
-          ],
-        );
       },
-    );
-  }
-
-  Widget _buildGenreList(
-    List<Map<String, dynamic>> visible, {
-    required String? selectedId,
-    required bool isWide,
-  }) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-
-    if (visible.isEmpty) {
-      return Center(
+      routeName: 'remote_genre_detail',
+      hasPlayingMusic: hasPlayingMusic,
+      onRefresh: widget.onRefresh,
+      masterPaneHeaderBuilder: (headerContext) => LibraryMasterPaneHeader(
+        searchController: _searchController,
+        searchQuery: _searchQuery,
+        searchHintText: l10n.genres,
+        onSearchChanged: (value) => setState(() => _searchQuery = value.trim()),
+        onSearchCleared: () {
+          _searchController.clear();
+          setState(() => _searchQuery = '');
+        },
+        onSortPressed: () => _openSortDialog(headerContext, l10n),
+      ),
+      masterToolbarBuilder: (context, isWide) =>
+          _buildToolbar(context, l10n, isWide: isWide, countLabel: countLabel),
+      masterItemBuilder: (context, genre, index, isSelected, isWide, onTap) =>
+          _RemoteGenreItem(
+        server: widget.server,
+        password: widget.password,
+        genre: genre,
+        selected: isWide && isSelected,
+        onTap: onTap,
+      ),
+      detailBuilder: (context, genre) => RemoteGenreDetailContent(
+        key: ValueKey('remote-genre-${_genreId(genre)}'),
+        server: widget.server,
+        password: widget.password,
+        genreId: _genreId(genre),
+        genreName: genre['name'] as String? ?? l10n.genres,
+        bottomOffset: widget.bottomOffset,
+      ),
+      detailPageBuilder: (context, genre) => RemoteGenreDetailPage(
+        server: widget.server,
+        password: widget.password,
+        genreId: _genreId(genre),
+        genreName: genre['name'] as String? ?? l10n.genres,
+      ),
+      emptyMasterBuilder: (context) => Center(
         child: Text(
           l10n.emptyList,
           style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
         ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: widget.onRefresh,
-      child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          kGridHorizontalPadding,
-          0,
-          kGridHorizontalPadding,
-          widget.bottomOffset,
+      ),
+      emptyDetailBuilder: (context) => Center(
+        child: Text(
+          l10n.emptyList,
+          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
         ),
-        itemCount: visible.length,
-        itemBuilder: (context, index) {
-          final genre = visible[index];
-          final id = _genreId(genre);
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: _RemoteGenreItem(
-              server: widget.server,
-              password: widget.password,
-              genre: genre,
-              selected: isWide && id == selectedId,
-              onTap: () {
-                if (isWide) {
-                  setState(() => _selectedGenreId = id);
-                } else {
-                  _openGenreDetail(genre);
-                }
-              },
-            ),
-          );
-        },
       ),
     );
   }
@@ -296,26 +238,12 @@ class _RemoteLibraryGenresViewState
     );
   }
 
-  /// [narrow] 为真时强制折行布局：横屏主从分栏的左栏只有 330 宽，
-  /// 按屏幕朝向判宽屏会把搜索框与全部动作挤进一行而溢出。
   Widget _buildToolbar(
     BuildContext context,
     AppLocalizations l10n, {
-    bool narrow = false,
+    required bool isWide,
+    String? countLabel,
   }) {
-    final sortOptions = <SortOptionItem<String>>[
-      SortOptionItem(
-        value: 'name',
-        label: l10n.sortByName,
-        icon: Icons.sort_by_alpha_rounded,
-      ),
-      SortOptionItem(
-        value: 'songCount',
-        label: l10n.sortTrackCount,
-        icon: Icons.format_list_numbered_rounded,
-      ),
-    ];
-
     return RemoteLibraryActionBar(
       searchController: _searchController,
       searchQuery: _searchQuery,
@@ -327,25 +255,28 @@ class _RemoteLibraryGenresViewState
       },
       title: widget.title,
       onBack: widget.onBack,
-      forceNarrow: narrow,
+      countLabel: countLabel,
+      showSearch: !isWide,
+      showSortActionInWide: false,
       trailingActions: widget.trailingActions,
       onPlayAll: _visibleGenres.isEmpty ? null : () => _playAllVisible(),
       onShufflePlay:
           _visibleGenres.isEmpty ? null : () => _playAllVisible(shuffle: true),
       actions: [
-        remoteSortAction<String>(
-          context: context,
-          label: l10n.sort,
-          currentField: _sortField,
-          sortAscending: _sortAsc,
-          options: sortOptions,
-          onSelected: (field, asc) {
-            setState(() {
-              _sortField = field;
-              _sortAsc = asc;
-            });
-          },
-        ),
+        if (!isWide)
+          remoteSortAction<String>(
+            context: context,
+            label: l10n.sort,
+            currentField: _sortField,
+            sortAscending: _sortAsc,
+            options: _sortOptions(l10n),
+            onSelected: (field, asc) {
+              setState(() {
+                _sortField = field;
+                _sortAsc = asc;
+              });
+            },
+          ),
       ],
     );
   }

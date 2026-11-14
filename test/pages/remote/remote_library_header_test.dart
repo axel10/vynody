@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/app_icons.dart';
+import 'package:vynody/widgets/library_action_bar.dart';
 import 'package:vynody/widgets/library_large_title.dart';
 import 'package:vynody/widgets/library_zoom_popover.dart';
 
@@ -37,11 +38,13 @@ void main() {
     String? title = '专辑',
     VoidCallback? onBack,
     bool forceNarrow = false,
+    List<LibraryToolbarAction> trailingActions = const <LibraryToolbarAction>[],
   }) {
     return RemoteLibraryActionBar(
       title: title,
       onBack: onBack ?? () {},
       forceNarrow: forceNarrow,
+      trailingActions: trailingActions,
       searchController: TextEditingController(),
       searchQuery: '',
       onSearchChanged: (_) {},
@@ -118,5 +121,36 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     expect(find.byIcon(Icons.search_rounded), findsOneWidget);
     expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+  });
+
+  testWidgets('hideInNarrow 动作仅在横屏顶部栏显示，竖屏与更多菜单均隐藏', (tester) async {
+    var refreshCount = 0;
+    final refreshAction = LibraryToolbarAction(
+      icon: Icons.refresh_rounded,
+      label: '刷新',
+      hideInNarrow: true,
+      onPressed: () => refreshCount++,
+    );
+
+    // 横屏可见且可点击
+    await pumpAt(
+      tester,
+      const Size(900, 500),
+      buildHeader(trailingActions: [refreshAction]),
+    );
+    expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.refresh_rounded));
+    expect(refreshCount, 1);
+
+    // 竖屏不可见，点开「更多」菜单也不包含
+    await pumpAt(
+      tester,
+      const Size(390, 844),
+      buildHeader(trailingActions: [refreshAction]),
+    );
+    expect(find.byIcon(Icons.refresh_rounded), findsNothing);
+    await tester.tap(find.byType(PopupMenuButton<void>));
+    await tester.pumpAndSettle();
+    expect(find.text('刷新'), findsNothing);
   });
 }

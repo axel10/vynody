@@ -1998,6 +1998,17 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     final activeCount = ref.watch(activeDownloadsCountProvider);
     return [
       LibraryToolbarAction(
+        icon: Icons.refresh_rounded,
+        label: l10n.refresh,
+        hideInNarrow: true,
+        onPressed: () {
+          final tabIndex = ref.read(remoteLibraryActiveTabIndexProvider);
+          if (tabIndex != null) {
+            _refreshTab(tabIndex);
+          }
+        },
+      ),
+      LibraryToolbarAction(
         icon: Icons.my_location_rounded,
         label: l10n.locateCurrentSong,
         onPressed: _locateCurrentSong,
@@ -2061,8 +2072,26 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
 
   Widget _buildArtistsTab() {
     return RemoteLibraryArtistsView(
-      toolbar: _buildArtistsToolbar(),
-      landscapeToolbar: _buildArtistsToolbar(compact: true),
+      toolbarBuilder: (context, isWide) =>
+          _buildArtistsToolbar(isMasterDetailWide: isWide),
+      searchController: _artistSearchController,
+      searchFocusNode: _artistSearchFocusNode,
+      onSearchChanged: (val) {
+        setState(() {
+          _artistSearchQuery = val.trim();
+        });
+      },
+      onClearSearch: () {
+        _artistSearchController.clear();
+        setState(() {
+          _artistSearchQuery = '';
+        });
+      },
+      starredOnly: _artistStarredOnly,
+      onToggleStarredOnly: _handleToggleArtistStarredOnly,
+      sortField: _artistSortField,
+      sortAsc: _artistSortAsc,
+      onSortChanged: _handleArtistSortChanged,
       server: widget.server,
       password: widget.password,
       artists: _getFilteredArtists(),
@@ -2814,11 +2843,32 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     );
   }
 
-  Widget _buildArtistsToolbar({bool compact = false}) {
+  Future<void> _handleToggleArtistStarredOnly(bool selected) async {
+    setState(() {
+      _artistStarredOnly = selected;
+    });
+    if (selected && _starredArtistIds.isEmpty) {
+      _beginContentReload();
+      await _fetchStarredArtists();
+      _endContentReload();
+    }
+  }
+
+  void _handleArtistSortChanged(String field, bool asc) {
+    setState(() {
+      _artistSortField = field;
+      _artistSortAsc = asc;
+    });
+    final settings = ref.read(settingsServiceProvider);
+    settings.navidromeArtistSortField = field;
+    settings.navidromeArtistSortAscending = asc;
+  }
+
+  Widget _buildArtistsToolbar({bool isMasterDetailWide = false}) {
     final l10n = AppLocalizations.of(context)!;
     final artists = _getFilteredArtists();
     return RemoteLibraryArtistsToolbar(
-      compact: compact,
+      isMasterDetailWide: isMasterDetailWide,
       title: l10n.artists,
       onBack: _closeSubHost,
       trailingActions: _headerTrailingActions,
@@ -2853,25 +2903,8 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
           _artistSearchQuery = '';
         });
       },
-      onToggleStarredOnly: (selected) async {
-        setState(() {
-          _artistStarredOnly = selected;
-        });
-        if (selected && _starredArtistIds.isEmpty) {
-          _beginContentReload();
-          await _fetchStarredArtists();
-          _endContentReload();
-        }
-      },
-      onSortChanged: (field, asc) {
-        setState(() {
-          _artistSortField = field;
-          _artistSortAsc = asc;
-        });
-        final settings = ref.read(settingsServiceProvider);
-        settings.navidromeArtistSortField = field;
-        settings.navidromeArtistSortAscending = asc;
-      },
+      onToggleStarredOnly: _handleToggleArtistStarredOnly,
+      onSortChanged: _handleArtistSortChanged,
     );
   }
 

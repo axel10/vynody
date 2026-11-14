@@ -5,10 +5,12 @@ import 'package:vynody/widgets/master_detail_scaffold.dart';
 
 class _TestContainer extends StatefulWidget {
   final Size screenSize;
+  final Future<void> Function()? onRefresh;
 
   const _TestContainer({
     super.key,
     required this.screenSize,
+    this.onRefresh,
   });
 
   @override
@@ -40,6 +42,7 @@ class _TestContainerState extends State<_TestContainer> {
                 });
               },
               routeName: 'test_detail',
+              onRefresh: widget.onRefresh,
               masterPaneHeaderBuilder: (context) =>
                   const Text('pane-header'),
               masterItemBuilder:
@@ -178,6 +181,49 @@ void main() {
 
       expect(find.text('pane-header'), findsNothing);
       expect(find.text('Item1'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '传入 onRefresh 时横屏左栏与竖屏列表均支持下拉刷新',
+    (tester) async {
+      var refreshCount = 0;
+
+      // 横屏左栏下拉刷新
+      await tester.binding.setSurfaceSize(const Size(900, 500));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _TestContainer(
+          screenSize: const Size(900, 500),
+          onRefresh: () async {
+            refreshCount++;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RefreshIndicator), findsOneWidget);
+      await tester.fling(find.text('Item1'), const Offset(0, 300), 1000);
+      await tester.pumpAndSettle();
+      expect(refreshCount, 1);
+
+      // 竖屏主列表下拉刷新
+      await tester.binding.setSurfaceSize(const Size(400, 800));
+      await tester.pumpWidget(
+        _TestContainer(
+          screenSize: const Size(400, 800),
+          onRefresh: () async {
+            refreshCount++;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RefreshIndicator), findsOneWidget);
+      await tester.fling(find.text('Item1'), const Offset(0, 300), 1000);
+      await tester.pumpAndSettle();
+      expect(refreshCount, 2);
     },
   );
 }

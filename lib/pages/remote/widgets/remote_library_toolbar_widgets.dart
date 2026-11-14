@@ -33,6 +33,8 @@ class RemoteLibraryActionBar extends StatelessWidget {
     this.trailingActions = const <LibraryToolbarAction>[],
     this.countLabel,
     this.forceNarrow = false,
+    this.showSearch = true,
+    this.showSortActionInWide = true,
   });
 
   /// 分类大标题（「专辑」「艺术家」…）。为空时不渲染标题行，
@@ -69,6 +71,12 @@ class RemoteLibraryActionBar extends StatelessWidget {
   /// 时必须显式要求窄布局 —— 与本地 `genres_tab` / `artists_tab` 左栏同一口径。
   final bool forceNarrow;
 
+  /// 是否在页头内渲染搜索框；横屏主从分栏时搜索收进左栏，此处传 false。
+  final bool showSearch;
+
+  /// 横屏时是否在页头内渲染排序按钮；主从分栏时排序收进左栏，此处传 false。
+  final bool showSortActionInWide;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -90,6 +98,8 @@ class RemoteLibraryActionBar extends StatelessWidget {
         searchHintText: searchHintText,
         onPlayAll: onPlayAll,
         onShufflePlay: onShufflePlay,
+        showSearch: showSearch,
+        showSortActionInWide: showSortActionInWide,
         // 远程库没有「本地 / U 盘 / 网盘」这类来源概念，筛选入口一律不出现。
         showSourceFilter: false,
         showBackButton: onBack != null,

@@ -16,14 +16,17 @@ class LibraryMasterPaneHeader extends StatelessWidget {
   const LibraryMasterPaneHeader({
     super.key,
     required this.searchController,
+    this.searchFocusNode,
     required this.searchQuery,
     required this.onSearchChanged,
     required this.onSearchCleared,
     this.searchHintText,
     this.onSortPressed,
+    this.extraActions = const <Widget>[],
   });
 
   final TextEditingController searchController;
+  final FocusNode? searchFocusNode;
 
   /// 当前生效的搜索词，仅用于决定是否显示清除按钮。
   final String searchQuery;
@@ -35,8 +38,11 @@ class LibraryMasterPaneHeader extends StatelessWidget {
   /// 列表排序入口；为 null 时不渲染排序按钮。
   final VoidCallback? onSortPressed;
 
+  /// 放在搜索框与排序按钮之间的额外左栏紧凑动作（例如远程艺术家「仅看收藏」）。
+  final List<Widget> extraActions;
+
   /// 与远程媒体库工具条一致的 32dp 紧凑图标按钮，避免把左栏这一行撑高。
-  static final ButtonStyle _compactIconStyle = IconButton.styleFrom(
+  static final ButtonStyle compactIconStyle = IconButton.styleFrom(
     minimumSize: const Size(32, 32),
     fixedSize: const Size(32, 32),
     padding: EdgeInsets.zero,
@@ -52,16 +58,21 @@ class LibraryMasterPaneHeader extends StatelessWidget {
         Expanded(
           child: LibrarySearchField(
             controller: searchController,
+            focusNode: searchFocusNode,
             hintText: searchHintText,
             query: searchQuery,
             onChanged: onSearchChanged,
             onClear: onSearchCleared,
           ),
         ),
+        for (final action in extraActions) ...[
+          const SizedBox(width: 6),
+          action,
+        ],
         if (onSortPressed != null) ...[
           const SizedBox(width: 6),
           IconButton(
-            style: _compactIconStyle,
+            style: compactIconStyle,
             tooltip: l10n.sort,
             onPressed: onSortPressed,
             iconSize: 20,

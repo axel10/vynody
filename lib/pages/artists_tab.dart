@@ -385,6 +385,8 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
               LibraryToolbarAction(
                 icon: Icons.grid_view_rounded,
                 label: l10n.listView,
+                // 横屏为主从分栏，左栏固定为列表，不需要视图模式切换按钮。
+                hideInWide: true,
                 wideButton: LibraryZoomButton(
                   scope: LibraryZoomScope.artist,
                   buttonSize: LibraryToolbarMetrics.buttonSize,
