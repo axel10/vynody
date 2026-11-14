@@ -69,14 +69,38 @@ final remoteScanProgressProvider =
   RemoteScanProgressNotifier.new,
 );
 
+typedef RemoteDirectoryClientFactory = RemoteDirectoryClient Function(
+  RemoteServer server,
+  String password,
+);
+
+typedef RemoteBatchMetadataProcessor = Future<void> Function({
+  required List<WebDavFile> files,
+  required RemoteServer server,
+  required String password,
+  int concurrency,
+  bool Function()? isCancelled,
+  void Function(WebDavFile file)? onFileStart,
+  void Function(String uri, SongMetadata meta, WebDavFile file)? onMetadataLoaded,
+});
+
 class RemoteDirectoryScanner {
   final Ref _ref;
-  final MetadataDatabase _db = MetadataDatabase();
+  final MetadataDatabase _db;
+  final RemoteDirectoryClientFactory? _clientFactory;
+  final RemoteBatchMetadataProcessor? _batchMetadataProcessor;
   bool _cancelled = false;
   final Set<String> _cancelledRootIds = <String>{};
   final Map<String, Future<void>> _activeDeletions = <String, Future<void>>{};
 
-  RemoteDirectoryScanner(this._ref);
+  RemoteDirectoryScanner(
+    this._ref, {
+    MetadataDatabase? database,
+    RemoteDirectoryClientFactory? clientFactory,
+    RemoteBatchMetadataProcessor? batchMetadataProcessor,
+  }) : _db = database ?? MetadataDatabase(),
+       _clientFactory = clientFactory,
+       _batchMetadataProcessor = batchMetadataProcessor;
 
   void cancel() {
     _cancelled = true;
@@ -133,9 +157,10 @@ class RemoteDirectoryScanner {
       processedCount: 0,
     ));
 
-    final RemoteDirectoryClient client = server.type == RemoteServerType.smb
-        ? SmbClient(server: server, password: password)
-        : WebDavClient(server: server, password: password);
+    final RemoteDirectoryClient client = _clientFactory?.call(server, password) ??
+        (server.type == RemoteServerType.smb
+            ? SmbClient(server: server, password: password)
+            : WebDavClient(server: server, password: password));
 
     try {
       // 1. Recursively find all audio files in the remote folder
@@ -223,7 +248,7 @@ class RemoteDirectoryScanner {
       ));
 
       if (filesToExtract.isNotEmpty) {
-        await RemoteMetadataHelper.processBatchMetadata(
+        await (_batchMetadataProcessor ?? RemoteMetadataHelper.processBatchMetadata)(
           files: filesToExtract,
           server: server,
           password: password,

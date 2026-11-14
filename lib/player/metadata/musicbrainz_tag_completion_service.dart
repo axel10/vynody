@@ -271,6 +271,13 @@ class MusicBrainzTagCompletionService {
   static final Map<String, List<MusicBrainzTrackMatch>> _searchCache = {};
   static final Map<String, _CoverArtResult> _coverCache = {};
 
+  @visibleForTesting
+  static void resetCacheForTest() {
+    _searchCache.clear();
+    _coverCache.clear();
+    _lastRequestAt = DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
   static Future<void> _rateLimit() async {
     final now = DateTime.now();
     final elapsed = now.difference(_lastRequestAt);

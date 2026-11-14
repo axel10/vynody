@@ -36,21 +36,31 @@ typedef QueueMetadataUpdatesCallback = void Function(
   Map<String, dynamic> updates,
 );
 
+typedef RemoteSongMetadataFetcher = Future<SongMetadata?> Function({
+  required WebDavFile file,
+  required RemoteServer server,
+  required String password,
+  required int sourceFlags,
+});
+
 class RemoteQueueMetadataEnricher {
   RemoteQueueMetadataEnricher({
     required MetadataDatabase db,
     required Future<RemoteServerStorage> Function() storageGetter,
     required QueueMetadataUpdatesCallback onMetadata,
     int concurrency = 3,
+    RemoteSongMetadataFetcher? metadataFetcher,
   })  : _db = db,
         _storageGetter = storageGetter,
         _onMetadata = onMetadata,
-        _concurrency = concurrency;
+        _concurrency = concurrency,
+        _metadataFetcher = metadataFetcher ?? RemoteMetadataHelper.fetchSongMetadata;
 
   final MetadataDatabase _db;
   final Future<RemoteServerStorage> Function() _storageGetter;
   final QueueMetadataUpdatesCallback _onMetadata;
   final int _concurrency;
+  final RemoteSongMetadataFetcher _metadataFetcher;
 
   /// 待解析曲目（保持入队顺序），[_queued] 负责去重，避免重复入队重复联网。
   final List<MusicFile> _pending = <MusicFile>[];
@@ -131,7 +141,7 @@ class RemoteQueueMetadataEnricher {
 
       final password = await storage.getPassword(server.id) ?? '';
       final targetPath = info.trackIdOrPath;
-      final metadata = await RemoteMetadataHelper.fetchSongMetadata(
+      final metadata = await _metadataFetcher(
         file: WebDavFile(
           path: targetPath,
           name: p.basename(targetPath),

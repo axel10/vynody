@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/lastfm/lastfm_api_client.dart';
 import 'package:vynody/player/lastfm/lastfm_auth_service.dart';
-import 'package:vynody/player/lastfm/lastfm_credentials.dart';
 import 'package:vynody/player/lastfm/lastfm_scrobble_entry.dart';
 import 'package:vynody/player/lastfm/scrobble_tracker.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
@@ -62,7 +61,7 @@ class LastFmScrobbleService {
   String? _nowPlayingPath;
   DateTime? _nowPlayingAt;
 
-  bool get isAvailable => LastFmCredentials.isConfigured;
+  bool get isAvailable => _client.isConfigured;
 
   /// 启动周期冲刷，并立刻尝试一次（把上次退出时残留的记录补上）。
   void start() {

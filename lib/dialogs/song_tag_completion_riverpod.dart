@@ -26,13 +26,13 @@ class SongTagCompletionController extends ChangeNotifier {
     required this.songPath,
     required this.acoustidService,
     this.remoteResolverFuture,
-  });
+    MusicBrainzTagCompletionService? service,
+  }) : service = service ?? MusicBrainzTagCompletionService();
 
   final String songPath;
   final AcoustIDService acoustidService;
   final Future<RemoteMediaResolver>? remoteResolverFuture;
-  final MusicBrainzTagCompletionService service =
-      MusicBrainzTagCompletionService();
+  final MusicBrainzTagCompletionService service;
 
   List<MusicBrainzTrackMatch> musicBrainzMatches = const [];
   List<AcoustIDResult> acoustidResults = const [];
