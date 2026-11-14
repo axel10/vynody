@@ -73,6 +73,29 @@ void main() {
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
     expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
     expect(find.byIcon(Icons.download_rounded), findsOneWidget);
+
+    final playIconSize = tester.widget<Icon>(find.byIcon(Icons.play_arrow)).size;
+    final shuffleButtonSize = tester.getSize(
+      find.ancestor(
+        of: find.byIcon(Icons.shuffle),
+        matching: find.byType(IconButton),
+      ),
+    );
+    final searchButtonSize = tester.getSize(
+      find.ancestor(
+        of: find.byIcon(Icons.search_rounded),
+        matching: find.byType(IconButton),
+      ),
+    );
+    expect(searchButtonSize, equals(shuffleButtonSize));
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.search_rounded)).size,
+      equals(playIconSize),
+    );
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.search_rounded)).size,
+      equals(tester.widget<Icon>(find.byIcon(Icons.shuffle)).size),
+    );
   });
 
   testWidgets('DetailEmptyPane and DetailNoMatchView render expected UI', (

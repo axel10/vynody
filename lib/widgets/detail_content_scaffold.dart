@@ -386,12 +386,9 @@ class DetailSearchToggleButton extends StatelessWidget {
     return IconButton(
       tooltip: isOpen ? l10n.closeSearch : l10n.search,
       onPressed: onPressed,
-      visualDensity: VisualDensity.compact,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 34, height: 34),
       icon: Icon(
         isOpen ? Icons.search_off_rounded : Icons.search_rounded,
-        size: 20,
+        size: 22,
         color: isOpen
             ? theme.colorScheme.primary
             : theme.colorScheme.onSurfaceVariant,

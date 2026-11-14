@@ -18,6 +18,7 @@ import 'album_context_menu.dart';
 import 'album_sections.dart';
 import 'album_zoom_item.dart';
 import 'collection_detail_header.dart';
+import 'detail_content_scaffold.dart';
 import 'draggable_album_item.dart';
 import 'folder_layout_utils.dart';
 import 'folder_zoom_gesture_layer.dart';
@@ -169,24 +170,6 @@ class _CollectionDetailContentState extends ConsumerState<CollectionDetailConten
       sum += section.totalDurationMillis;
     }
     return sum;
-  }
-
-  /// 页头行尾的搜索开关。展开时图标高亮，再点一次收起并清空。
-  Widget _buildSearchToggle(AppLocalizations l10n, ThemeData theme) {
-    return IconButton(
-      tooltip: _searchOpen ? l10n.closeSearch : l10n.search,
-      onPressed: _toggleSearch,
-      visualDensity: VisualDensity.compact,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 34, height: 34),
-      icon: Icon(
-        _searchOpen ? Icons.search_off_rounded : Icons.search_rounded,
-        size: 20,
-        color: _searchOpen
-            ? theme.colorScheme.primary
-            : theme.colorScheme.onSurfaceVariant,
-      ),
-    );
   }
 
   /// 折叠式搜索框：收起时高度为 0，不占版面。
@@ -461,7 +444,10 @@ class _CollectionDetailContentState extends ConsumerState<CollectionDetailConten
                       onPlayAll: () => _playAll(visibleSongs),
                       onShufflePlay: () =>
                           _playAll(List<MusicFile>.of(visibleSongs)..shuffle()),
-                      trailingAction: _buildSearchToggle(l10n, theme),
+                      trailingAction: DetailSearchToggleButton(
+                        isOpen: _searchOpen,
+                        onPressed: _toggleSearch,
+                      ),
                     ),
                     _buildSearchField(l10n),
                   ],

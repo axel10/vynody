@@ -14,6 +14,7 @@ import '../../utils/remote_context_menu_utils.dart';
 import '../../widgets/album_sections.dart'
     show AlbumSection, AlbumSectionSliver, formatDurationClock;
 import '../../widgets/collection_detail_header.dart';
+import '../../widgets/detail_content_scaffold.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/remote_artwork_widget.dart';
 import 'widgets/remote_library_common_widgets.dart';
@@ -456,7 +457,10 @@ class _RemoteGenreDetailContentState
                         onPlayAll: () => _play(visibleSongs),
                         onShufflePlay: () =>
                             _play(visibleSongs, shuffle: true),
-                        trailingAction: _buildSearchToggle(l10n, theme),
+                        trailingAction: DetailSearchToggleButton(
+                          isOpen: _searchOpen,
+                          onPressed: _toggleSearch,
+                        ),
                       ),
                       _buildSearchField(l10n),
                     ],
@@ -480,22 +484,6 @@ class _RemoteGenreDetailContentState
             ],
           );
         },
-      ),
-    );
-  }
-
-  /// 标题区行尾的搜索开关。展开时图标高亮，再点一次收起并清空。
-  Widget _buildSearchToggle(AppLocalizations l10n, ThemeData theme) {
-    return IconButton(
-      tooltip: _searchOpen ? l10n.closeSearch : l10n.search,
-      onPressed: _toggleSearch,
-      visualDensity: VisualDensity.compact,
-      icon: Icon(
-        _searchOpen ? Icons.search_off_rounded : Icons.search_rounded,
-        size: 22,
-        color: _searchOpen
-            ? theme.colorScheme.primary
-            : theme.colorScheme.onSurfaceVariant,
       ),
     );
   }
