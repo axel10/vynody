@@ -699,9 +699,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                       color: theme.colorScheme.onSurface,
                       size: 20,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
                       onSelected: (val) {
                         switch (val) {
                           case 'search':

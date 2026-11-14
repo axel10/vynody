@@ -8,7 +8,7 @@ class AppContextMenu {
 
   /// Default rounded corners for all context popup menus.
   static final ShapeBorder defaultMenuShape = RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(14),
+    borderRadius: BorderRadius.circular(16),
   );
 
   /// Shows a context menu at [position] guaranteeing that:
@@ -41,11 +41,11 @@ class AppContextMenu {
       ),
       items: items,
       initialValue: initialValue,
-      elevation: elevation ?? 8.0,
+      elevation: elevation ?? 6.0,
       shape: shape ?? defaultMenuShape,
       color: color,
       shadowColor: shadowColor,
-      surfaceTintColor: surfaceTintColor,
+      surfaceTintColor: surfaceTintColor ?? Colors.transparent,
       constraints: constraints,
     );
   }

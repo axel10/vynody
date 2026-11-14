@@ -8,6 +8,7 @@ import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/dialogs/upgrade_to_pro_dialog.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
+import 'package:vynody/utils/app_surface_palette.dart';
 import '../widgets/app_bottom_sheet.dart';
 
 class AddEditRemoteServerDialog extends ConsumerStatefulWidget {
@@ -370,6 +371,10 @@ class _AddEditRemoteServerDialogState
                       DropdownButtonFormField<RemoteServerType>(
                         initialValue: _serverType,
                         isExpanded: true,
+                        dropdownColor: AppSurfacePalette.elevatedSurface(
+                          theme.colorScheme,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
                         decoration: InputDecoration(
                           labelText: l10n.serverType,
                           prefixIcon: Icon(_getServerIcon(_serverType)),
@@ -547,6 +552,10 @@ class _AddEditRemoteServerDialogState
                           DropdownButtonFormField<int?>(
                             initialValue: _maxBitRate,
                             isExpanded: true,
+                            dropdownColor: AppSurfacePalette.elevatedSurface(
+                              theme.colorScheme,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
                             decoration: InputDecoration(
                               labelText: l10n.maxBitRate,
                               prefixIcon: const Icon(Icons.graphic_eq_rounded),

@@ -12,7 +12,6 @@ import '../widgets/folder_zoom_gesture_layer.dart';
 import '../widgets/library_zoom_popover.dart';
 import '../widgets/song_zoom_item.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
-import 'package:vynody/utils/app_surface_palette.dart';
 import 'package:vynody/utils/deleted_song_snack.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
@@ -849,9 +848,6 @@ class _QueuePageState extends ConsumerState<QueuePage>
                             color: theme.colorScheme.onSurface,
                             size: 20,
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
                           onSelected: (value) {
                             switch (value) {
                               case 'sort':
@@ -992,15 +988,6 @@ class _QueuePageState extends ConsumerState<QueuePage>
       offset: const Offset(0, 4),
       position: PopupMenuPosition.under,
       tooltip: AppLocalizations.of(context)!.queue,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
-          width: 1,
-        ),
-      ),
-      color: AppSurfacePalette.elevatedSurface(theme.colorScheme),
-      elevation: 8,
       onSelected: (val) {
         setState(() {
           _viewIndex = val;

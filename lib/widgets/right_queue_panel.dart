@@ -1332,7 +1332,6 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, size: 18),
             tooltip: l10n.moreOptions,
-            color: theme.colorScheme.surface,
             onSelected: (action) async {
               if (action == 'clear') {
                 _showClearPlaylistConfirmDialog(context, activePlaylist);

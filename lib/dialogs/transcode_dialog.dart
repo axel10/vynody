@@ -22,6 +22,7 @@ import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_service_providers.dart';
 import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
+import 'package:vynody/utils/app_surface_palette.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 
 
@@ -725,9 +726,14 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
   }
 
   Widget _buildFormatSection(AppLocalizations l10n) {
+    final dropdownColor = AppSurfacePalette.elevatedSurface(
+      Theme.of(context).colorScheme,
+    );
     return DropdownButtonFormField<AudioFormat>(
       initialValue: _draft.outputFormat,
       isExpanded: true,
+      dropdownColor: dropdownColor,
+      borderRadius: BorderRadius.circular(16),
       decoration: InputDecoration(
         labelText: l10n.transcodeFormat,
         border: const OutlineInputBorder(),
@@ -855,6 +861,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
                   ? _draft.bitRate
                   : 192000,
               isExpanded: true,
+              dropdownColor: AppSurfacePalette.elevatedSurface(
+                Theme.of(context).colorScheme,
+              ),
+              borderRadius: BorderRadius.circular(16),
               decoration: InputDecoration(
                 labelText: l10n.transcodeBitRate,
                 border: const OutlineInputBorder(),
@@ -876,6 +886,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
             DropdownButtonFormField<BitRateMode>(
               initialValue: _draft.bitRateMode,
               isExpanded: true,
+              dropdownColor: AppSurfacePalette.elevatedSurface(
+                Theme.of(context).colorScheme,
+              ),
+              borderRadius: BorderRadius.circular(16),
               decoration: InputDecoration(
                 labelText: l10n.transcodeBitRateMode,
                 border: const OutlineInputBorder(),
@@ -901,6 +915,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
               DropdownButtonFormField<bool>(
                 initialValue: _draft.useSystemEncoder,
                 isExpanded: true,
+                dropdownColor: AppSurfacePalette.elevatedSurface(
+                  Theme.of(context).colorScheme,
+                ),
+                borderRadius: BorderRadius.circular(16),
                 decoration: InputDecoration(
                   labelText: l10n.transcodeEncodingEngine,
                   border: const OutlineInputBorder(),
@@ -932,6 +950,10 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
               DropdownButtonFormField<AacEncoder>(
                 initialValue: _draft.aacEncoder,
                 isExpanded: true,
+                dropdownColor: AppSurfacePalette.elevatedSurface(
+                  Theme.of(context).colorScheme,
+                ),
+                borderRadius: BorderRadius.circular(16),
                 decoration: InputDecoration(
                   labelText: l10n.transcodeAacEncoder,
                   border: const OutlineInputBorder(),

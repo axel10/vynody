@@ -754,6 +754,13 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
       scaffoldBackgroundColor: palette.surface,
       useMaterial3: true,
       splashFactory: NoSplash.splashFactory,
+      popupMenuTheme: PopupMenuThemeData(
+        enableFeedback: false,
+        color: brightness == Brightness.dark ? null : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 6,
+        surfaceTintColor: Colors.transparent,
+      ),
       fontFamily: (!kIsWeb && Platform.isWindows) ? 'Segoe UI' : null,
       fontFamilyFallback: (!kIsWeb && (Platform.isMacOS || Platform.isIOS))
           ? const [
@@ -1357,11 +1364,6 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                     await showMenu<String>(
                       context: context,
                       position: position,
-                      elevation: 6,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      color: theme.colorScheme.surface,
                       items: _playlists.map((pl) {
                         final id = pl['id'] as String? ?? '';
                         final name = pl['name'] as String? ?? '';
@@ -1511,7 +1513,6 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, size: 18),
             tooltip: l10n.moreOptions,
-            color: theme.colorScheme.surface,
             onSelected: (action) async {
               if (action == 'clear') {
                 _sendIpc('clear_playlist', {'playlistId': plId});
@@ -1673,10 +1674,6 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
       position: RelativeRect.fromRect(
         Rect.fromLTWH(globalPos.dx, globalPos.dy, 0, 0),
         Offset.zero & overlay.size,
-      ),
-      elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
       ),
       items: [
         PopupMenuItem(

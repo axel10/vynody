@@ -1862,10 +1862,6 @@ class _PresetPickerDialog extends ConsumerWidget {
                   ),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  color: theme.colorScheme.surfaceContainer,
                   tooltip: '',
                   onSelected: (value) {
                     if (value == 'rename') {

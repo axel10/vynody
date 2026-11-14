@@ -32,7 +32,6 @@ class TimeRangeDropdown extends StatelessWidget {
       initialValue: selected,
       tooltip: formatRangeLabel(l10n, selected),
       onSelected: onChanged,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       itemBuilder: (context) => LibraryTimeRange.values.map((range) {
         final isSelected = range == selected;
         return PopupMenuItem<LibraryTimeRange>(

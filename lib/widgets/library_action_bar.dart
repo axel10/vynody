@@ -167,8 +167,6 @@ Widget libraryToolbarMoreButton({
         tooltip: tooltip ?? l10n?.more,
         padding: EdgeInsets.zero,
         splashRadius: 20,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        color: theme.colorScheme.surfaceContainerHigh,
         itemBuilder: (menuContext) {
           final available = actions();
           if (available.isEmpty) {
