@@ -29,6 +29,7 @@ import 'package:vynody/widgets/draggable_genre_item.dart';
 import 'package:vynody/widgets/draggable_song_item.dart';
 import 'package:vynody/widgets/draggable_year_item.dart';
 import 'package:vynody/widgets/genre_context_menu.dart';
+import 'package:vynody/widgets/header_title_block.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 import 'package:vynody/widgets/year_context_menu.dart';
 import 'album_detail_page.dart';
@@ -291,31 +292,17 @@ class _DashboardHeader extends ConsumerWidget {
       playlistServiceProvider.select((v) => v.playlists.length),
     );
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Text(
-          l10n.list,
-          style: theme.textTheme.headlineLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(width: 14),
-        if (albumsCount > 0 || artistsCount > 0)
-          Expanded(
-            child: Text(
-              '$albumsCount ${l10n.albums} · $artistsCount ${l10n.artists}${playlistsCount > 0 ? " · $playlistsCount ${l10n.playlist}" : ""}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-      ],
+    final statsText = (albumsCount > 0 || artistsCount > 0)
+        ? '$albumsCount ${l10n.albums} · $artistsCount ${l10n.artists}${playlistsCount > 0 ? " · $playlistsCount ${l10n.playlist}" : ""}'
+        : null;
+
+    return HeaderTitleBlock(
+      title: l10n.list,
+      subtitle: statsText,
+      titleStyle: theme.textTheme.headlineLarge?.copyWith(
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.5,
+      ),
     );
   }
 }

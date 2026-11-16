@@ -9,6 +9,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_zoom_gesture_layer.dart';
+import '../widgets/header_title_block.dart';
 import '../widgets/library_zoom_popover.dart';
 import '../widgets/song_zoom_item.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
@@ -320,40 +321,30 @@ class _QueuePageState extends ConsumerState<QueuePage>
       countAndDurationText = l10n.songCount(displayQueue.length);
     }
 
-    final Widget subtitleWidget;
-    if (isRandomMode) {
-      subtitleWidget = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildViewSelector(
-            context,
-            theme,
-            isDark,
-            isShuffleRandomMode,
-          ),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              '· $countAndDurationText',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+    final Widget? randomSubtitleWidget = isRandomMode
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildViewSelector(
+                context,
+                theme,
+                isDark,
+                isShuffleRandomMode,
               ),
-            ),
-          ),
-        ],
-      );
-    } else {
-      subtitleWidget = Text(
-        countAndDurationText,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      );
-    }
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  '· $countAndDurationText',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          )
+        : null;
 
     final bool canSort = _viewIndex == 0 && displayQueue.isNotEmpty;
     final bool canLocate = displayQueue.isNotEmpty;
@@ -413,19 +404,10 @@ class _QueuePageState extends ConsumerState<QueuePage>
         child: Row(
           children: [
             Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.queue,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  subtitleWidget,
-                ],
+              child: HeaderTitleBlock(
+                title: l10n.queue,
+                subtitle: isRandomMode ? null : countAndDurationText,
+                subtitleWidget: randomSubtitleWidget,
               ),
             ),
             const SizedBox(width: 8),

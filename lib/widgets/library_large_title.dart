@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/utils/app_icons.dart';
 import 'app_tooltip.dart';
+import 'header_title_block.dart';
 import 'library_toolbar_buttons.dart';
 
 /// 媒体库二级分类宿主环境上下文。
@@ -47,7 +48,7 @@ class LibrarySubHostScope extends InheritedWidget {
 ///
 /// 整合了左侧返回按钮、分类主标题与条目计数副标题：
 /// - 左侧返回按钮自适应居中对齐，支持通过属性指定或自动从 [LibrarySubHostScope] 读取；
-/// - 主标题与副标题之间保持基线对齐（[TextBaseline.alphabetic]），避免视觉高低不一。
+/// - 统计信息通过 [HeaderTitleBlock] 置于主标题正下方，样式与队列页保持一致。
 class LibraryLargeTitle extends StatelessWidget {
   const LibraryLargeTitle({
     super.key,
@@ -107,32 +108,13 @@ class LibraryLargeTitle extends StatelessWidget {
           letterSpacing: -0.5,
         );
 
-    final effectiveCountStyle = countStyle ??
-        theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w500,
-        );
-
-    final titleWithCount = Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          title,
-          style: effectiveTitleStyle,
-        ),
-        if (countLabel != null && countLabel!.isNotEmpty) ...[
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              countLabel!,
-              style: effectiveCountStyle,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ],
+    final titleWithCount = HeaderTitleBlock(
+      title: title,
+      subtitle: countLabel,
+      titleStyle: effectiveTitleStyle,
+      subtitleStyle: countStyle,
+      titleMaxLines: 1,
+      titleOverflow: TextOverflow.ellipsis,
     );
 
     final backButton = showBackButton
