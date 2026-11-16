@@ -226,4 +226,46 @@ void main() {
       expect(refreshCount, 2);
     },
   );
+
+  testWidgets(
+    '横屏左栏短列表也会补足最小可滚动高度以保持滚动条常驻',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(900, 600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MediaQuery(
+            data: const MediaQueryData(size: Size(900, 600)),
+            child: MaterialApp(
+              home: Scaffold(
+                body: MasterDetailScaffold<String>(
+                  items: const ['OnlyOne'],
+                  itemKey: (item) => item,
+                  routeName: 'test_detail',
+                  masterScrollController: scrollController,
+                  masterItemBuilder:
+                      (context, item, index, isSelected, isWide, onTap) {
+                    return ListTile(title: Text(item), onTap: onTap);
+                  },
+                  detailBuilder: (context, item) => Text('Detail: $item'),
+                  detailPageBuilder: (context, item) =>
+                      Scaffold(body: Text(item)),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar));
+      expect(scrollbar.thumbVisibility, isTrue);
+      expect(scrollController.hasClients, isTrue);
+      expect(scrollController.position.maxScrollExtent, greaterThan(0));
+    },
+  );
 }

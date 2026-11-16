@@ -401,7 +401,7 @@ class _MasterDetailScaffoldState<T>
                             border: Border(
                               right: BorderSide(
                                 color: theme.colorScheme.outlineVariant
-                                    .withValues(alpha: 0.2),
+                                    .withValues(alpha: 0.45),
                                 width: 1,
                               ),
                             ),
@@ -448,61 +448,98 @@ class _MasterDetailScaffoldState<T>
                                       : Scrollbar(
                                           controller:
                                               _effectiveScrollController,
-                                          // 静止时不常驻显示滚动条，仅在滚动/拖动时淡入，
-                                          // 滚动结束后自动淡出（与左侧 Rail 的滚动条行为保持一致）。
-                                          thumbVisibility: false,
-                                          child: ListView.builder(
+                                          // 常驻显示滚动条，配合底部最小补足高度确保短列表也保持可滚动，
+                                          // 避免滚动条隐藏后右侧预留槽位显得左右边距不对称。
+                                          thumbVisibility: true,
+                                          child: CustomScrollView(
                                             controller:
                                                 _effectiveScrollController,
                                             physics: widget.onRefresh != null
                                                 ? const AlwaysScrollableScrollPhysics()
                                                 : null,
-                                            padding: EdgeInsets.fromLTRB(
-                                              8,
-                                              8,
-                                              8 + _masterScrollbarReserve,
-                                              bottomPadding,
-                                            ),
-                                            itemCount: items.length,
-                                            itemBuilder: (context, index) {
-                                              final item = items[index];
-                                              final isSelected =
-                                                  widget.itemKey(item) ==
-                                                      _effectiveSelectedKey;
-                                              void handleTap() =>
-                                                  _handleMasterTap(
-                                                      item, index, true);
+                                            slivers: [
+                                              SliverPadding(
+                                                padding: EdgeInsets.fromLTRB(
+                                                  8,
+                                                  8,
+                                                  8 + _masterScrollbarReserve,
+                                                  bottomPadding,
+                                                ),
+                                                sliver: SliverList(
+                                                  delegate:
+                                                      SliverChildBuilderDelegate(
+                                                    (context, index) {
+                                                      final item = items[index];
+                                                      final isSelected =
+                                                          widget.itemKey(
+                                                                  item) ==
+                                                              _effectiveSelectedKey;
+                                                      void handleTap() =>
+                                                          _handleMasterTap(
+                                                              item, index, true);
 
-                                              final itemWidget =
-                                                  widget.masterItemBuilder(
-                                                context,
-                                                item,
-                                                index,
-                                                isSelected,
-                                                true,
-                                                handleTap,
-                                              );
+                                                      final itemWidget = widget
+                                                          .masterItemBuilder(
+                                                        context,
+                                                        item,
+                                                        index,
+                                                        isSelected,
+                                                        true,
+                                                        handleTap,
+                                                      );
 
-                                              return Padding(
-                                                key: ValueKey(
-                                                    widget.itemKey(item)),
-                                                padding: const EdgeInsets.only(
-                                                    bottom: 2),
-                                                child: widget.wrapWithInkWell
-                                                    ? InkWell(
-                                                        onTap: handleTap,
-                                                        onLongPress: widget
-                                                                    .onItemLongPress !=
-                                                                null
-                                                            ? () => widget
-                                                                    .onItemLongPress!(
-                                                                item, index)
-                                                            : null,
-                                                        child: itemWidget,
-                                                      )
-                                                    : itemWidget,
-                                              );
-                                            },
+                                                      return Padding(
+                                                        key: ValueKey(
+                                                            widget.itemKey(
+                                                                item)),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                                bottom: 2),
+                                                        child: widget
+                                                                .wrapWithInkWell
+                                                            ? InkWell(
+                                                                onTap:
+                                                                    handleTap,
+                                                                onLongPress: widget
+                                                                            .onItemLongPress !=
+                                                                        null
+                                                                    ? () => widget
+                                                                            .onItemLongPress!(
+                                                                        item,
+                                                                        index)
+                                                                    : null,
+                                                                child:
+                                                                    itemWidget,
+                                                              )
+                                                            : itemWidget,
+                                                      );
+                                                    },
+                                                    childCount: items.length,
+                                                  ),
+                                                ),
+                                              ),
+                                              SliverLayoutBuilder(
+                                                builder: (
+                                                  context,
+                                                  sliverConstraints,
+                                                ) {
+                                                  final shortfall =
+                                                      sliverConstraints
+                                                              .viewportMainAxisExtent -
+                                                          sliverConstraints
+                                                              .precedingScrollExtent;
+                                                  final extraHeight =
+                                                      shortfall >= 0
+                                                          ? shortfall + 1.0
+                                                          : 0.0;
+                                                  return SliverToBoxAdapter(
+                                                    child: SizedBox(
+                                                        height: extraHeight),
+                                                  );
+                                                },
+                                              ),
+                                            ],
                                           ),
                                         );
                                   if (widget.onRefresh != null) {
