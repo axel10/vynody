@@ -242,7 +242,11 @@ class RemoteMediaBadge extends StatelessWidget {
               child: Container(
                 padding: padding,
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.45),
+                  color: Colors.black.withValues(
+                    alpha: AppBlur.badgeAlpha(
+                      isBlurEnabled: AppBlur.isBlurEnabled(context),
+                    ),
+                  ),
                   borderRadius: BorderRadius.circular(borderRadius),
                   border: Border.all(
                     color: Colors.white.withValues(alpha: 0.2),

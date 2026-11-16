@@ -1556,9 +1556,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                           ignoring: hideImmersiveTabBar,
                           child: SlidingNavigationRail(
                             backgroundColor: navBgBaseColor.withValues(
-                              alpha: theme.brightness == Brightness.dark
-                                  ? 0.65
-                                  : 0.75,
+                              alpha: AppBlur.heavyAlpha(
+                                theme.brightness == Brightness.dark,
+                                isBlurEnabled:
+                                    ref.watch(isBlurEffectEnabledProvider),
+                              ),
                             ),
                             width: railWidth,
                             extended: railWidth > kSidebarRailWidthCollapsed,

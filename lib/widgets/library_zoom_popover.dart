@@ -156,8 +156,10 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
             width: 292,
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHigh
-                  .withValues(alpha: 0.90),
+              color: AppBlur.dialogSurface(
+                context,
+                isBlurEnabled: ref.watch(isBlurEffectEnabledProvider),
+              ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),

@@ -64,7 +64,10 @@ class AlbumDetailNavBar extends StatelessWidget {
     );
     const bottomPadding = 4.0;
     final targetSurface = theme.colorScheme.surface;
-    final maxAlpha = isDark ? 0.70 : 0.82;
+    final maxAlpha = AppBlur.heavyAlpha(
+      isDark,
+      isBlurEnabled: AppBlur.isBlurEnabled(context),
+    );
 
     const double effectiveLeft = 14.0;
 

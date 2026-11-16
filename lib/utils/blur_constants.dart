@@ -98,6 +98,9 @@ abstract final class AppBlur {
 
   /// 读取当前上下文中的毛玻璃开关状态；若调用方未显式传入且不在 [ProviderScope] 内，
   /// 则默认按 `true` 处理。
+  static bool isBlurEnabled(BuildContext context, {bool? explicit}) =>
+      _resolveBlurEnabled(context, explicit);
+
   static bool _resolveBlurEnabled(BuildContext context, bool? explicit) {
     if (explicit != null) return explicit;
     try {

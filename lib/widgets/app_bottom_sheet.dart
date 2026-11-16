@@ -695,10 +695,7 @@ class _AppAdaptiveSheetState extends State<AppAdaptiveSheet>
           0.0,
         );
 
-    final defaultBgColor = AppBlur.dialogSurface(
-      context,
-      overrideAlpha: isDialog ? (isDark ? 0.88 : 0.98) : AppBlur.dialogAlpha(isDark),
-    );
+    final defaultBgColor = AppBlur.dialogSurface(context);
 
     final defaultBorderColor = isDark
         ? Colors.white.withValues(alpha: isDialog ? 0.12 : 0.1)

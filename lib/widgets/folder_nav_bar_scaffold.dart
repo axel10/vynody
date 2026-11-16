@@ -216,7 +216,10 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
         final progress = _animation.value;
 
         final targetSurface = theme.colorScheme.surface;
-        final maxAlpha = isDark ? 0.70 : 0.82;
+        final maxAlpha = AppBlur.heavyAlpha(
+          isDark,
+          isBlurEnabled: AppBlur.isBlurEnabled(context),
+        );
         final navBackgroundColor = widget.isOverlay
             ? Color.lerp(
                 targetSurface.withValues(alpha: 0.0),
