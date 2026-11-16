@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
+import 'frosted_header_bar.dart';
 import 'library_selection_scope.dart';
 import 'playback_ui_tuning.dart';
 
@@ -380,19 +381,9 @@ class _MasterDetailScaffoldState<T>
               (constraints.maxWidth >= 1100 ? 300.0 : 260.0);
           final bottomPadding = showBottomPanel ? 180.0 : 12.0;
 
-          mainContent = Padding(
-            padding: EdgeInsets.only(
-              top: widget.contentTopPadding,
-              left: widget.contentLeftPadding,
-            ),
-            child: Column(
-              children: [
-                if (widget.masterToolbarBuilder != null)
-                  widget.masterToolbarBuilder!(context, true),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+          Widget buildSplitRow() => Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                       // 左侧 Master 列表
                       SizedBox(
                         width: leftPaneWidth,
@@ -564,11 +555,27 @@ class _MasterDetailScaffoldState<T>
                                 : const SizedBox.shrink()),
                       ),
                     ],
+                  );
+
+          mainContent = widget.masterToolbarBuilder != null
+              ? Padding(
+                  padding: EdgeInsets.only(left: widget.contentLeftPadding),
+                  child: FrostedOverlayHeaderStack(
+                    topPadding: widget.contentTopPadding,
+                    header: widget.masterToolbarBuilder!(context, true),
+                    bodyBuilder: (context, headerHeight) => Padding(
+                      padding: EdgeInsets.only(top: headerHeight),
+                      child: buildSplitRow(),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
+                )
+              : Padding(
+                  padding: EdgeInsets.only(
+                    top: widget.contentTopPadding,
+                    left: widget.contentLeftPadding,
+                  ),
+                  child: buildSplitRow(),
+                );
         } else {
           // 竖屏：单栏列表
           final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(

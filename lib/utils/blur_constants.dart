@@ -82,7 +82,7 @@ abstract final class AppBlur {
   /// 开启毛玻璃时：暗色 66%，亮色 75%
   /// 关闭毛玻璃时（非 Apple 平台默认）：暗色 94%，亮色 96%，防止背景内容透明穿透发虚
   static double heavyAlpha(bool isDark, {bool isBlurEnabled = true}) =>
-      isBlurEnabled ? (isDark ? 0.66 : 0.75) : (isDark ? 0.94 : 0.96);
+      isBlurEnabled ? (isDark ? 0.66 : 0.75) : (isDark ? 0.80 : 0.85);
 
   /// 对话框与表单抽屉（Sheet、Dialog）：
   /// 开启毛玻璃时：暗色 88%，亮色 95%
@@ -96,6 +96,18 @@ abstract final class AppBlur {
 
   // ── 3. 颜色与微光描边 (Surface & Border) ──
 
+  /// 读取当前上下文中的毛玻璃开关状态；若调用方未显式传入且不在 [ProviderScope] 内，
+  /// 则默认按 `true` 处理。
+  static bool _resolveBlurEnabled(BuildContext context, bool? explicit) {
+    if (explicit != null) return explicit;
+    try {
+      return ProviderScope.containerOf(context, listen: false)
+          .read(isBlurEffectEnabledProvider);
+    } catch (_) {
+      return true;
+    }
+  }
+
   /// 自动适配亮暗色的常驻浮层背景色
   static Color heavySurface(
     BuildContext context, {
@@ -104,8 +116,9 @@ abstract final class AppBlur {
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final alpha = overrideAlpha ??
-        heavyAlpha(isDark, isBlurEnabled: isBlurEnabled ?? true);
+    final resolvedBlur = _resolveBlurEnabled(context, isBlurEnabled);
+    final alpha =
+        overrideAlpha ?? heavyAlpha(isDark, isBlurEnabled: resolvedBlur);
     return theme.colorScheme.surface.withValues(alpha: alpha);
   }
 
@@ -117,8 +130,9 @@ abstract final class AppBlur {
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final alpha = overrideAlpha ??
-        dialogAlpha(isDark, isBlurEnabled: isBlurEnabled ?? true);
+    final resolvedBlur = _resolveBlurEnabled(context, isBlurEnabled);
+    final alpha =
+        overrideAlpha ?? dialogAlpha(isDark, isBlurEnabled: resolvedBlur);
     return isDark
         ? Colors.black.withValues(alpha: alpha)
         : theme.colorScheme.surface.withValues(alpha: alpha);

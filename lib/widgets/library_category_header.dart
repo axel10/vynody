@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../dialogs/library_source_filter_dialog.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
+import 'frosted_header_bar.dart';
 import 'library_action_bar.dart';
 import 'library_header_actions.dart';
 import 'library_large_title.dart';
@@ -39,6 +40,7 @@ class LibraryCategoryHeader extends ConsumerWidget {
     this.showSortActionInWide = true,
     this.showBackButton = true,
     this.onBack,
+    this.topPadding,
   });
 
   final String? title;
@@ -74,6 +76,7 @@ class LibraryCategoryHeader extends ConsumerWidget {
   final bool showSortActionInWide;
   final bool showBackButton;
   final VoidCallback? onBack;
+  final double? topPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -113,14 +116,6 @@ class LibraryCategoryHeader extends ConsumerWidget {
           )
         : null;
 
-    final border = hasBorder
-        ? Border(
-            bottom: BorderSide(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
-            ),
-          )
-        : null;
-
     // 把动作清单登记给滚动后浮出的顶栏胶囊：竖屏滚走页头之后，右侧「更多」
     // 里必须是同一份动作（同一批闭包），否则会出现「页头能播、胶囊播的是旧列表」。
     // 依赖在自己的 build 里建立（回调是在 LibraryActionBar 的 build 中触发的，
@@ -130,12 +125,15 @@ class LibraryCategoryHeader extends ConsumerWidget {
       scope?.controller.register(scope.tabIndex, resolved);
     }
 
-    return Container(
+    final isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+
+    return FrostedHeaderBar(
+      topPadding: topPadding,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: backgroundColor ?? theme.colorScheme.surface,
-        border: border,
-      ),
+      hasBorder: hasBorder,
+      backgroundColor: backgroundColor,
+      frosted: isLandscape,
       // 横屏保持「标题在左、搜索框与按钮组在右」的单行页头；竖屏才拆成
       // 标题一行、动作行一行。数量信息在有标题时已归 LibraryLargeTitle，
       // 这里不再重复一份。

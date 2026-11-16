@@ -9,6 +9,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_zoom_gesture_layer.dart';
+import '../widgets/frosted_header_bar.dart';
 import '../widgets/header_title_block.dart';
 import '../widgets/library_zoom_popover.dart';
 import '../widgets/song_zoom_item.dart';
@@ -18,7 +19,6 @@ import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
-import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/queue_sort_utils.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
@@ -765,29 +765,15 @@ class _QueuePageState extends ConsumerState<QueuePage>
                 left: 0,
                 right: 0,
                 height: topBarHeight,
-                child: ClipRect(
-                  child: AppBackdropFilter(
-                    filter: AppBlur.heavyFilter,
-                    child: Container(
-                      padding: EdgeInsets.only(top: safeTopPadding),
-                      decoration: BoxDecoration(
-                        color: AppBlur.heavySurface(context),
-                        border: Border(
-                          bottom: BorderSide(
-                            color: theme.dividerColor.withValues(alpha: 0.12),
-                            width: 0.8,
-                          ),
-                        ),
+                child: FrostedHeaderBar(
+                  topPadding: safeTopPadding,
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: kFolderPageMaxWidth,
                       ),
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            maxWidth: kFolderPageMaxWidth,
-                          ),
-                          child: headerContent,
-                        ),
-                      ),
+                      child: headerContent,
                     ),
                   ),
                 ),

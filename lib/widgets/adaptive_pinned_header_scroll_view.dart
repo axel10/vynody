@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
+import 'frosted_header_bar.dart';
+
 /// 自适应头部固定滚动组件。
 ///
 /// 在横屏（或桌面宽屏）环境下，将 [header] 置于 [Column] 顶部固定展示，
@@ -60,35 +62,60 @@ class AdaptivePinnedHeaderScrollView extends StatelessWidget {
         (MediaQuery.orientationOf(context) == Orientation.landscape);
 
     if (effectiveLandscape) {
-      Widget scrollArea = CustomScrollView(
-        key: scrollViewKey,
-        controller: controller,
-        physics: physics,
-        scrollCacheExtent: scrollCacheExtent,
-        slivers: slivers,
-      );
+      if (header == null) {
+        Widget scrollArea = CustomScrollView(
+          key: scrollViewKey,
+          controller: controller,
+          physics: physics,
+          scrollCacheExtent: scrollCacheExtent,
+          slivers: slivers,
+        );
 
-      if (onRefresh != null) {
-        scrollArea = RefreshIndicator(
-          onRefresh: onRefresh!,
-          child: scrollArea,
+        if (onRefresh != null) {
+          scrollArea = RefreshIndicator(
+            onRefresh: onRefresh!,
+            child: scrollArea,
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (topPadding > 0) SizedBox(height: topPadding),
+            Expanded(child: scrollArea),
+          ],
         );
       }
 
-      Widget? effectiveHeader;
-      if (header != null) {
-        effectiveHeader = headerSlotBuilder != null
-            ? headerSlotBuilder!(context, header!, false)
-            : header!;
-      }
+      final effectiveHeader = headerSlotBuilder != null
+          ? headerSlotBuilder!(context, header!, false)
+          : header!;
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (topPadding > 0) SizedBox(height: topPadding),
-          ?effectiveHeader,
-          Expanded(child: scrollArea),
-        ],
+      return FrostedOverlayHeaderStack(
+        topPadding: topPadding,
+        header: effectiveHeader,
+        bodyBuilder: (context, headerHeight) {
+          Widget scrollArea = CustomScrollView(
+            key: scrollViewKey,
+            controller: controller,
+            physics: physics,
+            scrollCacheExtent: scrollCacheExtent,
+            slivers: [
+              SliverToBoxAdapter(child: SizedBox(height: headerHeight)),
+              ...slivers,
+            ],
+          );
+
+          if (onRefresh != null) {
+            scrollArea = RefreshIndicator(
+              edgeOffset: headerHeight,
+              onRefresh: onRefresh!,
+              child: scrollArea,
+            );
+          }
+
+          return scrollArea;
+        },
       );
     } else {
       Widget? sliverHeader;

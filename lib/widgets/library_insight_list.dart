@@ -20,6 +20,7 @@ import 'draggable_album_item.dart';
 import 'draggable_song_item.dart';
 import 'folder_layout_utils.dart';
 import 'folder_zoom_gesture_layer.dart';
+import 'frosted_header_bar.dart';
 import 'library_action_bar.dart';
 import 'library_header_actions.dart';
 import 'library_search_field.dart';
@@ -399,15 +400,8 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
           headerActionsScope.tabIndex,
           resolvedActions,
         );
-        final headerWidget = Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              border: Border(
-                bottom: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                ),
-              ),
-            ),
+        final headerWidget = FrostedHeaderBar(
+            frosted: !isPortrait,
             child: LayoutBuilder(
               builder: (context, headerConstraints) {
                 final isWide = !isPortrait || headerConstraints.maxWidth >= 600;
@@ -593,18 +587,18 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                           ...bodySlivers,
                         ],
                       )
-                    : Column(
-                        children: [
-                          if (widget.contentTopPadding > 0)
-                            SizedBox(height: widget.contentTopPadding),
-                          headerWidget,
-                          Expanded(
-                            child: CustomScrollView(
-                              controller: _scrollController,
-                              slivers: bodySlivers,
+                    : FrostedOverlayHeaderStack(
+                        topPadding: widget.contentTopPadding,
+                        header: headerWidget,
+                        bodyBuilder: (context, headerHeight) => CustomScrollView(
+                          controller: _scrollController,
+                          slivers: [
+                            SliverToBoxAdapter(
+                              child: SizedBox(height: headerHeight),
                             ),
-                          ),
-                        ],
+                            ...bodySlivers,
+                          ],
+                        ),
                       ),
               ),
             ),

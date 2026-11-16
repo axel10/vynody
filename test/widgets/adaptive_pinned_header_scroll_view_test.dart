@@ -42,9 +42,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Verify Column and Expanded structure in landscape
-    expect(find.byType(Column), findsOneWidget);
-    expect(find.byType(Expanded), findsOneWidget);
+    // Verify Stack overlay structure in landscape and initial item offset below header
+    expect(find.byType(Stack), findsAtLeastNWidgets(1));
+    final firstItemPos = tester.getTopLeft(find.text('Item 0'));
+    final headerBottom = tester.getBottomLeft(find.byKey(const ValueKey('test_header'))).dy;
+    expect(firstItemPos.dy, greaterThanOrEqualTo(headerBottom));
 
     final initialHeaderPos = tester.getTopLeft(find.byKey(const ValueKey('test_header')));
 

@@ -26,6 +26,7 @@ import '../utils/app_log.dart';
 import '../widgets/draggable_album_item.dart';
 import '../widgets/album_context_menu.dart';
 import '../widgets/playback_ui_tuning.dart';
+import '../widgets/frosted_header_bar.dart';
 import '../widgets/library_action_bar.dart';
 import '../widgets/library_category_header.dart';
 import '../widgets/library_toolbar_buttons.dart';
@@ -503,23 +504,22 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                                   return FolderZoomGestureLayer(
                                     scope: LibraryZoomScope.album,
                                     child: isLandscape
-                                        ? Column(
-                                            children: [
-                                              if (widget.contentTopPadding > 0)
-                                                SizedBox(
-                                                  height: widget.contentTopPadding,
+                                        ? FrostedOverlayHeaderStack(
+                                            topPadding: widget.contentTopPadding,
+                                            header: toolbar,
+                                            bodyBuilder: (context, headerHeight) =>
+                                                CustomScrollView(
+                                              key: const ValueKey('album_grid_view'),
+                                              controller: _scrollController,
+                                              scrollCacheExtent:
+                                                  const ScrollCacheExtent.viewport(0.4),
+                                              slivers: [
+                                                SliverToBoxAdapter(
+                                                  child: SizedBox(height: headerHeight),
                                                 ),
-                                              toolbar,
-                                              Expanded(
-                                                child: CustomScrollView(
-                                                  key: const ValueKey('album_grid_view'),
-                                                  controller: _scrollController,
-                                                  scrollCacheExtent:
-                                                      const ScrollCacheExtent.viewport(0.4),
-                                                  slivers: albumSlivers,
-                                                ),
-                                              ),
-                                            ],
+                                                ...albumSlivers,
+                                              ],
+                                            ),
                                           )
                                         : CustomScrollView(
                                             key: const ValueKey('album_grid_view'),
