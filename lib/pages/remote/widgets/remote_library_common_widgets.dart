@@ -273,7 +273,8 @@ class RemoteLibraryErrorView extends StatelessWidget {
   }
 }
 
-/// 详情页顶部导航栏的横屏刷新按钮，尺寸与 [NavCapsuleIsland] 内动作键对齐。
+/// 详情页顶部导航栏的横屏刷新按钮，视觉与尺寸均与 [NavCapsuleIsland] 返回键对齐，
+/// 配合 [NavActionsCapsule] 渲染为右上角独立正圆胶囊。
 class RemoteTopNavRefreshButton extends StatelessWidget {
   const RemoteTopNavRefreshButton({
     super.key,
@@ -286,18 +287,32 @@ class RemoteTopNavRefreshButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final iconColor = theme.colorScheme.onSurface.withValues(
+      alpha: isLoading ? 0.38 : 0.9,
+    );
+
     return AppTooltip(
       message: l10n.refresh,
       useRootOverlay: true,
-      child: IconButton(
-        icon: const Icon(Icons.refresh_rounded, size: kNavCapsuleIconSize),
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints.tightFor(
-          width: kNavCapsuleButtonSize,
-          height: kNavCapsuleButtonSize,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(kNavCapsuleRadius),
+          onTap: isLoading ? null : onRefresh,
+          child: SizedBox(
+            width: kNavCapsuleButtonSize,
+            height: kNavCapsuleButtonSize,
+            child: Center(
+              child: Icon(
+                Icons.refresh_rounded,
+                size: kNavCapsuleIconSize,
+                color: iconColor,
+              ),
+            ),
+          ),
         ),
-        onPressed: isLoading ? null : onRefresh,
       ),
     );
   }

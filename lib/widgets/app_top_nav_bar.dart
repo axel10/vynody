@@ -100,38 +100,45 @@ class AppTopNavBar extends StatelessWidget {
 
     final Widget currentChild;
     if (effectiveFloatingCapsule) {
-      if (!showBackButton && (actions == null || actions!.isEmpty)) {
+      final hasActions = actions != null && actions!.isNotEmpty;
+      if (!showBackButton && !hasActions) {
         currentChild =
             const SizedBox.shrink(key: ValueKey('app_top_nav_bar_empty'));
       } else {
         final effectiveParentTitle =
             parentTitle ?? l10n?.list ?? l10n?.goBack ?? 'Back';
-        final Widget capsule = Align(
-          alignment: Alignment.centerLeft,
-          child: NavCapsuleIsland(
-            parentTitle: effectiveParentTitle,
-            onBack: () {
-              final nav = Navigator.of(context);
-              final rootNav = Navigator.of(context, rootNavigator: true);
-              final currentRoute = ModalRoute.of(context);
-              AppLog.log(
-                '[NavTrace] AppTopNavBar capsule back button pressed! '
-                'parentTitle="$effectiveParentTitle", '
-                'route="${currentRoute?.settings.name}", '
-                'localCanPop=${nav.canPop()}, '
-                'rootCanPop=${rootNav.canPop()}',
-                mirrorToConsole: true,
-              );
-              if (onBack != null) {
-                onBack!();
-              } else {
-                nav.maybePop();
-              }
-            },
-            actions: actions,
-            showBack: showBackButton,
-            tooltip: l10n?.goBack ?? 'Back',
-          ),
+        final Widget? backCapsule = showBackButton
+            ? NavCapsuleIsland(
+                parentTitle: effectiveParentTitle,
+                onBack: () {
+                  final nav = Navigator.of(context);
+                  final rootNav = Navigator.of(context, rootNavigator: true);
+                  final currentRoute = ModalRoute.of(context);
+                  AppLog.log(
+                    '[NavTrace] AppTopNavBar capsule back button pressed! '
+                    'parentTitle="$effectiveParentTitle", '
+                    'route="${currentRoute?.settings.name}", '
+                    'localCanPop=${nav.canPop()}, '
+                    'rootCanPop=${rootNav.canPop()}',
+                    mirrorToConsole: true,
+                  );
+                  if (onBack != null) {
+                    onBack!();
+                  } else {
+                    nav.maybePop();
+                  }
+                },
+                showBack: true,
+                tooltip: l10n?.goBack ?? 'Back',
+              )
+            : null;
+
+        final Widget capsuleRow = Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            backCapsule ?? const SizedBox.shrink(),
+            if (hasActions) NavActionsCapsule(actions: actions!),
+          ],
         );
 
         final Widget islandArea = contentMaxWidth != null
@@ -141,13 +148,13 @@ class AppTopNavBar extends StatelessWidget {
                   constraints: BoxConstraints(maxWidth: contentMaxWidth!),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: capsule,
+                    child: capsuleRow,
                   ),
                 ),
               )
             : Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: capsule,
+                child: capsuleRow,
               );
 
         currentChild = KeyedSubtree(

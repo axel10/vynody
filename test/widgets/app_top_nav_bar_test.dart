@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/pages/remote/widgets/remote_library_common_widgets.dart';
 import 'package:vynody/widgets/app_top_nav_bar.dart';
+import 'package:vynody/widgets/nav_capsule_island.dart';
 
 void main() {
   group('AppTopNavBar', () {
@@ -52,5 +55,57 @@ void main() {
 
       expect(find.text('Artists'), findsOneWidget);
     });
+
+    testWidgets(
+      'renders back in NavCapsuleIsland on left and single action in NavActionsCapsule on right in landscape',
+      (tester) async {
+        // 默认测试窗口 800×600 即横屏，走浮动胶囊分支
+        var refreshed = false;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: AppTopNavBar(
+                title: 'Album',
+                parentTitle: 'Albums',
+                actions: [
+                  RemoteTopNavRefreshButton(
+                    onRefresh: () {
+                      refreshed = true;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        final backFinder = find.byType(NavCapsuleIsland);
+        final actionsFinder = find.byType(NavActionsCapsule);
+
+        expect(backFinder, findsOneWidget);
+        expect(actionsFinder, findsOneWidget);
+
+        // 返回胶囊内不再包含 actions
+        final backCapsule = tester.widget<NavCapsuleIsland>(backFinder);
+        expect(backCapsule.actions, isNull);
+
+        // 左右胶囊均为 44×44 正圆，且右侧动作胶囊位于返回胶囊右侧
+        final backRect = tester.getRect(backFinder);
+        final actionRect = tester.getRect(actionsFinder);
+        expect(backRect.size, const Size(kNavCapsuleHeight, kNavCapsuleHeight));
+        expect(
+          actionRect.size,
+          const Size(kNavCapsuleHeight, kNavCapsuleHeight),
+        );
+        expect(actionRect.left, greaterThan(backRect.right));
+
+        await tester.tap(find.byType(RemoteTopNavRefreshButton));
+        await tester.pump();
+        expect(refreshed, isTrue);
+      },
+    );
   });
 }
