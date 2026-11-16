@@ -34,6 +34,7 @@ void main() {
     bool extended = true,
     ActiveRemoteSession? activeRemoteSession,
     bool isPro = false,
+    ValueChanged<int>? onLibrarySubDestinationSelected,
   }) {
     return ProviderScope(
       overrides: [
@@ -59,7 +60,8 @@ void main() {
             isSettingsActive: false,
             isLibraryExpanded: isLibraryExpanded,
             librarySubIndex: librarySubIndex,
-            onLibrarySubDestinationSelected: (_) {},
+            onLibrarySubDestinationSelected:
+                onLibrarySubDestinationSelected ?? (_) {},
           ),
         ),
       ),
@@ -101,15 +103,15 @@ void main() {
     // Now 完成 should be visible
     expect(find.text('完成'), findsOneWidget);
 
-    // Checkboxes should be displayed for each sub item (8 check icons since all visible by default)
-    expect(find.byIcon(Icons.check_rounded), findsNWidgets(8));
+    // Checkboxes should be displayed for each sub item (9 check icons since all visible by default)
+    expect(find.byIcon(Icons.check_rounded), findsNWidgets(9));
 
     // Toggle (uncheck) "最近播放"
     await tester.tap(find.text('最近播放'));
     await tester.pumpAndSettle();
 
-    // Now 最近播放 is unchecked (7 check icons remaining)
-    expect(find.byIcon(Icons.check_rounded), findsNWidgets(7));
+    // Now 最近播放 is unchecked (8 check icons remaining)
+    expect(find.byIcon(Icons.check_rounded), findsNWidgets(8));
     expect(settingsService.isLibraryTabVisible('recentlyPlayed'), isFalse);
 
     // Click 完成 to exit edit mode
@@ -178,21 +180,41 @@ void main() {
     // Verify 远程媒体库 entries are present
     // One for the primary navigation icon and one for section header
     expect(find.text('远程媒体库'), findsNWidgets(2));
-    // Sub-items of remote library should be visible (e.g. 搜索 is remote-only)
-    expect(find.text('搜索'), findsOneWidget);
+    // Both remote library and local library have a 搜索 sub-item
+    expect(find.text('搜索'), findsNWidgets(2));
     expect(find.text('播放列表'), findsOneWidget);
 
     final folderDy = tester.getTopLeft(find.text('媒体源')).dy;
     final remoteHeaderDy = tester.getTopLeft(find.text('远程媒体库').last).dy;
-    final remoteSearchDy = tester.getTopLeft(find.text('搜索')).dy;
+    final remoteSearchDy = tester.getTopLeft(find.text('搜索').first).dy;
     final localLibraryHeaderDy = tester.getTopLeft(find.text('媒体库').last).dy;
+    final localSearchDy = tester.getTopLeft(find.text('搜索').last).dy;
     final playlistDy = tester.getTopLeft(find.text('播放列表')).dy;
 
     // Remote library section and sub items must appear after 媒体源 and before local library / playlist
     expect(folderDy < remoteHeaderDy, isTrue, reason: 'Remote section header should be below 媒体源');
     expect(remoteHeaderDy < remoteSearchDy, isTrue, reason: 'Remote sub-items should be below remote section header');
     expect(remoteSearchDy < localLibraryHeaderDy, isTrue, reason: 'Remote section should be above local library header');
-    expect(localLibraryHeaderDy < playlistDy, isTrue, reason: 'Local library header should be above playlist header');
+    expect(localLibraryHeaderDy < localSearchDy, isTrue, reason: 'Local search should be below local library header');
+    expect(localSearchDy < playlistDy, isTrue, reason: 'Local library sub-items should be above playlist header');
+  });
+
+  testWidgets('Local library 搜索 item is shown in rail and selects subIndex 9', (tester) async {
+    int? tappedSubIndex;
+    await tester.pumpWidget(
+      buildRail(
+        onLibrarySubDestinationSelected: (index) => tappedSubIndex = index,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('搜索'), findsOneWidget);
+    await tester.ensureVisible(find.text('搜索'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('搜索'));
+    await tester.pumpAndSettle();
+
+    expect(tappedSubIndex, 9);
   });
 }
 

@@ -47,10 +47,12 @@ class LibrarySearchPage extends ConsumerStatefulWidget {
     super.key,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
+    this.onBack,
   });
 
   final double contentTopPadding;
   final double contentLeftPadding;
+  final VoidCallback? onBack;
 
   @override
   ConsumerState<LibrarySearchPage> createState() => _LibrarySearchPageState();
@@ -291,7 +293,11 @@ class _LibrarySearchPageState extends ConsumerState<LibrarySearchPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            LibraryLargeTitle(title: l10n.search),
+                            LibraryLargeTitle(
+                              title: l10n.search,
+                              showBackButton: widget.onBack != null,
+                              onBack: widget.onBack,
+                            ),
                             const SizedBox(height: 10),
                             LibrarySearchField(
                               controller: _controller,

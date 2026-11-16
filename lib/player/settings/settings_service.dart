@@ -561,6 +561,7 @@ class SettingsService extends ChangeNotifier {
     'ratedSongs',
     'genres',
     'years',
+    'search',
   ];
   static const String _keyVisibleLibraryTabs = 'visible_library_sub_tabs';
   static const String defaultMainControlsLeftButton = 'visualizer';
@@ -1426,6 +1427,9 @@ class SettingsService extends ChangeNotifier {
         }
         if (!merged.contains('years')) {
           merged.add('years');
+        }
+        if (!merged.contains('search')) {
+          merged.add('search');
         }
         return merged;
       }

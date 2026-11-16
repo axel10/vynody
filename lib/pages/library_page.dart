@@ -75,7 +75,7 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
   /// 各子分类各自持有的 Navigator key，交给二级宿主挂载、由返回键统一分发。
   final List<GlobalKey<NavigatorState>> _tabNavigatorKeys =
       List<GlobalKey<NavigatorState>>.generate(
-        9,
+        10,
         (index) => GlobalKey<NavigatorState>(debugLabel: 'library_tab_$index'),
       );
 
@@ -199,45 +199,10 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
           contentTopPadding: topPadding,
           contentLeftPadding: leftPadding,
           onNavigateToSubIndex: (sub) => _openSubHost(sub),
-          onOpenSearch: () =>
-              _navigatorKey.currentState?.push(_buildSearchRoute()),
+          onOpenSearch: () => _openSubHost(9),
         );
       },
     );
-  }
-
-  /// 全局搜索页：压在局部 Navigator 上，返回手势与三级页面同一套机制。
-  ///
-  /// 它不属于任何子分类，所以不占 `libraryActiveTabIndexProvider` 的索引，
-  /// 也不会动各分类原有的路由栈。
-  Route<void> _buildSearchRoute() {
-    final page = Builder(
-      builder: (context) {
-        final size = MediaQuery.sizeOf(context);
-        final isLandscape = ref.watch(isEffectiveLandscapeProvider(size));
-        final double safeTop = getTitleBarTopPadding(
-          context,
-          defaultWindowPadding: isLandscape ? 32.0 : 36.0,
-        );
-        final double topPadding = isLandscape ? (safeTop + 8.0) : safeTop;
-        final double leftPadding =
-            ref.watch(effectiveSidebarRailWidthProvider(size));
-        return LibrarySearchPage(
-          contentTopPadding: topPadding,
-          contentLeftPadding: leftPadding,
-        );
-      },
-    );
-
-    return (Platform.isIOS || Platform.isMacOS)
-        ? CupertinoPageRoute<void>(
-            settings: const RouteSettings(name: 'library_search'),
-            builder: (_) => page,
-          )
-        : MaterialPageRoute<void>(
-            settings: const RouteSettings(name: 'library_search'),
-            builder: (_) => page,
-          );
   }
 
   Route<void> _buildSubHostRoute({
@@ -376,7 +341,7 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
   late final List<GlobalKey<NavigatorState>> _tabNavigatorKeys =
       widget.tabNavigatorKeys ??
       List<GlobalKey<NavigatorState>>.generate(
-        9,
+        10,
         (index) => GlobalKey<NavigatorState>(debugLabel: 'library_tab_$index'),
       );
 
@@ -451,7 +416,7 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
 
     final int? activeIndex = ref.watch(libraryActiveTabIndexProvider);
     if (activeIndex != null) {
-      _lastSubIndex = activeIndex.clamp(0, 8);
+      _lastSubIndex = activeIndex.clamp(0, 9);
     }
     final int clampedIndex = _lastSubIndex;
     _builtSubTabs.add(clampedIndex);
@@ -485,7 +450,7 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
               sizing: StackFit.expand,
               index: clampedIndex,
               children: [
-                for (int i = 0; i < 9; i++)
+                for (int i = 0; i < 10; i++)
                   _builtSubTabs.contains(i)
                       ? LibraryTabNavigator(
                           key: ValueKey('library_tab_navigator_$i'),
@@ -625,6 +590,12 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
         );
       case 8:
         return YearsTab(
+          contentTopPadding: topPadding,
+          contentLeftPadding: leftPadding,
+          onBack: onBack,
+        );
+      case 9:
+        return LibrarySearchPage(
           contentTopPadding: topPadding,
           contentLeftPadding: leftPadding,
           onBack: onBack,

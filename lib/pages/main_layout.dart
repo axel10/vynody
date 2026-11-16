@@ -2072,6 +2072,13 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
         icon: Icons.calendar_month_outlined,
         selectedIcon: Icons.calendar_month_rounded,
       ),
+      (
+        id: 'search',
+        index: 9,
+        label: l10n.search,
+        icon: Icons.search_rounded,
+        selectedIcon: Icons.search_rounded,
+      ),
     ];
 
     const double itemHeight = 44.0;
