@@ -140,6 +140,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
   // Search tab state
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
+  int _searchRequestId = 0;
   bool _isSearching = false;
   List<MusicFile> _searchedSongs = [];
   List<Map<String, dynamic>> _searchedAlbums = [];
@@ -2418,8 +2419,20 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     ref.read(activeRemoteSessionProvider.notifier).clear();
   }
 
+  static List<Map<String, dynamic>> _normalizeSearchEntries(dynamic raw) {
+    if (raw is List) {
+      return raw.whereType<Map<String, dynamic>>().toList();
+    }
+    if (raw is Map<String, dynamic>) {
+      return [raw];
+    }
+    return const [];
+  }
+
   void _onSearchChanged(String query) {
     _searchDebounce?.cancel();
+    // 每次输入或清空都递增序号，丢弃之前仍在路上的旧请求响应，避免乱序覆盖或提前结束 loading
+    final requestId = ++_searchRequestId;
     if (_isSelectionMode) {
       _cancelSelection();
     }
@@ -2448,49 +2461,38 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     });
 
     _searchDebounce = Timer(const Duration(milliseconds: 400), () async {
+      if (!mounted || requestId != _searchRequestId) return;
       try {
         final result = await _client.search(trimmed);
-        final songList = result['song'] as List?;
-        final albumList = result['album'] as List?;
-        final artistList = result['artist'] as List?;
+        if (!mounted || requestId != _searchRequestId) return;
 
-        final songs = <MusicFile>[];
-        if (songList != null) {
-          for (final s in songList) {
-            if (s is Map<String, dynamic>) {
-              songs.add(_client.buildMusicFile(s));
-            }
-          }
-        }
+        final songEntries = _normalizeSearchEntries(result['song']);
+        final albums = _normalizeSearchEntries(result['album']);
+        final artists = _normalizeSearchEntries(result['artist']);
 
-        if (mounted) {
-          final albums = (albumList ?? [])
-              .whereType<Map<String, dynamic>>()
-              .toList();
-          final artists = (artistList ?? [])
-              .whereType<Map<String, dynamic>>()
-              .toList();
+        final songs = <MusicFile>[
+          for (final s in songEntries) _client.buildMusicFile(s),
+        ];
 
-          setState(() {
-            _searchedSongs = songs;
-            _searchedAlbums = albums;
-            _searchedArtists = artists;
-            _isSearching = false;
-          });
+        setState(() {
+          _searchedSongs = songs;
+          _searchedAlbums = albums;
+          _searchedArtists = artists;
+          _isSearching = false;
+        });
 
-          final activeSession = ref.read(activeRemoteSessionProvider);
-          if (activeSession != null &&
-              activeSession.server.id == widget.server.id) {
-            ref.read(activeRemoteSessionProvider.notifier).updateNavidromeSearch(
-                  query: query,
-                  songs: songs,
-                  albums: albums,
-                  artists: artists,
-                );
-          }
+        final activeSession = ref.read(activeRemoteSessionProvider);
+        if (activeSession != null &&
+            activeSession.server.id == widget.server.id) {
+          ref.read(activeRemoteSessionProvider.notifier).updateNavidromeSearch(
+                query: query,
+                songs: songs,
+                albums: albums,
+                artists: artists,
+              );
         }
       } catch (e) {
-        if (mounted) {
+        if (mounted && requestId == _searchRequestId) {
           setState(() {
             _isSearching = false;
           });
