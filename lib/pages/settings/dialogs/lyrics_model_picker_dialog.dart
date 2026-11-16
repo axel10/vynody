@@ -226,9 +226,8 @@ class _LyricsModelPickerDialogState
                 });
               },
               decoration: InputDecoration(
-                labelText: l10n.search,
                 hintText: l10n.modelSearchHint,
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
                 suffixIcon: _searchQuery.isEmpty
                     ? null
                     : IconButton(
@@ -239,9 +238,16 @@ class _LyricsModelPickerDialogState
                             _searchQuery = '';
                           });
                         },
-                        icon: const Icon(Icons.clear),
+                        icon: const Icon(Icons.clear_rounded, size: 18),
                       ),
-                border: const OutlineInputBorder(),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
             ),
             const SizedBox(height: 12),

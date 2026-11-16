@@ -1476,7 +1476,7 @@ class _BannerSearchTextField extends StatelessWidget {
               )
             : null,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(999),
           borderSide: BorderSide.none,
         ),
         filled: true,

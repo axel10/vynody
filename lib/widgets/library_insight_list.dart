@@ -22,6 +22,7 @@ import 'folder_layout_utils.dart';
 import 'folder_zoom_gesture_layer.dart';
 import 'library_action_bar.dart';
 import 'library_header_actions.dart';
+import 'library_search_field.dart';
 import 'library_selection_panel.dart';
 import 'library_selection_scope.dart';
 import 'library_toolbar_buttons.dart';
@@ -243,49 +244,22 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
   }
 
   Widget _buildSearchField(ThemeData theme, AppLocalizations l10n) {
-    return TextField(
+    return LibrarySearchField(
       controller: _searchController,
       focusNode: _searchFocusNode,
+      hintText: l10n.search,
+      query: _searchQuery,
       onChanged: (val) {
         setState(() {
           _searchQuery = val.trim();
         });
       },
-      decoration: InputDecoration(
-        hintText: l10n.search,
-        hintStyle: TextStyle(
-          color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.6),
-        ),
-        prefixIcon: Icon(
-          Icons.search_rounded,
-          size: 20,
-          color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
-        ),
-        suffixIcon: _searchQuery.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.close_rounded, size: 18),
-                tooltip: l10n.clearSearch,
-                onPressed: () {
-                  _searchController.clear();
-                  setState(() {
-                    _searchQuery = '';
-                  });
-                },
-              )
-            : null,
-        filled: true,
-        fillColor: theme.colorScheme.secondaryContainer.withValues(alpha: 0.45),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      ),
-      style: TextStyle(
-        color: theme.colorScheme.onSecondaryContainer,
-        fontSize: 14,
-      ),
+      onClear: () {
+        _searchController.clear();
+        setState(() {
+          _searchQuery = '';
+        });
+      },
     );
   }
 

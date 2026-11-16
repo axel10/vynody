@@ -262,7 +262,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
           },
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(999),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,

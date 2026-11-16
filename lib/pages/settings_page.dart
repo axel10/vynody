@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import '../widgets/desktop_window_title_bar.dart';
+import '../widgets/library_search_field.dart';
 import 'package:vynody/dialogs/upgrade_to_pro_dialog.dart';
 import 'package:vynody/player/pro/app_channel.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
@@ -121,63 +122,21 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
     EdgeInsetsGeometry? margin,
   }) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
-    return Container(
+    return Padding(
       key: key,
-      margin: margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.35),
-        ),
-      ),
-      child: TextField(
+      padding: margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: LibrarySearchField(
         controller: _searchController,
         focusNode: focusNode,
-        textAlignVertical: TextAlignVertical.center,
+        hintText: l10n.search,
+        query: _searchQuery,
         onChanged: (val) {
           setState(() {
             _searchQuery = val;
           });
         },
-        style: const TextStyle(fontSize: 14),
-        decoration: InputDecoration(
-          hintText: l10n.search,
-          hintStyle: TextStyle(
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-            fontSize: 14,
-          ),
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            size: 20,
-            color: colorScheme.onSurfaceVariant,
-          ),
-          prefixIconConstraints: const BoxConstraints(
-            minWidth: 40,
-            minHeight: 40,
-          ),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear_rounded, size: 18),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 36,
-                    minHeight: 36,
-                  ),
-                  onPressed: _clearSearch,
-                )
-              : null,
-          suffixIconConstraints: const BoxConstraints(
-            minWidth: 36,
-            minHeight: 40,
-          ),
-          border: InputBorder.none,
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        ),
+        onClear: _clearSearch,
       ),
     );
   }

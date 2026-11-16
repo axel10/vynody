@@ -257,15 +257,26 @@ class RemoteSearchBar extends StatelessWidget {
             minHeight: height,
           ),
           filled: true,
-          fillColor: fillColor,
+          fillColor: fillColor ?? theme.colorScheme.surfaceContainerHigh,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 10,
             vertical: 0,
           ),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(999),
             borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(999),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(999),
+            borderSide: BorderSide(
+              color: theme.colorScheme.primary.withValues(alpha: 0.65),
+              width: 1.2,
+            ),
           ),
         ),
       ),

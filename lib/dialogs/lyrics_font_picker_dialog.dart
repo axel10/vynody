@@ -248,7 +248,7 @@ class _LyricsFontPickerDialogState extends State<_LyricsFontPickerDialog> {
                       filled: true,
                       fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(999),
                         borderSide: BorderSide.none,
                       ),
                       contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),

@@ -145,7 +145,7 @@ void main() {
     expect(find.byIcon(Icons.search_off_rounded), findsOneWidget);
 
     // 点击清除按钮
-    final clearBtn = find.byIcon(Icons.clear_rounded);
+    final clearBtn = find.byIcon(Icons.close_rounded);
     expect(clearBtn, findsOneWidget);
     await tester.tap(clearBtn);
     await tester.pumpAndSettle();

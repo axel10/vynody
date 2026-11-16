@@ -6,8 +6,8 @@ import 'song_thumbnail.dart';
 
 /// 本地媒体库通用的搜索输入框。
 ///
-/// 统一在这里定义外观（圆角 16、secondaryContainer 填充、紧凑内边距），
-/// 分类列表页头与详情页内的搜索都复用它，避免两处各写一份后圆角/高度对不上。
+/// 统一在这里定义外观（胶囊形圆角 999、surfaceContainerHigh 中性填充、紧凑内边距），
+/// 分类列表页头、详情页、设置页及独立搜索页都复用它，避免各处各写一份后圆角/高度对不上。
 class LibrarySearchField extends StatelessWidget {
   const LibrarySearchField({
     super.key,
@@ -41,11 +41,11 @@ class LibrarySearchField extends StatelessWidget {
         hintText: hintText,
         hintStyle: TextStyle(
           fontSize: 14,
-          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
         ),
         prefixIcon: Icon(
           Icons.search_rounded,
-          color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
+          color: theme.colorScheme.onSurfaceVariant,
           size: 20,
         ),
         suffixIcon: query.isEmpty
@@ -54,16 +54,26 @@ class LibrarySearchField extends StatelessWidget {
                 onPressed: onClear,
                 icon: Icon(
                   Icons.close_rounded,
-                  color: theme.colorScheme.onSecondaryContainer
-                      .withValues(alpha: 0.8),
+                  color: theme.colorScheme.onSurfaceVariant,
                   size: 18,
                 ),
               ),
         filled: true,
-        fillColor: theme.colorScheme.secondaryContainer.withValues(alpha: 0.45),
+        fillColor: theme.colorScheme.surfaceContainerHigh,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(999),
           borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: BorderSide(
+            color: theme.colorScheme.primary.withValues(alpha: 0.65),
+            width: 1.2,
+          ),
         ),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(
@@ -72,7 +82,7 @@ class LibrarySearchField extends StatelessWidget {
         ),
       ),
       style: TextStyle(
-        color: theme.colorScheme.onSecondaryContainer,
+        color: theme.colorScheme.onSurface,
         fontSize: 14,
       ),
     );
