@@ -28,10 +28,13 @@ class MarqueeText extends StatefulWidget {
 }
 
 class _MarqueeTextState extends State<MarqueeText> {
+  static const double _overflowTolerance = 0.5;
+
   final ScrollController _scrollController = ScrollController();
   Timer? _scrollTimer;
   Timer? _debounceTimer;
   int _currentCycleId = 0;
+  double _activeMaxScrollExtent = 0.0;
 
   @override
   void initState() {
@@ -83,6 +86,7 @@ class _MarqueeTextState extends State<MarqueeText> {
   void _requestMeasure({bool resetScroll = false}) {
     if (!mounted) return;
     if (resetScroll) {
+      _debounceTimer?.cancel();
       _resetScrollPosition();
     }
     if (_debounceTimer?.isActive ?? false) return;
@@ -93,76 +97,126 @@ class _MarqueeTextState extends State<MarqueeText> {
   void _resetScrollPosition() {
     _scrollTimer?.cancel();
     _currentCycleId++;
+    _activeMaxScrollExtent = 0.0;
     if (_scrollController.hasClients && _scrollController.offset != 0.0) {
       _scrollController.jumpTo(0.0);
     }
   }
 
   void _measureAndScroll() {
-    if (!mounted) return;
-    if (!_scrollController.hasClients) return;
+    if (!mounted || !_scrollController.hasClients) return;
 
-    // 已经在滚（或有一轮滚动排着队）就不要重排。
-    // 转场里字号每帧都在插值，会不断请求重测；每 500ms 打断一次
-    // 会让跑马灯永远走不出起跑线。
-    // 内容/文案换了那条路径会先 _resetScrollPosition()，走不到这里。
-    if (_scrollController.position.isScrollingNotifier.value ||
-        (_scrollTimer?.isActive ?? false)) {
+    final maxScrollExtent = _scrollController.position.maxScrollExtent;
+    if (maxScrollExtent <= _overflowTolerance) {
+      // 文本已完整展示：若此前仍在滚动或排期中，立即停止并归位。
+      _resetScrollPosition();
+      return;
+    }
+
+    // 已经在滚（或有一轮滚动排着队）且溢出距离变化不大时不要重排，
+    // 避免转场里字号每帧插值导致跑马灯反复重起停。
+    final isActive =
+        _scrollController.position.isScrollingNotifier.value ||
+        (_scrollTimer?.isActive ?? false);
+    if (isActive && (maxScrollExtent - _activeMaxScrollExtent).abs() <= 1.0) {
       return;
     }
 
     _scrollTimer?.cancel();
     _currentCycleId++;
     final cycleId = _currentCycleId;
-
-    final maxScrollExtent = _scrollController.position.maxScrollExtent;
-    if (maxScrollExtent > 0) {
-      _startScrollCycle(cycleId, maxScrollExtent);
-    }
+    _activeMaxScrollExtent = maxScrollExtent;
+    _startScrollCycle(cycleId);
   }
 
-  void _startScrollCycle(int cycleId, double maxScrollExtent) {
-    if (!mounted || cycleId != _currentCycleId) return;
+  void _startScrollCycle(int cycleId) {
+    if (!mounted ||
+        cycleId != _currentCycleId ||
+        !_scrollController.hasClients) {
+      return;
+    }
+
+    final initialExtent = _scrollController.position.maxScrollExtent;
+    if (initialExtent <= _overflowTolerance) {
+      _resetScrollPosition();
+      return;
+    }
+    _activeMaxScrollExtent = initialExtent;
 
     _scrollTimer = Timer(widget.scrollDelay, () async {
-      if (!mounted || cycleId != _currentCycleId) return;
+      if (!mounted ||
+          cycleId != _currentCycleId ||
+          !_scrollController.hasClients) {
+        return;
+      }
 
-      final duration = Duration(
-        milliseconds: (maxScrollExtent / widget.velocity * 1000).round(),
+      final targetExtent = _scrollController.position.maxScrollExtent;
+      if (targetExtent <= _overflowTolerance) {
+        _resetScrollPosition();
+        return;
+      }
+      _activeMaxScrollExtent = targetExtent;
+
+      final forwardDuration = Duration(
+        milliseconds: (targetExtent / widget.velocity * 1000)
+            .round()
+            .clamp(1, 600000),
       );
 
       // Scroll to the end
       try {
         await _scrollController.animateTo(
-          maxScrollExtent,
-          duration: duration,
+          targetExtent,
+          duration: forwardDuration,
           curve: Curves.linear,
         );
       } catch (_) {
         // Animation was cancelled or failed (e.g. by jumpTo/animateTo elsewhere)
       }
 
-      if (!mounted || cycleId != _currentCycleId) return;
+      if (!mounted ||
+          cycleId != _currentCycleId ||
+          !_scrollController.hasClients) {
+        return;
+      }
+
+      if (_scrollController.position.maxScrollExtent <= _overflowTolerance) {
+        _resetScrollPosition();
+        return;
+      }
 
       // Pause at the end
       _scrollTimer = Timer(widget.scrollDelay, () async {
-        if (!mounted || cycleId != _currentCycleId) return;
+        if (!mounted ||
+            cycleId != _currentCycleId ||
+            !_scrollController.hasClients) {
+          return;
+        }
 
-        // Scroll back to the start
-        try {
-          await _scrollController.animateTo(
-            0.0,
-            duration: duration,
-            curve: Curves.linear,
+        final currentOffset = _scrollController.offset;
+        if (currentOffset > 0.0) {
+          final backDuration = Duration(
+            milliseconds: (currentOffset / widget.velocity * 1000)
+                .round()
+                .clamp(1, 600000),
           );
-        } catch (_) {
-          // Animation was cancelled or failed
+
+          // Scroll back to the start
+          try {
+            await _scrollController.animateTo(
+              0.0,
+              duration: backDuration,
+              curve: Curves.linear,
+            );
+          } catch (_) {
+            // Animation was cancelled or failed
+          }
         }
 
         if (!mounted || cycleId != _currentCycleId) return;
 
-        // Loop the cycle
-        _startScrollCycle(cycleId, maxScrollExtent);
+        // Loop the cycle (re-reads latest maxScrollExtent)
+        _startScrollCycle(cycleId);
       });
     });
   }
@@ -182,7 +236,9 @@ class _MarqueeTextState extends State<MarqueeText> {
           child: SingleChildScrollView(
             controller: _scrollController,
             scrollDirection: Axis.horizontal,
-            physics: const NeverScrollableScrollPhysics(),
+            physics: const NeverScrollableScrollPhysics(
+              parent: ClampingScrollPhysics(),
+            ),
             child: Text(widget.text, style: widget.style, maxLines: 1),
           ),
         ),
