@@ -31,7 +31,6 @@ import '../widgets/playback_ui_tuning.dart';
 import '../widgets/auto_hide_header.dart';
 import '../widgets/folder_floating_action_button.dart';
 import '../widgets/folder_scan_widgets.dart';
-import '../utils/app_icons.dart';
 
 /// 同一页里两段网格各自的身份（与 `SliverAnimatedZoomGridDelegate.section` 对齐）。
 ///
@@ -1004,52 +1003,18 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
       ),
     );
 
-    // Banner 内容左内边距 16，补偿 -8px 与顶栏视觉对齐
-    const bannerHorizontalInsetCompensation = -8.0;
-
-    return SizedBox(
-      height: headerHeight,
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: Padding(
-          padding: EdgeInsets.only(
-            top: FolderNavBarScaffold.getContentTopInset(context),
-          ),
-          child: Transform.translate(
-            offset: const Offset(bannerHorizontalInsetCompensation, 0),
-            child: Row(
-              children: [
-                FolderBreadcrumbItem(
-                  style: style,
-                  icon: kAppBackIcon,
-                  iconSize: 22,
-                  tooltip: l10n.goBack,
-                  onTap: widget.onGoBack,
-                ),
-                FolderBreadcrumbSeparator(style: style),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        controller: _breadcrumbsScrollController,
-                        scrollDirection: Axis.horizontal,
-                        reverse: true,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minWidth: constraints.maxWidth,
-                          ),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Row(children: items),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                FolderScanSpinner(style: style),
-                FolderNavActionMenu<String>(
+    return FolderBannerBreadcrumbBar(
+      style: style,
+      headerHeight: headerHeight,
+      onGoBack: widget.onGoBack,
+      backTooltip: l10n.goBack,
+      scrollController: _breadcrumbsScrollController,
+      breadcrumbItems: items,
+      actions: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FolderScanSpinner(style: style),
+          FolderNavActionMenu<String>(
                   style: style,
                   onSelected: (value) {
                     if (value == 'search') {
@@ -1137,10 +1102,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ),
+        ],
       ),
     );
   }

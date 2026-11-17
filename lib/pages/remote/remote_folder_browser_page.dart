@@ -50,7 +50,6 @@ import '../../widgets/folder_header_nav_bar.dart';
 import '../../widgets/folder_scan_widgets.dart';
 import '../../widgets/auto_hide_header.dart';
 import '../../widgets/folder_floating_action_button.dart';
-import '../../utils/app_icons.dart';
 
 /// 同一页里两段网格各自的身份（与 `SliverAnimatedZoomGridDelegate.section` 对齐）。
 ///
@@ -2147,57 +2146,14 @@ class _RemoteFolderBrowserPageState
     );
     final canGoBack = _pathSegments.isNotEmpty;
 
-    const bannerHorizontalInsetCompensation = -8.0;
-
-    return SizedBox(
-      height: headerHeight,
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: Padding(
-          padding: EdgeInsets.only(
-            top: FolderNavBarScaffold.getContentTopInset(context),
-          ),
-          child: Transform.translate(
-            offset: const Offset(bannerHorizontalInsetCompensation, 0),
-            child: Row(
-              children: [
-                if (canGoBack) ...[
-                  FolderBreadcrumbItem(
-                    style: style,
-                    icon: kAppBackIcon,
-                    iconSize: 22,
-                    tooltip: l10n.goBack,
-                    onTap: _handleGoBack,
-                  ),
-                  FolderBreadcrumbSeparator(style: style),
-                ],
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        controller: _breadcrumbsScrollController,
-                        scrollDirection: Axis.horizontal,
-                        reverse: true,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minWidth: constraints.maxWidth,
-                          ),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Row(children: breadcrumbItems),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                actions,
-              ],
-            ),
-          ),
-        ),
-      ),
+    return FolderBannerBreadcrumbBar(
+      style: style,
+      headerHeight: headerHeight,
+      onGoBack: canGoBack ? _handleGoBack : null,
+      backTooltip: l10n.goBack,
+      scrollController: _breadcrumbsScrollController,
+      breadcrumbItems: breadcrumbItems,
+      actions: actions,
     );
   }
 

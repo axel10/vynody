@@ -697,82 +697,72 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     final style = FolderNavBarStyle.overlay(context);
     final l10n = AppLocalizations.of(context)!;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    // Banner 内容左内边距 16，固定顶栏是 8；向左补偿这 8px 才能和顶栏对齐
-    const bannerHorizontalInsetCompensation = -8.0;
-    return SizedBox(
-      height: headerHeight,
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: Padding(
-          padding: EdgeInsets.only(
-            top: FolderNavBarScaffold.getContentTopInset(context),
-          ),
-          child: Transform.translate(
-            offset: const Offset(bannerHorizontalInsetCompensation, 0),
-            child: Row(
-              children: [
-                FolderBreadcrumbItem(
-                  style: style,
-                  icon: Icons.home_rounded,
-                  tooltip: l10n.scanDirectory,
-                  onTap: () => AutoHideHeaderScope.scrollToTop(context),
-                ),
-                FolderBreadcrumbSeparator(style: style),
-                FolderBreadcrumbItem(
-                  style: style,
-                  label: l10n.scanDirectory,
-                ),
-                const Spacer(),
-                FolderScanSpinner(style: style),
-                FolderNavActionMenu<String>(
-                  style: style,
-                  onSelected: (value) {
-                    if (value == 'search') {
-                      _handleSearchAction();
-                    } else if (value == 'locate') {
-                      _handleLocateCurrentSong();
-                    } else if (value == 'refresh') {
-                      _handleRefresh();
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'search',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.search_rounded, size: 20),
-                          const SizedBox(width: 12),
-                          Text(l10n.search),
-                        ],
-                      ),
-                    ),
-                    if (currentMusic != null)
-                      PopupMenuItem(
-                        value: 'locate',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.my_location_rounded, size: 20),
-                            const SizedBox(width: 12),
-                            Text(l10n.locateCurrentSong),
-                          ],
-                        ),
-                      ),
-                    PopupMenuItem(
-                      value: 'refresh',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.refresh_rounded, size: 20),
-                          const SizedBox(width: 12),
-                          Text(l10n.refresh),
-                        ],
-                      ),
-                    ),
+    return FolderBannerBreadcrumbBar(
+      style: style,
+      headerHeight: headerHeight,
+      breadcrumbItems: [
+        FolderBreadcrumbItem(
+          style: style,
+          icon: Icons.home_rounded,
+          tooltip: l10n.scanDirectory,
+          onTap: () => AutoHideHeaderScope.scrollToTop(context),
+        ),
+        FolderBreadcrumbSeparator(style: style),
+        FolderBreadcrumbItem(
+          style: style,
+          label: l10n.scanDirectory,
+        ),
+      ],
+      actions: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FolderScanSpinner(style: style),
+          FolderNavActionMenu<String>(
+            style: style,
+            onSelected: (value) {
+              if (value == 'search') {
+                _handleSearchAction();
+              } else if (value == 'locate') {
+                _handleLocateCurrentSong();
+              } else if (value == 'refresh') {
+                _handleRefresh();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'search',
+                child: Row(
+                  children: [
+                    const Icon(Icons.search_rounded, size: 20),
+                    const SizedBox(width: 12),
+                    Text(l10n.search),
                   ],
                 ),
-              ],
-            ),
+              ),
+              if (currentMusic != null)
+                PopupMenuItem(
+                  value: 'locate',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.my_location_rounded, size: 20),
+                      const SizedBox(width: 12),
+                      Text(l10n.locateCurrentSong),
+                    ],
+                  ),
+                ),
+              PopupMenuItem(
+                value: 'refresh',
+                child: Row(
+                  children: [
+                    const Icon(Icons.refresh_rounded, size: 20),
+                    const SizedBox(width: 12),
+                    Text(l10n.refresh),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ),
+        ],
       ),
     );
   }

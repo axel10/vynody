@@ -446,6 +446,96 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
   }
 }
 
+/// 竖屏下嵌入 `FolderHeaderBanner` 顶部的面包屑与操作栏。
+///
+/// 左侧（可选返回按钮 + 横向可滚动面包屑）向左补偿 8px，以对齐固定顶栏
+/// [FolderNavBarScaffold] 的 `left: 8`；右侧 [actions] 保持在 Banner 自身的
+/// `right: 16` 内边距内，与下方搜索按钮及列表内容右对齐。
+class FolderBannerBreadcrumbBar extends StatelessWidget {
+  const FolderBannerBreadcrumbBar({
+    super.key,
+    required this.style,
+    required this.headerHeight,
+    required this.breadcrumbItems,
+    required this.actions,
+    this.onGoBack,
+    this.backTooltip,
+    this.scrollController,
+  });
+
+  final FolderNavBarStyle style;
+  final double headerHeight;
+  final List<Widget> breadcrumbItems;
+  final Widget actions;
+  final VoidCallback? onGoBack;
+  final String? backTooltip;
+  final ScrollController? scrollController;
+
+  static const double _kLeftInsetCompensation = -8.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final leftSection = Row(
+      children: [
+        if (onGoBack != null) ...[
+          FolderBreadcrumbItem(
+            style: style,
+            icon: kAppBackIcon,
+            iconSize: 22,
+            tooltip: backTooltip,
+            onTap: onGoBack,
+          ),
+          FolderBreadcrumbSeparator(style: style),
+        ],
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                controller: scrollController,
+                scrollDirection: Axis.horizontal,
+                reverse: true,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: constraints.maxWidth,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Row(children: breadcrumbItems),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+
+    return SizedBox(
+      height: headerHeight,
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: FolderNavBarScaffold.getContentTopInset(context),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Transform.translate(
+                  offset: const Offset(_kLeftInsetCompensation, 0),
+                  child: leftSection,
+                ),
+              ),
+              const SizedBox(width: 8),
+              actions,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Reusable breadcrumb item widget (icon, text, or custom content) styled according to [FolderNavBarStyle].
 class FolderBreadcrumbItem extends StatelessWidget {
   const FolderBreadcrumbItem({

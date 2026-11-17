@@ -187,4 +187,65 @@ void main() {
     // Instead, more menu (FolderNavActionMenu) is present
     expect(find.byType(FolderNavActionMenu<String>), findsOneWidget);
   });
+
+  testWidgets(
+      'FolderBannerBreadcrumbBar shifts left breadcrumbs by -8px while keeping actions right-aligned to 16px',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    const searchBtnKey = Key('banner_search_btn');
+    const homeKey = Key('breadcrumb_home');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                Builder(
+                  builder: (context) {
+                    final style = FolderNavBarStyle.overlay(context);
+                    return FolderBannerBreadcrumbBar(
+                      style: style,
+                      headerHeight: 48,
+                      breadcrumbItems: [
+                        FolderBreadcrumbItem(
+                          key: homeKey,
+                          style: style,
+                          icon: Icons.home_rounded,
+                        ),
+                      ],
+                      actions: FolderNavActionMenu<String>(
+                        style: style,
+                        itemBuilder: (_) => const [],
+                      ),
+                    );
+                  },
+                ),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    SizedBox(key: searchBtnKey, width: 32, height: 32),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final homeLeft = tester.getTopLeft(find.byKey(homeKey)).dx;
+    final menuRight =
+        tester.getTopRight(find.byType(FolderNavActionMenu<String>)).dx;
+    final searchRight = tester.getTopRight(find.byKey(searchBtnKey)).dx;
+
+    expect(homeLeft, 8.0);
+    expect(menuRight, 384.0);
+    expect(menuRight, searchRight);
+  });
 }

@@ -1065,7 +1065,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (hasTopHeader) topHeader!,
-                    if (hasTopHeader) const SizedBox(height: 4),
+                    if (hasTopHeader) const SizedBox(height: 32),
 
                     if (isWideScreen) ...[
                       // Wide screen / desktop horizontal layout over cover backdrop
@@ -1236,7 +1236,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                         isOverlay: hasImage,
                       ),
 
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 2),
 
                       // Actions / Search Row
                       _FolderBannerActionScope(
