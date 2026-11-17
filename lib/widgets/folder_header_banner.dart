@@ -1242,6 +1242,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                       _FolderBannerActionScope(
                         isLandscape: false,
                         hasImage: hasImage,
+                        isCompactPortrait: true,
                         child: SizedBox(
                           height: _kPortraitActionRowHeight,
                           child: onSearch != null
@@ -1249,7 +1250,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                                   key: const ValueKey('actions-direct-search-row'),
                                   children: [
                                     if (actionButtonsScrollable)
-                                      Expanded(
+                                      Flexible(
                                         child: SingleChildScrollView(
                                           scrollDirection: Axis.horizontal,
                                           child: Row(
@@ -1257,10 +1258,8 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                                           ),
                                         ),
                                       )
-                                    else ...[
+                                    else
                                       ...actionButtons,
-                                      const Spacer(),
-                                    ],
                                     const SizedBox(width: 8),
                                     _BannerSearchIconButton(
                                       onPressed: onSearch!,
@@ -1307,7 +1306,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                                           key: const ValueKey('actions-normal-row'),
                                           children: [
                                             if (actionButtonsScrollable)
-                                              Expanded(
+                                              Flexible(
                                                 child: SingleChildScrollView(
                                                   scrollDirection: Axis.horizontal,
                                                   child: Row(
@@ -1315,10 +1314,8 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                                                   ),
                                                 ),
                                               )
-                                            else ...[
+                                            else
                                               ...actionButtons,
-                                              const Spacer(),
-                                            ],
                                             const SizedBox(width: 8),
                                             _BannerSearchIconButton(
                                               onPressed: () => onToggleSearch?.call(true),
@@ -1497,11 +1494,13 @@ class _FolderBannerActionScope extends InheritedWidget {
   const _FolderBannerActionScope({
     required this.isLandscape,
     required this.hasImage,
+    this.isCompactPortrait = false,
     required super.child,
   });
 
   final bool isLandscape;
   final bool hasImage;
+  final bool isCompactPortrait;
 
   static _FolderBannerActionScope? of(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<_FolderBannerActionScope>();
@@ -1509,7 +1508,9 @@ class _FolderBannerActionScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(_FolderBannerActionScope oldWidget) {
-    return isLandscape != oldWidget.isLandscape || hasImage != oldWidget.hasImage;
+    return isLandscape != oldWidget.isLandscape ||
+        hasImage != oldWidget.hasImage ||
+        isCompactPortrait != oldWidget.isCompactPortrait;
   }
 }
 
@@ -1530,9 +1531,11 @@ class _BannerSearchIconButton extends StatelessWidget {
     final scope = _FolderBannerActionScope.of(context);
     final isLandscape = scope?.isLandscape ?? (MediaQuery.of(context).orientation == Orientation.landscape);
     final hasImage = scope?.hasImage ?? false;
+    final isCompactPortrait = scope?.isCompactPortrait ?? false;
     final isLargeScreen = MediaQuery.of(context).size.width >= 1000;
     final buttonHeight = isLargeScreen ? 38.0 : 32.0;
-    final iconSize = isLargeScreen ? 18.0 : 16.0;
+    final buttonWidth = isCompactPortrait ? 48.0 : buttonHeight;
+    final iconSize = isCompactPortrait ? 20.0 : (isLargeScreen ? 18.0 : 16.0);
 
     final Color bgColor;
     final Color fgColor;
@@ -1572,11 +1575,11 @@ class _BannerSearchIconButton extends StatelessWidget {
         foregroundColor: fgColor,
         side: borderSide,
         shape: const StadiumBorder(),
-        minimumSize: Size(buttonHeight, buttonHeight),
-        maximumSize: Size(buttonHeight, buttonHeight),
+        minimumSize: Size(buttonWidth, buttonHeight),
+        maximumSize: Size(buttonWidth, buttonHeight),
         padding: EdgeInsets.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        visualDensity: VisualDensity.compact,
+        visualDensity: isCompactPortrait ? VisualDensity.standard : VisualDensity.compact,
       ),
     );
   }
@@ -1604,18 +1607,20 @@ class FolderPlayActionButtons extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
-    // Show full capsule buttons (icon + label) when space is sufficient (>= 340px covers standard phones).
-    // Gracefully collapse to icon-only circles on extremely narrow screens (< 340px).
-    final isWiderScreen = showLabels ?? (screenWidth >= 340);
-    final isLargeScreen = screenWidth >= 1000;
-    final isDisabled = totalSongsCount == 0 || (onPlayAll == null && onShufflePlay == null);
-
     final scope = _FolderBannerActionScope.of(context);
     final isLandscape = scope?.isLandscape ?? (MediaQuery.of(context).orientation == Orientation.landscape);
     final hasImage = scope?.hasImage ?? false;
+    final isCompactPortrait = scope?.isCompactPortrait ?? false;
+
+    // Show full capsule buttons (icon + label) when space is sufficient (>= 340px covers standard phones),
+    // except in compact portrait banner where play/shuffle/search share a unified icon-only capsule style.
+    final isWiderScreen = showLabels ?? (!isCompactPortrait && screenWidth >= 340);
+    final isLargeScreen = screenWidth >= 1000;
+    final isDisabled = totalSongsCount == 0 || (onPlayAll == null && onShufflePlay == null);
 
     final buttonHeight = isLargeScreen ? 38.0 : 32.0;
-    final iconSize = isLargeScreen ? 18.0 : 16.0;
+    final capsuleWidth = isCompactPortrait ? 48.0 : buttonHeight;
+    final iconSize = isCompactPortrait ? 20.0 : (isLargeScreen ? 18.0 : 16.0);
     final fontSize = isLargeScreen ? 13.0 : 11.5;
     final textStyle = TextStyle(
       fontSize: fontSize,
@@ -1691,10 +1696,11 @@ class FolderPlayActionButtons extends StatelessWidget {
                 disabledBackgroundColor: disabledBg,
                 disabledForegroundColor: disabledFg,
                 side: playBorder,
-                minimumSize: Size(buttonHeight, buttonHeight),
+                minimumSize: Size(capsuleWidth, buttonHeight),
+                maximumSize: Size(capsuleWidth, buttonHeight),
                 padding: EdgeInsets.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
+                visualDensity: isCompactPortrait ? VisualDensity.standard : VisualDensity.compact,
                 shape: const StadiumBorder(),
               ),
               child: Icon(Icons.play_arrow_rounded, size: iconSize),
@@ -1730,10 +1736,11 @@ class FolderPlayActionButtons extends StatelessWidget {
                 disabledBackgroundColor: disabledBg,
                 disabledForegroundColor: disabledFg,
                 side: shuffleBorder,
-                minimumSize: Size(buttonHeight, buttonHeight),
+                minimumSize: Size(capsuleWidth, buttonHeight),
+                maximumSize: Size(capsuleWidth, buttonHeight),
                 padding: EdgeInsets.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
+                visualDensity: isCompactPortrait ? VisualDensity.standard : VisualDensity.compact,
                 shape: const StadiumBorder(),
               ),
               child: Icon(Icons.shuffle_rounded, size: iconSize),

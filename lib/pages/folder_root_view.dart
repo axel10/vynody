@@ -409,15 +409,15 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             actionButtons: [
               FilledButton.icon(
                 onPressed: widget.onPickFolder,
-                icon: Icon(Icons.add_circle_outline, size: isLargeScreen ? 18 : 16),
+                icon: Icon(Icons.add_circle_outline, size: isLargeScreen ? 18 : 20),
                 label: Text(l10n.addRootDirectory),
                 style: FilledButton.styleFrom(
                   minimumSize: Size(0, isLargeScreen ? 38 : 32),
-                  padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? 16 : 12),
+                  padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? 16 : 14),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
+                  visualDensity: VisualDensity.standard,
                   textStyle: TextStyle(
-                    fontSize: isLargeScreen ? 13.0 : 11.5,
+                    fontSize: isLargeScreen ? 13.0 : 12.5,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
