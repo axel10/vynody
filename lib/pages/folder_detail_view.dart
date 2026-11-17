@@ -258,19 +258,30 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     final outerWidth =
         _contentCrossAxisExtent ?? MediaQuery.sizeOf(context).width;
-    final policy = FolderZoomPolicy.resolve(
+    final folderPolicy = FolderZoomPolicy.resolve(
       context: context,
       outerWidth: outerWidth,
-      zoomScale: settings.folderZoomScale,
+      zoomScale: settings.effectiveFolderItemZoomScale,
+    );
+    final songPolicy = FolderZoomPolicy.resolve(
+      context: context,
+      outerWidth: outerWidth,
+      zoomScale: settings.effectiveFolderSongZoomScale,
     );
 
-    fileOffset += policy.calculateScrollOffset(
-      folderCount: folder.subFolders.length,
+    if (folder.subFolders.isNotEmpty) {
+      fileOffset += folderPolicy.calculateScrollOffset(
+        folderCount: folder.subFolders.length,
+        songIndex: 0,
+      );
+    }
+    fileOffset += songPolicy.calculateScrollOffset(
+      folderCount: 0,
       songIndex: fileIndex,
     );
 
     if (_localScrollController.hasClients) {
-      final targetOffset = policy.centerInViewport(
+      final targetOffset = songPolicy.centerInViewport(
         itemOffset: fileOffset,
         viewportDimension: _localScrollController.position.viewportDimension,
         maxScrollExtent: _localScrollController.position.maxScrollExtent,
@@ -381,7 +392,11 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         _contentCrossAxisExtent = crossAxisExtent;
         return FolderZoomGestureLayer(
           child: FolderZoomSliverBuilder(
-            zoomScale: snapFolderZoomScale(settings.folderZoomScale),
+            zoomScale: snapFolderZoomScale(
+              folder.subFolders.isEmpty && folder.files.isNotEmpty
+                  ? settings.effectiveFolderSongZoomScale
+                  : settings.effectiveFolderItemZoomScale,
+            ),
             width: crossAxisExtent,
             controller: _localScrollController,
             builder: (context, metrics) {
@@ -491,7 +506,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           ),
         FolderSubfoldersSliver(
           folders: folder.subFolders,
-            zoomScale: settings.folderZoomScale,
+            zoomScale: settings.effectiveFolderItemZoomScale,
             section: _kFolderSection,
             scanner: scanner,
             isSelectionMode: widget.isSelectionMode,
@@ -539,7 +554,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             ),
           FolderSongsSliver(
             songs: folder.files,
-            zoomScale: settings.folderZoomScale,
+            zoomScale: settings.effectiveFolderSongZoomScale,
             section: _kSongSection,
             currentSongPath: currentMusic?.path,
             isPlaying: isPlaying,
@@ -778,23 +793,30 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                           value: 'view_mode',
                           child: Row(
                             children: [
-                              ZoomTierIcon(
+                              LibraryZoomModeIcon(
                                 zoomScale: ref.watch(
                                   settingsServiceProvider
                                       .select((s) => s.folderZoomScale),
+                                ),
+                                isHybrid: ref.watch(
+                                  settingsServiceProvider
+                                      .select((s) => s.folderHybridView),
                                 ),
                                 size: 20,
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                isFolderZoomGrid(
+                                libraryZoomModeLabel(
+                                  l10n,
                                   ref.watch(
                                     settingsServiceProvider
                                         .select((s) => s.folderZoomScale),
                                   ),
-                                )
-                                    ? l10n.gridView
-                                    : l10n.listView,
+                                  isHybrid: ref.watch(
+                                    settingsServiceProvider
+                                        .select((s) => s.folderHybridView),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -960,6 +982,9 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final zoomScale = ref.watch(
       settingsServiceProvider.select((s) => s.folderZoomScale),
     );
+    final isHybrid = ref.watch(
+      settingsServiceProvider.select((s) => s.folderHybridView),
+    );
     final isSortOverridden = scanner.hasSortOverrideForFolder(current.path);
 
     final List<Widget> items = [];
@@ -1090,12 +1115,18 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                       value: 'view_mode',
                       child: Row(
                         children: [
-                          ZoomTierIcon(zoomScale: zoomScale, size: 20),
+                          LibraryZoomModeIcon(
+                            zoomScale: zoomScale,
+                            isHybrid: isHybrid,
+                            size: 20,
+                          ),
                           const SizedBox(width: 12),
                           Text(
-                            isFolderZoomGrid(zoomScale)
-                                ? l10n.gridView
-                                : l10n.listView,
+                            libraryZoomModeLabel(
+                              l10n,
+                              zoomScale,
+                              isHybrid: isHybrid,
+                            ),
                           ),
                         ],
                       ),

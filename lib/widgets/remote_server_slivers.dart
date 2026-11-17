@@ -300,7 +300,7 @@ class RemoteServersSliver extends ConsumerWidget {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final effectiveZoom = _effectiveZoomScale;
 
-    return FolderZoomSectionHost(
+    return AdaptiveFolderZoomSectionHost(
       zoomScale: effectiveZoom,
       width: width,
       builder: (context, metrics) {

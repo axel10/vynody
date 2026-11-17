@@ -354,7 +354,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
           zoomGesturesEnabled:
               !isRootSelectionMode && !widget.isCloudServerSelectionMode,
           child: FolderZoomSliverBuilder(
-            zoomScale: snapFolderZoomScale(settings.folderZoomScale),
+            zoomScale: snapFolderZoomScale(settings.effectiveFolderItemZoomScale),
             width: crossAxisExtent,
             controller: _localScrollController,
             builder: (context, metrics) {
@@ -437,7 +437,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         ),
         FolderSubfoldersSliver(
           folders: rootFolders,
-          zoomScale: settings.folderZoomScale,
+          zoomScale: settings.effectiveFolderItemZoomScale,
           section: _kRootFolderSection,
           scanner: scanner,
           isRoot: true,
@@ -492,7 +492,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
           ),
           RemoteServersSliver(
             servers: remoteServers,
-            zoomScale: settings.folderZoomScale,
+            zoomScale: settings.effectiveFolderItemZoomScale,
             section: _kRemoteServerSection,
             isSelectionMode: widget.isCloudServerSelectionMode,
             selectedServerIds: widget.selectedServerIds,

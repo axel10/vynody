@@ -90,10 +90,14 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
   int _wheelBurstDirection = 0;
   bool _wheelBurstStepped = false;
 
-  /// 拖拽重排期间、或调用方整段禁用时，任何写档位的路径都必须停住：
-  /// `ZoomReorderGeometry` 只按目标层算槽位，换档会让插入位判定失效。
+  /// 拖拽重排期间、调用方整段禁用、或目录页处于混合视图时，任何写档位的路径都必须停住：
+  /// `ZoomReorderGeometry` 只按目标层算槽位，换档会让插入位判定失效；
+  /// 混合视图下文件夹与歌曲分别锁定各自档位，不允许通过手势或快捷键换挡。
   bool get _isZoomLocked =>
-      !widget.zoomGesturesEnabled || (widget.reorderActive?.value ?? false);
+      !widget.zoomGesturesEnabled ||
+      (widget.reorderActive?.value ?? false) ||
+      (widget.scope == LibraryZoomScope.folder &&
+          ref.read(settingsServiceProvider).folderHybridView);
 
   void _stepTier(int steps, {bool haptic = false}) {
     if (steps == 0 || _isZoomLocked) return;
@@ -281,6 +285,9 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.scope == LibraryZoomScope.folder) {
+      ref.watch(settingsServiceProvider.select((s) => s.folderHybridView));
+    }
     return FolderZoomPinchScope(
       notifier: _pinchController,
       child: RawGestureDetector(
@@ -293,6 +300,7 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
                   // 避免 Scrollable 的单指/双指滑动识别器抢走手势导致列表滚动。
                   // 具体精确跟手比例统一由下方的 Listener（_handleTouchMove）
                   // 基于原始欧氏距离驱动，避免两路数据源同帧重复计算和数值微抖。
+                  instance.isZoomLocked = () => _isZoomLocked;
                 },
               ),
         },
@@ -325,11 +333,14 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
 class _FolderPinchGestureRecognizer extends ScaleGestureRecognizer {
   _FolderPinchGestureRecognizer({super.debugOwner});
 
+  bool Function()? isZoomLocked;
+
   @override
   bool isPointerPanZoomAllowed(PointerPanZoomStartEvent event) => false;
 
   @override
   bool isPointerAllowed(PointerDownEvent event) {
+    if (isZoomLocked?.call() ?? false) return false;
     return event.kind == PointerDeviceKind.touch && super.isPointerAllowed(event);
   }
 

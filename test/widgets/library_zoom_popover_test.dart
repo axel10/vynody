@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/widgets/folder_layout_utils.dart';
 import 'package:vynody/widgets/library_zoom_popover.dart';
 
 void main() {
@@ -22,7 +23,11 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  Future<void> pumpCard(WidgetTester tester, TargetPlatform platform) async {
+  Future<void> pumpCard(
+    WidgetTester tester,
+    TargetPlatform platform, {
+    LibraryZoomScope scope = LibraryZoomScope.song,
+  }) async {
     debugDefaultTargetPlatformOverride = platform;
     await tester.pumpWidget(
       ProviderScope(
@@ -31,8 +36,8 @@ void main() {
           locale: const Locale('zh'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(
-            body: LibraryZoomPopoverCard(scope: LibraryZoomScope.song),
+          home: Scaffold(
+            body: LibraryZoomPopoverCard(scope: scope),
           ),
         ),
       ),
@@ -55,5 +60,131 @@ void main() {
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
+  });
+
+  testWidgets('仅目录页弹窗展示混合视图复选框', (tester) async {
+    try {
+      await pumpCard(
+        tester,
+        TargetPlatform.macOS,
+        scope: LibraryZoomScope.song,
+      );
+      expect(find.text('混合视图'), findsNothing);
+
+      await pumpCard(
+        tester,
+        TargetPlatform.macOS,
+        scope: LibraryZoomScope.folder,
+      );
+      expect(find.text('混合视图'), findsOneWidget);
+      expect(find.byType(Checkbox), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('勾选混合视图后文件夹固定大网格、歌曲固定标准列表，且禁用档位调节', (tester) async {
+    try {
+      settings.folderZoomScale = kFolderZoomTierCompactList;
+      await pumpCard(
+        tester,
+        TargetPlatform.macOS,
+        scope: LibraryZoomScope.folder,
+      );
+
+      expect(settings.folderHybridView, isFalse);
+      expect(find.textContaining('滚轮'), findsOneWidget);
+
+      await tester.tap(find.text('混合视图'));
+      await tester.pumpAndSettle();
+
+      expect(settings.folderHybridView, isTrue);
+      expect(settings.effectiveFolderItemZoomScale, kFolderZoomTierLargeGrid);
+      expect(settings.effectiveFolderSongZoomScale, kFolderZoomTierStandardList);
+
+      // 滑杆与快捷键提示在混合视图下均已禁用/隐藏
+      final slider = tester.widget<Slider>(find.byType(Slider));
+      expect(slider.onChanged, isNull);
+      expect(find.textContaining('滚轮'), findsNothing);
+
+      // 取消勾选恢复原档位
+      await tester.tap(find.byType(Checkbox));
+      await tester.pumpAndSettle();
+
+      expect(settings.folderHybridView, isFalse);
+      expect(
+        settings.effectiveFolderItemZoomScale,
+        kFolderZoomTierCompactList,
+      );
+      expect(
+        settings.effectiveFolderSongZoomScale,
+        kFolderZoomTierCompactList,
+      );
+      expect(
+        tester.widget<Slider>(find.byType(Slider)).onChanged,
+        isNotNull,
+      );
+      expect(find.textContaining('滚轮'), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('外层为大网格时，AdaptiveFolderZoomSectionHost 仍按子段档位切到列表', (
+    tester,
+  ) async {
+    double? folderTarget;
+    bool? folderIsGrid;
+    double? songTarget;
+    bool? songIsGrid;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 800,
+            height: 600,
+            child: FolderZoomSliverBuilder(
+              zoomScale: kFolderZoomTierLargeGrid,
+              width: 800,
+              builder: (context, metrics) {
+                return CustomScrollView(
+                  slivers: [
+                    AdaptiveFolderZoomSectionHost(
+                      zoomScale: kFolderZoomTierLargeGrid,
+                      width: 800,
+                      builder: (context, m) {
+                        folderTarget = m.targetZoomScale;
+                        folderIsGrid = m.isGridTarget;
+                        return const SliverToBoxAdapter(
+                          child: SizedBox(height: 40),
+                        );
+                      },
+                    ),
+                    AdaptiveFolderZoomSectionHost(
+                      zoomScale: kFolderZoomTierLargeList,
+                      width: 800,
+                      builder: (context, m) {
+                        songTarget = m.targetZoomScale;
+                        songIsGrid = m.isGridTarget;
+                        return const SliverToBoxAdapter(
+                          child: SizedBox(height: 40),
+                        );
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(folderTarget, kFolderZoomTierLargeGrid);
+    expect(folderIsGrid, isTrue);
+    expect(songTarget, kFolderZoomTierLargeList);
+    expect(songIsGrid, isFalse);
   });
 }

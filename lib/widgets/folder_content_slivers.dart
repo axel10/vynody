@@ -182,7 +182,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
         MediaQuery.of(context).orientation == Orientation.portrait;
     final effectiveZoom = _effectiveZoomScale;
 
-    return FolderZoomSectionHost(
+    return AdaptiveFolderZoomSectionHost(
       zoomScale: effectiveZoom,
       width: width,
       builder: (context, metrics) {
@@ -583,7 +583,7 @@ class FolderSongsSliver extends StatelessWidget {
         MediaQuery.of(context).orientation == Orientation.portrait;
     final effectiveZoom = _effectiveZoomScale;
 
-    return FolderZoomSectionHost(
+    return AdaptiveFolderZoomSectionHost(
       zoomScale: effectiveZoom,
       width: width,
       builder: (context, metrics) {

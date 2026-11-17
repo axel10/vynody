@@ -1011,4 +1011,34 @@ void main() {
     await tester.sendEventToBinding(pointer.panZoomEnd());
     await tester.pumpAndSettle();
   });
+
+  testWidgets('开启混合视图时禁用 Ctrl+滚轮与双指捏合换挡', (tester) async {
+    settings.folderHybridView = true;
+    await tester.pumpWidget(buildHarness());
+    await tester.pumpAndSettle();
+
+    final center = tester.getCenter(find.byType(ListView));
+
+    // Ctrl + 滚轮不应换挡
+    final mouse = TestPointer(1, PointerDeviceKind.mouse);
+    mouse.hover(center);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendEventToBinding(mouse.scroll(const Offset(0, -100)));
+    await tester.pumpAndSettle();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+
+    expect(settings.folderZoomScale, kFolderZoomTierStandardList);
+
+    // 触控板双指捏合不应换挡
+    final trackpad = TestPointer(2, PointerDeviceKind.trackpad);
+    await tester.sendEventToBinding(trackpad.panZoomStart(center));
+    await tester.sendEventToBinding(
+      trackpad.panZoomUpdate(center, scale: 1.5),
+    );
+    await tester.pump();
+    await tester.sendEventToBinding(trackpad.panZoomEnd());
+    await tester.pumpAndSettle();
+
+    expect(settings.folderZoomScale, kFolderZoomTierStandardList);
+  });
 }

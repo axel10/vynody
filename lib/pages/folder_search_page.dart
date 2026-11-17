@@ -371,7 +371,8 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage>
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final settings = ref.watch(settingsServiceProvider);
-    final zoomScale = settings.folderZoomScale;
+    final zoomScale = settings.effectiveFolderItemZoomScale;
+    final songZoomScale = settings.effectiveFolderSongZoomScale;
     final hasCurrentSection = widget.currentFolder != null;
     final selectionActive = isSelectionMode;
 
@@ -594,7 +595,7 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage>
                                               ),
                                               FolderSongsSliver(
                                                 songs: _currentFolderSongs,
-                                                zoomScale: zoomScale,
+                                                zoomScale: songZoomScale,
                                                 currentSongPath:
                                                     currentMusic?.path,
                                                 isPlaying: isAudioPlaying,
@@ -726,7 +727,7 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage>
                                               ),
                                               FolderSongsSliver(
                                                 songs: _globalSongs,
-                                                zoomScale: zoomScale,
+                                                zoomScale: songZoomScale,
                                                 currentSongPath:
                                                     currentMusic?.path,
                                                 isPlaying: isAudioPlaying,

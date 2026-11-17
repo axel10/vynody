@@ -31,6 +31,52 @@ IconData getFolderZoomTierIcon(double zoomScale) {
   };
 }
 
+/// 视图模式图标：混合视图时展示拼贴图标，其余情况展示七档 [ZoomTierIcon]。
+class LibraryZoomModeIcon extends StatelessWidget {
+  const LibraryZoomModeIcon({
+    super.key,
+    required this.zoomScale,
+    this.isHybrid = false,
+    this.size = 20.0,
+    this.color,
+    this.shadows,
+  });
+
+  final double zoomScale;
+  final bool isHybrid;
+  final double size;
+  final Color? color;
+  final List<Shadow>? shadows;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isHybrid) {
+      return Icon(
+        Icons.view_quilt_rounded,
+        size: size,
+        color: color,
+        shadows: shadows,
+      );
+    }
+    return ZoomTierIcon(
+      zoomScale: zoomScale,
+      size: size,
+      color: color,
+      shadows: shadows,
+    );
+  }
+}
+
+/// 视图模式展示文案：混合视图 / 网格视图 / 列表视图。
+String libraryZoomModeLabel(
+  AppLocalizations l10n,
+  double zoomScale, {
+  bool isHybrid = false,
+}) {
+  if (isHybrid) return l10n.hybridView;
+  return isFolderZoomGrid(zoomScale) ? l10n.gridView : l10n.listView;
+}
+
 /// 档位的本地化短名（列表四档 + 网格三档）。
 String _tierLabel(AppLocalizations l10n, FolderZoomTier tier) {
   return switch (tier) {
@@ -129,12 +175,15 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
     final zoomScale = ref.watch(
       settingsServiceProvider.select((s) => s.zoomScaleFor(scope)),
     );
+    final isHybrid = ref.watch(
+      settingsServiceProvider.select((s) => s.isHybridViewFor(scope)),
+    );
     final settings = ref.read(settingsServiceProvider);
     final tier = getFolderZoomTier(zoomScale);
-    final isGrid = isFolderZoomGrid(zoomScale);
 
-    final modeLabel = isGrid ? l10n.gridView : l10n.listView;
+    final modeLabel = libraryZoomModeLabel(l10n, zoomScale, isHybrid: isHybrid);
     final tierName = _tierLabel(l10n, tier);
+    final supportsHybrid = scope == LibraryZoomScope.folder;
 
     // 可用档位由记忆域决定（队列只有列表四档、专辑只有网格三档），
     // 滑杆区间、刻度数与预设按钮全部从这一份派生，不再各自判断 scope。
@@ -178,8 +227,9 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    ZoomTierIcon(
+                    LibraryZoomModeIcon(
                       zoomScale: zoomScale,
+                      isHybrid: isHybrid,
                       size: 16,
                       color: theme.colorScheme.primary,
                     ),
@@ -192,120 +242,156 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer
-                            .withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        tierName,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
+                    if (!isHybrid)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer
+                              .withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          tierName,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
-                Row(
-                  children: [
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      constraints: const BoxConstraints(
-                        minWidth: 28,
-                        minHeight: 28,
-                      ),
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.remove_rounded, size: 18),
-                      onPressed: zoomScale > minScale + 0.001
-                          ? () => setScale(stepFolderZoomScale(zoomScale, -1))
-                          : null,
-                    ),
-                    Expanded(
-                      child: SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          trackHeight: 4,
-                          thumbShape: const RoundSliderThumbShape(
-                            enabledThumbRadius: 7,
-                          ),
-                          overlayShape: const RoundSliderOverlayShape(
-                            overlayRadius: 14,
-                          ),
+                IgnorePointer(
+                  ignoring: isHybrid,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 160),
+                    opacity: isHybrid ? 0.42 : 1.0,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              constraints: const BoxConstraints(
+                                minWidth: 28,
+                                minHeight: 28,
+                              ),
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.remove_rounded, size: 18),
+                              onPressed: !isHybrid && zoomScale > minScale + 0.001
+                                  ? () => setScale(
+                                      stepFolderZoomScale(zoomScale, -1))
+                                  : null,
+                            ),
+                            Expanded(
+                              child: SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 4,
+                                  thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 7,
+                                  ),
+                                  overlayShape: const RoundSliderOverlayShape(
+                                    overlayRadius: 14,
+                                  ),
+                                ),
+                                child: Slider(
+                                  value: zoomScale.clamp(minScale, maxScale),
+                                  min: minScale,
+                                  max: maxScale,
+                                  divisions: divisions,
+                                  onChanged: isHybrid
+                                      ? null
+                                      : (val) =>
+                                          setScale(snapFolderZoomScale(val)),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              constraints: const BoxConstraints(
+                                minWidth: 28,
+                                minHeight: 28,
+                              ),
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.add_rounded, size: 18),
+                              onPressed: !isHybrid && zoomScale < (maxScale - 0.001)
+                                  ? () => setScale(
+                                      stepFolderZoomScale(zoomScale, 1))
+                                  : null,
+                            ),
+                          ],
                         ),
-                        child: Slider(
-                          value: zoomScale.clamp(minScale, maxScale),
-                          min: minScale,
-                          max: maxScale,
-                          divisions: divisions,
-                          onChanged: (val) =>
-                              setScale(snapFolderZoomScale(val)),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            for (final tierValue in allowedTiers) ...[
+                              if (_needsTierDividerBefore(
+                                  tierValue, allowedTiers))
+                                Container(
+                                  width: 1,
+                                  height: 18,
+                                  margin:
+                                      const EdgeInsets.symmetric(horizontal: 2),
+                                  color: theme.colorScheme.outlineVariant
+                                      .withValues(alpha: 0.5),
+                                ),
+                              _ZoomTierPresetButton(
+                                tier: getFolderZoomTier(tierValue),
+                                tooltip: _tierTooltip(l10n, tierValue),
+                                isSelected: !isHybrid &&
+                                    tier == getFolderZoomTier(tierValue),
+                                horizontalPadding: compactPresets ? 9 : 16,
+                                onTap: () => setScale(tierValue),
+                              ),
+                            ],
+                          ],
                         ),
-                      ),
+                      ],
                     ),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      constraints: const BoxConstraints(
-                        minWidth: 28,
-                        minHeight: 28,
-                      ),
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.add_rounded, size: 18),
-                      onPressed: zoomScale < (maxScale - 0.001)
-                          ? () => setScale(stepFolderZoomScale(zoomScale, 1))
-                          : null,
-                    ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    for (final tierValue in allowedTiers) ...[
-                      if (_needsTierDividerBefore(tierValue, allowedTiers))
-                        Container(
-                          width: 1,
-                          height: 18,
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          color: theme.colorScheme.outlineVariant
-                              .withValues(alpha: 0.5),
+                if (supportsHybrid) ...[
+                  const SizedBox(height: 8),
+                  Divider(
+                    height: 1,
+                    color: theme.colorScheme.outlineVariant
+                        .withValues(alpha: 0.35),
+                  ),
+                  const SizedBox(height: 6),
+                  _HybridViewToggleRow(
+                    label: l10n.hybridView,
+                    value: isHybrid,
+                    onChanged: (val) => settings.setHybridViewFor(scope, val),
+                  ),
+                ],
+                if (!isHybrid) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.mouse_rounded,
+                        size: 13,
+                        color: theme.colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.75),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          l10n.zoomTierShortcutHint(zoomModifierKeyLabel),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.75),
+                          ),
                         ),
-                      _ZoomTierPresetButton(
-                        tier: getFolderZoomTier(tierValue),
-                        tooltip: _tierTooltip(l10n, tierValue),
-                        isSelected: tier == getFolderZoomTier(tierValue),
-                        horizontalPadding: compactPresets ? 9 : 16,
-                        onTap: () => setScale(tierValue),
                       ),
                     ],
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.mouse_rounded,
-                      size: 13,
-                      color: theme.colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.75),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        l10n.zoomTierShortcutHint(zoomModifierKeyLabel),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant
-                              .withValues(alpha: 0.75),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -368,6 +454,63 @@ class _ZoomTierPresetButton extends StatelessWidget {
   }
 }
 
+class _HybridViewToggleRow extends StatelessWidget {
+  const _HybridViewToggleRow({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => onChanged(!value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: Row(
+          children: [
+            Icon(
+              Icons.view_quilt_rounded,
+              size: 16,
+              color: value
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: value ? FontWeight.w600 : FontWeight.w500,
+                  color: value
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: Checkbox(
+                value: value,
+                onChanged: (checked) => onChanged(checked ?? false),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// 通用档位按钮：工具栏与顶栏都能直接放。
 ///
 /// 图标随档位实时变化，点击在自身下方弹出 [LibraryZoomPopoverCard]。
@@ -396,10 +539,15 @@ class LibraryZoomButton extends ConsumerWidget {
     final zoomScale = ref.watch(
       settingsServiceProvider.select((s) => s.zoomScaleFor(scope)),
     );
+    final isHybrid = ref.watch(
+      settingsServiceProvider.select((s) => s.isHybridViewFor(scope)),
+    );
 
-    final isGrid = isFolderZoomGrid(zoomScale);
-    // 记忆域已经保证了档位落在允许区间内，直接按当前档位给名字即可。
-    final tooltipText = isGrid ? l10n.gridView : l10n.listView;
+    final tooltipText = libraryZoomModeLabel(
+      l10n,
+      zoomScale,
+      isHybrid: isHybrid,
+    );
 
     return Builder(
       builder: (btnContext) {
@@ -414,8 +562,9 @@ class LibraryZoomButton extends ConsumerWidget {
                   minHeight: buttonSize!,
                 ),
           onPressed: () => showLibraryZoomPopover(btnContext, scope: scope),
-          icon: ZoomTierIcon(
+          icon: LibraryZoomModeIcon(
             zoomScale: zoomScale,
+            isHybrid: isHybrid,
             size: iconSize,
             color: color,
           ),

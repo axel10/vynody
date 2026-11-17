@@ -1256,10 +1256,15 @@ class _RemoteFolderBrowserPageState
       final settings = ref.read(settingsServiceProvider);
       final outerWidth =
           _contentCrossAxisExtent ?? MediaQuery.sizeOf(context).width;
-      final policy = FolderZoomPolicy.resolve(
+      final folderPolicy = FolderZoomPolicy.resolve(
         context: context,
         outerWidth: outerWidth,
-        zoomScale: settings.folderZoomScale,
+        zoomScale: settings.effectiveFolderItemZoomScale,
+      );
+      final songPolicy = FolderZoomPolicy.resolve(
+        context: context,
+        outerWidth: outerWidth,
+        zoomScale: settings.effectiveFolderSongZoomScale,
       );
 
       double fileOffset = folderContentTopOffset(
@@ -1267,12 +1272,18 @@ class _RemoteFolderBrowserPageState
         isPortrait: MediaQuery.of(context).orientation == Orientation.portrait,
         bannerKey: _bannerMeasureKey,
       );
-      fileOffset += policy.calculateScrollOffset(
-        folderCount: matchedFolders.length,
+      if (matchedFolders.isNotEmpty) {
+        fileOffset += folderPolicy.calculateScrollOffset(
+          folderCount: matchedFolders.length,
+          songIndex: 0,
+        );
+      }
+      fileOffset += songPolicy.calculateScrollOffset(
+        folderCount: 0,
         songIndex: fileIndex,
       );
 
-      final targetOffset = policy.centerInViewport(
+      final targetOffset = songPolicy.centerInViewport(
         itemOffset: fileOffset,
         viewportDimension: _scrollController.position.viewportDimension,
         maxScrollExtent: _scrollController.position.maxScrollExtent,
@@ -1291,7 +1302,8 @@ class _RemoteFolderBrowserPageState
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(settingsServiceProvider);
-    final zoomScale = settings.folderZoomScale;
+    final zoomScale = settings.effectiveFolderItemZoomScale;
+    final songZoomScale = settings.effectiveFolderSongZoomScale;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final isPortrait =
@@ -1614,7 +1626,7 @@ class _RemoteFolderBrowserPageState
                 if (matchedFiles.isNotEmpty)
                   WebDavSongsSliver(
                     files: matchedFiles,
-                    zoomScale: zoomScale,
+                    zoomScale: songZoomScale,
                     crossAxisExtent: crossAxisExtent,
                     section: _kRemoteFileSection,
                     server: widget.server,
@@ -1701,7 +1713,11 @@ class _RemoteFolderBrowserPageState
                       onNotification: _handleScrollNotification,
                       child: FolderZoomGestureLayer(
                         child: FolderZoomSliverBuilder(
-                          zoomScale: snapFolderZoomScale(zoomScale),
+                          zoomScale: snapFolderZoomScale(
+                            matchedFolders.isEmpty && matchedFiles.isNotEmpty
+                                ? songZoomScale
+                                : zoomScale,
+                          ),
                           width: constraints.maxWidth,
                           // 这里**不能**传 `controller: _scrollController`。
                           // 本页按 `_isLoading` / `_error` / 空目录 / 有内容分成四个
@@ -1799,15 +1815,18 @@ class _RemoteFolderBrowserPageState
                         value: 'view_mode',
                         child: Row(
                           children: [
-                            ZoomTierIcon(
+                            LibraryZoomModeIcon(
                               zoomScale: settings.folderZoomScale,
+                              isHybrid: settings.folderHybridView,
                               size: 20,
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              isFolderZoomGrid(settings.folderZoomScale)
-                                  ? l10n.gridView
-                                  : l10n.listView,
+                              libraryZoomModeLabel(
+                                l10n,
+                                settings.folderZoomScale,
+                                isHybrid: settings.folderHybridView,
+                              ),
                             ),
                           ],
                         ),
@@ -2277,15 +2296,18 @@ class _RemoteFolderBrowserPageState
                 value: 'view_mode',
                 child: Row(
                   children: [
-                    ZoomTierIcon(
+                    LibraryZoomModeIcon(
                       zoomScale: settings.folderZoomScale,
+                      isHybrid: settings.folderHybridView,
                       size: 20,
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      isFolderZoomGrid(settings.folderZoomScale)
-                          ? l10n.gridView
-                          : l10n.listView,
+                      libraryZoomModeLabel(
+                        l10n,
+                        settings.folderZoomScale,
+                        isHybrid: settings.folderHybridView,
+                      ),
                     ),
                   ],
                 ),

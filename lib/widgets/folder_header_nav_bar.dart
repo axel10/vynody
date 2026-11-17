@@ -6,7 +6,6 @@ import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/utils/song_locator_helper.dart';
-import 'folder_layout_utils.dart';
 import 'folder_nav_bar_scaffold.dart';
 import 'folder_scan_widgets.dart';
 import 'library_zoom_popover.dart';
@@ -34,15 +33,18 @@ class FolderZoomNavButton extends ConsumerWidget {
     final zoomScale = ref.watch(
       settingsServiceProvider.select((s) => s.folderZoomScale),
     );
-    final isGrid = isFolderZoomGrid(zoomScale);
+    final isHybrid = ref.watch(
+      settingsServiceProvider.select((s) => s.folderHybridView),
+    );
 
     return Builder(
       builder: (btnContext) {
         return FolderNavIconButton(
           style: style,
-          tooltip: isGrid ? l10n.gridView : l10n.listView,
-          icon: ZoomTierIcon(
+          tooltip: libraryZoomModeLabel(l10n, zoomScale, isHybrid: isHybrid),
+          icon: LibraryZoomModeIcon(
             zoomScale: zoomScale,
+            isHybrid: isHybrid,
             size: 20,
             color: style.iconColor,
             shadows: style.shadows,
@@ -201,6 +203,9 @@ class FolderHeaderNavBar extends ConsumerWidget {
     final zoomScale = ref.watch(
       settingsServiceProvider.select((s) => s.folderZoomScale),
     );
+    final isHybrid = ref.watch(
+      settingsServiceProvider.select((s) => s.folderHybridView),
+    );
 
     final bool showQuickActions = style.progress > 0.15;
     final bool hasPlayableSongs = totalSongsCount > 0 && onPlayAll != null;
@@ -347,12 +352,18 @@ class FolderHeaderNavBar extends ConsumerWidget {
                 value: 'view_mode',
                 child: Row(
                   children: [
-                    ZoomTierIcon(zoomScale: zoomScale, size: 20),
+                    LibraryZoomModeIcon(
+                      zoomScale: zoomScale,
+                      isHybrid: isHybrid,
+                      size: 20,
+                    ),
                     const SizedBox(width: 12),
                     Text(
-                      isFolderZoomGrid(zoomScale)
-                          ? l10n.gridView
-                          : l10n.listView,
+                      libraryZoomModeLabel(
+                        l10n,
+                        zoomScale,
+                        isHybrid: isHybrid,
+                      ),
                     ),
                   ],
                 ),

@@ -107,3 +107,38 @@ double _measuredBannerHeight(GlobalKey? key) {
   }
   return kFolderHeaderBannerFallbackHeight;
 }
+
+/// 与 [FolderZoomSectionHost] 类似，但当本段显式传入的 [zoomScale] 与外层
+/// [FolderZoomMetricsScope] 的目标档位不一致时（例如混合视图下文件夹固定大网格、
+/// 歌曲固定大列表），使用独立的 [FolderZoomSliverBuilder] 按本段档位构建度量。
+class AdaptiveFolderZoomSectionHost extends StatelessWidget {
+  const AdaptiveFolderZoomSectionHost({
+    super.key,
+    required this.zoomScale,
+    required this.width,
+    required this.builder,
+    this.controller,
+  });
+
+  final double zoomScale;
+  final double width;
+  final ScrollController? controller;
+  final Widget Function(BuildContext context, FolderZoomLayoutMetrics metrics)
+      builder;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveZoom = snapFolderZoomScale(zoomScale);
+    final hostMetrics = FolderZoomMetricsScope.maybeOf(context);
+    if (hostMetrics != null &&
+        (hostMetrics.targetZoomScale - effectiveZoom).abs() < 1e-6) {
+      return builder(context, hostMetrics);
+    }
+    return FolderZoomSliverBuilder(
+      zoomScale: effectiveZoom,
+      width: width,
+      controller: controller,
+      builder: builder,
+    );
+  }
+}

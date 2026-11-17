@@ -402,7 +402,8 @@ class _RemoteFolderSearchPageState
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final settings = ref.watch(settingsServiceProvider);
-    final zoomScale = settings.folderZoomScale;
+    final zoomScale = settings.effectiveFolderItemZoomScale;
+    final songZoomScale = settings.effectiveFolderSongZoomScale;
     final session = ref.watch(activeRemoteSessionProvider);
     final metadataMap = session?.webDavMetadataCache ?? const {};
 
@@ -524,7 +525,7 @@ class _RemoteFolderSearchPageState
                                         if (_cachedSongs.isNotEmpty)
                                           WebDavSongsSliver(
                                             files: _cachedSongs,
-                                            zoomScale: zoomScale,
+                                            zoomScale: songZoomScale,
                                             server: widget.server,
                                             password: widget.password,
                                             metadataMap: metadataMap,
@@ -596,7 +597,7 @@ class _RemoteFolderSearchPageState
                                         if (_deepSongs.isNotEmpty)
                                           WebDavSongsSliver(
                                             files: _deepSongs,
-                                            zoomScale: zoomScale,
+                                            zoomScale: songZoomScale,
                                             server: widget.server,
                                             password: widget.password,
                                             metadataMap: metadataMap,
