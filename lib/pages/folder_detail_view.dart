@@ -102,6 +102,14 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   int? _lastFolderAnchorIndex;
   late final double _initialZoomScale;
 
+  void _handleLocateCurrentSong() {
+    if (widget.onLocateCurrentSong != null) {
+      widget.onLocateCurrentSong!();
+    } else {
+      SongLocatorHelper.locateCurrentPlayingSong(ref, context);
+    }
+  }
+
   void _openSearchPage() {
     Navigator.of(context).push(
       (Platform.isIOS || Platform.isMacOS)
@@ -701,11 +709,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     ),
                       onSelected: (val) {
                         switch (val) {
-                          case 'search':
-                            _handleSearchAction();
-                            break;
                           case 'locate':
-                            widget.onLocateCurrentSong?.call();
+                            _handleLocateCurrentSong();
                             break;
                           case 'refresh':
                             _handleRefresh();
@@ -719,18 +724,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                         }
                       },
                       itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'search',
-                          child: Row(
-                            children: [
-                              const Icon(Icons.search_rounded, size: 20),
-                              const SizedBox(width: 12),
-                              Text(l10n.search),
-                            ],
-                          ),
-                        ),
-                        if (currentMusic != null &&
-                            widget.onLocateCurrentSong != null)
+                        if (currentMusic != null)
                           PopupMenuItem(
                             value: 'locate',
                             child: Row(
@@ -1061,7 +1055,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     if (value == 'search') {
                       _handleSearchAction();
                     } else if (value == 'locate') {
-                      widget.onLocateCurrentSong?.call();
+                      _handleLocateCurrentSong();
                     } else if (value == 'refresh') {
                       _handleRefresh();
                     } else if (value == 'sort') {
@@ -1081,8 +1075,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                         ],
                       ),
                     ),
-                    if (currentMusic != null &&
-                        widget.onLocateCurrentSong != null)
+                    if (currentMusic != null)
                       PopupMenuItem(
                         value: 'locate',
                         child: Row(

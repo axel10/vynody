@@ -19,6 +19,7 @@ import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/folder_helpers.dart';
+import 'package:vynody/utils/song_locator_helper.dart';
 import '../widgets/folder_header_nav_bar.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_content_slivers.dart';
@@ -558,11 +559,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                   ),
                     onSelected: (val) {
                       switch (val) {
-                        case 'search':
-                          _handleSearchAction();
-                          break;
                         case 'locate':
-                          widget.onLocateCurrentSong?.call();
+                          _handleLocateCurrentSong();
                           break;
                         case 'refresh':
                           _handleRefresh();
@@ -570,18 +568,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                       }
                     },
                     itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'search',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.search_rounded, size: 20),
-                            const SizedBox(width: 12),
-                            Text(l10n.search),
-                          ],
-                        ),
-                      ),
-                      if (currentMusic != null &&
-                          widget.onLocateCurrentSong != null)
+                      if (currentMusic != null)
                         PopupMenuItem(
                           value: 'locate',
                           child: Row(
@@ -743,7 +730,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     if (value == 'search') {
                       _handleSearchAction();
                     } else if (value == 'locate') {
-                      widget.onLocateCurrentSong?.call();
+                      _handleLocateCurrentSong();
                     } else if (value == 'refresh') {
                       _handleRefresh();
                     }
@@ -759,8 +746,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                         ],
                       ),
                     ),
-                    if (currentMusic != null &&
-                        widget.onLocateCurrentSong != null)
+                    if (currentMusic != null)
                       PopupMenuItem(
                         value: 'locate',
                         child: Row(
@@ -825,6 +811,14 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
 
   void _handleSearchAction() {
     _openSearchPage();
+  }
+
+  void _handleLocateCurrentSong() {
+    if (widget.onLocateCurrentSong != null) {
+      widget.onLocateCurrentSong!();
+    } else {
+      SongLocatorHelper.locateCurrentPlayingSong(ref, context);
+    }
   }
 
   Widget _buildRootTopHeader(
