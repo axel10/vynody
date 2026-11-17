@@ -279,10 +279,21 @@ void main() {
       expect(selectionOf(container).selectedKeys,
           {'lin zhou', 'sen mo', 'noon park'});
       expect(find.text('已选择 3 位艺术家'), findsOneWidget);
-      expect(find.text('取消全选'), findsOneWidget);
+      expect(find.text('全选'), findsOneWidget);
+      expect(
+        tester
+            .widget<Checkbox>(
+              find.descendant(
+                of: find.byKey(const ValueKey('artist-selection-panel')),
+                matching: find.byType(Checkbox),
+              ),
+            )
+            .value,
+        isTrue,
+      );
 
       // 取消全选 -> 清空选中并退出多选
-      await tester.tap(find.text('取消全选'));
+      await tester.tap(find.text('全选'));
       await tester.pump();
       expect(selectionOf(container).isActive, isFalse);
       expect(selectionOf(container).scope, LibrarySelectionScope.none);
@@ -295,7 +306,7 @@ void main() {
 
       await tester.tap(find.descendant(
         of: find.byKey(const ValueKey('artist-selection-panel')),
-        matching: find.byIcon(Icons.close),
+        matching: find.byIcon(Icons.close_rounded),
       ));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
@@ -398,7 +409,7 @@ void main() {
       // 取消
       await tester.tap(find.descendant(
         of: find.byKey(const ValueKey('library-selection-panel')),
-        matching: find.byIcon(Icons.close),
+        matching: find.byIcon(Icons.close_rounded),
       ));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));

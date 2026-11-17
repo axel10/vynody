@@ -38,6 +38,9 @@ class GenericSelectionPanel extends StatefulWidget {
     required this.onCancel,
     required this.actions,
     this.columns,
+    this.isAllSelected,
+    this.onToggleSelectAll,
+    this.canSelectAll = true,
   });
 
   /// 面板顶部标题（通常显示已选数量，如「已选 3 首」或「多选 · 1 / 5」）。
@@ -51,6 +54,15 @@ class GenericSelectionPanel extends StatefulWidget {
 
   /// 每行显示的列数。不传时默认按 4 列网格排布，不足 4 列时末尾留空。
   final int? columns;
+
+  /// 是否已全选。传入 [onToggleSelectAll] 时，头部左侧会显示「全选」复选框。
+  final bool? isAllSelected;
+
+  /// 切换全选状态的回调。为 null 时头部不显示全选复选框。
+  final VoidCallback? onToggleSelectAll;
+
+  /// 当前列表是否有可选项；为 false 时头部全选复选框置灰不可点击。
+  final bool canSelectAll;
 
   @override
   State<GenericSelectionPanel> createState() => _GenericSelectionPanelState();
@@ -168,14 +180,26 @@ class _GenericSelectionPanelState extends State<GenericSelectionPanel> {
                         // Header row
                         Row(
                           children: [
-                            const SizedBox(width: 6),
-                            Text(
-                              widget.title,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
+                            if (widget.onToggleSelectAll != null ||
+                                widget.isAllSelected != null) ...[
+                              _buildSelectAllHeaderControl(
+                                context,
+                                theme: theme,
+                                l10n: l10n,
+                              ),
+                              const SizedBox(width: 10),
+                            ] else
+                              const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                widget.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                            const Spacer(),
                             IconButton(
                               icon: const Icon(Icons.close_rounded, size: 20),
                               visualDensity: VisualDensity.compact,
@@ -228,6 +252,54 @@ class _GenericSelectionPanelState extends State<GenericSelectionPanel> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSelectAllHeaderControl(
+    BuildContext context, {
+    required ThemeData theme,
+    required AppLocalizations l10n,
+  }) {
+    final effectiveOnToggle =
+        widget.canSelectAll ? widget.onToggleSelectAll : null;
+    final isChecked = widget.isAllSelected ?? false;
+
+    return InkWell(
+      onTap: effectiveOnToggle,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: Checkbox(
+                value: isChecked,
+                onChanged: effectiveOnToggle != null
+                    ? (_) => effectiveOnToggle()
+                    : null,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              l10n.selectAll,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: effectiveOnToggle != null
+                    ? theme.colorScheme.onSurface
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.38),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

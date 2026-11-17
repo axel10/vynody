@@ -613,23 +613,15 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                         key: const ValueKey('cloud-server-selection-panel'),
                         title:
                             '${l10n.multiSelect}  ·  ${widget.selectedServerIds.length} / ${remoteServers.length}',
+                        isAllSelected: widget.selectedServerIds.length ==
+                                remoteServers.length &&
+                            remoteServers.isNotEmpty,
+                        hasSelectableItems: remoteServers.isNotEmpty,
+                        onToggleSelectAll: () => widget.onSelectAllCloudServers(
+                          remoteServers.map((s) => s.id),
+                        ),
                         onCancel: widget.onExitCloudServerSelection,
                         customActions: [
-                          SelectionActionItem(
-                            icon: (widget.selectedServerIds.length ==
-                                        remoteServers.length &&
-                                    remoteServers.isNotEmpty)
-                                ? Icons.deselect_rounded
-                                : Icons.select_all_rounded,
-                            label: (widget.selectedServerIds.length ==
-                                        remoteServers.length &&
-                                    remoteServers.isNotEmpty)
-                                ? l10n.deselectAll
-                                : l10n.selectAll,
-                            onPressed: () => widget.onSelectAllCloudServers(
-                              remoteServers.map((s) => s.id),
-                            ),
-                          ),
                           SelectionActionItem(
                             icon: Icons.edit_rounded,
                             label: l10n.edit,

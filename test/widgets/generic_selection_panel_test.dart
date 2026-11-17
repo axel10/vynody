@@ -281,4 +281,76 @@ void main() {
     expect(find.text('添加到队列'), findsOneWidget);
     expect(find.text('队列'), findsNothing);
   });
+
+  testWidgets('GenericSelectionPanel renders select-all checkbox in header and reflects isAllSelected', (tester) async {
+    int toggleCount = 0;
+
+    await tester.pumpWidget(
+      _wrap(
+        GenericSelectionPanel(
+          title: '已选 1 首',
+          onCancel: () {},
+          isAllSelected: false,
+          onToggleSelectAll: () => toggleCount++,
+          actions: [
+            SelectionActionItem(icon: Icons.edit_rounded, label: '编辑', onPressed: () {}),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('全选'), findsOneWidget);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+
+    // 点击复选框与点击「全选」文字均可触发回调
+    await tester.tap(find.byType(Checkbox));
+    expect(toggleCount, 1);
+    await tester.tap(find.text('全选'));
+    expect(toggleCount, 2);
+
+    // 全部选中后自动勾选
+    await tester.pumpWidget(
+      _wrap(
+        GenericSelectionPanel(
+          title: '已选 3 首',
+          onCancel: () {},
+          isAllSelected: true,
+          onToggleSelectAll: () => toggleCount++,
+          actions: [
+            SelectionActionItem(icon: Icons.edit_rounded, label: '编辑', onPressed: () {}),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+    expect(find.text('全选'), findsOneWidget);
+  });
+
+  testWidgets('GenericSelectionPanel disables header select-all checkbox when canSelectAll is false', (tester) async {
+    int toggleCount = 0;
+
+    await tester.pumpWidget(
+      _wrap(
+        GenericSelectionPanel(
+          title: '已选 0 首',
+          onCancel: () {},
+          isAllSelected: false,
+          canSelectAll: false,
+          onToggleSelectAll: () => toggleCount++,
+          actions: [
+            SelectionActionItem(icon: Icons.edit_rounded, label: '编辑', onPressed: () {}),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
+    expect(checkbox.onChanged, isNull);
+    await tester.tap(find.text('全选'));
+    expect(toggleCount, 0);
+  });
 }

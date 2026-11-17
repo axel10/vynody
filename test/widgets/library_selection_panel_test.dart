@@ -258,5 +258,70 @@ void main() {
     );
     expect(expandedWidgets.length, 4);
   });
+
+  testWidgets(
+      'LibrarySelectionPanel places select-all checkbox in header and auto-checks when all songs selected',
+      (tester) async {
+    final secondSong = MusicFile(
+      path: 'subsonic://server-1/track-2',
+      name: 'Song 2',
+      title: 'Song 2',
+      artist: 'Artist 2',
+      album: 'Album 2',
+    );
+    int toggleCount = 0;
+
+    // 部分选中：复选框未勾选，底部网格没有「全选」按钮
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
+          home: Scaffold(
+            body: LibrarySelectionPanel(
+              selectedSongs: [sampleSong],
+              allSongs: [sampleSong, secondSong],
+              onToggleSelectAll: () => toggleCount++,
+              onCancel: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Checkbox), findsOneWidget);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+    expect(find.text('全选'), findsOneWidget);
+    expect(find.byIcon(Icons.select_all), findsNothing);
+    expect(find.byIcon(Icons.deselect), findsNothing);
+
+    await tester.tap(find.text('全选'));
+    expect(toggleCount, 1);
+
+    // 全部选中：复选框自动勾选
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
+          home: Scaffold(
+            body: LibrarySelectionPanel(
+              selectedSongs: [sampleSong, secondSong],
+              allSongs: [sampleSong, secondSong],
+              onToggleSelectAll: () => toggleCount++,
+              onCancel: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+    expect(find.text('全选'), findsOneWidget);
+  });
 }
 

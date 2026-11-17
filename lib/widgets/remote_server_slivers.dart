@@ -1191,13 +1191,11 @@ class CloudServerSelectionPanel extends StatelessWidget {
     final isAllSelected = selectedCount == totalCount && totalCount > 0;
     return LibrarySelectionPanel(
       title: '${l10n.multiSelect}  ·  $selectedCount / $totalCount',
+      isAllSelected: isAllSelected,
+      hasSelectableItems: totalCount > 0,
+      onToggleSelectAll: onSelectAll,
       onCancel: onCancel,
       customActions: [
-        SelectionActionItem(
-          icon: isAllSelected ? Icons.deselect_rounded : Icons.select_all_rounded,
-          label: isAllSelected ? l10n.deselectAll : l10n.selectAll,
-          onPressed: onSelectAll,
-        ),
         SelectionActionItem(
           icon: Icons.edit_rounded,
           label: l10n.edit,

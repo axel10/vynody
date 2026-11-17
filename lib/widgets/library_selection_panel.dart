@@ -92,22 +92,26 @@ class LibrarySelectionPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
 
+    final effectiveIsAllSelected = isAllSelected ??
+        (selectedSongs.length == allSongs.length && allSongs.isNotEmpty);
+    final canSelectAll = hasSelectableItems ??
+        (allSongs.isNotEmpty || isAllSelected != null);
+
     if (customActions != null) {
       return GenericSelectionPanel(
         title: title ?? l10n.selectedSongs(selectedSongs.length),
         onCancel: onCancel,
         actions: customActions!,
         columns: columns,
+        isAllSelected: onToggleSelectAll != null ? effectiveIsAllSelected : null,
+        onToggleSelectAll: onToggleSelectAll,
+        canSelectAll: canSelectAll,
       );
     }
 
     final audio = ref.read(audioServiceProvider);
     final playlistService = ref.read(playlistServiceProvider);
 
-    final effectiveIsAllSelected = isAllSelected ??
-        (selectedSongs.length == allSongs.length && allSongs.isNotEmpty);
-    final canSelectAll = hasSelectableItems ??
-        (allSongs.isNotEmpty || isAllSelected != null);
     final isSongSelectionEmpty = selectedSongs.isEmpty;
     final isEmpty = isSelectionEmpty ?? isSongSelectionEmpty;
     final isSingleSelected = !isEmpty && selectedSongs.length == 1;
@@ -122,16 +126,8 @@ class LibrarySelectionPanel extends ConsumerWidget {
         (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
         (onOpenLocation != null || hasFilePath);
 
-    final selectAllText = effectiveIsAllSelected ? l10n.deselectAll : l10n.selectAll;
-
     final actions = <SelectionActionItem>[
-      // 1. 全选 / 取消全选
-      SelectionActionItem(
-        icon: effectiveIsAllSelected ? Icons.deselect : Icons.select_all,
-        label: selectAllText,
-        onPressed: (canSelectAll && onToggleSelectAll != null) ? onToggleSelectAll : null,
-      ),
-      // 2. 播放下一首
+      // 1. 播放下一首
       SelectionActionItem(
         icon: Icons.queue_play_next_rounded,
         label: l10n.playNext,
@@ -371,6 +367,9 @@ class LibrarySelectionPanel extends ConsumerWidget {
       onCancel: onCancel,
       actions: actions,
       columns: columns,
+      isAllSelected: onToggleSelectAll != null ? effectiveIsAllSelected : null,
+      onToggleSelectAll: onToggleSelectAll,
+      canSelectAll: canSelectAll,
     );
   }
 }

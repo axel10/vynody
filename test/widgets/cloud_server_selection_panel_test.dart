@@ -65,10 +65,8 @@ void main() {
     await tester.pumpWidget(_wrap(_panel(selectedCount: 0)));
     await tester.pump();
     expect(_buttonFor(tester, Icons.delete_outline_rounded).onPressed, isNull);
-    expect(
-      _buttonFor(tester, Icons.select_all_rounded).onPressed,
-      isNotNull,
-    );
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).onChanged, isNotNull);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
     expect(find.byIcon(Icons.close_rounded), findsOneWidget);
 
     await tester.pumpWidget(_wrap(_panel(
