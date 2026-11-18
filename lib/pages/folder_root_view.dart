@@ -565,6 +565,9 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                         case 'refresh':
                           _handleRefresh();
                           break;
+                        case 'view_mode':
+                          showFolderZoomPopover(context);
+                          break;
                       }
                     },
                     itemBuilder: (context) => [
@@ -586,6 +589,26 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                             const Icon(Icons.refresh_rounded, size: 20),
                             const SizedBox(width: 12),
                             Text(l10n.refresh),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'view_mode',
+                        child: Row(
+                          children: [
+                            LibraryZoomModeIcon(
+                              zoomScale: settings.folderZoomScale,
+                              isHybrid: settings.folderHybridView,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              libraryZoomModeLabel(
+                                l10n,
+                                settings.folderZoomScale,
+                                isHybrid: settings.folderHybridView,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -689,6 +712,12 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     final style = FolderNavBarStyle.overlay(context);
     final l10n = AppLocalizations.of(context)!;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final zoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.folderZoomScale),
+    );
+    final isHybrid = ref.watch(
+      settingsServiceProvider.select((s) => s.folderHybridView),
+    );
     return FolderBannerBreadcrumbBar(
       style: style,
       headerHeight: headerHeight,
@@ -718,6 +747,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                 _handleLocateCurrentSong();
               } else if (value == 'refresh') {
                 _handleRefresh();
+              } else if (value == 'view_mode') {
+                showFolderZoomPopover(context);
               }
             },
             itemBuilder: (context) => [
@@ -749,6 +780,26 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     const Icon(Icons.refresh_rounded, size: 20),
                     const SizedBox(width: 12),
                     Text(l10n.refresh),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'view_mode',
+                child: Row(
+                  children: [
+                    LibraryZoomModeIcon(
+                      zoomScale: zoomScale,
+                      isHybrid: isHybrid,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      libraryZoomModeLabel(
+                        l10n,
+                        zoomScale,
+                        isHybrid: isHybrid,
+                      ),
+                    ),
                   ],
                 ),
               ),
