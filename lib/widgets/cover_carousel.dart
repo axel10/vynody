@@ -538,9 +538,12 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
       _hasLoadedHighRes = false;
       _loadArtwork();
     }
-    // If the path is the same but artwork appeared or is currently missing, try loading again
+    // If the path is the same but artwork appeared or hasn't been loaded yet, try loading again
     else if (widget.musicFile.artworkBytes != oldWidget.musicFile.artworkBytes ||
-        _artworkBytes == null) {
+        (!_isLoaded &&
+            _artworkBytes == null &&
+            _artworkFilePath == null &&
+            _remoteArtworkUrl == null)) {
       _loadArtwork();
     }
   }
@@ -599,12 +602,6 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
 
   Future<void> _loadArtworkAsync() async {
     _isLoaded = true;
-    if (kDebugMode) {
-      debugPrint(
-        '[CoverCarousel][Trace] _loadArtworkAsync start path=${widget.musicFile.path} '
-        'currentMusic=${widget.audioService.currentMusic?.path ?? '-'}',
-      );
-    }
     MemoryTrace.snapshot(
       'coverCarousel:loadArtwork:start',
       details: <String, Object?>{
