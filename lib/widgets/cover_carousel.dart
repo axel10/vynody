@@ -794,11 +794,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
                   aspectRatio: 1,
                   child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(
-                        widget.displaySize != null
-                            ? math.min(24.0, widget.displaySize! * 0.2)
-                            : 24.0,
-                      ),
+                      borderRadius: _cardBorderRadius,
                       color: Colors.black26,
                       boxShadow: isAnimating
                           ? const [
@@ -961,16 +957,34 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
     return _buildFallbackNote();
   }
 
+  BorderRadius get _cardBorderRadius => BorderRadius.circular(
+    widget.displaySize != null
+        ? math.min(24.0, widget.displaySize! * 0.2)
+        : 24.0,
+  );
+
   Widget _buildFallbackNote() {
-    return Center(
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: 0.1),
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: _cardBorderRadius,
+        color: Colors.white.withValues(alpha: 0.06),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.10),
+          width: 1,
         ),
-        child: const Icon(Icons.music_note, size: 40, color: Colors.white54),
+      ),
+      child: Center(
+        child: Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withValues(alpha: 0.1),
+          ),
+          child: const Icon(Icons.music_note, size: 40, color: Colors.white54),
+        ),
       ),
     );
   }
