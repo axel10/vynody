@@ -21,6 +21,9 @@ Builds:
     srclibs:
       - flutter@3.47.9
     ndk: 28.2.13676358
+    sudo:
+      - apt-get update
+      - apt-get install -y build-essential pkg-config xz-utils rustup
     prebuild:
       - export PATH="$$flutter$$/bin:$PATH"
       - ./scripts/fdroid_prebuild.sh

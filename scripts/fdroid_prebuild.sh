@@ -72,7 +72,8 @@ echo "==> [4/5] Fetching audio_core FOSS media sources (FFmpeg, Opus, LAME, rust
 AUDIO_CORE_DIR="$ROOT_DIR/audio_core"
 if [[ ! -d "$AUDIO_CORE_DIR/ffmpeg-8.1" ]]; then
   curl -fsSL "https://ffmpeg.org/releases/ffmpeg-8.1.tar.xz" -o "$AUDIO_CORE_DIR/ffmpeg-8.1.tar.xz"
-  tar -xJf "$AUDIO_CORE_DIR/ffmpeg-8.1.tar.xz" -C "$AUDIO_CORE_DIR"
+  python3 -c 'import sys, tarfile; tarfile.open(sys.argv[1], "r:xz").extractall(sys.argv[2])' \
+    "$AUDIO_CORE_DIR/ffmpeg-8.1.tar.xz" "$AUDIO_CORE_DIR"
   rm -f "$AUDIO_CORE_DIR/ffmpeg-8.1.tar.xz"
 fi
 
@@ -94,7 +95,31 @@ fi
 # Remove any prebuilt ffmpeg_lib so F-Droid builds it cleanly from source in the build phase.
 rm -rf "$AUDIO_CORE_DIR/android/ffmpeg_lib" "$AUDIO_CORE_DIR/android/src/main/jniLibs"
 
-echo "==> [5/5] Prefetching Flutter & Rust dependencies for offline build..."
+echo "==> [5/5] Prefetching Flutter, Android CMake & Rust dependencies for offline build..."
+SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/opt/android-sdk}}"
+if [[ -d "$SDK_ROOT" && ! -d "$SDK_ROOT/cmake/3.22.1" ]]; then
+  SDKMANAGER_BIN="$(command -v sdkmanager || true)"
+  if [[ -z "$SDKMANAGER_BIN" ]]; then
+    for candidate in \
+      "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
+      "$SDK_ROOT/tools/bin/sdkmanager"; do
+      if [[ -x "$candidate" ]]; then
+        SDKMANAGER_BIN="$candidate"
+        break
+      fi
+    done
+  fi
+  if [[ -n "$SDKMANAGER_BIN" ]]; then
+    yes | "$SDKMANAGER_BIN" "cmake;3.22.1" >/dev/null || "$SDKMANAGER_BIN" "cmake;3.22.1"
+  fi
+fi
+
+if command -v rustup >/dev/null 2>&1; then
+  rustup toolchain install stable --profile minimal
+  rustup default stable
+  rustup target add aarch64-linux-android armv7-linux-androideabi
+fi
+
 flutter pub get
 if [[ -f "$AUDIO_CORE_DIR/rust/Cargo.toml" ]]; then
   (cd "$AUDIO_CORE_DIR/rust" && cargo fetch)
