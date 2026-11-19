@@ -76,3 +76,36 @@ screenshots
 .qoder/*
 
 image
+
+# Local external checkouts / non-submodule directories (prevent accidental gitlink commits)
+/Bonsoir/
+/audio_service/
+/audio_session/
+/crates/ffmpeg_core/
+/crates/rust-ffmpeg/
+/dart_smb2/
+/dart_webdav/
+/desktop_multi_window/
+/docs/
+/flutter-reorderable-grid-view/
+/flutter_desktop_lyrics/
+/flutter_desktop_tray/
+/flutter_tray/
+/fusion_background/
+/irondash/
+/jellyfin/
+/mesh-gradient/
+/mesh_flow/
+/mobile_storage_listener/
+/navidrome/
+/packages/
+/packaging/flathub/
+/proxy_getter/
+/reorderable_grid/
+/super_native_extensions/
+/sysproxy-rs/
+/vynody_smb/
+/webdav_client/
+/window_backdrop/
+/window_manager/
+/zoomable_sliver_grid/
