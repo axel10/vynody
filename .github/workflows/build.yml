@@ -144,6 +144,47 @@ jobs:
           name: android-apk
           path: android_apks
 
+      - name: Prepare smoke test script
+        run: |
+          cat <<'EOF' > smoke_test.sh
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          APK_FILE=$(ls android_apks/vynody-android-*-arm64-v8a.apk | head -n 1)
+          test -f "$APK_FILE"
+          echo "Installing $APK_FILE..."
+          adb install -r "$APK_FILE"
+          adb logcat -c
+          echo "Launching app.vynody.player/.MainActivity..."
+          adb shell am start -W -n app.vynody.player/.MainActivity
+          sleep 5
+
+          PID=$(adb shell pidof app.vynody.player | tr -d '\r' || true)
+          echo "App PID: ${PID:-<empty>}"
+          if [ -z "$PID" ]; then
+            echo "::error::app.vynody.player process is not running after launch!"
+            adb logcat -d -t 200
+            exit 1
+          fi
+
+          LOGCAT_OUT=$(adb logcat -d --pid="$PID" || true)
+          echo "=== App logcat (PID $PID) ==="
+          echo "$LOGCAT_OUT"
+
+          if echo "$LOGCAT_OUT" | grep -qE "Unhandled Exception:|FATAL EXCEPTION|java\.lang\.ClassNotFoundException|java\.lang\.NoSuchMethodError|java\.lang\.UnsatisfiedLinkError"; then
+            echo "::error::Detected fatal/unhandled exception in app logcat!"
+            exit 1
+          fi
+
+          if ! echo "$LOGCAT_OUT" | grep -qE "calling runApp|=== App Info:"; then
+            echo "::error::Did not observe expected Flutter startup markers (calling runApp / === App Info:) in logcat!"
+            exit 1
+          fi
+
+          echo "Android arm64-v8a smoke test passed!"
+          EOF
+          chmod +x smoke_test.sh
+
       - name: Run launch smoke test on x86_64 emulator (arm64-v8a via libndk_translation)
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -153,40 +194,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          script: |
-            set -euo pipefail
-            APK_FILE=$(ls android_apks/vynody-android-*-arm64-v8a.apk | head -n 1)
-            test -f "$APK_FILE"
-            echo "Installing $APK_FILE..."
-            adb install -r "$APK_FILE"
-            adb logcat -c
-            echo "Launching app.vynody.player/.MainActivity..."
-            adb shell am start -W -n app.vynody.player/.MainActivity
-            sleep 5
-
-            PID=$(adb shell pidof app.vynody.player | tr -d '\r')
-            echo "App PID: ${PID:-<empty>}"
-            if [ -z "$PID" ]; then
-              echo "::error::app.vynody.player process is not running after launch!"
-              adb logcat -d -t 200
-              exit 1
-            fi
-
-            LOGCAT_OUT=$(adb logcat -d --pid="$PID" || true)
-            echo "=== App logcat (PID $PID) ==="
-            echo "$LOGCAT_OUT"
-
-            if echo "$LOGCAT_OUT" | grep -qE "Unhandled Exception:|FATAL EXCEPTION|java\.lang\.ClassNotFoundException|java\.lang\.NoSuchMethodError|java\.lang\.UnsatisfiedLinkError"; then
-              echo "::error::Detected fatal/unhandled exception in app logcat!"
-              exit 1
-            fi
-
-            if ! echo "$LOGCAT_OUT" | grep -qE "calling runApp|=== App Info:"; then
-              echo "::error::Did not observe expected Flutter startup markers (calling runApp / === App Info:) in logcat!"
-              exit 1
-            fi
-
-            echo "Android arm64-v8a smoke test passed!"
+          script: bash smoke_test.sh
 
   windows:
     name: Build Windows Package
