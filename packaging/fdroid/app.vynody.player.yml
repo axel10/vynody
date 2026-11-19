@@ -11,13 +11,13 @@ AutoName: Vynody
 
 RepoType: git
 Repo: https://github.com/axel10/vynody.git
-Submodules: true
 
 Builds:
   - versionName: 3.3.1
     versionCode: 1
     commit: v3.3.1
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+    submodules: true
     srclibs:
       - flutter@3.47.9
     ndk: 28.2.13676358
