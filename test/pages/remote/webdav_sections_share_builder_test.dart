@@ -5,8 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/pages/remote/widgets/webdav_content_slivers.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/remote/clients/webdav_client.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
 import 'package:vynody/widgets/folder_zoom_gesture_layer.dart';
 import 'package:vynody/widgets/song_zoom_item.dart';
@@ -107,8 +109,12 @@ void main() {
     );
   }
 
-  setUp(() {
+  late SettingsService settings;
+
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    settings = SettingsService(prefs);
   });
 
   testWidgets('两段网格共用同一个缩放容器，段组件不自建 builder', (tester) async {
@@ -163,7 +169,12 @@ void main() {
     // 所以页面**不能**给 `FolderZoomSliverBuilder` 传 `controller`：包内会读
     // `controller.position`（断言 `_positions.length == 1`）→ 抛在 sliver 布局里 →
     // 整页空白。不传时走渲染树里按布局校验挑 viewport 的路径，能容忍这一帧重叠。
-    await tester.pumpWidget(const ProviderScope(child: _SwapHarness()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+        child: const _SwapHarness(),
+      ),
+    );
     await tester.pump();
 
     expect(find.byType(WebDavSubfoldersSliver), findsNothing);
