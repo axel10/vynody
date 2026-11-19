@@ -73,7 +73,6 @@ fi
 export CARGO_NET_OFFLINE=true
 flutter build apk --release \
   --no-pub \
-  --target-platform android-arm64 \
-  --split-per-abi
+  --target-platform android-arm64
 
 echo "F-Droid build finished successfully."

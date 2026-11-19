@@ -16,7 +16,7 @@ Builds:
   - versionName: 3.4.0
     versionCode: 1
     commit: 3.4.0
-    output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+    output: build/app/outputs/flutter-apk/app-release.apk
     submodules: true
     srclibs:
       - flutter@3.47.9
