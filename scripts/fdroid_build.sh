@@ -56,11 +56,17 @@ if [[ -z "${LIBCLANG_PATH:-}" ]]; then
   export LIBCLANG_PATH="$LIBCLANG_DIR"
   echo "Using NDK LIBCLANG_PATH=$LIBCLANG_PATH"
 
+  LLVM_PREBUILT_DIR="$(dirname "$LIBCLANG_DIR")"
+  if [[ -z "${CLANG_PATH:-}" && -x "$LLVM_PREBUILT_DIR/bin/clang" ]]; then
+    export CLANG_PATH="$LLVM_PREBUILT_DIR/bin/clang"
+    echo "Using NDK CLANG_PATH=$CLANG_PATH"
+  fi
+
   CLANG_STDDEF="$(find "$LIBCLANG_DIR/clang" -maxdepth 3 -name "stddef.h" 2>/dev/null | head -n 1 || true)"
   if [[ -n "$CLANG_STDDEF" ]]; then
-    CLANG_RESOURCE_DIR="$(dirname "$(dirname "$CLANG_STDDEF")")"
-    export BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS:+$BINDGEN_EXTRA_CLANG_ARGS }-resource-dir=$CLANG_RESOURCE_DIR"
-    echo "Using NDK clang resource-dir=$CLANG_RESOURCE_DIR"
+    CLANG_INCLUDE_DIR="$(dirname "$CLANG_STDDEF")"
+    export BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS:+$BINDGEN_EXTRA_CLANG_ARGS }-isystem $CLANG_INCLUDE_DIR"
+    echo "Using NDK clang include dir=$CLANG_INCLUDE_DIR"
   fi
 fi
 
