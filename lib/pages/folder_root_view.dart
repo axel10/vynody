@@ -407,21 +407,37 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     ),
                   ),
             actionButtons: [
-              FilledButton.icon(
-                onPressed: widget.onPickFolder,
-                icon: Icon(Icons.add_circle_outline, size: isLargeScreen ? 18.0 : 16.0),
-                label: Text(l10n.addRootDirectory),
-                style: FilledButton.styleFrom(
-                  minimumSize: Size(0, isLargeScreen ? 38.0 : 32.0),
-                  padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? 16 : 12),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  shape: const StadiumBorder(),
-                  textStyle: TextStyle(
-                    fontSize: isLargeScreen ? 13.0 : 11.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+              Builder(
+                builder: (context) {
+                  final isCompactPortrait = isPortrait && crossAxisExtent < 680;
+                  return FilledButton.icon(
+                    onPressed: widget.onPickFolder,
+                    icon: Icon(
+                      Icons.add_circle_outline,
+                      size: isCompactPortrait ? 20.0 : (isLargeScreen ? 18.0 : 16.0),
+                    ),
+                    label: Text(l10n.addRootDirectory),
+                    style: FilledButton.styleFrom(
+                      minimumSize: Size(0, isLargeScreen ? 38.0 : 32.0),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isCompactPortrait
+                            ? 14
+                            : (isLargeScreen ? 16 : 12),
+                      ),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: isCompactPortrait
+                          ? VisualDensity.standard
+                          : VisualDensity.compact,
+                      shape: const StadiumBorder(),
+                      textStyle: TextStyle(
+                        fontSize: isCompactPortrait
+                            ? 12.5
+                            : (isLargeScreen ? 13.0 : 11.5),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(width: 8),
               FolderPlayActionButtons(
