@@ -70,8 +70,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rebuildDatabase => '重建数据库';
 
   @override
-  String get confirmRebuildDatabase =>
-      '确定要手动刷新所有歌曲的标签信息吗？这可能需要一些时间来重新加载封面和元数据。';
+  String get confirmRebuildDatabase => '确定要手动刷新所有歌曲的标签信息吗？这可能需要一些时间来重新加载封面和元数据。';
 
   @override
   String get cancel => '取消';
@@ -581,22 +580,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get collapseButtonsInLandscapeLyrics => '进入横屏歌词模式后收起按钮';
 
   @override
-  String get collapseButtonsInLandscapeLyricsDescription =>
-      '进入横屏歌词模式时收起 7 按钮行、标题左对齐并在右侧显示快捷按钮';
+  String get collapseButtonsInLandscapeLyricsDescription => '进入横屏歌词模式时收起 7 按钮行、标题左对齐并在右侧显示快捷按钮';
 
   @override
   String get expandPortraitLyricsControlsOnScroll => '竖屏歌词滚动展开播放控件';
 
   @override
-  String get expandPortraitLyricsControlsOnScrollDescription =>
-      '在竖屏歌词模式下滚动歌词时自动展开底部播放控件与进度条';
+  String get expandPortraitLyricsControlsOnScrollDescription => '在竖屏歌词模式下滚动歌词时自动展开底部播放控件与进度条';
 
   @override
   String get floatingDockScrollCollapse => '悬浮栏随滚动收起';
 
   @override
-  String get floatingDockScrollCollapseDescription =>
-      '向下滚动列表时自动收拢悬浮栏，仅保留单行迷你播放器；向上滚动或回到列表顶部、底部时自动展开。关闭后悬浮栏不再收起，始终保持完整展开。';
+  String get floatingDockScrollCollapseDescription => '向下滚动列表时自动收拢悬浮栏，仅保留单行迷你播放器；向上滚动或回到列表顶部、底部时自动展开。关闭后悬浮栏不再收起，始终保持完整展开。';
 
   @override
   String get sampleStride => '采样步长';
@@ -1331,8 +1327,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enterGoogleAiStudioApiKeyTitle => '填写 Google AI Studio API Key';
 
   @override
-  String get googleAiStudioApiKeyDescription =>
-      '用于 Google AI Studio 的歌词生成、时间轴生成和翻译。';
+  String get googleAiStudioApiKeyDescription => '用于 Google AI Studio 的歌词生成、时间轴生成和翻译。';
 
   @override
   String get pasteGoogleAiStudioApiKey => '粘贴 Google AI Studio API Key';
@@ -1452,8 +1447,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get batchEditSongTagsTitle => '批量编辑歌曲标签';
 
   @override
-  String get batchEditSongTagsDescription =>
-      '修改后会写回源文件；当前格式无法写入时自动保存到 App。值为 <keep> 的字段将保持原值。';
+  String get batchEditSongTagsDescription => '修改后会写回源文件；当前格式无法写入时自动保存到 App。值为 <keep> 的字段将保持原值。';
 
   @override
   String get keepFieldHint => '提示：值为 <keep> 的属性将保留每首歌曲的原值';
@@ -1660,33 +1654,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get autoSwitchLyricsProvider => '自动切换歌词供应商';
 
   @override
-  String get autoSwitchLyricsProviderEnabledDesc =>
-      '开启后会先请求 Google AI Studio；主模型和备用模型都因 429 或 5xx 失败时，再自动切到 OpenRouter 继续请求。';
+  String get autoSwitchLyricsProviderEnabledDesc => '开启后会先请求 Google AI Studio；主模型和备用模型都因 429 或 5xx 失败时，再自动切到 OpenRouter 继续请求。';
 
   @override
-  String get autoSwitchLyricsProviderDisabledDesc =>
-      '请先同时填写 Google AI Studio 和 OpenRouter 的 API Key，才可以开启自动切换。';
+  String get autoSwitchLyricsProviderDisabledDesc => '请先同时填写 Google AI Studio 和 OpenRouter 的 API Key，才可以开启自动切换。';
 
   @override
   String get lyricsAiProviderTitle => '歌词生成 AI 提供方';
 
   @override
-  String get lyricsAiProviderDescription =>
-      '这里只影响歌词生成和时间轴生成。翻译始终走 Google AI Studio。';
+  String get lyricsAiProviderDescription => '这里只影响歌词生成和时间轴生成。翻译始终走 Google AI Studio。';
 
   @override
   String get googleAiStudioApiKeySaved => 'Google AI Studio API Key 已保存';
 
   @override
-  String get googleAiStudioApiKeyMissing =>
-      '当前未保存 Google AI Studio key，歌词生成和时间轴生成会先弹窗提示。';
+  String get googleAiStudioApiKeyMissing => '当前未保存 Google AI Studio key，歌词生成和时间轴生成会先弹窗提示。';
 
   @override
   String get openRouterApiKeySaved => 'OpenRouter API Key 已保存';
 
   @override
-  String get openRouterApiKeyMissing =>
-      '当前未保存 OpenRouter key，歌词生成和时间轴生成会先弹窗提示。';
+  String get openRouterApiKeyMissing => '当前未保存 OpenRouter key，歌词生成和时间轴生成会先弹窗提示。';
 
   @override
   String get apiKeySavedStatus => '已保存';
@@ -1707,8 +1696,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get geminiModelsSectionTitle => '选择模型';
 
   @override
-  String get geminiModelsSectionDescription =>
-      '这些模型会用于 Google AI Studio 的歌词生成、时间轴生成以及歌词翻译。';
+  String get geminiModelsSectionDescription => '这些模型会用于 Google AI Studio 的歌词生成、时间轴生成以及歌词翻译。';
 
   @override
   String get primaryModelLabel => '主模型';
@@ -1744,8 +1732,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get acoustidApiKeyDefault => '当前使用应用内置的默认 key，建议申请你自己的 key 后替换。';
 
   @override
-  String get applyForApiKey =>
-      '申请 API key: https://acoustid.org/new-application';
+  String get applyForApiKey => '申请 API key: https://acoustid.org/new-application';
 
   @override
   String get queueTabBarFavoriteAdded => '已加入收藏';
@@ -1796,15 +1783,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get musicBrainzQueryFailed => 'MusicBrainz 查询失败';
 
   @override
-  String get musicBrainzNetworkErrorHint =>
-      'MusicBrainz 请求失败，通常是网络连接不稳定、超时或被服务端拒绝。可以稍后重试。';
+  String get musicBrainzNetworkErrorHint => 'MusicBrainz 请求失败，通常是网络连接不稳定、超时或被服务端拒绝。可以稍后重试。';
 
   @override
   String get musicBrainzFilteredEmptyHint => '当前过滤条件下没有包含该关键词的 release 标题。';
 
   @override
-  String get musicBrainzEmptyHint =>
-      'MusicBrainz 没有返回可用结果。可以放宽标题、艺人或专辑条件后再试一次。';
+  String get musicBrainzEmptyHint => 'MusicBrainz 没有返回可用结果。可以放宽标题、艺人或专辑条件后再试一次。';
 
   @override
   String get musicBrainzEmptyMoreCompleteHint => '可以稍后重试，或者确认当前歌曲标题/艺人信息是否更完整。';
@@ -2051,8 +2036,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileAssociationTitle => '文件打开方式关联';
 
   @override
-  String get fileAssociationDescription =>
-      '将常见的音乐格式（mp3, flac, wav 等）关联到此应用，支持双击直接打开播放。';
+  String get fileAssociationDescription => '将常见的音乐格式（mp3, flac, wav 等）关联到此应用，支持双击直接打开播放。';
 
   @override
   String get associateButton => '一键关联';
@@ -2061,8 +2045,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get disassociateButton => '取消关联';
 
   @override
-  String get associationSuccess =>
-      '关联成功！若双击文件未生效，请在 Windows 系统设置的【默认应用】中选择 Vynody。';
+  String get associationSuccess => '关联成功！若双击文件未生效，请在 Windows 系统设置的【默认应用】中选择 Vynody。';
 
   @override
   String get disassociationSuccess => '已成功清除文件关联。';
@@ -2093,23 +2076,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingStepFileAssociation => '关联文件打开方式';
 
   @override
-  String get onboardingFileAssociationDesc =>
-      '将常见的音乐格式（mp3, flac, wav 等）与 Vynody 关联，在文件管理器中双击即可直接播放。';
+  String get onboardingFileAssociationDesc => '将常见的音乐格式（mp3, flac, wav 等）与 Vynody 关联，在文件管理器中双击即可直接播放。';
 
   @override
-  String get onboardingFileAssociationTip =>
-      '关联后，系统可能会弹出选择默认打开程序的对话框。请务必在列表中选择「Vynody」并设为始终使用。';
+  String get onboardingFileAssociationTip => '关联后，系统可能会弹出选择默认打开程序的对话框。请务必在列表中选择「Vynody」并设为始终使用。';
 
   @override
   String get onboardingStepRootDirectory => '添加音乐根目录';
 
   @override
-  String get onboardingRootDirectoryDesc =>
-      '选择存储音乐文件的文件夹。Vynody 会自动扫描并建立你的本地音乐库。';
+  String get onboardingRootDirectoryDesc => '选择存储音乐文件的文件夹。Vynody 会自动扫描并建立你的本地音乐库。';
 
   @override
-  String get onboardingAndroidPermissionTip =>
-      '注意：Android 系统在导入与扫描本地歌曲时需要授予媒体库访问权限。点击【选择文件夹】时将触发权限请求，请予以允许。';
+  String get onboardingAndroidPermissionTip => '注意：Android 系统在导入与扫描本地歌曲时需要授予媒体库访问权限。点击【选择文件夹】时将触发权限请求，请予以允许。';
 
   @override
   String get onboardingSelectDirectory => '选择文件夹';
@@ -2121,12 +2100,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingProgressBarStyleDesc => '为桌面端宽屏体验选择心仪的播放进度条展示形式。';
 
   @override
-  String get onboardingProgressBarStyleFullWaveformDesc =>
-      '宽屏首选，全曲节奏一览无余，支持鼠标悬停与精准跳段';
+  String get onboardingProgressBarStyleFullWaveformDesc => '宽屏首选，全曲节奏一览无余，支持鼠标悬停与精准跳段';
 
   @override
-  String get onboardingProgressBarStyleScrollingWaveformDesc =>
-      '沉浸律动，波形随音乐播放实时平移滚动';
+  String get onboardingProgressBarStyleScrollingWaveformDesc => '沉浸律动，波形随音乐播放实时平移滚动';
 
   @override
   String get onboardingProgressBarStyleStandardDesc => '传统纤细滑块，低调极简';
@@ -2212,12 +2189,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get localNetworkPermissionDeniedTitle => '局域网访问受限';
 
   @override
-  String get localNetworkPermissionDeniedMessage =>
-      '未检测到可用的局域网 IP 地址，或局域网访问权限被拒绝。\n\n请按照以下步骤操作：\n1. 确保您的设备已连接到 Wi-Fi 或局域网。\n2. 确保在系统设置中允许本应用访问局域网：\n   - iOS/macOS: 请前往系统的「设置 > 隐私与安全性 > 局域网」，开启「Vynody」的开关。\n   - Windows: 请确保已连接到网络，并检查 Windows 防火墙设置是否允许「Vynody」通过。';
+  String get localNetworkPermissionDeniedMessage => '未检测到可用的局域网 IP 地址，或局域网访问权限被拒绝。\n\n请按照以下步骤操作：\n1. 确保您的设备已连接到 Wi-Fi 或局域网。\n2. 确保在系统设置中允许本应用访问局域网：\n   - iOS/macOS: 请前往系统的「设置 > 隐私与安全性 > 局域网」，开启「Vynody」的开关。\n   - Windows: 请确保已连接到网络，并检查 Windows 防火墙设置是否允许「Vynody」通过。';
 
   @override
-  String get localNetworkPermissionWindowsMessage =>
-      '未检测到可用的局域网 IP 地址。\n\n请按照以下步骤操作：\n1. 确保您的设备已连接到局域网（Wi-Fi 或以太网）。\n2. 如果已连接但仍提示此错误，请检查 Windows 防火墙设置，确保允许「Vynody」通过防火墙访问网络。';
+  String get localNetworkPermissionWindowsMessage => '未检测到可用的局域网 IP 地址。\n\n请按照以下步骤操作：\n1. 确保您的设备已连接到局域网（Wi-Fi 或以太网）。\n2. 如果已连接但仍提示此错误，请检查 Windows 防火墙设置，确保允许「Vynody」通过防火墙访问网络。';
 
   @override
   String get openSettingsButton => '前往设置';
@@ -2259,8 +2234,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get retranslateLyrics => '重新翻译歌词';
 
   @override
-  String get retranslateLyricsConfirmation =>
-      '将重新翻译当前语言的译文，原有译文会保留到新结果产出，是否继续？';
+  String get retranslateLyricsConfirmation => '将重新翻译当前语言的译文，原有译文会保留到新结果产出，是否继续？';
 
   @override
   String get translationCopiedToClipboard => '已复制翻译结果到剪贴板';
@@ -2666,8 +2640,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rebuildIndexDescription => '清空除外部来源以外的所有歌曲记录并重新扫描所有根目录。';
 
   @override
-  String get rebuildIndexConfirmation =>
-      '确认清空除外部来源以外的所有歌曲记录并重新扫描所有根目录吗？此操作需要一些时间。';
+  String get rebuildIndexConfirmation => '确认清空除外部来源以外的所有歌曲记录并重新扫描所有根目录吗？此操作需要一些时间。';
 
   @override
   String get rebuildIndexStarted => '重建索引已启动';
@@ -2703,15 +2676,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get checkForUpdates => '检查更新';
 
   @override
-  String get storeUpdateNotice =>
-      '当前应用由 Microsoft Store 托管更新。您可以前往 Microsoft Store 查看或获取最新版本。';
+  String get storeUpdateNotice => '当前应用由 Microsoft Store 托管更新。您可以前往 Microsoft Store 查看或获取最新版本。';
 
   @override
   String get openMicrosoftStore => '前往 Microsoft Store';
 
   @override
-  String get appStoreUpdateNotice =>
-      '当前应用由 App Store 托管更新。您可以前往 App Store 查看或获取最新版本。';
+  String get appStoreUpdateNotice => '当前应用由 App Store 托管更新。您可以前往 App Store 查看或获取最新版本。';
 
   @override
   String get openAppStore => '前往 App Store';
@@ -2720,8 +2691,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lyricsGenerationModel => '歌词生成模型';
 
   @override
-  String get lyricsGenerationModelDescription =>
-      '用于 AI 听歌生成歌词，以及给现有歌词生成/修正时间轴。';
+  String get lyricsGenerationModelDescription => '用于 AI 听歌生成歌词，以及给现有歌词生成/修正时间轴。';
 
   @override
   String get lyricsKaraokeModel => '逐字歌词模型';
@@ -2957,8 +2927,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get whyNeedApiKey => '为什么需要 API Key？';
 
   @override
-  String get apiKeyExplanation =>
-      'API Key 相当于你在 AI 服务商那里的访问凭证。应用会用它直接向服务商发起请求，完成歌词生成、时间轴调整或翻译。';
+  String get apiKeyExplanation => 'API Key 相当于你在 AI 服务商那里的访问凭证。应用会用它直接向服务商发起请求，完成歌词生成、时间轴调整或翻译。';
 
   @override
   String get apiKeyLocalOnly => 'API Key 只保存在你的本地设备，不会上传到 Vynody 开发者服务器。';
@@ -2970,8 +2939,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get googleProviderPros => 'Google 官方通道，Gemini 模型能力强，免费额度较多。';
 
   @override
-  String get googleProviderCons =>
-      '中国大陆直连受限，需要稳定的 VPN/代理。请求人数较多时可能报 429，遇到 429 请切换到其他渠道。';
+  String get googleProviderCons => '中国大陆直连受限，需要稳定的 VPN/代理。请求人数较多时可能报 429，遇到 429 请切换到其他渠道。';
 
   @override
   String get openRouterProviderPros => '海外大模型聚合平台，可使用多个模型，也有部分免费模型。';
@@ -3048,8 +3016,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noteTitle => '提示';
 
   @override
-  String get deepseekTextInputOnlyNote =>
-      'DeepSeek 仅支持文本输入。如需歌词生成、时间轴调整，需要填入其他渠道 API Key。';
+  String get deepseekTextInputOnlyNote => 'DeepSeek 仅支持文本输入。如需歌词生成、时间轴调整，需要填入其他渠道 API Key。';
 
   @override
   String retryAttemptOfMax(Object attempt, Object maxRetry) {
@@ -3351,15 +3318,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get windowsAutoRepairShortcut => '自动修复开始菜单快捷方式';
 
   @override
-  String get windowsAutoRepairShortcutDescription =>
-      '每次启动时自动检查并创建开始菜单快捷方式以正确显示媒体控制项名称与图标';
+  String get windowsAutoRepairShortcutDescription => '每次启动时自动检查并创建开始菜单快捷方式以正确显示媒体控制项名称与图标';
 
   @override
   String get confirmDisableShortcutRepair => '确定关闭此功能吗？';
 
   @override
-  String get confirmDisableShortcutRepairContent =>
-      '如果缺少开始菜单快捷方式，Windows 媒体控制中心（音量调节弹窗）将会把软件显示为\"未知应用\"，并且无法展示应用图标。是否确定关闭此功能？';
+  String get confirmDisableShortcutRepairContent => '如果缺少开始菜单快捷方式，Windows 媒体控制中心（音量调节弹窗）将会把软件显示为\"未知应用\"，并且无法展示应用图标。是否确定关闭此功能？';
 
   @override
   String get confirmDisable => '确定关闭';
@@ -3439,12 +3404,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get linuxMountGuideTitle => '配置硬盘自动挂载';
 
   @override
-  String get linuxMountGuideDescription =>
-      'Linux默认设置下不会挂载外置分区，如果没有设置启动时挂载分区则每次重启时外置分区的路径可能发生变化，从而导致播放器访问不到音乐目录。为了避免这种情况，请将存放音乐的分区设置成启动时自动挂载。';
+  String get linuxMountGuideDescription => 'Linux默认设置下不会挂载外置分区，如果没有设置启动时挂载分区则每次重启时外置分区的路径可能发生变化，从而导致播放器访问不到音乐目录。为了避免这种情况，请将存放音乐的分区设置成启动时自动挂载。';
 
   @override
-  String get linuxMountGuideWarning =>
-      '注意：如果您的音乐位于需要挂载才能使用的外置/内部硬盘分区内，务必将该分区设置为「开机自动挂载」。否则，每次重启系统后可能会出现找不到音乐目录，或者需要输入密码授权才能访问的问题。';
+  String get linuxMountGuideWarning => '注意：如果您的音乐位于需要挂载才能使用的外置/内部硬盘分区内，务必将该分区设置为「开机自动挂载」。否则，每次重启系统后可能会出现找不到音乐目录，或者需要输入密码授权才能访问的问题。';
 
   @override
   String get linuxMountGuideStep1 => '1. 打开系统的「磁盘 (Disks)」管理器';
@@ -3453,8 +3416,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get linuxMountGuideStep2 => '2. 选中包含音乐的分区，点击 ⚙️ 齿轮图标（附加分区选项）';
 
   @override
-  String get linuxMountGuideStep3 =>
-      '3. 选择\"编辑挂载选项\"，关闭\"用户会话默认值\"并勾选\"系统启动时挂载\"';
+  String get linuxMountGuideStep3 => '3. 选择\"编辑挂载选项\"，关闭\"用户会话默认值\"并勾选\"系统启动时挂载\"';
 
   @override
   String get linuxMountGuideOpenButton => '打开磁盘管理器 (Disks)';
@@ -3478,8 +3440,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingAndroidBatteryTitle => '后台播放防误杀设置';
 
   @override
-  String get onboardingAndroidBatteryDescription =>
-      '由于安卓系统的电池管理策略非常严格，为了防止音乐在后台播放时被系统强制关闭，建议将 Vynody 的电池使用限制设置为「无限制」（Unrestricted）。';
+  String get onboardingAndroidBatteryDescription => '由于安卓系统的电池管理策略非常严格，为了防止音乐在后台播放时被系统强制关闭，建议将 Vynody 的电池使用限制设置为「无限制」（Unrestricted）。';
 
   @override
   String get onboardingAndroidBatteryStep1 => '1. 点击下方的「去设置」按钮。';
@@ -3488,8 +3449,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingAndroidBatteryStep2 => '2. 在系统弹窗中允许忽略电池优化，或者跳转到电池设置页面。';
 
   @override
-  String get onboardingAndroidBatteryStep3 =>
-      '3. 如果跳转至设置列表，选择「无限制」或「允许后台活动 / 不限制电池使用」。';
+  String get onboardingAndroidBatteryStep3 => '3. 如果跳转至设置列表，选择「无限制」或「允许后台活动 / 不限制电池使用」。';
 
   @override
   String get onboardingAndroidBatteryButton => '去设置';
@@ -3498,15 +3458,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingAndroidBatteryStatusOptimized => '当前状态：已限制（可能导致后台播放中断）';
 
   @override
-  String get onboardingAndroidBatteryStatusUnrestricted =>
-      '当前状态：无限制（推荐，后台播放已保护）';
+  String get onboardingAndroidBatteryStatusUnrestricted => '当前状态：无限制（推荐，后台播放已保护）';
 
   @override
   String get onboardingAndroidMediaTitle => '访问手机音乐库';
 
   @override
-  String get onboardingAndroidMediaDescription =>
-      '授权后，Vynody 可直接读取系统媒体库中的所有音乐，无需手动选择文件夹。不授权也可以手动导入指定文件夹中的音乐。';
+  String get onboardingAndroidMediaDescription => '授权后，Vynody 可直接读取系统媒体库中的所有音乐，无需手动选择文件夹。不授权也可以手动导入指定文件夹中的音乐。';
 
   @override
   String get onboardingAndroidMediaStep1 => '1. 即开即用：直接显示手机里已有的全部音乐';
@@ -3515,8 +3473,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingAndroidMediaStep2 => '2. 自动发现：新下载或传入的音乐自动出现在乐库中';
 
   @override
-  String get onboardingAndroidMediaStep3 =>
-      '3. 隐私安全：仅在本地读取音频文件，不会自动上传你的音乐库（使用 AI 歌词等云端服务除外）';
+  String get onboardingAndroidMediaStep3 => '3. 隐私安全：仅在本地读取音频文件，不会自动上传你的音乐库（使用 AI 歌词等云端服务除外）';
 
   @override
   String get onboardingAndroidMediaButton => '授权访问音乐库';
@@ -3534,22 +3491,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get openPlaybackOnDirectorySongTap => '点击歌曲后跳转到播放页';
 
   @override
-  String get openPlaybackOnDirectorySongTapDescription =>
-      '在目录页点击歌曲播放时，自动跳转至全屏播放界面';
+  String get openPlaybackOnDirectorySongTapDescription => '在目录页点击歌曲播放时，自动跳转至全屏播放界面';
 
   @override
   String get defaultToLyricsModeOnPlaybackOpen => '进入播放页默认显示歌词';
 
   @override
-  String get defaultToLyricsModeOnPlaybackOpenDescription =>
-      '打开全屏播放界面时，默认自动切至歌词显示模式';
+  String get defaultToLyricsModeOnPlaybackOpenDescription => '打开全屏播放界面时，默认自动切至歌词显示模式';
 
   @override
   String get rewindToStartOnPrevious => '点击上一首回到歌曲开头';
 
   @override
-  String get rewindToStartOnPreviousDescription =>
-      '当前播放时长超过 3 秒时，点击上一首将回到歌曲开头，而不是直接跳转上一首';
+  String get rewindToStartOnPreviousDescription => '当前播放时长超过 3 秒时，点击上一首将回到歌曲开头，而不是直接跳转上一首';
 
   @override
   String get tapCoverToEnterLyricsMode => '点击封面可以进入歌词模式';
@@ -3873,8 +3827,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onlyAllowTrustedRemoteControlTitle => '仅允许受信任的设备控制';
 
   @override
-  String get onlyAllowTrustedRemoteControlSubtitle =>
-      '仅允许已信任设备直接连接，静默拒绝所有新设备配对请求';
+  String get onlyAllowTrustedRemoteControlSubtitle => '仅允许已信任设备直接连接，静默拒绝所有新设备配对请求';
 
   @override
   String get onlyTrustedDevicesNoDevicesHint => '当前暂无受信任设备，请先配对设备';
@@ -3952,8 +3905,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get proFeatureFftVisualizerTitle => '实时音频 FFT 频谱';
 
   @override
-  String get proFeatureFftVisualizerDesc =>
-      '沉浸式音频可视化动效与多样式频谱，支持平滑波浪、浮动顶帽、环形光晕、点阵矩阵、对称镜像波等 6 种频谱样式';
+  String get proFeatureFftVisualizerDesc => '沉浸式音频可视化动效与多样式频谱，支持平滑波浪、浮动顶帽、环形光晕、点阵矩阵、对称镜像波等 6 种频谱样式';
 
   @override
   String get proFeatureWaveformBarTitle => '动态音频波形进度条';
@@ -3983,8 +3935,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get proFeatureCloudLibraryTitle => '云端媒体库';
 
   @override
-  String get proFeatureCloudLibraryDesc =>
-      '支持挂载与串流 WebDAV、Navidrome、Jellyfin 及 SMB 媒体服务器';
+  String get proFeatureCloudLibraryDesc => '支持挂载与串流 WebDAV、Navidrome、Jellyfin 及 SMB 媒体服务器';
 
   @override
   String get proFeatureDynamicMeshBackgroundTitle => '流体 Mesh 动态背景';
@@ -4002,8 +3953,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get proFeatureWasapiExclusiveTitle => 'WASAPI 独占输出与 Bit-Perfect';
 
   @override
-  String get proFeatureWasapiExclusiveDesc =>
-      '绕过 Windows 系统混音器直接独占音频硬件，实现原生采样率直出与发烧级点对点输出';
+  String get proFeatureWasapiExclusiveDesc => '绕过 Windows 系统混音器直接独占音频硬件，实现原生采样率直出与发烧级点对点输出';
 
   @override
   String get proCommunityUnlocked => '社区完全版已永久解锁全部高级特性';
@@ -4091,15 +4041,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get restoringPurchases => '正在恢复已购记录...';
 
   @override
-  String get sharingProDescription =>
-      '局域网互联为 Vynody Pro 专属高级功能。解锁后可在同一局域网下实现极速歌曲互传、曲库同步与跨设备无线遥控。';
+  String get sharingProDescription => '局域网互联为 Vynody Pro 专属高级功能。解锁后可在同一局域网下实现极速歌曲互传、曲库同步与跨设备无线遥控。';
 
   @override
   String get sharingHighlightSpeedTitle => '极速局域网互传';
 
   @override
-  String get sharingHighlightSpeedDesc =>
-      '同 Wi-Fi 局域网内点对点极速传输无损音频与完整歌单，免流量、免压缩。';
+  String get sharingHighlightSpeedDesc => '同 Wi-Fi 局域网内点对点极速传输无损音频与完整歌单，免流量、免压缩。';
 
   @override
   String get sharingHighlightSyncTitle => '曲库与歌词同步';
@@ -4117,8 +4065,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sharingHighlightSecurityTitle => '端到端 TLS 安全加密';
 
   @override
-  String get sharingHighlightSecurityDesc =>
-      '局域网通信全链路 TLS 证书加密与设备信任配对，确保个人传输私密与安全。';
+  String get sharingHighlightSecurityDesc => '局域网通信全链路 TLS 证书加密与设备信任配对，确保个人传输私密与安全。';
 
   @override
   String get upgradeToProToUnlock => '升级至 Vynody Pro 解锁';
@@ -4127,8 +4074,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get proOneTimePurchaseNotice => '一次性购买，永久解锁当前平台所有 Pro 高级特权';
 
   @override
-  String get proOneTimePurchaseNoticeApple =>
-      '一次性购买，永久解锁 Apple 平台全部高级功能（iPhone / iPad / Mac）';
+  String get proOneTimePurchaseNoticeApple => '一次性购买，永久解锁 Apple 平台全部高级功能（iPhone / iPad / Mac）';
 
   @override
   String get proUniversalPurchaseNoticeApple => '一次购买，iPhone、iPad 和 Mac 均可使用';
@@ -4193,8 +4139,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noRemoteServers => '暂无连接的媒体服务器';
 
   @override
-  String get noRemoteServersDesc =>
-      '添加 Navidrome (Subsonic)、WebDAV 或 SMB 共享，畅享自建私有云音乐';
+  String get noRemoteServersDesc => '添加 Navidrome (Subsonic)、WebDAV 或 SMB 共享，畅享自建私有云音乐';
 
   @override
   String get browseServer => '浏览';
@@ -4771,11 +4716,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get incomingPlaylistExportTitle => '收到播放列表导出请求';
 
   @override
-  String incomingPlaylistImportFrom(
-    String senderName,
-    int count,
-    int songsCount,
-  ) {
+  String incomingPlaylistImportFrom(String senderName, int count, int songsCount) {
     return '设备 “$senderName” 请求向您发送 $count 个播放列表（共 $songsCount 首歌曲）。';
   }
 
@@ -4794,15 +4735,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get windowsAudioOutputTitle => '音频输出模式 (Windows)';
 
   @override
-  String get windowsAudioOutputDescription =>
-      '选择共享输出或 WASAPI 独占输出模式（独占模式可绕过 Windows 系统混音器，实现高保真 Bit-Perfect 点对点播放）。';
+  String get windowsAudioOutputDescription => '选择共享输出或 WASAPI 独占输出模式（独占模式可绕过 Windows 系统混音器，实现高保真 Bit-Perfect 点对点播放）。';
 
   @override
   String get audioOutputModeShared => '标准共享模式 (Shared)';
 
   @override
-  String get audioOutputModeExclusive =>
-      'WASAPI 独占模式 (Exclusive / Bit-Perfect)';
+  String get audioOutputModeExclusive => 'WASAPI 独占模式 (Exclusive / Bit-Perfect)';
 
   @override
   String get audioOutputDeviceTitle => '音频输出设备';
@@ -4814,8 +4753,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get wasapiBitPerfectTitle => '自动切换采样率 (Bit-Perfect)';
 
   @override
-  String get wasapiBitPerfectDescription =>
-      '跟随音源文件的原生采样率和声道动态配置 DAC 硬件输出，避免重采样失真。';
+  String get wasapiBitPerfectDescription => '跟随音源文件的原生采样率和声道动态配置 DAC 硬件输出，避免重采样失真。';
 
   @override
   String get wasapiReleaseOnPauseTitle => '暂停时释放独占占用';
@@ -4842,8 +4780,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get toggleWasapiExclusive => '切换 WASAPI 独占模式';
 
   @override
-  String get toggleWasapiExclusiveDescription =>
-      '快速在 WASAPI 独占输出与系统共享输出之间切换 (Windows)';
+  String get toggleWasapiExclusiveDescription => '快速在 WASAPI 独占输出与系统共享输出之间切换 (Windows)';
 
   @override
   String get wasapiExclusiveShortcutTitle => '快捷键快速切换';
@@ -4864,10 +4801,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get nonRecommendedModelWarningTitle => '非推荐模型提醒';
 
   @override
-  String nonRecommendedModelWarningMessage(
-    String currentModel,
-    String recommendedModel,
-  ) {
+  String nonRecommendedModelWarningMessage(String currentModel, String recommendedModel) {
     return '当前歌词生成模型为「$currentModel」，非官方推荐模型（推荐使用「$recommendedModel」）。非推荐模型可能存在生成歌词不准确、时间轴偏移等问题，是否换成推荐模型？';
   }
 
@@ -4977,8 +4911,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get remoteFolderAlreadyIndexed => '该目录已在媒体库索引中';
 
   @override
-  String get remoteLibraryDisconnectConfirm =>
-      '断开当前媒体库？重新进入需要重新连接，正在播放的歌曲不受影响。';
+  String get remoteLibraryDisconnectConfirm => '断开当前媒体库？重新进入需要重新连接，正在播放的歌曲不受影响。';
 
   @override
   String get remoteLibrary => '远程媒体库';
@@ -5041,15 +4974,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get desktopLyricsShowTranslation => '显示翻译 / 双行歌词';
 
   @override
-  String get desktopLyricsShowTranslationDescription =>
-      '若当前歌曲包含翻译，则在桌面歌词中以双行形式同时展示';
+  String get desktopLyricsShowTranslationDescription => '若当前歌曲包含翻译，则在桌面歌词中以双行形式同时展示';
 
   @override
   String get desktopLyricsShowBackground => '常驻暗色背景';
 
   @override
-  String get desktopLyricsShowBackgroundDescription =>
-      '在桌面歌词底层常驻显示半透明胶囊背景，改善浅色壁纸或复杂窗口下的文字可读性';
+  String get desktopLyricsShowBackgroundDescription => '在桌面歌词底层常驻显示半透明胶囊背景，改善浅色壁纸或复杂窗口下的文字可读性';
 
   @override
   String desktopLyricsFontSize(int size) {
@@ -5306,8 +5237,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loadingServerPlaylists => '正在加载服务端歌单...';
 
   @override
-  String get jellyfinMediaDeletionPermissionHint =>
-      '（请检查 Jellyfin 用户是否开启“允许删除媒体”权限）';
+  String get jellyfinMediaDeletionPermissionHint => '（请检查 Jellyfin 用户是否开启“允许删除媒体”权限）';
 
   @override
   String get trialResetDialogTitle => '试用期已重置';
@@ -5346,8 +5276,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lyricsTimelineMaxHistoryLabel => '歌词时间线记录上限';
 
   @override
-  String get lyricsTimelineMaxHistoryDescription =>
-      '单首歌曲最多保留的历史修改版本数量（最高 50 条）';
+  String get lyricsTimelineMaxHistoryDescription => '单首歌曲最多保留的历史修改版本数量（最高 50 条）';
 
   @override
   String lyricsTimelineMaxHistoryCountOption(int count) {
@@ -5525,8 +5454,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lastFmScrobbleRemoteTitle => '包含远程媒体库';
 
   @override
-  String get lastFmScrobbleRemoteDescription =>
-      '上报 Subsonic、Jellyfin、WebDAV、SMB 中的曲目。若服务器端已接入 Last.fm，同时开启会产生重复记录。';
+  String get lastFmScrobbleRemoteDescription => '上报 Subsonic、Jellyfin、WebDAV、SMB 中的曲目。若服务器端已接入 Last.fm，同时开启会产生重复记录。';
 
   @override
   String get lastFmAccountTitle => '账号';
@@ -5552,8 +5480,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lastFmAuthorizationPending => '已在浏览器中打开授权页。';
 
   @override
-  String get lastFmAuthorizationHint =>
-      '请在浏览器中登录 Last.fm 并允许 Vynody 访问你的账号，完成后回到这里点击「我已完成授权」。';
+  String get lastFmAuthorizationHint => '请在浏览器中登录 Last.fm 并允许 Vynody 访问你的账号，完成后回到这里点击「我已完成授权」。';
 
   @override
   String get lastFmAuthorizationSuccess => '已连接 Last.fm。';
@@ -5593,12 +5520,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String lanSyncLyricsSyncResult(
-    int matched,
-    int added,
-    int updated,
-    int skipped,
-  ) {
+  String lanSyncLyricsSyncResult(int matched, int added, int updated, int skipped) {
     return '同步完成：匹配 $matched 首，新增 $added 首，更新 $updated 首，忽略 $skipped 首';
   }
 
@@ -5608,11 +5530,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String lanSyncPlaylistsReceivedPartial(
-    int playlists,
-    int songs,
-    int missing,
-  ) {
+  String lanSyncPlaylistsReceivedPartial(int playlists, int songs, int missing) {
     return '已接收 $playlists 个歌单，$songs 首，$missing 首未匹配';
   }
 
@@ -5724,8 +5642,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playingIndicatorAnimation => '正在播放图标动画';
 
   @override
-  String get playingIndicatorAnimationDescription =>
-      '关闭后，当前歌曲显示静止的暂停或播放图标，不再随音乐跳动。';
+  String get playingIndicatorAnimationDescription => '关闭后，当前歌曲显示静止的暂停或播放图标，不再随音乐跳动。';
 
   @override
   String get miniPlayerSpectrum => '迷你播放器频谱动画';
@@ -5737,15 +5654,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get blurEffect => '毛玻璃与模糊效果';
 
   @override
-  String get blurEffectDescription =>
-      '在底栏、弹窗及浮层使用毛玻璃模糊效果；关闭后可显著降低 GPU 渲染开销并提升滑动流畅度。';
+  String get blurEffectDescription => '在底栏、弹窗及浮层使用毛玻璃模糊效果；关闭后可显著降低 GPU 渲染开销并提升滑动流畅度。';
 
   @override
   String get lyricsBlurEffect => '歌词毛玻璃效果';
 
   @override
-  String get lyricsBlurEffectDescription =>
-      '为歌词模式下的非聚焦行提供高斯模糊效果；关闭后可显著提升展开与滚动的帧率。';
+  String get lyricsBlurEffectDescription => '为歌词模式下的非聚焦行提供高斯模糊效果；关闭后可显著提升展开与滚动的帧率。';
 
   @override
   String get searchResultsCurrentFolder => '当前目录及子目录结果';
@@ -5780,7 +5695,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
 class AppLocalizationsZhHant extends AppLocalizationsZh {
-  AppLocalizationsZhHant() : super('zh_Hant');
+  AppLocalizationsZhHant(): super('zh_Hant');
 
   @override
   String get appTitle => 'Vynody';
@@ -5844,8 +5759,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get rebuildDatabase => '重建資料庫';
 
   @override
-  String get confirmRebuildDatabase =>
-      '確定要手動重新整理所有歌曲的標籤資訊嗎？這可能需要一些時間來重新載入封面和中繼資料。';
+  String get confirmRebuildDatabase => '確定要手動重新整理所有歌曲的標籤資訊嗎？這可能需要一些時間來重新載入封面和中繼資料。';
 
   @override
   String get cancel => '取消';
@@ -6355,22 +6269,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get collapseButtonsInLandscapeLyrics => '進入橫屏歌詞模式後收起按鈕';
 
   @override
-  String get collapseButtonsInLandscapeLyricsDescription =>
-      '進入橫屏歌詞模式時收起 7 按鈕列、標題左對齊並在右側顯示快捷按鈕';
+  String get collapseButtonsInLandscapeLyricsDescription => '進入橫屏歌詞模式時收起 7 按鈕列、標題左對齊並在右側顯示快捷按鈕';
 
   @override
   String get expandPortraitLyricsControlsOnScroll => '直向歌詞滾動展開播放控制元件';
 
   @override
-  String get expandPortraitLyricsControlsOnScrollDescription =>
-      '在直向歌詞模式下滾動歌詞時自動展開底部播放控制元件與進度條';
+  String get expandPortraitLyricsControlsOnScrollDescription => '在直向歌詞模式下滾動歌詞時自動展開底部播放控制元件與進度條';
 
   @override
   String get floatingDockScrollCollapse => '懸浮欄隨捲動收起';
 
   @override
-  String get floatingDockScrollCollapseDescription =>
-      '向下捲動清單時自動收攏懸浮欄，僅保留單行迷你播放器；向上捲動或回到清單頂部、底部時自動展開。關閉後懸浮欄不再收起，始終保持完整展開。';
+  String get floatingDockScrollCollapseDescription => '向下捲動清單時自動收攏懸浮欄，僅保留單行迷你播放器；向上捲動或回到清單頂部、底部時自動展開。關閉後懸浮欄不再收起，始終保持完整展開。';
 
   @override
   String get sampleStride => '取樣步長';
@@ -7105,8 +7016,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get enterGoogleAiStudioApiKeyTitle => '填寫 Google AI Studio API Key';
 
   @override
-  String get googleAiStudioApiKeyDescription =>
-      '用於 Google AI Studio 的歌詞生成、時間軸生成和翻譯。';
+  String get googleAiStudioApiKeyDescription => '用於 Google AI Studio 的歌詞生成、時間軸生成和翻譯。';
 
   @override
   String get pasteGoogleAiStudioApiKey => '貼上 Google AI Studio API Key';
@@ -7226,8 +7136,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get batchEditSongTagsTitle => '批量編輯歌曲標籤';
 
   @override
-  String get batchEditSongTagsDescription =>
-      '修改後會寫回來源檔案；目前格式無法寫入時自動儲存到 App。值為 <keep> 的欄位將保持原值。';
+  String get batchEditSongTagsDescription => '修改後會寫回來源檔案；目前格式無法寫入時自動儲存到 App。值為 <keep> 的欄位將保持原值。';
 
   @override
   String get keepFieldHint => '提示：值為 <keep> 的屬性將保留每首歌曲的原值';
@@ -7434,33 +7343,28 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get autoSwitchLyricsProvider => '自動切換歌詞供應商';
 
   @override
-  String get autoSwitchLyricsProviderEnabledDesc =>
-      '開啟後會先請求 Google AI Studio；主要模型和備用模型都因 429 或 5xx 失敗時，再自動切換到 OpenRouter 繼續請求。';
+  String get autoSwitchLyricsProviderEnabledDesc => '開啟後會先請求 Google AI Studio；主要模型和備用模型都因 429 或 5xx 失敗時，再自動切換到 OpenRouter 繼續請求。';
 
   @override
-  String get autoSwitchLyricsProviderDisabledDesc =>
-      '請先同時填寫 Google AI Studio 和 OpenRouter 的 API Key，才可以開啟自動切換。';
+  String get autoSwitchLyricsProviderDisabledDesc => '請先同時填寫 Google AI Studio 和 OpenRouter 的 API Key，才可以開啟自動切換。';
 
   @override
   String get lyricsAiProviderTitle => '歌詞生成 AI 提供方';
 
   @override
-  String get lyricsAiProviderDescription =>
-      '這裡只影響歌詞生成和時間軸生成。翻譯始終使用 Google AI Studio。';
+  String get lyricsAiProviderDescription => '這裡只影響歌詞生成和時間軸生成。翻譯始終使用 Google AI Studio。';
 
   @override
   String get googleAiStudioApiKeySaved => 'Google AI Studio API Key 已儲存';
 
   @override
-  String get googleAiStudioApiKeyMissing =>
-      '目前未儲存 Google AI Studio key，歌詞生成和時間軸生成會先彈窗提示。';
+  String get googleAiStudioApiKeyMissing => '目前未儲存 Google AI Studio key，歌詞生成和時間軸生成會先彈窗提示。';
 
   @override
   String get openRouterApiKeySaved => 'OpenRouter API Key 已儲存';
 
   @override
-  String get openRouterApiKeyMissing =>
-      '目前未儲存 OpenRouter key，歌詞生成和時間軸生成會先彈窗提示。';
+  String get openRouterApiKeyMissing => '目前未儲存 OpenRouter key，歌詞生成和時間軸生成會先彈窗提示。';
 
   @override
   String get apiKeySavedStatus => '已儲存';
@@ -7481,8 +7385,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get geminiModelsSectionTitle => '選擇模型';
 
   @override
-  String get geminiModelsSectionDescription =>
-      '這些模型會用於 Google AI Studio 的歌詞生成、時間軸生成以及歌詞翻譯。';
+  String get geminiModelsSectionDescription => '這些模型會用於 Google AI Studio 的歌詞生成、時間軸生成以及歌詞翻譯。';
 
   @override
   String get primaryModelLabel => '主要模型';
@@ -7518,8 +7421,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get acoustidApiKeyDefault => '目前使用應用程式內建的預設 key，建議申請你自己的 key 後替換。';
 
   @override
-  String get applyForApiKey =>
-      '申請 API key: https://acoustid.org/new-application';
+  String get applyForApiKey => '申請 API key: https://acoustid.org/new-application';
 
   @override
   String get queueTabBarFavoriteAdded => '已加入收藏';
@@ -7570,15 +7472,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get musicBrainzQueryFailed => 'MusicBrainz 查詢失敗';
 
   @override
-  String get musicBrainzNetworkErrorHint =>
-      'MusicBrainz 請求失敗，通常是網路連線不穩定、逾時或被伺服器端拒絕。可以稍後重試。';
+  String get musicBrainzNetworkErrorHint => 'MusicBrainz 請求失敗，通常是網路連線不穩定、逾時或被伺服器端拒絕。可以稍後重試。';
 
   @override
   String get musicBrainzFilteredEmptyHint => '目前篩選條件下沒有包含該關鍵字的 release 標題。';
 
   @override
-  String get musicBrainzEmptyHint =>
-      'MusicBrainz 沒有傳回可用結果。可以放寬標題、藝人或專輯條件後再試一次。';
+  String get musicBrainzEmptyHint => 'MusicBrainz 沒有傳回可用結果。可以放寬標題、藝人或專輯條件後再試一次。';
 
   @override
   String get musicBrainzEmptyMoreCompleteHint => '可以稍後重試，或者確認目前歌曲標題／藝人資訊是否更完整。';
@@ -7825,8 +7725,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get fileAssociationTitle => '檔案開啟方式關聯';
 
   @override
-  String get fileAssociationDescription =>
-      '將常見的音樂格式（mp3、flac、wav 等）關聯到此應用程式，支援按兩下直接開啟播放。';
+  String get fileAssociationDescription => '將常見的音樂格式（mp3、flac、wav 等）關聯到此應用程式，支援按兩下直接開啟播放。';
 
   @override
   String get associateButton => '一鍵關聯';
@@ -7835,8 +7734,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get disassociateButton => '移除關聯';
 
   @override
-  String get associationSuccess =>
-      '關聯成功！若按兩下檔案未生效，請在 Windows 系統設定的【預設應用程式】中選擇 Vynody。';
+  String get associationSuccess => '關聯成功！若按兩下檔案未生效，請在 Windows 系統設定的【預設應用程式】中選擇 Vynody。';
 
   @override
   String get disassociationSuccess => '已成功清除檔案關聯。';
@@ -7867,23 +7765,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get onboardingStepFileAssociation => '關聯檔案開啟方式';
 
   @override
-  String get onboardingFileAssociationDesc =>
-      '將常見的音樂格式（mp3、flac、wav 等）與 Vynody 關聯，在檔案總管中按兩下即可直接播放。';
+  String get onboardingFileAssociationDesc => '將常見的音樂格式（mp3、flac、wav 等）與 Vynody 關聯，在檔案總管中按兩下即可直接播放。';
 
   @override
-  String get onboardingFileAssociationTip =>
-      '關聯後，系統可能會彈出選擇預設開啟程式的對話方塊。請務必在清單中選擇「Vynody」並設為始終使用。';
+  String get onboardingFileAssociationTip => '關聯後，系統可能會彈出選擇預設開啟程式的對話方塊。請務必在清單中選擇「Vynody」並設為始終使用。';
 
   @override
   String get onboardingStepRootDirectory => '新增音樂根目錄';
 
   @override
-  String get onboardingRootDirectoryDesc =>
-      '選擇存放音樂檔案的資料夾。Vynody 會自動掃描並建立你的本地音樂庫。';
+  String get onboardingRootDirectoryDesc => '選擇存放音樂檔案的資料夾。Vynody 會自動掃描並建立你的本地音樂庫。';
 
   @override
-  String get onboardingAndroidPermissionTip =>
-      '注意：Android 系統在匯入與掃描本地歌曲時需要授予媒體庫存取權限。點擊【選擇資料夾】時將觸發權限請求，請予以允許。';
+  String get onboardingAndroidPermissionTip => '注意：Android 系統在匯入與掃描本地歌曲時需要授予媒體庫存取權限。點擊【選擇資料夾】時將觸發權限請求，請予以允許。';
 
   @override
   String get onboardingSelectDirectory => '選擇資料夾';
@@ -7895,12 +7789,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get onboardingProgressBarStyleDesc => '為桌面端寬螢幕體驗選擇心儀的播放進度列展示形式。';
 
   @override
-  String get onboardingProgressBarStyleFullWaveformDesc =>
-      '寬螢幕首選，全曲節奏一覽無餘，支援滑鼠懸停與精準跳段';
+  String get onboardingProgressBarStyleFullWaveformDesc => '寬螢幕首選，全曲節奏一覽無餘，支援滑鼠懸停與精準跳段';
 
   @override
-  String get onboardingProgressBarStyleScrollingWaveformDesc =>
-      '沉浸律動，波形隨音樂播放即時平移捲動';
+  String get onboardingProgressBarStyleScrollingWaveformDesc => '沉浸律動，波形隨音樂播放即時平移捲動';
 
   @override
   String get onboardingProgressBarStyleStandardDesc => '傳統纖細滑桿，低調極簡';
@@ -7986,12 +7878,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get localNetworkPermissionDeniedTitle => '區域網路存取受限';
 
   @override
-  String get localNetworkPermissionDeniedMessage =>
-      '未偵測到可用的區域網路 IP 位址，或區域網路存取權限被拒絕。\n\n請按照以下步驟操作：\n1. 確保您的裝置已連線到 Wi-Fi 或區域網路。\n2. 確保在系統設定中允許本應用程式存取區域網路：\n   - iOS/macOS：請前往系統的「設定 > 隱私權與安全性 > 區域網路」，開啟「Vynody」的開關。\n   - Windows：請確保已連線到網路，並檢查 Windows 防火牆設定是否允許「Vynody」通過。';
+  String get localNetworkPermissionDeniedMessage => '未偵測到可用的區域網路 IP 位址，或區域網路存取權限被拒絕。\n\n請按照以下步驟操作：\n1. 確保您的裝置已連線到 Wi-Fi 或區域網路。\n2. 確保在系統設定中允許本應用程式存取區域網路：\n   - iOS/macOS：請前往系統的「設定 > 隱私權與安全性 > 區域網路」，開啟「Vynody」的開關。\n   - Windows：請確保已連線到網路，並檢查 Windows 防火牆設定是否允許「Vynody」通過。';
 
   @override
-  String get localNetworkPermissionWindowsMessage =>
-      '未偵測到可用的區域網路 IP 位址。\n\n請按照以下步驟操作：\n1. 確保您的裝置已連線到區域網路（Wi-Fi 或乙太網路）。\n2. 如果已連線但仍提示此錯誤，請檢查 Windows 防火牆設定，確保允許「Vynody」通過防火牆存取網路。';
+  String get localNetworkPermissionWindowsMessage => '未偵測到可用的區域網路 IP 位址。\n\n請按照以下步驟操作：\n1. 確保您的裝置已連線到區域網路（Wi-Fi 或乙太網路）。\n2. 如果已連線但仍提示此錯誤，請檢查 Windows 防火牆設定，確保允許「Vynody」通過防火牆存取網路。';
 
   @override
   String get openSettingsButton => '前往設定';
@@ -8033,8 +7923,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get retranslateLyrics => '重新翻譯歌詞';
 
   @override
-  String get retranslateLyricsConfirmation =>
-      '將重新翻譯目前語言的譯文，原有譯文會保留到新結果產出，是否繼續？';
+  String get retranslateLyricsConfirmation => '將重新翻譯目前語言的譯文，原有譯文會保留到新結果產出，是否繼續？';
 
   @override
   String get translationCopiedToClipboard => '已複製翻譯結果到剪貼簿';
@@ -8440,8 +8329,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get rebuildIndexDescription => '清空除外部來源以外的所有歌曲記錄並重新掃描所有根目錄。';
 
   @override
-  String get rebuildIndexConfirmation =>
-      '確認清空除外部來源以外的所有歌曲記錄並重新掃描所有根目錄嗎？此操作需要一些時間。';
+  String get rebuildIndexConfirmation => '確認清空除外部來源以外的所有歌曲記錄並重新掃描所有根目錄嗎？此操作需要一些時間。';
 
   @override
   String get rebuildIndexStarted => '重建索引已啟動';
@@ -8477,15 +8365,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get checkForUpdates => '檢查更新';
 
   @override
-  String get storeUpdateNotice =>
-      '目前應用由 Microsoft Store 託管更新。您可以前往 Microsoft Store 查看或獲取最新版本。';
+  String get storeUpdateNotice => '目前應用由 Microsoft Store 託管更新。您可以前往 Microsoft Store 查看或獲取最新版本。';
 
   @override
   String get openMicrosoftStore => '前往 Microsoft Store';
 
   @override
-  String get appStoreUpdateNotice =>
-      '目前應用程式由 App Store 託管更新。您可以前往 App Store 查看或取得最新版本。';
+  String get appStoreUpdateNotice => '目前應用程式由 App Store 託管更新。您可以前往 App Store 查看或取得最新版本。';
 
   @override
   String get openAppStore => '前往 App Store';
@@ -8494,8 +8380,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get lyricsGenerationModel => '歌詞生成模型';
 
   @override
-  String get lyricsGenerationModelDescription =>
-      '用於 AI 聽歌生成歌詞，以及為現有歌詞生成／修正時間軸。';
+  String get lyricsGenerationModelDescription => '用於 AI 聽歌生成歌詞，以及為現有歌詞生成／修正時間軸。';
 
   @override
   String get lyricsKaraokeModel => '逐字歌詞模型';
@@ -8731,8 +8616,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get whyNeedApiKey => '為什麼需要 API Key？';
 
   @override
-  String get apiKeyExplanation =>
-      'API Key 相當於你在 AI 服務商那裡的存取憑證。應用程式會用它直接向服務商發起請求，完成歌詞生成、時間軸調整或翻譯。';
+  String get apiKeyExplanation => 'API Key 相當於你在 AI 服務商那裡的存取憑證。應用程式會用它直接向服務商發起請求，完成歌詞生成、時間軸調整或翻譯。';
 
   @override
   String get apiKeyLocalOnly => 'API Key 只儲存在你的本機裝置，不會上傳到 Vynody 開發者伺服器。';
@@ -8744,8 +8628,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get googleProviderPros => 'Google 官方管道，Gemini 模型能力強，免費額度較多。';
 
   @override
-  String get googleProviderCons =>
-      '中國大陸直連受限，需要穩定的 VPN／代理。請求人數較多時可能回報 429，遇到 429 請切換到其他管道。';
+  String get googleProviderCons => '中國大陸直連受限，需要穩定的 VPN／代理。請求人數較多時可能回報 429，遇到 429 請切換到其他管道。';
 
   @override
   String get openRouterProviderPros => '海外大模型聚合平台，可使用多個模型，也有部分免費模型。';
@@ -8754,8 +8637,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get openRouterProviderCons => '儲值需支付手續費，網頁只有英文。';
 
   @override
-  String get doubaoProviderPros =>
-      '字節跳動出品，國內存取快速，中文效果好。新使用者每個模型有 50 萬免費 token。';
+  String get doubaoProviderPros => '字節跳動出品，國內存取快速，中文效果好。新使用者每個模型有 50 萬免費 token。';
 
   @override
   String get doubaoProviderCons => '註冊步驟相對繁瑣，需要實名認證。';
@@ -8823,8 +8705,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get noteTitle => '提示';
 
   @override
-  String get deepseekTextInputOnlyNote =>
-      'DeepSeek 僅支援文字輸入。如需歌詞生成、時間軸調整，需要填入其他管道 API Key。';
+  String get deepseekTextInputOnlyNote => 'DeepSeek 僅支援文字輸入。如需歌詞生成、時間軸調整，需要填入其他管道 API Key。';
 
   @override
   String retryAttemptOfMax(Object attempt, Object maxRetry) {
@@ -9126,15 +9007,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get windowsAutoRepairShortcut => '自動修復開始功能表捷徑';
 
   @override
-  String get windowsAutoRepairShortcutDescription =>
-      '每次啟動時自動檢查並建立開始功能表捷徑，以正確顯示媒體控制項名稱與圖示';
+  String get windowsAutoRepairShortcutDescription => '每次啟動時自動檢查並建立開始功能表捷徑，以正確顯示媒體控制項名稱與圖示';
 
   @override
   String get confirmDisableShortcutRepair => '確定關閉此功能嗎？';
 
   @override
-  String get confirmDisableShortcutRepairContent =>
-      '如果缺少開始功能表捷徑，Windows 媒體控制中心（音量調整彈窗）將會把軟體顯示為「未知應用程式」，並且無法展示應用程式圖示。是否確定關閉此功能？';
+  String get confirmDisableShortcutRepairContent => '如果缺少開始功能表捷徑，Windows 媒體控制中心（音量調整彈窗）將會把軟體顯示為「未知應用程式」，並且無法展示應用程式圖示。是否確定關閉此功能？';
 
   @override
   String get confirmDisable => '確定關閉';
@@ -9214,12 +9093,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get linuxMountGuideTitle => '設定硬碟自動掛載';
 
   @override
-  String get linuxMountGuideDescription =>
-      'Linux 預設設定下不會掛載外接分割區，如果沒有設定啟動時掛載分割區則每次重新啟動時外接分割區的路徑可能發生變化，從而導致播放器存取不到音樂目錄。為了避免這種情況，請將存放音樂的分割區設定為啟動時自動掛載。';
+  String get linuxMountGuideDescription => 'Linux 預設設定下不會掛載外接分割區，如果沒有設定啟動時掛載分割區則每次重新啟動時外接分割區的路徑可能發生變化，從而導致播放器存取不到音樂目錄。為了避免這種情況，請將存放音樂的分割區設定為啟動時自動掛載。';
 
   @override
-  String get linuxMountGuideWarning =>
-      '注意：如果您的音樂位於需要掛載才能使用的外接／內部硬碟分割區內，請務必將該分割區設定為「開機自動掛載」。否則，每次重新啟動系統後可能會出現找不到音樂目錄，或者需要輸入密碼授權才能存取的問題。';
+  String get linuxMountGuideWarning => '注意：如果您的音樂位於需要掛載才能使用的外接／內部硬碟分割區內，請務必將該分割區設定為「開機自動掛載」。否則，每次重新啟動系統後可能會出現找不到音樂目錄，或者需要輸入密碼授權才能存取的問題。';
 
   @override
   String get linuxMountGuideStep1 => '1. 開啟系統的「磁碟 (Disks)」管理員';
@@ -9252,8 +9129,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get onboardingAndroidBatteryTitle => '背景播放防誤殺設定';
 
   @override
-  String get onboardingAndroidBatteryDescription =>
-      '由於 Android 系統的電池管理策略非常嚴格，為了防止音樂在背景播放時被系統強制關閉，建議將 Vynody 的電池使用限制設定為「無限制」（Unrestricted）。';
+  String get onboardingAndroidBatteryDescription => '由於 Android 系統的電池管理策略非常嚴格，為了防止音樂在背景播放時被系統強制關閉，建議將 Vynody 的電池使用限制設定為「無限制」（Unrestricted）。';
 
   @override
   String get onboardingAndroidBatteryStep1 => '1. 點選下方的「前往設定」按鈕。';
@@ -9262,8 +9138,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get onboardingAndroidBatteryStep2 => '2. 在系統彈窗中允許忽略電池最佳化，或者跳轉到電池設定頁面。';
 
   @override
-  String get onboardingAndroidBatteryStep3 =>
-      '3. 如果跳轉至設定清單，選擇「無限制」或「允許背景活動／不限制電池使用」。';
+  String get onboardingAndroidBatteryStep3 => '3. 如果跳轉至設定清單，選擇「無限制」或「允許背景活動／不限制電池使用」。';
 
   @override
   String get onboardingAndroidBatteryButton => '前往設定';
@@ -9272,15 +9147,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get onboardingAndroidBatteryStatusOptimized => '目前狀態：已限制（可能導致背景播放中斷）';
 
   @override
-  String get onboardingAndroidBatteryStatusUnrestricted =>
-      '目前狀態：無限制（建議，背景播放已保護）';
+  String get onboardingAndroidBatteryStatusUnrestricted => '目前狀態：無限制（建議，背景播放已保護）';
 
   @override
   String get onboardingAndroidMediaTitle => '存取手機音樂庫';
 
   @override
-  String get onboardingAndroidMediaDescription =>
-      '授權後，Vynody 可直接讀取系統媒體庫中的所有音樂，無需手動選擇資料夾。不授權也可以手動匯入指定資料夾中的音樂。';
+  String get onboardingAndroidMediaDescription => '授權後，Vynody 可直接讀取系統媒體庫中的所有音樂，無需手動選擇資料夾。不授權也可以手動匯入指定資料夾中的音樂。';
 
   @override
   String get onboardingAndroidMediaStep1 => '1. 即開即用：直接顯示手機裡已有的全部音樂';
@@ -9289,8 +9162,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get onboardingAndroidMediaStep2 => '2. 自動發現：新下載或傳入的音樂自動出現在樂庫中';
 
   @override
-  String get onboardingAndroidMediaStep3 =>
-      '3. 隱私安全：僅在本機讀取音訊檔案，不會自動上傳你的音樂庫（使用 AI 歌詞等雲端服務除外）';
+  String get onboardingAndroidMediaStep3 => '3. 隱私安全：僅在本機讀取音訊檔案，不會自動上傳你的音樂庫（使用 AI 歌詞等雲端服務除外）';
 
   @override
   String get onboardingAndroidMediaButton => '授權存取音樂庫';
@@ -9308,22 +9180,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get openPlaybackOnDirectorySongTap => '點擊歌曲後跳轉到播放頁';
 
   @override
-  String get openPlaybackOnDirectorySongTapDescription =>
-      '在目錄頁點擊歌曲播放時，自動跳轉至全螢幕播放介面';
+  String get openPlaybackOnDirectorySongTapDescription => '在目錄頁點擊歌曲播放時，自動跳轉至全螢幕播放介面';
 
   @override
   String get defaultToLyricsModeOnPlaybackOpen => '進入播放頁預設顯示歌詞';
 
   @override
-  String get defaultToLyricsModeOnPlaybackOpenDescription =>
-      '打開全螢幕播放介面時，預設自動切至歌詞顯示模式';
+  String get defaultToLyricsModeOnPlaybackOpenDescription => '打開全螢幕播放介面時，預設自動切至歌詞顯示模式';
 
   @override
   String get rewindToStartOnPrevious => '點擊上一首回到歌曲開頭';
 
   @override
-  String get rewindToStartOnPreviousDescription =>
-      '當前播放時長超過 3 秒時，點擊上一首將回到歌曲開頭，而不是直接跳轉上一首';
+  String get rewindToStartOnPreviousDescription => '當前播放時長超過 3 秒時，點擊上一首將回到歌曲開頭，而不是直接跳轉上一首';
 
   @override
   String get tapCoverToEnterLyricsMode => '點選封面可以進入歌詞模式';
@@ -9647,8 +9516,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get onlyAllowTrustedRemoteControlTitle => '僅允許受信任的裝置控制';
 
   @override
-  String get onlyAllowTrustedRemoteControlSubtitle =>
-      '僅允許已信任裝置直接連線，靜默拒絕所有新裝置配對請求';
+  String get onlyAllowTrustedRemoteControlSubtitle => '僅允許已信任裝置直接連線，靜默拒絕所有新裝置配對請求';
 
   @override
   String get onlyTrustedDevicesNoDevicesHint => '目前暫無受信任裝置，請先配對裝置';
@@ -9726,8 +9594,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get proFeatureFftVisualizerTitle => '即時音訊 FFT 頻譜';
 
   @override
-  String get proFeatureFftVisualizerDesc =>
-      '沉浸式音訊視覺化動效與多樣式頻譜，支援平滑波浪、浮動頂帽、環形光暈、點陣矩陣、對稱鏡像波等 6 種頻譜樣式';
+  String get proFeatureFftVisualizerDesc => '沉浸式音訊視覺化動效與多樣式頻譜，支援平滑波浪、浮動頂帽、環形光暈、點陣矩陣、對稱鏡像波等 6 種頻譜樣式';
 
   @override
   String get proFeatureWaveformBarTitle => '動態音訊波形進度條';
@@ -9757,8 +9624,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get proFeatureCloudLibraryTitle => '雲端媒體庫';
 
   @override
-  String get proFeatureCloudLibraryDesc =>
-      '支援掛載與串流 WebDAV、Navidrome、Jellyfin 及 SMB 媒體伺服器';
+  String get proFeatureCloudLibraryDesc => '支援掛載與串流 WebDAV、Navidrome、Jellyfin 及 SMB 媒體伺服器';
 
   @override
   String get proFeatureDynamicMeshBackgroundTitle => '流體 Mesh 動態背景';
@@ -9776,8 +9642,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get proFeatureWasapiExclusiveTitle => 'WASAPI 獨佔輸出與 Bit-Perfect';
 
   @override
-  String get proFeatureWasapiExclusiveDesc =>
-      '繞過 Windows 系統混音器直接獨佔音訊硬體，實現原生取樣率直出與發燒級點對點輸出';
+  String get proFeatureWasapiExclusiveDesc => '繞過 Windows 系統混音器直接獨佔音訊硬體，實現原生取樣率直出與發燒級點對點輸出';
 
   @override
   String get proCommunityUnlocked => '社群完全版已永久解鎖全部高級特性';
@@ -9865,15 +9730,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get restoringPurchases => '正在恢復已購記錄...';
 
   @override
-  String get sharingProDescription =>
-      '區域網路互聯為 Vynody Pro 專屬高級功能。解鎖後可在同一區域網路下實現極速歌曲互傳、曲庫同步與跨裝置無線遙控。';
+  String get sharingProDescription => '區域網路互聯為 Vynody Pro 專屬高級功能。解鎖後可在同一區域網路下實現極速歌曲互傳、曲庫同步與跨裝置無線遙控。';
 
   @override
   String get sharingHighlightSpeedTitle => '極速區域網路互傳';
 
   @override
-  String get sharingHighlightSpeedDesc =>
-      '同 Wi-Fi 區域網路內點對點極速傳輸無損音訊與完整歌單，免流量、免壓縮。';
+  String get sharingHighlightSpeedDesc => '同 Wi-Fi 區域網路內點對點極速傳輸無損音訊與完整歌單，免流量、免壓縮。';
 
   @override
   String get sharingHighlightSyncTitle => '曲庫與歌詞同步';
@@ -9891,8 +9754,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get sharingHighlightSecurityTitle => '端到端 TLS 安全加密';
 
   @override
-  String get sharingHighlightSecurityDesc =>
-      '區域網路通訊全鏈路 TLS 憑證加密與裝置信任配對，確保個人傳輸私密與安全。';
+  String get sharingHighlightSecurityDesc => '區域網路通訊全鏈路 TLS 憑證加密與裝置信任配對，確保個人傳輸私密與安全。';
 
   @override
   String get upgradeToProToUnlock => '升級至 Vynody Pro 解鎖';
@@ -9901,8 +9763,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get proOneTimePurchaseNotice => '一次性購買，永久解鎖目前平台所有 Pro 高級特權';
 
   @override
-  String get proOneTimePurchaseNoticeApple =>
-      '一次性購買，永久解鎖 Apple 平台全部高級功能（iPhone / iPad / Mac）';
+  String get proOneTimePurchaseNoticeApple => '一次性購買，永久解鎖 Apple 平台全部高級功能（iPhone / iPad / Mac）';
 
   @override
   String get proUniversalPurchaseNoticeApple => '一次購買，iPhone、iPad 和 Mac 均可使用';
@@ -9967,8 +9828,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get noRemoteServers => '尚未新增媒體伺服器';
 
   @override
-  String get noRemoteServersDesc =>
-      '新增 Navidrome (Subsonic) 或 WebDAV 伺服器，暢享自建私有雲音樂';
+  String get noRemoteServersDesc => '新增 Navidrome (Subsonic) 或 WebDAV 伺服器，暢享自建私有雲音樂';
 
   @override
   String get browseServer => '瀏覽';
@@ -10545,11 +10405,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get incomingPlaylistExportTitle => '收到播放清單匯出請求';
 
   @override
-  String incomingPlaylistImportFrom(
-    String senderName,
-    int count,
-    int songsCount,
-  ) {
+  String incomingPlaylistImportFrom(String senderName, int count, int songsCount) {
     return '裝置「$senderName」請求向您傳送 $count 個播放清單（共 $songsCount 首歌曲）。';
   }
 
@@ -10568,15 +10424,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get windowsAudioOutputTitle => '音訊輸出模式 (Windows)';
 
   @override
-  String get windowsAudioOutputDescription =>
-      '選擇共享輸出或 WASAPI 獨佔輸出模式（獨佔模式可繞過 Windows 系統混音器，實現高保真 Bit-Perfect 點對點播放）。';
+  String get windowsAudioOutputDescription => '選擇共享輸出或 WASAPI 獨佔輸出模式（獨佔模式可繞過 Windows 系統混音器，實現高保真 Bit-Perfect 點對點播放）。';
 
   @override
   String get audioOutputModeShared => '標準共享模式 (Shared)';
 
   @override
-  String get audioOutputModeExclusive =>
-      'WASAPI 獨佔模式 (Exclusive / Bit-Perfect)';
+  String get audioOutputModeExclusive => 'WASAPI 獨佔模式 (Exclusive / Bit-Perfect)';
 
   @override
   String get audioOutputDeviceTitle => '音訊輸出裝置';
@@ -10588,8 +10442,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get wasapiBitPerfectTitle => '自動切換取樣率 (Bit-Perfect)';
 
   @override
-  String get wasapiBitPerfectDescription =>
-      '跟隨音源檔案的原生取樣率和聲道動態配置 DAC 硬體輸出，避免重取樣失真。';
+  String get wasapiBitPerfectDescription => '跟隨音源檔案的原生取樣率和聲道動態配置 DAC 硬體輸出，避免重取樣失真。';
 
   @override
   String get wasapiReleaseOnPauseTitle => '暫停時釋放獨佔佔用';
@@ -10616,8 +10469,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get toggleWasapiExclusive => '切換 WASAPI 獨佔模式';
 
   @override
-  String get toggleWasapiExclusiveDescription =>
-      '快速在 WASAPI 獨佔輸出與系統共享輸出之間切換 (Windows)';
+  String get toggleWasapiExclusiveDescription => '快速在 WASAPI 獨佔輸出與系統共享輸出之間切換 (Windows)';
 
   @override
   String get wasapiExclusiveShortcutTitle => '快速鍵快速切換';
@@ -10638,10 +10490,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get nonRecommendedModelWarningTitle => '非推薦模型提醒';
 
   @override
-  String nonRecommendedModelWarningMessage(
-    String currentModel,
-    String recommendedModel,
-  ) {
+  String nonRecommendedModelWarningMessage(String currentModel, String recommendedModel) {
     return '目前歌詞生成模型為「$currentModel」，非官方推薦模型（推薦使用「$recommendedModel」）。非推薦模型可能存在生成歌詞不準確、時間軸偏移等問題，是否換成推薦模型？';
   }
 
@@ -10751,8 +10600,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get remoteFolderAlreadyIndexed => '該目錄已在媒體庫索引中';
 
   @override
-  String get remoteLibraryDisconnectConfirm =>
-      '中斷目前的媒體庫？重新進入需要重新連線，正在播放的歌曲不受影響。';
+  String get remoteLibraryDisconnectConfirm => '中斷目前的媒體庫？重新進入需要重新連線，正在播放的歌曲不受影響。';
 
   @override
   String get remoteLibrary => '遠端媒體庫';
@@ -10815,15 +10663,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get desktopLyricsShowTranslation => '顯示翻譯 / 雙行歌詞';
 
   @override
-  String get desktopLyricsShowTranslationDescription =>
-      '若當前歌曲包含翻譯，則在桌面歌詞中以雙行形式同時展示';
+  String get desktopLyricsShowTranslationDescription => '若當前歌曲包含翻譯，則在桌面歌詞中以雙行形式同時展示';
 
   @override
   String get desktopLyricsShowBackground => '常駐暗色背景';
 
   @override
-  String get desktopLyricsShowBackgroundDescription =>
-      '在桌面歌詞底層常駐顯示半透明膠囊背景，改善淺色桌布或複雜視窗下的文字可讀性';
+  String get desktopLyricsShowBackgroundDescription => '在桌面歌詞底層常駐顯示半透明膠囊背景，改善淺色桌布或複雜視窗下的文字可讀性';
 
   @override
   String desktopLyricsFontSize(int size) {
@@ -11080,8 +10926,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get loadingServerPlaylists => '正在載入伺服器端歌單...';
 
   @override
-  String get jellyfinMediaDeletionPermissionHint =>
-      '（請檢查 Jellyfin 使用者是否開啟「允許刪除媒體」權限）';
+  String get jellyfinMediaDeletionPermissionHint => '（請檢查 Jellyfin 使用者是否開啟「允許刪除媒體」權限）';
 
   @override
   String get trialResetDialogTitle => '試用期已重置';
@@ -11120,8 +10965,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get lyricsTimelineMaxHistoryLabel => '歌詞時間線記錄上限';
 
   @override
-  String get lyricsTimelineMaxHistoryDescription =>
-      '單首歌曲最多保留的歷史修改版本數量（最高 50 條）';
+  String get lyricsTimelineMaxHistoryDescription => '單首歌曲最多保留的歷史修改版本數量（最高 50 條）';
 
   @override
   String lyricsTimelineMaxHistoryCountOption(int count) {
@@ -11299,8 +11143,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get lastFmScrobbleRemoteTitle => '包含遠端媒體庫';
 
   @override
-  String get lastFmScrobbleRemoteDescription =>
-      '上報 Subsonic、Jellyfin、WebDAV、SMB 中的曲目。若伺服器端已接入 Last.fm，同時開啟會產生重複記錄。';
+  String get lastFmScrobbleRemoteDescription => '上報 Subsonic、Jellyfin、WebDAV、SMB 中的曲目。若伺服器端已接入 Last.fm，同時開啟會產生重複記錄。';
 
   @override
   String get lastFmAccountTitle => '帳號';
@@ -11326,8 +11169,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get lastFmAuthorizationPending => '已在瀏覽器中開啟授權頁面。';
 
   @override
-  String get lastFmAuthorizationHint =>
-      '請在瀏覽器中登入 Last.fm 並允許 Vynody 存取你的帳號，完成後回到這裡點擊「我已完成授權」。';
+  String get lastFmAuthorizationHint => '請在瀏覽器中登入 Last.fm 並允許 Vynody 存取你的帳號，完成後回到這裡點擊「我已完成授權」。';
 
   @override
   String get lastFmAuthorizationSuccess => '已連線 Last.fm。';
@@ -11367,12 +11209,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String lanSyncLyricsSyncResult(
-    int matched,
-    int added,
-    int updated,
-    int skipped,
-  ) {
+  String lanSyncLyricsSyncResult(int matched, int added, int updated, int skipped) {
     return '同步完成：符合 $matched 首，新增 $added 首，更新 $updated 首，略過 $skipped 首';
   }
 
@@ -11382,11 +11219,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String lanSyncPlaylistsReceivedPartial(
-    int playlists,
-    int songs,
-    int missing,
-  ) {
+  String lanSyncPlaylistsReceivedPartial(int playlists, int songs, int missing) {
     return '已接收 $playlists 個播放清單，$songs 首，$missing 首未符合';
   }
 
@@ -11498,8 +11331,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get playingIndicatorAnimation => '正在播放圖示動畫';
 
   @override
-  String get playingIndicatorAnimationDescription =>
-      '關閉後，目前歌曲顯示靜止的暫停或播放圖示，不再隨音樂跳動。';
+  String get playingIndicatorAnimationDescription => '關閉後，目前歌曲顯示靜止的暫停或播放圖示，不再隨音樂跳動。';
 
   @override
   String get miniPlayerSpectrum => '迷你播放器頻譜動畫';
@@ -11511,15 +11343,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get blurEffect => '毛玻璃與模糊效果';
 
   @override
-  String get blurEffectDescription =>
-      '在底列、彈窗及浮層使用毛玻璃模糊效果；關閉後可顯著降低 GPU 渲染開銷並提升滑動流暢度。';
+  String get blurEffectDescription => '在底列、彈窗及浮層使用毛玻璃模糊效果；關閉後可顯著降低 GPU 渲染開銷並提升滑動流暢度。';
 
   @override
   String get lyricsBlurEffect => '歌詞毛玻璃效果';
 
   @override
-  String get lyricsBlurEffectDescription =>
-      '為歌詞模式下的非聚焦行提供高斯模糊效果；關閉後可顯著提升展開與滾動的幀率。';
+  String get lyricsBlurEffectDescription => '為歌詞模式下的非聚焦行提供高斯模糊效果；關閉後可顯著提升展開與滾動的幀率。';
 
   @override
   String get searchResultsCurrentFolder => '目前目錄及子目錄結果';
