@@ -1,0 +1,3 @@
+Vynody 3.3.1
+- Cross-platform local music player release
+- F-Droid FOSS build support

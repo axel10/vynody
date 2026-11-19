@@ -1,0 +1,9 @@
+Vynody is a visually refined, feature-rich, and lightweight local music player built with Flutter and native audio backends.
+
+Key Features:
+- Fast local media library indexing with low system resource usage
+- Broad audio format support powered by Media3 (ExoPlayer) and FFmpeg
+- Karaoke-style word-by-word synced lyrics
+- Serverless cross-device LAN syncing for music tracks, playlists, and lyrics
+- WebDAV and SMB network storage playback support
+- Customizable themes and progress bar visual styles

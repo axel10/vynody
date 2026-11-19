@@ -1,0 +1,1 @@
+Lightweight, feature-rich local music player with synced lyrics and LAN sync
