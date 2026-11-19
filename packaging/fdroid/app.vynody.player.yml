@@ -13,9 +13,9 @@ RepoType: git
 Repo: https://github.com/axel10/vynody.git
 
 Builds:
-  - versionName: 3.3.1
+  - versionName: 3.4.0
     versionCode: 1
-    commit: v3.3.1
+    commit: 3.4.0
     output: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
     submodules: true
     srclibs:
@@ -30,5 +30,5 @@ Builds:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 3.3.1
+CurrentVersion: 3.4.0
 CurrentVersionCode: 1
