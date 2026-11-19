@@ -78,7 +78,7 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Decode Android Keystore
         env:
@@ -141,10 +141,12 @@ jobs:
       - name: Run launch smoke test on arm64-v8a emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 34
+          target: google_apis
           arch: arm64-v8a
+          profile: pixel_6
           disable-animations: true
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          emulator-options: -no-snapshot-save -no-window -gpu auto -noaudio -no-boot-anim
           script: |
             set -euo pipefail
             APK_FILE=$(ls android_apks/vynody-android-*-arm64-v8a.apk | head -n 1)
@@ -211,7 +213,7 @@ jobs:
         run: New-Item -ItemType Directory -Force -Path $env:PUB_CACHE | Out-Null
 
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Patch cargokit symlink resolver
         shell: pwsh
@@ -405,7 +407,7 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Build Linux
         run: flutter build linux --release --dart-define=LASTFM_SECRET=${{ secrets.LASTFM_SECRET }}
@@ -621,7 +623,7 @@ jobs:
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
 
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: "Pre-flight smoke test: Validate macOS project & signing settings"
         run: |
@@ -854,7 +856,7 @@ jobs:
         run: flutter config --no-enable-swift-package-manager
 
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Resolve iOS Swift packages
         run: xcodebuild -resolvePackageDependencies -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -derivedDataPath build/ios/resolve -clonedSourcePackagesDirPath build/ios/SourcePackages
