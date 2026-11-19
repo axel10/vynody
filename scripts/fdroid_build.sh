@@ -17,7 +17,7 @@ fi
 JOBS="${JOBS:-$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)}"
 
 echo "==> [1/3] Compiling FFmpeg/Opus/LAME from source for Android (armeabi-v7a, arm64-v8a)..."
-"$ROOT_DIR/audio_core/build-ffmpeg-android.sh" \
+bash "$ROOT_DIR/audio_core/build-ffmpeg-android.sh" \
   --sdk "$SDK_ROOT" \
   --jobs "$JOBS" \
   --abi armeabi-v7a \

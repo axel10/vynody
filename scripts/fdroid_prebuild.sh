@@ -20,9 +20,18 @@ with open(pubspec_path, "r", encoding="utf-8") as f:
     lines = f.readlines()
 
 filtered = []
+skip_next_sdk_flutter = False
 for line in lines:
     stripped = line.strip()
+    if skip_next_sdk_flutter:
+        if stripped == "sdk: flutter":
+            skip_next_sdk_flutter = False
+            continue
+        skip_next_sdk_flutter = False
     if stripped.startswith("in_app_purchase:") or stripped.startswith("in_app_purchase_storekit:"):
+        continue
+    if stripped == "integration_test:":
+        skip_next_sdk_flutter = True
         continue
     filtered.append(line)
 
