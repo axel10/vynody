@@ -4139,5 +4139,12 @@
   "remoteSearchDeepSearching": "正在深层检索远程目录...",
   "remoteSearchDeepStop": "停止搜索",
   "remoteSearchDeepCompleted": "递归搜索完成",
-  "searchFolderHint": "搜索当前目录或全局歌曲、文件夹..."
+  "searchFolderHint": "搜索当前目录或全局歌曲、文件夹...",
+  "spatialAudio": "空间音效",
+  "spatialAudioOff": "关闭",
+  "spatialAudioConcertHall": "音乐厅空间",
+  "spatialAudioNaturalEcho": "轻度回响",
+  "spatialAudioOffDescription": "保持原始干声，不叠加空间混响",
+  "spatialAudioConcertHallDescription": "营造宽广立体的音乐厅声场效果",
+  "spatialAudioNaturalEchoDescription": "仅施加轻微自然回响，忠实保留原声细节"
 }

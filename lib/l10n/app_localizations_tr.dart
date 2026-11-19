@@ -37,10 +37,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get directoryAddedSuccess => 'Dizin başarıyla eklendi';
 
   @override
-  String get directoryAddedNoMusic => 'Dizin eklendi, ancak çalınabilir ses dosyası bulunamadı';
+  String get directoryAddedNoMusic =>
+      'Dizin eklendi, ancak çalınabilir ses dosyası bulunamadı';
 
   @override
-  String get selectDirectoryHint => 'Seçilen öğe bir dosyadır. Lütfen bir klasör seçin veya sağ üstteki \'Aç\' düğmesine dokunun';
+  String get selectDirectoryHint =>
+      'Seçilen öğe bir dosyadır. Lütfen bir klasör seçin veya sağ üstteki \'Aç\' düğmesine dokunun';
 
   @override
   String get scanDirectory => 'Kaynaklar';
@@ -61,7 +63,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get grantPermission => 'İzin Ver';
 
   @override
-  String get needPermissionToScan => 'Yerel müzikleri taramak için izin gerekli';
+  String get needPermissionToScan =>
+      'Yerel müzikleri taramak için izin gerekli';
 
   @override
   String get rebuildTagDatabase => 'Etiket Veritabanını Yeniden Oluştur';
@@ -70,7 +73,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get rebuildDatabase => 'Veritabanını Yeniden Oluştur';
 
   @override
-  String get confirmRebuildDatabase => 'Tüm şarkıların etiket bilgilerini manuel olarak yenilemek istediğinizden emin misiniz? Kapakların ve meta verilerin yeniden yüklenmesi biraz zaman alabilir.';
+  String get confirmRebuildDatabase =>
+      'Tüm şarkıların etiket bilgilerini manuel olarak yenilemek istediğinizden emin misiniz? Kapakların ve meta verilerin yeniden yüklenmesi biraz zaman alabilir.';
 
   @override
   String get cancel => 'İptal';
@@ -79,7 +83,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get confirm => 'Tamam';
 
   @override
-  String get rebuildingDatabase => 'Şarkı etiket veritabanı yeniden oluşturuluyor...';
+  String get rebuildingDatabase =>
+      'Şarkı etiket veritabanı yeniden oluşturuluyor...';
 
   @override
   String get sortBy => 'Sıralama Ölçütü';
@@ -196,7 +201,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get clearQueue => 'Sırayı Temizle';
 
   @override
-  String get confirmClearQueue => 'Geçerli sırayı temizlemek istediğinizden emin misiniz?';
+  String get confirmClearQueue =>
+      'Geçerli sırayı temizlemek istediğinizden emin misiniz?';
 
   @override
   String get queueCleared => 'Sıra temizlendi';
@@ -205,10 +211,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get locateCurrentSong => 'Şu An Çalanı Bul';
 
   @override
-  String get songNotInScannedFolders => 'Şu an çalan şarkı taranan dizinlerde yok';
+  String get songNotInScannedFolders =>
+      'Şu an çalan şarkı taranan dizinlerde yok';
 
   @override
-  String get remoteAlbumUnavailable => 'Bu şarkının albümü bulunamadı. Kaldırılmış veya sunucuya ulaşılamıyor olabilir.';
+  String get remoteAlbumUnavailable =>
+      'Bu şarkının albümü bulunamadı. Kaldırılmış veya sunucuya ulaşılamıyor olabilir.';
 
   @override
   String get queue => 'Sıra';
@@ -334,7 +342,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get mostPlayedDescription => 'Tamamlanan çalma sayısına göre';
 
   @override
-  String get recentlyPlayedDescription => 'Harici dosyalar dahil en son çalınma zamanına göre';
+  String get recentlyPlayedDescription =>
+      'Harici dosyalar dahil en son çalınma zamanına göre';
 
   @override
   String get recentlyAddedDescription => 'Kitaplığa eklenme zamanına göre';
@@ -475,7 +484,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get emptyList => 'Liste boş';
 
   @override
-  String get dragToAddMusic => 'Müzik eklemek için dosya veya klasörleri buraya sürükleyin';
+  String get dragToAddMusic =>
+      'Müzik eklemek için dosya veya klasörleri buraya sürükleyin';
 
   @override
   String get unknownAlbum => 'Bilinmeyen Albüm';
@@ -574,37 +584,45 @@ class AppLocalizationsTr extends AppLocalizations {
   String get immersiveTabBar => 'Sürükleyici Sekme Çubuğu';
 
   @override
-  String get immersiveTabBarDescription => 'Fare hareket ettiğinde gezinti çubuğunu göster, 3 saniye hareketsizlikten sonra gizle';
+  String get immersiveTabBarDescription =>
+      'Fare hareket ettiğinde gezinti çubuğunu göster, 3 saniye hareketsizlikten sonra gizle';
 
   @override
-  String get collapseButtonsInLandscapeLyrics => 'Yatay şarkı sözü modunda düğmeleri daralt';
+  String get collapseButtonsInLandscapeLyrics =>
+      'Yatay şarkı sözü modunda düğmeleri daralt';
 
   @override
-  String get collapseButtonsInLandscapeLyricsDescription => 'Yatay sözler modunda 7 düğmeli satırı daralt, başlığı sola hizala ve sağda işlem düğmelerini göster';
+  String get collapseButtonsInLandscapeLyricsDescription =>
+      'Yatay sözler modunda 7 düğmeli satırı daralt, başlığı sola hizala ve sağda işlem düğmelerini göster';
 
   @override
-  String get expandPortraitLyricsControlsOnScroll => 'Dikey şarkı sözü kaydırmasında kontrolleri genişlet';
+  String get expandPortraitLyricsControlsOnScroll =>
+      'Dikey şarkı sözü kaydırmasında kontrolleri genişlet';
 
   @override
-  String get expandPortraitLyricsControlsOnScrollDescription => 'Dikey şarkı sözü modunda kaydırırken oynatma kontrollerini ve ilerleme çubuğunu otomatik genişlet';
+  String get expandPortraitLyricsControlsOnScrollDescription =>
+      'Dikey şarkı sözü modunda kaydırırken oynatma kontrollerini ve ilerleme çubuğunu otomatik genişlet';
 
   @override
   String get floatingDockScrollCollapse => 'Kaydırmada dock\'u daralt';
 
   @override
-  String get floatingDockScrollCollapseDescription => 'Aşağı kaydırırken yüzen dock\'u tek satırlık mini oynatıcıya daraltır; yukarı kaydırdığınızda veya listenin başına ya da sonuna geldiğinizde yeniden genişletir. Kapalıyken dock her zaman tamamen geniş kalır.';
+  String get floatingDockScrollCollapseDescription =>
+      'Aşağı kaydırırken yüzen dock\'u tek satırlık mini oynatıcıya daraltır; yukarı kaydırdığınızda veya listenin başına ya da sonuna geldiğinizde yeniden genişletir. Kapalıyken dock her zaman tamamen geniş kalır.';
 
   @override
   String get sampleStride => 'Örnekleme Adımı';
 
   @override
-  String get sampleStrideDescription => 'Daha büyük değerler daha hızlı tarar ancak dalga formu hassasiyetini düşürür (varsayılan: 4)';
+  String get sampleStrideDescription =>
+      'Daha büyük değerler daha hızlı tarar ancak dalga formu hassasiyetini düşürür (varsayılan: 4)';
 
   @override
   String get waveformSegments => 'Dalga Formu Dilimleri';
 
   @override
-  String get waveformSegmentsDescription => 'Görüntülenecek dalga formu çubuklarının sayısı (varsayılan: 80)';
+  String get waveformSegmentsDescription =>
+      'Görüntülenecek dalga formu çubuklarının sayısı (varsayılan: 80)';
 
   @override
   String get showDeveloperOptions => 'Geliştirici Seçeneklerini Göster';
@@ -661,7 +679,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get autoDarkLayer => 'Otomatik Koyu Katman';
 
   @override
-  String get autoDarkLayerDesc => 'Koyu katmanı arka plan parlaklığına göre otomatik olarak ayarlar';
+  String get autoDarkLayerDesc =>
+      'Koyu katmanı arka plan parlaklığına göre otomatik olarak ayarlar';
 
   @override
   String get lyricsOpacity => 'Şarkı Sözü Koyu Katman Opaklığı';
@@ -745,10 +764,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get landscapeGap => 'Yatay Aralık';
 
   @override
-  String get enableWaveformProgressBar => 'Dalga Formu İlerleme Çubuğunu Etkinleştir';
+  String get enableWaveformProgressBar =>
+      'Dalga Formu İlerleme Çubuğunu Etkinleştir';
 
   @override
-  String get enableWaveformProgressBarDescription => 'Klasik ilerleme çubuğu yerine parçanın gerçek dalga formunu göster';
+  String get enableWaveformProgressBarDescription =>
+      'Klasik ilerleme çubuğu yerine parçanın gerçek dalga formunu göster';
 
   @override
   String get playbackElementsGroup => 'Arayüz Öğeleri';
@@ -757,7 +778,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get progressBarStyle => 'İlerleme Çubuğu Stili';
 
   @override
-  String get progressBarStyleDescription => 'Oynatma ilerleme çubuğu görüntüleme stilini seçin';
+  String get progressBarStyleDescription =>
+      'Oynatma ilerleme çubuğu görüntüleme stilini seçin';
 
   @override
   String get progressBarStyleStandard => 'Standart Kaydırıcı';
@@ -772,13 +794,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get showPlaybackAudioInfo => 'Ses Özelliklerini Göster';
 
   @override
-  String get showPlaybackAudioInfoDescription => 'Oynatma kontrollerinin altında ses formatı, örnekleme hızı ve bit hızını göster';
+  String get showPlaybackAudioInfoDescription =>
+      'Oynatma kontrollerinin altında ses formatı, örnekleme hızı ve bit hızını göster';
 
   @override
   String get showSongRating => 'Şarkı Puanını Göster';
 
   @override
-  String get showSongRatingDescription => 'Oynatma sayfasındaki kapak görselinin sol alt köşesinde beş yıldızlı puanlamayı göster';
+  String get showSongRatingDescription =>
+      'Oynatma sayfasındaki kapak görselinin sol alt köşesinde beş yıldızlı puanlamayı göster';
 
   @override
   String get topDragHandleSectionTitle => 'Üst Gösterge Çubuğu';
@@ -787,25 +811,31 @@ class AppLocalizationsTr extends AppLocalizations {
   String get showPlaybackTopDragHandle => 'Üst Sürükleme Çubuğunu Göster';
 
   @override
-  String get showPlaybackTopDragHandleDescription => 'Oynatma sayfasının üst kısmında aşağı çekerek kapatma tutamacını göster';
+  String get showPlaybackTopDragHandleDescription =>
+      'Oynatma sayfasının üst kısmında aşağı çekerek kapatma tutamacını göster';
 
   @override
-  String get waveformLongPressSeekSpeed => 'Dalga Formu Uzun Basarak Sarma Hızı';
+  String get waveformLongPressSeekSpeed =>
+      'Dalga Formu Uzun Basarak Sarma Hızı';
 
   @override
-  String get waveformLongPressSeekSpeedDescription => 'Dalga formuna uzun basıldığında sarma hızını ayarlar';
+  String get waveformLongPressSeekSpeedDescription =>
+      'Dalga formuna uzun basıldığında sarma hızını ayarlar';
 
   @override
-  String get enableWaveformLongPressSeek => 'Dalga Formuna Uzun Basarak Sarmayı Etkinleştir';
+  String get enableWaveformLongPressSeek =>
+      'Dalga Formuna Uzun Basarak Sarmayı Etkinleştir';
 
   @override
-  String get enableWaveformLongPressSeekDescription => 'Dalga formuna basılı tutarak hızlı ileri/geri sarın';
+  String get enableWaveformLongPressSeekDescription =>
+      'Dalga formuna basılı tutarak hızlı ileri/geri sarın';
 
   @override
   String get clearWaveformCache => 'Dalga Formu Önbelleğini Temizle';
 
   @override
-  String get clearWaveformCacheDescription => 'Veritabanındaki önbelleğe alınmış dalga formu verilerini temizle ve yeniden hesapla';
+  String get clearWaveformCacheDescription =>
+      'Veritabanındaki önbelleğe alınmış dalga formu verilerini temizle ve yeniden hesapla';
 
   @override
   String get waveformCacheCleared => 'Dalga formu önbelleği temizlendi';
@@ -817,7 +847,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get remoteAudioCache => 'Uzak Ses Önbelleği';
 
   @override
-  String get remoteAudioCacheDescription => 'Navidrome ve WebDAV akışı ve önceden yükleme için yerel önbellek';
+  String get remoteAudioCacheDescription =>
+      'Navidrome ve WebDAV akışı ve önceden yükleme için yerel önbellek';
 
   @override
   String get remoteCacheLimit => 'Uzak Önbellek Sınırı';
@@ -826,7 +857,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get remotePrefetchCount => 'Önceden Yüklenecek Uzak Parça Sayısı';
 
   @override
-  String get remotePrefetchCountDescription => 'Kusursuz parça geçişi için çalma sırasındaki sonraki parçaları önceden indir';
+  String get remotePrefetchCountDescription =>
+      'Kusursuz parça geçişi için çalma sırasındaki sonraki parçaları önceden indir';
 
   @override
   String get clearRemoteCache => 'Uzak Önbelleği Temizle';
@@ -901,7 +933,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get unsupportedFormatSingle => 'Bu format etiket yazmayı desteklemiyor';
+  String get unsupportedFormatSingle =>
+      'Bu format etiket yazmayı desteklemiyor';
 
   @override
   String get savingTags => 'Etiketler kaydediliyor...';
@@ -927,7 +960,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get transcodeSectionTitle => 'Ses Dönüştürme';
 
   @override
-  String get transcodeSectionDescription => 'Ses formatı dönüştürme ve FFmpeg motoru ayarlarını yapılandırın.';
+  String get transcodeSectionDescription =>
+      'Ses formatı dönüştürme ve FFmpeg motoru ayarlarını yapılandırın.';
 
   @override
   String get transcodeDefaultFormat => 'Varsayılan Format';
@@ -1002,7 +1036,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get transcodeQualityExtreme => 'En Yüksek Kalite';
 
   @override
-  String get transcodeLosslessPresetHint => 'Kayıpsız formatlar (FLAC/WAV) orijinal ses kalitesini korur.';
+  String get transcodeLosslessPresetHint =>
+      'Kayıpsız formatlar (FLAC/WAV) orijinal ses kalitesini korur.';
 
   @override
   String get transcodeAdvancedOptions => 'Gelişmiş Dönüştürme Seçenekleri';
@@ -1014,7 +1049,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get transcodeAdvancedFollowingPreset => 'Önayarı Takip Ediyor';
 
   @override
-  String get transcodeLosslessAdvancedHint => 'Kayıpsız formatlarda bit hızı ayarı gerekmez.';
+  String get transcodeLosslessAdvancedHint =>
+      'Kayıpsız formatlarda bit hızı ayarı gerekmez.';
 
   @override
   String get transcodeBitRateInvalid => 'Geçersiz bit hızı değeri';
@@ -1074,7 +1110,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get openFolderLocation => 'Klasör Konumunu Aç';
 
   @override
-  String get songTagsSavedToSourceFileAndApp => 'Etiketler kaynak dosyaya ve uygulamaya kaydedildi';
+  String get songTagsSavedToSourceFileAndApp =>
+      'Etiketler kaynak dosyaya ve uygulamaya kaydedildi';
 
   @override
   String get songTagsSavedToApp => 'Etiketler uygulamaya kaydedildi';
@@ -1128,13 +1165,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get sleepTimerTitle => 'Uyku Zamanlayıcısı';
 
   @override
-  String get sleepTimerDescription => 'Belirli bir süre sonra oynatmayı durdurun.';
+  String get sleepTimerDescription =>
+      'Belirli bir süre sonra oynatmayı durdurun.';
 
   @override
   String get sleepTimerRunningTitle => 'Uyku Zamanlayıcısı Çalışıyor';
 
   @override
-  String get sleepTimerRunningDescription => 'Kalan süre dolduğunda oynatma otomatik olarak duracaktır.';
+  String get sleepTimerRunningDescription =>
+      'Kalan süre dolduğunda oynatma otomatik olarak duracaktır.';
 
   @override
   String get sleepTimerStopAfterCurrentSong => 'Geçerli Şarkı Bitince Durdur';
@@ -1203,7 +1242,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get saveAsPreset => 'Önayar Olarak Kaydet';
 
   @override
-  String get saveCurrentAsPreset => 'Geçerli Ayarları Yeni Önayar Olarak Kaydet';
+  String get saveCurrentAsPreset =>
+      'Geçerli Ayarları Yeni Önayar Olarak Kaydet';
 
   @override
   String get enterPresetName => 'Önayar adını girin';
@@ -1245,7 +1285,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get deletePreset => 'Önayarı Sil';
 
   @override
-  String get deletePresetConfirm => 'Bu önayarı silmek istediğinizden emin misiniz?';
+  String get deletePresetConfirm =>
+      'Bu önayarı silmek istediğinizden emin misiniz?';
 
   @override
   String get custom => 'Özel';
@@ -1254,7 +1295,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get noCustomPresets => 'Henüz özel önayar yok';
 
   @override
-  String get savePresetPrompt => 'Geçerli EQ bant kazançlarını, bas güçlendirmeyi ve ön kazancı kaydet';
+  String get savePresetPrompt =>
+      'Geçerli EQ bant kazançlarını, bas güçlendirmeyi ve ön kazancı kaydet';
 
   @override
   String get effects => 'Efektler';
@@ -1284,7 +1326,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get timelineAdjustmentTitle => 'Zaman Çizelgesi Ayarı';
 
   @override
-  String get timelineAdjustmentDescription => 'Şarkı sözlerinin zamanlamasını milisaniye cinsinden kaydırın.';
+  String get timelineAdjustmentDescription =>
+      'Şarkı sözlerinin zamanlamasını milisaniye cinsinden kaydırın.';
 
   @override
   String timelineOffsetEarlier(Object seconds) {
@@ -1306,7 +1349,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get enterAcoustidApiKeyTitle => 'AcoustID API Anahtarını Girin';
 
   @override
-  String get acoustidApiKeyDescription => 'Ses parmak izi alma için kullanılır. Boş bırakırsanız yerleşik varsayılan anahtar kullanılır.';
+  String get acoustidApiKeyDescription =>
+      'Ses parmak izi alma için kullanılır. Boş bırakırsanız yerleşik varsayılan anahtar kullanılır.';
 
   @override
   String get acoustidApiKeyHint => 'AcoustID API Anahtarınızı yapıştırın';
@@ -1321,22 +1365,27 @@ class AppLocalizationsTr extends AppLocalizations {
   String get enterLyricsTitle => 'Şarkı Sözlerini Girin';
 
   @override
-  String get lyricsInputHint => 'Şarkı sözlerini buraya yapıştırın veya yazın. Çok satırlı metin desteklenir.';
+  String get lyricsInputHint =>
+      'Şarkı sözlerini buraya yapıştırın veya yazın. Çok satırlı metin desteklenir.';
 
   @override
-  String get enterGoogleAiStudioApiKeyTitle => 'Google AI Studio API Anahtarını Girin';
+  String get enterGoogleAiStudioApiKeyTitle =>
+      'Google AI Studio API Anahtarını Girin';
 
   @override
-  String get googleAiStudioApiKeyDescription => 'Google AI Studio\'da söz oluşturma, zaman çizelgesi hizalama ve çeviri için kullanılır.';
+  String get googleAiStudioApiKeyDescription =>
+      'Google AI Studio\'da söz oluşturma, zaman çizelgesi hizalama ve çeviri için kullanılır.';
 
   @override
-  String get pasteGoogleAiStudioApiKey => 'Google AI Studio API Anahtarını yapıştırın';
+  String get pasteGoogleAiStudioApiKey =>
+      'Google AI Studio API Anahtarını yapıştırın';
 
   @override
   String get enterOpenRouterApiKeyTitle => 'OpenRouter API Anahtarını Girin';
 
   @override
-  String get openRouterApiKeyDescription => 'OpenRouter\'da söz oluşturma, zaman çizelgesi hizalama ve söz çevirisi için kullanılır.';
+  String get openRouterApiKeyDescription =>
+      'OpenRouter\'da söz oluşturma, zaman çizelgesi hizalama ve söz çevirisi için kullanılır.';
 
   @override
   String get pasteOpenRouterApiKey => 'OpenRouter API Anahtarını yapıştırın';
@@ -1390,7 +1439,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get exportArtworkFailed => 'Kapak dışa aktarılamadı';
 
   @override
-  String get editSongTagsDescription => 'Değişiklikler kaynak dosyaya yazılır; format yazılamıyorsa yalnızca uygulamaya kaydedilir.';
+  String get editSongTagsDescription =>
+      'Değişiklikler kaynak dosyaya yazılır; format yazılamıyorsa yalnızca uygulamaya kaydedilir.';
 
   @override
   String get artistLabel => 'Sanatçı';
@@ -1405,7 +1455,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get trackNumberLabel => 'Parça Numarası';
 
   @override
-  String get trackNumberMustBeInteger => 'Parça numarası bir tam sayı olmalıdır';
+  String get trackNumberMustBeInteger =>
+      'Parça numarası bir tam sayı olmalıdır';
 
   @override
   String get genreLabel => 'Tür';
@@ -1420,13 +1471,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get genresSeparatorHint => 'Birden fazla türü virgülle ayırın';
 
   @override
-  String get leaveBlankKeepsCurrentValue => 'Bu alanı temizlemek için boş bırakın';
+  String get leaveBlankKeepsCurrentValue =>
+      'Bu alanı temizlemek için boş bırakın';
 
   @override
-  String get currentFileFormatCannotWriteBack => 'Bu dosya formatı kaynak dosyaya yazmayı desteklemiyor. Değişiklikler yalnızca uygulamaya kaydedilir.';
+  String get currentFileFormatCannotWriteBack =>
+      'Bu dosya formatı kaynak dosyaya yazmayı desteklemiyor. Değişiklikler yalnızca uygulamaya kaydedilir.';
 
   @override
-  String get leaveBlankDoesNotClearOriginalValue => 'İpucu: Bir alanı boş bırakmak değerini temizler.';
+  String get leaveBlankDoesNotClearOriginalValue =>
+      'İpucu: Bir alanı boş bırakmak değerini temizler.';
 
   @override
   String get saveToApp => 'Uygulamaya Kaydet';
@@ -1435,22 +1489,27 @@ class AppLocalizationsTr extends AppLocalizations {
   String get saveToSourceFileAndApp => 'Kaynak Dosyaya ve Uygulamaya Kaydet';
 
   @override
-  String get saveToSourceFileFailed => 'Kaynak dosyaya kaydedilemedi. Dosya formatının yazmayı desteklediğinden ve kullanımda olmadığından emin olun.';
+  String get saveToSourceFileFailed =>
+      'Kaynak dosyaya kaydedilemedi. Dosya formatının yazmayı desteklediğinden ve kullanımda olmadığından emin olun.';
 
   @override
-  String get fileOccupiedByOtherApp => 'Dosya başka bir uygulama tarafından kullanılıyor ve yazılamıyor';
+  String get fileOccupiedByOtherApp =>
+      'Dosya başka bir uygulama tarafından kullanılıyor ve yazılamıyor';
 
   @override
-  String get saveFailed => 'Kaydetme başarısız oldu. Lütfen daha sonra tekrar deneyin.';
+  String get saveFailed =>
+      'Kaydetme başarısız oldu. Lütfen daha sonra tekrar deneyin.';
 
   @override
   String get batchEditSongTagsTitle => 'Şarkı Etiketlerini Toplu Düzenle';
 
   @override
-  String get batchEditSongTagsDescription => 'Değişiklikler kaynak dosyalara yazılır; format yazılamıyorsa yalnızca uygulamaya kaydedilir. <keep> içeren alanlar orijinal değerlerini korur.';
+  String get batchEditSongTagsDescription =>
+      'Değişiklikler kaynak dosyalara yazılır; format yazılamıyorsa yalnızca uygulamaya kaydedilir. <keep> içeren alanlar orijinal değerlerini korur.';
 
   @override
-  String get keepFieldHint => 'İpucu: <keep> içeren alanlar orijinal değerlerini korur.';
+  String get keepFieldHint =>
+      'İpucu: <keep> içeren alanlar orijinal değerlerini korur.';
 
   @override
   String get multipleArtworkKeep => 'Ayrı kapakları koru';
@@ -1482,7 +1541,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get generalSectionTitle => 'Arayüz ve Davranış';
 
   @override
-  String get generalSectionDescription => 'Görünüm, oynatma etkileşimleri ve pencere sistemi davranışlarını yapılandırın.';
+  String get generalSectionDescription =>
+      'Görünüm, oynatma etkileşimleri ve pencere sistemi davranışlarını yapılandırın.';
 
   @override
   String get uiAppearanceGroup => 'Görünüm ve Ekran';
@@ -1503,19 +1563,22 @@ class AppLocalizationsTr extends AppLocalizations {
   String get scanSectionTitle => 'Tarama';
 
   @override
-  String get scanSectionDescription => 'Bu seçenekler kitaplık taramasının ses dosyalarını nasıl ele alacağını denetler.';
+  String get scanSectionDescription =>
+      'Bu seçenekler kitaplık taramasının ses dosyalarını nasıl ele alacağını denetler.';
 
   @override
   String get skipShortAudioDuringScan => 'Tarama sırasında kısa sesleri atla';
 
   @override
-  String get skipShortAudioDuringScanDescription => 'Eşik değerinden kısa sesler kitaplığa eklenmez.';
+  String get skipShortAudioDuringScanDescription =>
+      'Eşik değerinden kısa sesler kitaplığa eklenmez.';
 
   @override
   String get shortAudioScanThreshold => 'Kısa Ses Dosyalarını Filtrele';
 
   @override
-  String get shortAudioScanThresholdDescription => 'Belirtilen süreden kısa ses dosyalarını atla';
+  String get shortAudioScanThresholdDescription =>
+      'Belirtilen süreden kısa ses dosyalarını atla';
 
   @override
   String shortAudioScanThresholdValue(Object seconds) {
@@ -1526,10 +1589,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get shortcutSettingsTitle => 'Kısayol Ayarları';
 
   @override
-  String get shortcutSettingsDescription => 'Oynatıcı eylemleri için kısayolları yeniden atamak ve kaydetmek için tıklayın.';
+  String get shortcutSettingsDescription =>
+      'Oynatıcı eylemleri için kısayolları yeniden atamak ve kaydetmek için tıklayın.';
 
   @override
-  String get shortcutPhysicalKeyboardHint => 'Kısayollar harici fiziksel klavyeler için tasarlanmıştır (örn. Bluetooth veya Magic Keyboard).';
+  String get shortcutPhysicalKeyboardHint =>
+      'Kısayollar harici fiziksel klavyeler için tasarlanmıştır (örn. Bluetooth veya Magic Keyboard).';
 
   @override
   String get edit => 'Düzenle';
@@ -1541,19 +1606,22 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lyricsSectionTitle => 'Şarkı Sözleri';
 
   @override
-  String get lyricsSectionDescription => 'Bu ayarlar yalnızca söz oluşturma ve zaman çizelgesi hizalamayı etkiler.';
+  String get lyricsSectionDescription =>
+      'Bu ayarlar yalnızca söz oluşturma ve zaman çizelgesi hizalamayı etkiler.';
 
   @override
   String get lyricsTranslationTargetLanguageLabel => 'Çeviri hedef dili';
 
   @override
-  String get lyricsTranslationTargetLanguageDescription => 'Varsayılan olarak sistem dilini kullanır veya manuel olarak seçebilirsiniz.';
+  String get lyricsTranslationTargetLanguageDescription =>
+      'Varsayılan olarak sistem dilini kullanır veya manuel olarak seçebilirsiniz.';
 
   @override
   String get lyricsSaveMethodLabel => 'Şarkı Sözü Depolama Yeri';
 
   @override
-  String get lyricsSaveMethodDescription => 'Dosyaya yazarken sözlerin nereye kaydedileceğini seçin.';
+  String get lyricsSaveMethodDescription =>
+      'Dosyaya yazarken sözlerin nereye kaydedileceğini seçin.';
 
   @override
   String get lyricsSaveMethodOriginal => 'Kaynak Gibi';
@@ -1568,7 +1636,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lyricsStyleLabel => 'Şarkı Sözü Panel Stili';
 
   @override
-  String get lyricsStyleDescription => 'Şarkı sözü paneli için görüntüleme ve etkileşim stilini seçin.';
+  String get lyricsStyleDescription =>
+      'Şarkı sözü paneli için görüntüleme ve etkileşim stilini seçin.';
 
   @override
   String get lyricsStyleTraditional => 'Geleneksel';
@@ -1580,13 +1649,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lyricsLatinFontLabel => 'Şarkı Sözü Latin Yazı Tipi';
 
   @override
-  String get lyricsLatinFontDescription => 'Şarkı sözlerindeki Latin karakterler, sayılar ve semboller için kullanılan yazı tipini ayarlayın.';
+  String get lyricsLatinFontDescription =>
+      'Şarkı sözlerindeki Latin karakterler, sayılar ve semboller için kullanılan yazı tipini ayarlayın.';
 
   @override
   String get lyricsCjkFontLabel => 'Şarkı Sözü Çince/CJK Yazı Tipi';
 
   @override
-  String get lyricsCjkFontDescription => 'Şarkı sözlerindeki Çince/CJK karakterler için kullanılan yazı tipini ayarlayın.';
+  String get lyricsCjkFontDescription =>
+      'Şarkı sözlerindeki Çince/CJK karakterler için kullanılan yazı tipini ayarlayın.';
 
   @override
   String get customFontOption => 'Özel yazı tipi...';
@@ -1631,7 +1702,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get importedFonts => 'İçe Aktarılan Yazı Tipleri';
 
   @override
-  String get noImportedFontsHint => 'İçe aktarılmış yazı tipi yok. Yerel .ttf / .otf dosyasını içe aktarmak için aşağıya dokunun.';
+  String get noImportedFontsHint =>
+      'İçe aktarılmış yazı tipi yok. Yerel .ttf / .otf dosyasını içe aktarmak için aşağıya dokunun.';
 
   @override
   String deleteFontConfirm(String name) {
@@ -1651,31 +1723,38 @@ class AppLocalizationsTr extends AppLocalizations {
   String get followSystemLanguage => 'Sistem Dilini Takip Et';
 
   @override
-  String get autoSwitchLyricsProvider => 'Şarkı sözü sağlayıcısını otomatik değiştir';
+  String get autoSwitchLyricsProvider =>
+      'Şarkı sözü sağlayıcısını otomatik değiştir';
 
   @override
-  String get autoSwitchLyricsProviderEnabledDesc => 'Önce Google AI Studio denenir. Birincil ve yedek modeller 429 veya 5xx hatası verirse uygulama otomatik olarak OpenRouter\'a geçer.';
+  String get autoSwitchLyricsProviderEnabledDesc =>
+      'Önce Google AI Studio denenir. Birincil ve yedek modeller 429 veya 5xx hatası verirse uygulama otomatik olarak OpenRouter\'a geçer.';
 
   @override
-  String get autoSwitchLyricsProviderDisabledDesc => 'Otomatik geçişi etkinleştirmeden önce hem Google AI Studio hem de OpenRouter için API anahtarları gereklidir.';
+  String get autoSwitchLyricsProviderDisabledDesc =>
+      'Otomatik geçişi etkinleştirmeden önce hem Google AI Studio hem de OpenRouter için API anahtarları gereklidir.';
 
   @override
   String get lyricsAiProviderTitle => 'Şarkı Sözü AI Sağlayıcısı';
 
   @override
-  String get lyricsAiProviderDescription => 'Bu yalnızca söz oluşturma ve zaman çizelgesi hizalamayı etkiler. Çeviri her zaman Google AI Studio kullanır.';
+  String get lyricsAiProviderDescription =>
+      'Bu yalnızca söz oluşturma ve zaman çizelgesi hizalamayı etkiler. Çeviri her zaman Google AI Studio kullanır.';
 
   @override
-  String get googleAiStudioApiKeySaved => 'Google AI Studio API anahtarı kaydedildi';
+  String get googleAiStudioApiKeySaved =>
+      'Google AI Studio API anahtarı kaydedildi';
 
   @override
-  String get googleAiStudioApiKeyMissing => 'Henüz Google AI Studio API anahtarı kaydedilmedi. Söz ve zaman çizelgesi oluşturma sizden anahtar isteyecektir.';
+  String get googleAiStudioApiKeyMissing =>
+      'Henüz Google AI Studio API anahtarı kaydedilmedi. Söz ve zaman çizelgesi oluşturma sizden anahtar isteyecektir.';
 
   @override
   String get openRouterApiKeySaved => 'OpenRouter API anahtarı kaydedildi';
 
   @override
-  String get openRouterApiKeyMissing => 'Henüz OpenRouter API anahtarı kaydedilmedi. Söz ve zaman çizelgesi oluşturma sizden anahtar isteyecektir.';
+  String get openRouterApiKeyMissing =>
+      'Henüz OpenRouter API anahtarı kaydedilmedi. Söz ve zaman çizelgesi oluşturma sizden anahtar isteyecektir.';
 
   @override
   String get apiKeySavedStatus => 'Kaydedildi';
@@ -1696,7 +1775,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get geminiModelsSectionTitle => 'Model Seç';
 
   @override
-  String get geminiModelsSectionDescription => 'Bu modeller Google AI Studio\'da söz oluşturma, zaman çizelgesi hizalama ve çeviri için kullanılır.';
+  String get geminiModelsSectionDescription =>
+      'Bu modeller Google AI Studio\'da söz oluşturma, zaman çizelgesi hizalama ve çeviri için kullanılır.';
 
   @override
   String get primaryModelLabel => 'Birincil model';
@@ -1723,16 +1803,19 @@ class AppLocalizationsTr extends AppLocalizations {
   String get acoustidApiKeyTitle => 'AcoustID API Anahtarı';
 
   @override
-  String get acoustidApiKeyHelp => 'AcoustID ses parmak izi alma için kullanılır. Kendi API anahtarınızı kullanmanızı öneririz.';
+  String get acoustidApiKeyHelp =>
+      'AcoustID ses parmak izi alma için kullanılır. Kendi API anahtarınızı kullanmanızı öneririz.';
 
   @override
   String get acoustidApiKeySaved => 'AcoustID API anahtarı kaydedildi';
 
   @override
-  String get acoustidApiKeyDefault => 'Şu anda yerleşik varsayılan anahtar kullanılıyor. Kendi anahtarınızla değiştirmenizi öneririz.';
+  String get acoustidApiKeyDefault =>
+      'Şu anda yerleşik varsayılan anahtar kullanılıyor. Kendi anahtarınızla değiştirmenizi öneririz.';
 
   @override
-  String get applyForApiKey => 'API anahtarı edinin: https://acoustid.org/new-application';
+  String get applyForApiKey =>
+      'API anahtarı edinin: https://acoustid.org/new-application';
 
   @override
   String get queueTabBarFavoriteAdded => 'Favorilere eklendi';
@@ -1744,7 +1827,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get tagCompletion => 'Etiket tamamlama';
 
   @override
-  String get tagCompletionDescription => 'Etiketleri AcoustID ve MusicBrainz sonuçlarıyla eşleştirin';
+  String get tagCompletionDescription =>
+      'Etiketleri AcoustID ve MusicBrainz sonuçlarıyla eşleştirin';
 
   @override
   String get goToSettings => 'Ayarlara Git';
@@ -1759,7 +1843,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get refreshResults => 'Sonuçları yenile';
 
   @override
-  String get filterMusicBrainzReleaseTitle => 'MusicBrainz yayın başlıklarını filtrele';
+  String get filterMusicBrainzReleaseTitle =>
+      'MusicBrainz yayın başlıklarını filtrele';
 
   @override
   String get clearSearch => 'Aramayı temizle';
@@ -1774,7 +1859,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get musicBrainzLoading => 'MusicBrainz yükleniyor';
 
   @override
-  String get musicBrainzLoadingWithResults => 'Mevcut sonuçlar panelde kalacaktır';
+  String get musicBrainzLoadingWithResults =>
+      'Mevcut sonuçlar panelde kalacaktır';
 
   @override
   String get musicBrainzLoadingHint => 'Lütfen bekleyin';
@@ -1783,16 +1869,20 @@ class AppLocalizationsTr extends AppLocalizations {
   String get musicBrainzQueryFailed => 'MusicBrainz sorgusu başarısız';
 
   @override
-  String get musicBrainzNetworkErrorHint => 'İstek başarısız oldu; genellikle kararsız ağ, zaman aşımı veya sunucu reddinden kaynaklanır. Daha sonra tekrar deneyin.';
+  String get musicBrainzNetworkErrorHint =>
+      'İstek başarısız oldu; genellikle kararsız ağ, zaman aşımı veya sunucu reddinden kaynaklanır. Daha sonra tekrar deneyin.';
 
   @override
-  String get musicBrainzFilteredEmptyHint => 'Geçerli filtreler altında bu anahtar kelimeyi içeren yayın başlığı bulunamadı.';
+  String get musicBrainzFilteredEmptyHint =>
+      'Geçerli filtreler altında bu anahtar kelimeyi içeren yayın başlığı bulunamadı.';
 
   @override
-  String get musicBrainzEmptyHint => 'MusicBrainz kullanılabilir sonuç döndürmedi. Başlık, sanatçı veya albüm filtrelerini gevşetmeyi deneyin.';
+  String get musicBrainzEmptyHint =>
+      'MusicBrainz kullanılabilir sonuç döndürmedi. Başlık, sanatçı veya albüm filtrelerini gevşetmeyi deneyin.';
 
   @override
-  String get musicBrainzEmptyMoreCompleteHint => 'Daha sonra tekrar deneyin veya mevcut başlık/sanatçı bilgisinin eksiksiz olduğunu doğrulayın.';
+  String get musicBrainzEmptyMoreCompleteHint =>
+      'Daha sonra tekrar deneyin veya mevcut başlık/sanatçı bilgisinin eksiksiz olduğunu doğrulayın.';
 
   @override
   String get retry => 'Yeniden Dene';
@@ -1822,7 +1912,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get noExpandableReleases => 'Genişletilebilir yayın sürümü yok';
 
   @override
-  String get noMatchingResultHint => 'Daha sonra tekrar deneyebilir veya şarkı başlığı/sanatçı bilgisinin doğruluğunu kontrol edebilirsiniz.';
+  String get noMatchingResultHint =>
+      'Daha sonra tekrar deneyebilir veya şarkı başlığı/sanatçı bilgisinin doğruluğunu kontrol edebilirsiniz.';
 
   @override
   String releaseCountLabel(int count) {
@@ -1951,7 +2042,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get pressAgainToExit => 'Çıkmak için tekrar basın';
 
   @override
-  String get tagCompletionSuccessWithCover => 'Etiketler tamamlandı ve kaydedildi, kapak resmi geçici dizine indirildi';
+  String get tagCompletionSuccessWithCover =>
+      'Etiketler tamamlandı ve kaydedildi, kapak resmi geçici dizine indirildi';
 
   @override
   String get tagCompletionSuccess => 'Etiketler tamamlandı ve kaydedildi';
@@ -2005,7 +2097,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get no => 'Hayır';
 
   @override
-  String get remoteCollectionDropFailed => 'Uzak sunucudan parçalar yüklenemedi. Ağ veya sunucu durumunu kontrol edin.';
+  String get remoteCollectionDropFailed =>
+      'Uzak sunucudan parçalar yüklenemedi. Ağ veya sunucu durumunu kontrol edin.';
 
   @override
   String dropAddedSongs(int addedCount) {
@@ -2024,7 +2117,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get copyCoverSuccess => 'Kapak resmi panoya kopyalandı';
 
   @override
-  String get searchLyricsPlaceholder => 'Aramak için şarkı adı, sanatçı veya söz girin';
+  String get searchLyricsPlaceholder =>
+      'Aramak için şarkı adı, sanatçı veya söz girin';
 
   @override
   String get share => 'Paylaş';
@@ -2036,7 +2130,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get fileAssociationTitle => 'Dosya İlişkilendirmesi';
 
   @override
-  String get fileAssociationDescription => 'Yaygın müzik formatlarını (mp3, flac, wav vb.) bu uygulamayla ilişkilendirerek çift tıklamayla açın.';
+  String get fileAssociationDescription =>
+      'Yaygın müzik formatlarını (mp3, flac, wav vb.) bu uygulamayla ilişkilendirerek çift tıklamayla açın.';
 
   @override
   String get associateButton => 'İlişkilendir';
@@ -2045,10 +2140,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get disassociateButton => 'İlişkilendirmeyi Kaldır';
 
   @override
-  String get associationSuccess => 'İlişkilendirme başarılı! Çift tıklama çalışmazsa Windows Varsayılan Uygulamalar ayarlarından Vynody\'yi seçin.';
+  String get associationSuccess =>
+      'İlişkilendirme başarılı! Çift tıklama çalışmazsa Windows Varsayılan Uygulamalar ayarlarından Vynody\'yi seçin.';
 
   @override
-  String get disassociationSuccess => 'Dosya ilişkilendirmesi başarıyla kaldırıldı.';
+  String get disassociationSuccess =>
+      'Dosya ilişkilendirmesi başarıyla kaldırıldı.';
 
   @override
   String associationFailed(Object error) {
@@ -2059,7 +2156,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get onboardingTitle => 'Vynody\'ye Hoş Geldiniz';
 
   @override
-  String get onboardingSubtitle => 'Müzik yolculuğunuza başlamak için birkaç basit adım.';
+  String get onboardingSubtitle =>
+      'Müzik yolculuğunuza başlamak için birkaç basit adım.';
 
   @override
   String onboardingProTrialBadge(int days) {
@@ -2070,25 +2168,30 @@ class AppLocalizationsTr extends AppLocalizations {
   String get onboardingProPurchasedBadge => 'Vynody Pro Etkinleştirildi';
 
   @override
-  String get onboardingProExpiredBadge => 'Pro deneme süresi bitti · Temel çalma kalıcı olarak ücretsiz';
+  String get onboardingProExpiredBadge =>
+      'Pro deneme süresi bitti · Temel çalma kalıcı olarak ücretsiz';
 
   @override
   String get onboardingStepFileAssociation => 'Dosya Türlerini İlişkilendir';
 
   @override
-  String get onboardingFileAssociationDesc => 'Yaygın müzik formatlarını (mp3, flac, wav vb.) Vynody ile ilişkilendirerek dosya yöneticisinden çift tıklamayla doğrudan çalın.';
+  String get onboardingFileAssociationDesc =>
+      'Yaygın müzik formatlarını (mp3, flac, wav vb.) Vynody ile ilişkilendirerek dosya yöneticisinden çift tıklamayla doğrudan çalın.';
 
   @override
-  String get onboardingFileAssociationTip => 'İlişkilendirmenin ardından sistem \'Birlikte aç\' menüsü gösterebilir. Listeden \'Vynody\'yi seçtiğinizden ve \'Her zaman bu uygulamayı kullan\'ı işaretlediğinizden emin olun.';
+  String get onboardingFileAssociationTip =>
+      'İlişkilendirmenin ardından sistem \'Birlikte aç\' menüsü gösterebilir. Listeden \'Vynody\'yi seçtiğinizden ve \'Her zaman bu uygulamayı kullan\'ı işaretlediğinizden emin olun.';
 
   @override
   String get onboardingStepRootDirectory => 'Müzik Kök Dizinini Ekle';
 
   @override
-  String get onboardingRootDirectoryDesc => 'Müzik dosyalarınızın saklandığı klasörü seçin. Vynody yerel müzik kitaplığınızı otomatik olarak tarayacak ve oluşturacaktır.';
+  String get onboardingRootDirectoryDesc =>
+      'Müzik dosyalarınızın saklandığı klasörü seçin. Vynody yerel müzik kitaplığınızı otomatik olarak tarayacak ve oluşturacaktır.';
 
   @override
-  String get onboardingAndroidPermissionTip => 'Not: Android\'de yerel müzikleri içe aktarmak ve taramak için medya kitaplığı erişim izni vermeniz gerekir. [Klasör Seç] düğmesine bastığınızda izin istenecektir, lütfen izin verin.';
+  String get onboardingAndroidPermissionTip =>
+      'Not: Android\'de yerel müzikleri içe aktarmak ve taramak için medya kitaplığı erişim izni vermeniz gerekir. [Klasör Seç] düğmesine bastığınızda izin istenecektir, lütfen izin verin.';
 
   @override
   String get onboardingSelectDirectory => 'Klasör Seç';
@@ -2097,16 +2200,20 @@ class AppLocalizationsTr extends AppLocalizations {
   String get onboardingStepProgressBarStyle => 'İlerleme Çubuğu Stili';
 
   @override
-  String get onboardingProgressBarStyleDesc => 'Masaüstü deneyimi için tercih ettiğiniz oynatma ilerleme çubuğu stilini seçin.';
+  String get onboardingProgressBarStyleDesc =>
+      'Masaüstü deneyimi için tercih ettiğiniz oynatma ilerleme çubuğu stilini seçin.';
 
   @override
-  String get onboardingProgressBarStyleFullWaveformDesc => 'Geniş ekran için en iyisi. Vurgulu arama ile tüm parçayı bir bakışta görün.';
+  String get onboardingProgressBarStyleFullWaveformDesc =>
+      'Geniş ekran için en iyisi. Vurgulu arama ile tüm parçayı bir bakışta görün.';
 
   @override
-  String get onboardingProgressBarStyleScrollingWaveformDesc => 'Dinamik deneyim. Dalga formu ses çalındıkça sorunsuz kayar.';
+  String get onboardingProgressBarStyleScrollingWaveformDesc =>
+      'Dinamik deneyim. Dalga formu ses çalındıkça sorunsuz kayar.';
 
   @override
-  String get onboardingProgressBarStyleStandardDesc => 'Klasik minimalist kaydırıcı çubuğu.';
+  String get onboardingProgressBarStyleStandardDesc =>
+      'Klasik minimalist kaydırıcı çubuğu.';
 
   @override
   String get onboardingRecommendedTag => 'Önerilen';
@@ -2115,7 +2222,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get onboardingSuccessTitle => 'Her Şey Hazır!';
 
   @override
-  String get onboardingSuccessDesc => 'Medya kitaplığınız başarıyla eklendi. Müziğin keyfini çıkarmaya başlayalım!';
+  String get onboardingSuccessDesc =>
+      'Medya kitaplığınız başarıyla eklendi. Müziğin keyfini çıkarmaya başlayalım!';
 
   @override
   String get onboardingStartButton => 'Vynody\'ye Başla';
@@ -2133,7 +2241,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get resetOnboarding => 'Başlangıç Rehberini Sıfırla';
 
   @override
-  String get resetOnboardingDesc => 'İlk açılış rehberi durumunu sıfırlar. Uygulama bir sonraki başlatmada başlangıç rehberini tekrar gösterir.';
+  String get resetOnboardingDesc =>
+      'İlk açılış rehberi durumunu sıfırlar. Uygulama bir sonraki başlatmada başlangıç rehberini tekrar gösterir.';
 
   @override
   String get songProperties => 'Şarkı Özellikleri';
@@ -2142,7 +2251,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get failedToLoadDetails => 'Ayrıntılar alınamadı';
 
   @override
-  String get remoteAudioNotCachedHint => 'Bu parça bulutta ve yerel olarak önbelleğe alınmamış. Tüm ses özelliklerini görmek için parçayı çalın veya indirin.';
+  String get remoteAudioNotCachedHint =>
+      'Bu parça bulutta ve yerel olarak önbelleğe alınmamış. Tüm ses özelliklerini görmek için parçayı çalın veya indirin.';
 
   @override
   String get noPropertiesAvailable => 'Ayrıntılı şarkı özelliği bulunamadı';
@@ -2189,10 +2299,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get localNetworkPermissionDeniedTitle => 'Yerel Ağ Erişimi Kısıtlandı';
 
   @override
-  String get localNetworkPermissionDeniedMessage => 'Yerel IP adresi bulunamadı veya yerel ağ erişim izni reddedildi.\n\nLütfen şunları kontrol edin:\n1. Cihazınızın Wi-Fi veya yerel bir ağa bağlı olduğundan emin olun.\n2. Sistem ayarlarında uygulamanın yerel ağa erişmesine izin verildiğinden emin olun:\n   - iOS/macOS: Ayarlar > Gizlilik ve Güvenlik > Yerel Ağ bölümüne gidin ve Vynody\'yi etkinleştirin.\n   - Windows: Bağlı olduğunuzdan emin olun ve Windows Güvenlik Duvarı\'nın Vynody\'ye izin verdiğini kontrol edin.';
+  String get localNetworkPermissionDeniedMessage =>
+      'Yerel IP adresi bulunamadı veya yerel ağ erişim izni reddedildi.\n\nLütfen şunları kontrol edin:\n1. Cihazınızın Wi-Fi veya yerel bir ağa bağlı olduğundan emin olun.\n2. Sistem ayarlarında uygulamanın yerel ağa erişmesine izin verildiğinden emin olun:\n   - iOS/macOS: Ayarlar > Gizlilik ve Güvenlik > Yerel Ağ bölümüne gidin ve Vynody\'yi etkinleştirin.\n   - Windows: Bağlı olduğunuzdan emin olun ve Windows Güvenlik Duvarı\'nın Vynody\'ye izin verdiğini kontrol edin.';
 
   @override
-  String get localNetworkPermissionWindowsMessage => 'Yerel IP adresi algılanamadı.\n\nKontrol edin:\n1. Yerel ağ bağlantısı.\n2. Vynody\'ye izin vermek için Windows Güvenlik Duvarı\'nı kontrol edin.';
+  String get localNetworkPermissionWindowsMessage =>
+      'Yerel IP adresi algılanamadı.\n\nKontrol edin:\n1. Yerel ağ bağlantısı.\n2. Vynody\'ye izin vermek için Windows Güvenlik Duvarı\'nı kontrol edin.';
 
   @override
   String get openSettingsButton => 'Ayarları Aç';
@@ -2207,7 +2319,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get copyTranslation => 'Çeviriyi kopyala';
 
   @override
-  String get copyTranslationWithTimestamps => 'Zaman damgalarıyla çeviriyi kopyala';
+  String get copyTranslationWithTimestamps =>
+      'Zaman damgalarıyla çeviriyi kopyala';
 
   @override
   String get writeLyricsToFile => 'Sözleri dosyaya yaz';
@@ -2219,25 +2332,30 @@ class AppLocalizationsTr extends AppLocalizations {
   String get regenerateLyrics => 'Şarkı Sözlerini Yeniden Oluştur';
 
   @override
-  String get regenerateLyricsConfirmation => 'Mevcut sözler temizlenecek ve yeniden oluşturulacaktır. Devam edilsin mi?';
+  String get regenerateLyricsConfirmation =>
+      'Mevcut sözler temizlenecek ve yeniden oluşturulacaktır. Devam edilsin mi?';
 
   @override
   String get regenerateTimeline => 'Zaman Çizelgesini Yeniden Oluştur';
 
   @override
-  String get regenerateTimelineConfirmation => 'Mevcut zaman çizelgesi temizlenecek ve yeniden oluşturulacaktır. Devam edilsin mi?';
+  String get regenerateTimelineConfirmation =>
+      'Mevcut zaman çizelgesi temizlenecek ve yeniden oluşturulacaktır. Devam edilsin mi?';
 
   @override
-  String get convertToKaraokeConfirmation => 'Mevcut sözler kelime kelime dönüştürülecek ve zaman çizelgesi yeniden oluşturulacaktır. Devam edilsin mi?';
+  String get convertToKaraokeConfirmation =>
+      'Mevcut sözler kelime kelime dönüştürülecek ve zaman çizelgesi yeniden oluşturulacaktır. Devam edilsin mi?';
 
   @override
   String get retranslateLyrics => 'Şarkı Sözlerini Yeniden Çevir';
 
   @override
-  String get retranslateLyricsConfirmation => 'Geçerli dil yeniden çevrilecek. Yeni satırlar gelene kadar mevcut çeviri korunur. Devam edilsin mi?';
+  String get retranslateLyricsConfirmation =>
+      'Geçerli dil yeniden çevrilecek. Yeni satırlar gelene kadar mevcut çeviri korunur. Devam edilsin mi?';
 
   @override
-  String get translationCopiedToClipboard => 'Çeviri sonuçları panoya kopyalandı';
+  String get translationCopiedToClipboard =>
+      'Çeviri sonuçları panoya kopyalandı';
 
   @override
   String get writingLyrics => 'Sözler yazılıyor...';
@@ -2270,19 +2388,24 @@ class AppLocalizationsTr extends AppLocalizations {
   String get untitledRelease => 'Başlıksız Yayın';
 
   @override
-  String get localSongFileNotFoundForGeneration => 'Yerel şarkı dosyası bulunamadı, söz oluşturulamıyor.';
+  String get localSongFileNotFoundForGeneration =>
+      'Yerel şarkı dosyası bulunamadı, söz oluşturulamıyor.';
 
   @override
-  String get localSongFileNotFoundForTimeline => 'Yerel şarkı dosyası bulunamadı, zaman çizelgesi oluşturulamıyor.';
+  String get localSongFileNotFoundForTimeline =>
+      'Yerel şarkı dosyası bulunamadı, zaman çizelgesi oluşturulamıyor.';
 
   @override
-  String get noLyricsForTimelineGeneration => 'Kullanılabilir söz yok, zaman çizelgesi oluşturulamıyor.';
+  String get noLyricsForTimelineGeneration =>
+      'Kullanılabilir söz yok, zaman çizelgesi oluşturulamıyor.';
 
   @override
-  String get karaokeRequiresSyncedLyrics => 'Yalnızca zaman damgalı senkronize şarkı sözleri kelime kelime dönüştürülebilir. Düz metin şarkı sözleri desteklenmez.';
+  String get karaokeRequiresSyncedLyrics =>
+      'Yalnızca zaman damgalı senkronize şarkı sözleri kelime kelime dönüştürülebilir. Düz metin şarkı sözleri desteklenmez.';
 
   @override
-  String get noLyricsAvailableForTranslation => 'Çeviri için uygun şarkı sözü bulunamadı.';
+  String get noLyricsAvailableForTranslation =>
+      'Çeviri için uygun şarkı sözü bulunamadı.';
 
   @override
   String get noCurrentSongAvailable => 'Şu anda çalınan şarkı yok.';
@@ -2291,13 +2414,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get invalidTargetLanguage => 'Hedef dil geçersiz.';
 
   @override
-  String get songAlreadyQueuedForTranslation => 'Geçerli şarkının söz çevirisi zaten kuyrukta veya işleniyor.';
+  String get songAlreadyQueuedForTranslation =>
+      'Geçerli şarkının söz çevirisi zaten kuyrukta veya işleniyor.';
 
   @override
-  String get songAlreadyQueuedForGeneration => 'Geçerli şarkının söz oluşturma görevi zaten kuyrukta veya işleniyor.';
+  String get songAlreadyQueuedForGeneration =>
+      'Geçerli şarkının söz oluşturma görevi zaten kuyrukta veya işleniyor.';
 
   @override
-  String get songNoLongerExistsForTranslation => 'Geçerli şarkı artık mevcut değil, sözler çevrilemiyor.';
+  String get songNoLongerExistsForTranslation =>
+      'Geçerli şarkı artık mevcut değil, sözler çevrilemiyor.';
 
   @override
   String get generationFailed => 'Oluşturma başarısız oldu.';
@@ -2324,7 +2450,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get uploadingSongFile => 'Şarkı dosyası yükleniyor';
 
   @override
-  String get fileUploadedWaitingForReadiness => 'Dosya yüklendi, hazır olması bekleniyor';
+  String get fileUploadedWaitingForReadiness =>
+      'Dosya yüklendi, hazır olması bekleniyor';
 
   @override
   String get waitingForFileReadiness => 'Dosyanın hazır olması bekleniyor';
@@ -2360,79 +2487,97 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get unknownGenerationError => 'Sözler oluşturulurken bilinmeyen bir hata meydana geldi.';
+  String get unknownGenerationError =>
+      'Sözler oluşturulurken bilinmeyen bir hata meydana geldi.';
 
   @override
-  String get unknownTimelineGenerationError => 'Zaman çizelgesi oluşturulurken bilinmeyen bir hata meydana geldi.';
+  String get unknownTimelineGenerationError =>
+      'Zaman çizelgesi oluşturulurken bilinmeyen bir hata meydana geldi.';
 
   @override
-  String get unknownTranslationError => 'Sözler çevrilirken bilinmeyen bir hata meydana geldi.';
+  String get unknownTranslationError =>
+      'Sözler çevrilirken bilinmeyen bir hata meydana geldi.';
 
   @override
   String get unknownError => 'Bilinmeyen hata';
 
   @override
-  String get modelRefusedToGenerateLyrics => 'Model sözleri oluşturmayı reddetti.';
+  String get modelRefusedToGenerateLyrics =>
+      'Model sözleri oluşturmayı reddetti.';
 
   @override
-  String get modelRefusedToGenerateTimeline => 'Model zaman çizelgesini oluşturmayı reddetti.';
+  String get modelRefusedToGenerateTimeline =>
+      'Model zaman çizelgesini oluşturmayı reddetti.';
 
   @override
-  String get doubaoPreUploadTranscodingFailed => 'Doubao yüklemesi öncesinde ses dönüştürme başarısız oldu.';
+  String get doubaoPreUploadTranscodingFailed =>
+      'Doubao yüklemesi öncesinde ses dönüştürme başarısız oldu.';
 
   @override
-  String get doubaoTempTranscodeNotInTempDir => 'Geçici dönüştürülen dosya geçici dizinde oluşturulamadı.';
+  String get doubaoTempTranscodeNotInTempDir =>
+      'Geçici dönüştürülen dosya geçici dizinde oluşturulamadı.';
 
   @override
-  String get doubaoEmptyStreamingResponse => 'Doubao boş bir akış yanıtı döndürdü.';
+  String get doubaoEmptyStreamingResponse =>
+      'Doubao boş bir akış yanıtı döndürdü.';
 
   @override
   String get doubaoEmptyResponse => 'Doubao boş bir yanıt döndürdü.';
 
   @override
-  String get geminiEmptyStreamingResponse => 'Gemini boş bir akış yanıtı döndürdü.';
+  String get geminiEmptyStreamingResponse =>
+      'Gemini boş bir akış yanıtı döndürdü.';
 
   @override
   String get geminiEmptyResponse => 'Gemini boş bir yanıt döndürdü.';
 
   @override
-  String get openRouterEmptyStreamingResponse => 'OpenRouter boş bir akış yanıtı döndürdü.';
+  String get openRouterEmptyStreamingResponse =>
+      'OpenRouter boş bir akış yanıtı döndürdü.';
 
   @override
   String get openRouterEmptyResponse => 'OpenRouter boş bir yanıt döndürdü.';
 
   @override
-  String get deepseekEmptyStreamingResponse => 'DeepSeek boş bir akış yanıtı döndürdü.';
+  String get deepseekEmptyStreamingResponse =>
+      'DeepSeek boş bir akış yanıtı döndürdü.';
 
   @override
   String get deepseekEmptyResponse => 'DeepSeek boş bir yanıt döndürdü.';
 
   @override
-  String get customProviderEmptyStreamingResponse => 'Özel sağlayıcı boş bir akış yanıtı döndürdü.';
+  String get customProviderEmptyStreamingResponse =>
+      'Özel sağlayıcı boş bir akış yanıtı döndürdü.';
 
   @override
-  String get customProviderEmptyResponse => 'Özel sağlayıcı boş bir yanıt döndürdü.';
+  String get customProviderEmptyResponse =>
+      'Özel sağlayıcı boş bir yanıt döndürdü.';
 
   @override
   String get fileUploadFailed => 'Dosya yüklenemedi. Lütfen tekrar deneyin.';
 
   @override
-  String get uploadedFileNotReady => 'Yüklenen dosya henüz hazır değil. Lütfen biraz sonra tekrar deneyin.';
+  String get uploadedFileNotReady =>
+      'Yüklenen dosya henüz hazır değil. Lütfen biraz sonra tekrar deneyin.';
 
   @override
   String get audioTranscodingFailed => 'Ses dönüştürme işlemi başarısız oldu.';
 
   @override
-  String get tempTranscodeNotInTempDir => 'Geçici dönüştürülen dosya geçici dizinde bulunamadı.';
+  String get tempTranscodeNotInTempDir =>
+      'Geçici dönüştürülen dosya geçici dizinde bulunamadı.';
 
   @override
-  String get networkRequestFailedCheckProxy => 'Ağ isteği başarısız oldu. Lütfen ağ ve vekil sunucu (proxy) ayarlarınızı kontrol edin.';
+  String get networkRequestFailedCheckProxy =>
+      'Ağ isteği başarısız oldu. Lütfen ağ ve vekil sunucu (proxy) ayarlarınızı kontrol edin.';
 
   @override
-  String get quotaExhaustedToday => 'Bugünkü kota tükendi. Lütfen yarın sıfırlandıktan sonra tekrar deneyin.';
+  String get quotaExhaustedToday =>
+      'Bugünkü kota tükendi. Lütfen yarın sıfırlandıktan sonra tekrar deneyin.';
 
   @override
-  String get googleAiHeavyLoad => 'Google AI sunucularında yoğunluk var ve geçici olarak kullanılamıyor.';
+  String get googleAiHeavyLoad =>
+      'Google AI sunucularında yoğunluk var ve geçici olarak kullanılamıyor.';
 
   @override
   String lyricsGenerationFailedWithError(Object error) {
@@ -2450,10 +2595,12 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get apiKeyInvalidCheckKey => 'Geçersiz API anahtarı. Lütfen anahtarın geçerliliğini kontrol edin.';
+  String get apiKeyInvalidCheckKey =>
+      'Geçersiz API anahtarı. Lütfen anahtarın geçerliliğini kontrol edin.';
 
   @override
-  String get googleServerFlaky => 'Google sunucuları şu anda yanıt vermekte zorlanıyor. Lütfen tekrar deneyin.';
+  String get googleServerFlaky =>
+      'Google sunucuları şu anda yanıt vermekte zorlanıyor. Lütfen tekrar deneyin.';
 
   @override
   String get translateLyricsAction => 'şarkı sözlerini çevir';
@@ -2468,19 +2615,23 @@ class AppLocalizationsTr extends AppLocalizations {
   String get convertToKaraokeAction => 'kelime kelime şarkı sözüne dönüştür';
 
   @override
-  String get deepseekOnlyTranslation => 'DeepSeek yalnızca şarkı sözü çevirisi için kullanılabilir.';
+  String get deepseekOnlyTranslation =>
+      'DeepSeek yalnızca şarkı sözü çevirisi için kullanılabilir.';
 
   @override
-  String get customProviderOnlyTranslation => 'Özel sağlayıcı yalnızca şarkı sözü çevirisi için kullanılabilir.';
+  String get customProviderOnlyTranslation =>
+      'Özel sağlayıcı yalnızca şarkı sözü çevirisi için kullanılabilir.';
 
   @override
-  String get customProviderNoBaseUrl => 'Özel sağlayıcı API Base URL adresi yapılandırılmamış.';
+  String get customProviderNoBaseUrl =>
+      'Özel sağlayıcı API Base URL adresi yapılandırılmamış.';
 
   @override
   String get pleaseEnterApiKey => 'Lütfen bir API anahtarı girin.';
 
   @override
-  String get connectionSuccessVerificationPassed => 'Bağlantı başarılı, doğrulama geçti.';
+  String get connectionSuccessVerificationPassed =>
+      'Bağlantı başarılı, doğrulama geçti.';
 
   @override
   String connectionSuccessDetectedModels(Object count) {
@@ -2493,7 +2644,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get testFailedCheckNetworkOrApiKey => 'Test başarısız oldu. Lütfen ağ bağlantınızı veya API anahtarınızı kontrol edin.';
+  String get testFailedCheckNetworkOrApiKey =>
+      'Test başarısız oldu. Lütfen ağ bağlantınızı veya API anahtarınızı kontrol edin.';
 
   @override
   String testFailedStatusCheckApiKey(Object statusCode) {
@@ -2501,16 +2653,20 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get enterGoogleAiStudioApiKeyFirst => 'Lütfen önce bir Google AI Studio API anahtarı girin.';
+  String get enterGoogleAiStudioApiKeyFirst =>
+      'Lütfen önce bir Google AI Studio API anahtarı girin.';
 
   @override
-  String get enterDoubaoApiKeyFirst => 'Lütfen önce bir Doubao API anahtarı girin.';
+  String get enterDoubaoApiKeyFirst =>
+      'Lütfen önce bir Doubao API anahtarı girin.';
 
   @override
-  String get enterDeepseekApiKeyFirst => 'Lütfen önce bir DeepSeek API anahtarı girin.';
+  String get enterDeepseekApiKeyFirst =>
+      'Lütfen önce bir DeepSeek API anahtarı girin.';
 
   @override
-  String get enterCustomApiKeyAndBaseUrl => 'Lütfen önce özel API anahtarını ve Base URL adresini girin.';
+  String get enterCustomApiKeyAndBaseUrl =>
+      'Lütfen önce özel API anahtarını ve Base URL adresini girin.';
 
   @override
   String fetchedCountModels(Object count) {
@@ -2523,7 +2679,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get requestFailedCheckNetwork => 'İstek başarısız oldu. Ağ bağlantınızı kontrol edin.';
+  String get requestFailedCheckNetwork =>
+      'İstek başarısız oldu. Ağ bağlantınızı kontrol edin.';
 
   @override
   String requestFailedStatus(Object statusCode) {
@@ -2599,7 +2756,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get seekBackward5sDescription => 'Oynatmayı 5 saniye geri sarar.';
 
   @override
-  String get toggleFullScreenDescription => 'Pencereli mod ile tam ekran modu arasında geçiş yapar.';
+  String get toggleFullScreenDescription =>
+      'Pencereli mod ile tam ekran modu arasında geçiş yapar.';
 
   @override
   String get unknownKey => 'Bilinmeyen tuş';
@@ -2625,7 +2783,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get openRelease => 'Yayın Sayfasını Aç';
 
   @override
-  String get checkUpdateFailedNetwork => 'Güncellemeler denetlenemedi. Ağ sorunu veya GitHub hız sınırı olabilir.';
+  String get checkUpdateFailedNetwork =>
+      'Güncellemeler denetlenemedi. Ağ sorunu veya GitHub hız sınırı olabilir.';
 
   @override
   String get tags => 'Etiketler';
@@ -2637,10 +2796,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get rebuildIndex => 'Dizini Yeniden Oluştur';
 
   @override
-  String get rebuildIndexDescription => 'Harici kaynaklar hariç tüm şarkı kayıtlarını temizler ve tüm kök dizinleri yeniden tarar.';
+  String get rebuildIndexDescription =>
+      'Harici kaynaklar hariç tüm şarkı kayıtlarını temizler ve tüm kök dizinleri yeniden tarar.';
 
   @override
-  String get rebuildIndexConfirmation => 'Harici kaynaklar hariç tüm şarkı kayıtlarını temizlemek ve tüm kök dizinleri yeniden taramak istediğinizden emin misiniz? Bu işlem biraz zaman alabilir.';
+  String get rebuildIndexConfirmation =>
+      'Harici kaynaklar hariç tüm şarkı kayıtlarını temizlemek ve tüm kök dizinleri yeniden taramak istediğinizden emin misiniz? Bu işlem biraz zaman alabilir.';
 
   @override
   String get rebuildIndexStarted => 'Dizini yeniden oluşturma başlatıldı';
@@ -2652,37 +2813,45 @@ class AppLocalizationsTr extends AppLocalizations {
   String get advanced => 'Gelişmiş';
 
   @override
-  String get advancedOptionsDescription => 'Hata ayıklama ve davranış ayarlama seçenekleri.';
+  String get advancedOptionsDescription =>
+      'Hata ayıklama ve davranış ayarlama seçenekleri.';
 
   @override
-  String get showDeveloperOptionsDescription => 'Hata ayıklamaya yönelik gelişmiş seçenekleri gösterir.';
+  String get showDeveloperOptionsDescription =>
+      'Hata ayıklamaya yönelik gelişmiş seçenekleri gösterir.';
 
   @override
-  String get onboardingReset => 'Başlangıç kurulumu sıfırlandı. Bir sonraki başlatmada geçerli olacaktır.';
+  String get onboardingReset =>
+      'Başlangıç kurulumu sıfırlandı. Bir sonraki başlatmada geçerli olacaktır.';
 
   @override
-  String get tagsSectionDescription => 'Ses dosyası meta verilerini ve otomatik tamamlamayı yapılandırın.';
+  String get tagsSectionDescription =>
+      'Ses dosyası meta verilerini ve otomatik tamamlamayı yapılandırın.';
 
   @override
   String get autoSaveToSourceFile => 'Kaynak Dosyaya Otomatik Kaydet';
 
   @override
-  String get autoSaveToSourceFileDescription => 'Tamamlandığında etiketleri otomatik olarak fiziksel ses dosyasına geri yazar.';
+  String get autoSaveToSourceFileDescription =>
+      'Tamamlandığında etiketleri otomatik olarak fiziksel ses dosyasına geri yazar.';
 
   @override
-  String get aboutSectionDescription => 'Sürüm bilgisi, proje bağlantıları ve ilgili ayrıntılar.';
+  String get aboutSectionDescription =>
+      'Sürüm bilgisi, proje bağlantıları ve ilgili ayrıntılar.';
 
   @override
   String get checkForUpdates => 'Güncellemeleri Denetle';
 
   @override
-  String get storeUpdateNotice => 'Bu uygulamanın güncellemeleri Microsoft Store tarafından yönetilmektedir. En son sürümü Microsoft Store\'dan kontrol edebilirsiniz.';
+  String get storeUpdateNotice =>
+      'Bu uygulamanın güncellemeleri Microsoft Store tarafından yönetilmektedir. En son sürümü Microsoft Store\'dan kontrol edebilirsiniz.';
 
   @override
   String get openMicrosoftStore => 'Microsoft Store\'a Git';
 
   @override
-  String get appStoreUpdateNotice => 'Bu uygulamanın güncellemeleri App Store tarafından yönetilmektedir. En son sürümü App Store\'dan kontrol edebilirsiniz.';
+  String get appStoreUpdateNotice =>
+      'Bu uygulamanın güncellemeleri App Store tarafından yönetilmektedir. En son sürümü App Store\'dan kontrol edebilirsiniz.';
 
   @override
   String get openAppStore => 'App Store\'a Git';
@@ -2691,31 +2860,36 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lyricsGenerationModel => 'Şarkı Sözü Oluşturma Modeli';
 
   @override
-  String get lyricsGenerationModelDescription => 'AI ile söz oluşturma ve zaman çizelgesi hizalama için kullanılır.';
+  String get lyricsGenerationModelDescription =>
+      'AI ile söz oluşturma ve zaman çizelgesi hizalama için kullanılır.';
 
   @override
   String get lyricsKaraokeModel => 'Karaoke Şarkı Sözü Modeli';
 
   @override
-  String get lyricsKaraokeModelDescription => 'Şarkı sözlerini kelime kelime karaoke zaman çizelgesine dönüştürmek için kullanılan yüksek hassasiyetli ses hizalama modeli.';
+  String get lyricsKaraokeModelDescription =>
+      'Şarkı sözlerini kelime kelime karaoke zaman çizelgesine dönüştürmek için kullanılan yüksek hassasiyetli ses hizalama modeli.';
 
   @override
   String get lyricsTranslationModel => 'Şarkı Sözü Çeviri Modeli';
 
   @override
-  String get lyricsTranslationModelDescription => 'Şarkı sözlerini hedef dile çevirmek için kullanılır.';
+  String get lyricsTranslationModelDescription =>
+      'Şarkı sözlerini hedef dile çevirmek için kullanılır.';
 
   @override
   String get onlyForLyricTranslation => 'Yalnızca şarkı sözü çevirisi için';
 
   @override
-  String get fillApiKeyFirstEnablesModels => 'Model seçimini etkinleştirmek için lütfen en az bir API anahtarı girin.';
+  String get fillApiKeyFirstEnablesModels =>
+      'Model seçimini etkinleştirmek için lütfen en az bir API anahtarı girin.';
 
   @override
   String get customApiProvider => 'Özel API Sağlayıcı';
 
   @override
-  String get clearedGoogleAiStudioApiKey => 'Google AI Studio API anahtarı temizlendi';
+  String get clearedGoogleAiStudioApiKey =>
+      'Google AI Studio API anahtarı temizlendi';
 
   @override
   String get clearedOpenRouterApiKey => 'OpenRouter API anahtarı temizlendi';
@@ -2727,7 +2901,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get clearedDeepseekApiKey => 'DeepSeek API anahtarı temizlendi';
 
   @override
-  String get clearedCustomProviderConfig => 'Özel sağlayıcı yapılandırması temizlendi';
+  String get clearedCustomProviderConfig =>
+      'Özel sağlayıcı yapılandırması temizlendi';
 
   @override
   String get savedDoubaoApiKey => 'Doubao API anahtarı kaydedildi';
@@ -2736,7 +2911,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get savedDeepseekApiKey => 'DeepSeek API anahtarı kaydedildi';
 
   @override
-  String get savedCustomProviderConfig => 'Özel sağlayıcı yapılandırması kaydedildi';
+  String get savedCustomProviderConfig =>
+      'Özel sağlayıcı yapılandırması kaydedildi';
 
   @override
   String get noMatchingFoldersOrSongs => 'Eşleşen klasör veya şarkı bulunamadı';
@@ -2823,7 +2999,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get filesToTranscode => 'Dönüştürülecek Dosyalar';
 
   @override
-  String get chooseAndroidOutputDirectoryFirst => 'Lütfen önce bir Android çıktı dizini seçin.';
+  String get chooseAndroidOutputDirectoryFirst =>
+      'Lütfen önce bir Android çıktı dizini seçin.';
 
   @override
   String currentSongProgressPercent(Object percent) {
@@ -2836,7 +3013,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get pleaseChooseOutputDirectory => 'Lütfen önce bir çıktı dizini seçin.';
+  String get pleaseChooseOutputDirectory =>
+      'Lütfen önce bir çıktı dizini seçin.';
 
   @override
   String selectedArtistsCount(Object count) {
@@ -2918,46 +3096,58 @@ class AppLocalizationsTr extends AppLocalizations {
   String get whatIsAiLyricTranslation => 'AI Şarkı Sözü Çevirisi Nedir?';
 
   @override
-  String get aiLyricsIntroGeneration => 'AI, şarkı içeriğine göre sözleri oluşturabilir ve zaman çizelgesiyle otomatik eşleştirebilir.';
+  String get aiLyricsIntroGeneration =>
+      'AI, şarkı içeriğine göre sözleri oluşturabilir ve zaman çizelgesiyle otomatik eşleştirebilir.';
 
   @override
-  String get aiLyricsIntroTranslation => 'AI, şarkı sözlerini anlamanızı kolaylaştırmak için bildiğiniz bir dile çevirebilir.';
+  String get aiLyricsIntroTranslation =>
+      'AI, şarkı sözlerini anlamanızı kolaylaştırmak için bildiğiniz bir dile çevirebilir.';
 
   @override
   String get whyNeedApiKey => 'Neden bir API anahtarına ihtiyacım var?';
 
   @override
-  String get apiKeyExplanation => 'AI modellerini kullanabilmek için ilgili sağlayıcının (OpenRouter, DeepSeek vb.) API anahtarı gereklidir. Anahtarınız yerel olarak saklanır.';
+  String get apiKeyExplanation =>
+      'AI modellerini kullanabilmek için ilgili sağlayıcının (OpenRouter, DeepSeek vb.) API anahtarı gereklidir. Anahtarınız yerel olarak saklanır.';
 
   @override
-  String get apiKeyLocalOnly => 'API anahtarınız yalnızca cihazınızda yerel olarak saklanır ve asla harici sunuculara gönderilmez.';
+  String get apiKeyLocalOnly =>
+      'API anahtarınız yalnızca cihazınızda yerel olarak saklanır ve asla harici sunuculara gönderilmez.';
 
   @override
   String get chooseAnAiProvider => 'Bir AI sağlayıcısı seçin:';
 
   @override
-  String get googleProviderPros => 'Güçlü Gemini modelleri ve cömert ücretsiz kotalar sunan resmi Google kanalı.';
+  String get googleProviderPros =>
+      'Güçlü Gemini modelleri ve cömert ücretsiz kotalar sunan resmi Google kanalı.';
 
   @override
-  String get googleProviderCons => 'Yüksek trafik zaman zaman 429 hatasına neden olabilir. Bu durumda başka bir sağlayıcıya geçebilirsiniz.';
+  String get googleProviderCons =>
+      'Yüksek trafik zaman zaman 429 hatasına neden olabilir. Bu durumda başka bir sağlayıcıya geçebilirsiniz.';
 
   @override
-  String get openRouterProviderPros => 'Birçok sağlayıcıya ve bazı ücretsiz modellere erişim sunan bir model toplayıcı.';
+  String get openRouterProviderPros =>
+      'Birçok sağlayıcıya ve bazı ücretsiz modellere erişim sunan bir model toplayıcı.';
 
   @override
-  String get openRouterProviderCons => 'Bakiye yüklemeleri işlem ücreti içerebilir ve web sitesi yalnızca İngilizcedir.';
+  String get openRouterProviderCons =>
+      'Bakiye yüklemeleri işlem ücreti içerebilir ve web sitesi yalnızca İngilizcedir.';
 
   @override
-  String get doubaoProviderPros => 'ByteDance tarafından geliştirilmiştir, Çince ve çoklu dilde güçlüdür. Yeni kullanıcılara model başına 500 bin ücretsiz belirteç verilir.';
+  String get doubaoProviderPros =>
+      'ByteDance tarafından geliştirilmiştir, Çince ve çoklu dilde güçlüdür. Yeni kullanıcılara model başına 500 bin ücretsiz belirteç verilir.';
 
   @override
-  String get doubaoProviderCons => 'Kayıt işlemi nispeten karmaşıktır ve gerçek isim doğrulaması gerektirir.';
+  String get doubaoProviderCons =>
+      'Kayıt işlemi nispeten karmaşıktır ve gerçek isim doğrulaması gerektirir.';
 
   @override
-  String get deepseekProviderPros => 'İyi anlama yeteneği, düşük fiyatlandırma ve şarkı sözü çevirisi için çok uygundur.';
+  String get deepseekProviderPros =>
+      'İyi anlama yeteneği, düşük fiyatlandırma ve şarkı sözü çevirisi için çok uygundur.';
 
   @override
-  String get deepseekProviderCons => 'Yalnızca metin girişi destekler. Söz oluşturma ve zaman çizelgesi hizalama için başka bir sağlayıcıdan API anahtarı gerekir.';
+  String get deepseekProviderCons =>
+      'Yalnızca metin girişi destekler. Söz oluşturma ve zaman çizelgesi hizalama için başka bir sağlayıcıdan API anahtarı gerekir.';
 
   @override
   String get highlights => 'Öne Çıkanlar';
@@ -3016,7 +3206,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get noteTitle => 'Not';
 
   @override
-  String get deepseekTextInputOnlyNote => 'DeepSeek yalnızca metin girişini destekler. Söz oluşturma ve zaman çizelgesi hizalama için başka bir sağlayıcıdan API anahtarı gerekir.';
+  String get deepseekTextInputOnlyNote =>
+      'DeepSeek yalnızca metin girişini destekler. Söz oluşturma ve zaman çizelgesi hizalama için başka bir sağlayıcıdan API anahtarı gerekir.';
 
   @override
   String retryAttemptOfMax(Object attempt, Object maxRetry) {
@@ -3043,13 +3234,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get enterDoubaoApiKey => 'Doubao API Anahtarını Girin';
 
   @override
-  String get doubaoApiKeyDescription => 'Söz oluşturma ve çeviri için lütfen Volcano/Doubao API anahtarınızı girin.';
+  String get doubaoApiKeyDescription =>
+      'Söz oluşturma ve çeviri için lütfen Volcano/Doubao API anahtarınızı girin.';
 
   @override
   String get enterDeepseekApiKey => 'DeepSeek API Anahtarını Girin';
 
   @override
-  String get deepseekApiKeyDescription => 'Yalnızca söz çevirisi için lütfen DeepSeek API anahtarınızı girin.';
+  String get deepseekApiKeyDescription =>
+      'Yalnızca söz çevirisi için lütfen DeepSeek API anahtarınızı girin.';
 
   @override
   String get pleaseEnterApiKeyHint => 'Lütfen API anahtarını girin';
@@ -3070,7 +3263,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get leaveEmpty => 'Boş bırak';
 
   @override
-  String get leaveEmptyFallbackDescription => 'Yedek model ayarlamamak için bunu seçin.';
+  String get leaveEmptyFallbackDescription =>
+      'Yedek model ayarlamamak için bunu seçin.';
 
   @override
   String get modelSearchHint => 'Model adı veya ID girin';
@@ -3089,7 +3283,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get noMusicFilesFound => 'Bu klasörde desteklenen müzik dosyası bulunamadı';
+  String get noMusicFilesFound =>
+      'Bu klasörde desteklenen müzik dosyası bulunamadı';
 
   @override
   String sendFolderFailed(Object error) {
@@ -3097,7 +3292,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get lanSharingStartFailed => 'Yerel ağ paylaşımı başlatılamadı. Lütfen yerel ağ izinlerini kontrol edin.';
+  String get lanSharingStartFailed =>
+      'Yerel ağ paylaşımı başlatılamadı. Lütfen yerel ağ izinlerini kontrol edin.';
 
   @override
   String syncingLyricsToDevice(Object deviceName) {
@@ -3120,7 +3316,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get transferInProgressDoNotLeave => 'Aktarım devam ediyor, lütfen paylaşım sayfasından ayrılmayın';
+  String get transferInProgressDoNotLeave =>
+      'Aktarım devam ediyor, lütfen paylaşım sayfasından ayrılmayın';
 
   @override
   String get lanSharingTitle => 'Yerel Ağ Paylaşımı';
@@ -3137,13 +3334,16 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get lanSharingDefaultOffHint => 'Varsayılan olarak kapalıdır. Etkinleştirildiğinde yerel ağ izni istenecektir.';
+  String get lanSharingDefaultOffHint =>
+      'Varsayılan olarak kapalıdır. Etkinleştirildiğinde yerel ağ izni istenecektir.';
 
   @override
-  String get receiveDirectoryNotSetWarning => 'Dosya alabilmek için bir alıcı dizini ayarlanmalıdır. Lütfen bir dizin seçin.';
+  String get receiveDirectoryNotSetWarning =>
+      'Dosya alabilmek için bir alıcı dizini ayarlanmalıdır. Lütfen bir dizin seçin.';
 
   @override
-  String get receiveDirectoryNoWritePermission => 'Mevcut kayıt dizini için yazma izni yok. Lütfen değiştirin.';
+  String get receiveDirectoryNoWritePermission =>
+      'Mevcut kayıt dizini için yazma izni yok. Lütfen değiştirin.';
 
   @override
   String get restoreDefaultDirectory => 'Varsayılan Dizini Geri Yükle';
@@ -3152,7 +3352,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chooseOtherDirectory => 'Başka Bir Dizin Seç';
 
   @override
-  String get receiveDirectoryRestoredDefault => 'Varsayılan alıcı dizini geri yüklendi';
+  String get receiveDirectoryRestoredDefault =>
+      'Varsayılan alıcı dizini geri yüklendi';
 
   @override
   String receiveDirectoryUpdated(Object path) {
@@ -3172,7 +3373,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get searchingDevices => 'Yerel ağdaki diğer cihazlar aranıyor...';
 
   @override
-  String get startSharingToFindDevices => 'Cihazları bulmak için paylaşımı etkinleştirin';
+  String get startSharingToFindDevices =>
+      'Cihazları bulmak için paylaşımı etkinleştirin';
 
   @override
   String get deviceOnline => 'Çevrimiçi';
@@ -3216,7 +3418,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get receiveFileHint => 'Alınan dosyalar müzik klasörüne kaydedilecek ve kitaplığa eklenecektir.';
+  String get receiveFileHint =>
+      'Alınan dosyalar müzik klasörüne kaydedilecek ve kitaplığa eklenecektir.';
 
   @override
   String get reject => 'Reddet';
@@ -3241,7 +3444,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get lyricsRequestRejected => 'Uzak cihaz şarkı sözü eşitleme isteğini reddetti.';
+  String get lyricsRequestRejected =>
+      'Uzak cihaz şarkı sözü eşitleme isteğini reddetti.';
 
   @override
   String sendCompleted(Object fileName) {
@@ -3285,7 +3489,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get fileConflictTitle => 'Dosya Çakışması';
 
   @override
-  String get fileConflictMessage => 'Hedef cihazda aynı ada sahip bir dosya zaten mevcut:';
+  String get fileConflictMessage =>
+      'Hedef cihazda aynı ada sahip bir dosya zaten mevcut:';
 
   @override
   String get fileConflictChooseAction => 'Lütfen bir işlem seçin:';
@@ -3315,16 +3520,20 @@ class AppLocalizationsTr extends AppLocalizations {
   String get fileAssociationDisabled => 'İlişkilendirilmedi';
 
   @override
-  String get windowsAutoRepairShortcut => 'Başlat Menüsü Kısayolunu Otomatik Onar';
+  String get windowsAutoRepairShortcut =>
+      'Başlat Menüsü Kısayolunu Otomatik Onar';
 
   @override
-  String get windowsAutoRepairShortcutDescription => 'Doğru medya denetim adını ve simgesini görüntülemek için her başlangıçta Başlat Menüsü kısayolunu otomatik kontrol et ve oluştur';
+  String get windowsAutoRepairShortcutDescription =>
+      'Doğru medya denetim adını ve simgesini görüntülemek için her başlangıçta Başlat Menüsü kısayolunu otomatik kontrol et ve oluştur';
 
   @override
-  String get confirmDisableShortcutRepair => 'Bu özellik devre dışı bırakılsın mı?';
+  String get confirmDisableShortcutRepair =>
+      'Bu özellik devre dışı bırakılsın mı?';
 
   @override
-  String get confirmDisableShortcutRepairContent => 'Başlat Menüsü kısayolu olmadan, Windows medya kontrolleri uygulamayı \"Bilinmeyen\" olarak gösterebilir ve simge görüntülemeyebilir. Bunu devre dışı bırakmak istediğinizden emin misiniz?';
+  String get confirmDisableShortcutRepairContent =>
+      'Başlat Menüsü kısayolu olmadan, Windows medya kontrolleri uygulamayı \"Bilinmeyen\" olarak gösterebilir ve simge görüntülemeyebilir. Bunu devre dışı bırakmak istediğinizden emin misiniz?';
 
   @override
   String get confirmDisable => 'Devre Dışı Bırak';
@@ -3333,19 +3542,22 @@ class AppLocalizationsTr extends AppLocalizations {
   String get enableSystemTray => 'Sistem Tepsisini Etkinleştir';
 
   @override
-  String get enableSystemTrayDescription => 'Hızlı oynatma kontrolü için sistem tepsisinde simge göster';
+  String get enableSystemTrayDescription =>
+      'Hızlı oynatma kontrolü için sistem tepsisinde simge göster';
 
   @override
   String get closeToTray => 'Kapatıldığında Sistem Tepsisine Küçült';
 
   @override
-  String get closeToTrayDescription => 'Pencere kapatıldığında arka planda çalışmaya devam et';
+  String get closeToTrayDescription =>
+      'Pencere kapatıldığında arka planda çalışmaya devam et';
 
   @override
   String get closeWindowActionTitle => 'Pencere kapatıldığında';
 
   @override
-  String get closeWindowActionDescription => 'Kapat düğmesine tıklandığında ne olacağını seçin';
+  String get closeWindowActionDescription =>
+      'Kapat düğmesine tıklandığında ne olacağını seçin';
 
   @override
   String get closeWindowActionAsk => 'Her zaman sor';
@@ -3360,13 +3572,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get closeWindowActionRemember => 'Seçimimi hatırla ve tekrar sorma';
 
   @override
-  String get closeWindowActionTrayDisabledTip => '(Sistem tepsisi etkin olmalıdır)';
+  String get closeWindowActionTrayDisabledTip =>
+      '(Sistem tepsisi etkin olmalıdır)';
 
   @override
   String get closeWindowDialogTitle => 'Pencereyi Kapat';
 
   @override
-  String get closeWindowDialogContent => 'Lütfen kapat düğmesine tıklandığında ne olacağını seçin:';
+  String get closeWindowDialogContent =>
+      'Lütfen kapat düğmesine tıklandığında ne olacağını seçin:';
 
   @override
   String get googleAiStudioApiKey => 'Google AI Studio API Anahtarı';
@@ -3395,28 +3609,35 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get gnomeDisksOpenFailed => 'Disk Yöneticisi otomatik olarak açılamadı. Lütfen uygulama menünüzden \"Diskler\"i manuel olarak açın.';
+  String get gnomeDisksOpenFailed =>
+      'Disk Yöneticisi otomatik olarak açılamadı. Lütfen uygulama menünüzden \"Diskler\"i manuel olarak açın.';
 
   @override
-  String get gnomeDisksNotInstalled => 'gnome-disks yüklü değil. Yapılandırmak için lütfen sisteminizin disk yöneticisini açın.';
+  String get gnomeDisksNotInstalled =>
+      'gnome-disks yüklü değil. Yapılandırmak için lütfen sisteminizin disk yöneticisini açın.';
 
   @override
   String get linuxMountGuideTitle => 'Linux Disk Bağlama Rehberi';
 
   @override
-  String get linuxMountGuideDescription => 'Varsayılan olarak Linux harici bölümleri otomatik bağlamaz. Başlangıçta bağlamayı yapılandırmazsanız harici bölümlerin bağlama yolu her yeniden başlatmada değişebilir ve oynatıcının müzik dizinine erişmesini engelleyebilir. Bunu önlemek için lütfen müziğinizi içeren bölümü başlangıçta otomatik bağlanacak şekilde ayarlayın.';
+  String get linuxMountGuideDescription =>
+      'Varsayılan olarak Linux harici bölümleri otomatik bağlamaz. Başlangıçta bağlamayı yapılandırmazsanız harici bölümlerin bağlama yolu her yeniden başlatmada değişebilir ve oynatıcının müzik dizinine erişmesini engelleyebilir. Bunu önlemek için lütfen müziğinizi içeren bölümü başlangıçta otomatik bağlanacak şekilde ayarlayın.';
 
   @override
-  String get linuxMountGuideWarning => 'Uyarı: Müziğiniz bağlama gerektiren harici veya dahili bir sürücü bölümündeyse, \"sistem başlangıcında otomatik bağla\" olarak yapılandırmalısınız. Aksi takdirde, yeniden başlatmanın ardından müzik dizini bulunamayabilir veya erişmek için şifre girmeniz gerekebilir.';
+  String get linuxMountGuideWarning =>
+      'Uyarı: Müziğiniz bağlama gerektiren harici veya dahili bir sürücü bölümündeyse, \"sistem başlangıcında otomatik bağla\" olarak yapılandırmalısınız. Aksi takdirde, yeniden başlatmanın ardından müzik dizini bulunamayabilir veya erişmek için şifre girmeniz gerekebilir.';
 
   @override
-  String get linuxMountGuideStep1 => '1. Sistem \"Diskler\" (Disks) uygulamasını açın';
+  String get linuxMountGuideStep1 =>
+      '1. Sistem \"Diskler\" (Disks) uygulamasını açın';
 
   @override
-  String get linuxMountGuideStep2 => '2. Müzik bölümünüzü seçin, ⚙️ dişli simgesine (Ek bölüm seçenekleri) tıklayın';
+  String get linuxMountGuideStep2 =>
+      '2. Müzik bölümünüzü seçin, ⚙️ dişli simgesine (Ek bölüm seçenekleri) tıklayın';
 
   @override
-  String get linuxMountGuideStep3 => '3. \"Bağlama Seçeneklerini Düzenle\"yi seçin, \"Kullanıcı Oturumu Varsayılanları\"nı kapatın ve \"Sistem başlangıcında bağla\"yı işaretleyin';
+  String get linuxMountGuideStep3 =>
+      '3. \"Bağlama Seçeneklerini Düzenle\"yi seçin, \"Kullanıcı Oturumu Varsayılanları\"nı kapatın ve \"Sistem başlangıcında bağla\"yı işaretleyin';
 
   @override
   String get linuxMountGuideOpenButton => 'Disk Yöneticisini Aç (Disks)';
@@ -3440,85 +3661,107 @@ class AppLocalizationsTr extends AppLocalizations {
   String get onboardingAndroidBatteryTitle => 'Arka Planda Çalma Koruması';
 
   @override
-  String get onboardingAndroidBatteryDescription => 'Android\'in katı pil optimizasyon politikaları nedeniyle müziğin arka planda durmasını önlemek için Vynody\'nin pil kısıtlamasını \"Kısıtlamasız\" olarak ayarlamanızı öneririz.';
+  String get onboardingAndroidBatteryDescription =>
+      'Android\'in katı pil optimizasyon politikaları nedeniyle müziğin arka planda durmasını önlemek için Vynody\'nin pil kısıtlamasını \"Kısıtlamasız\" olarak ayarlamanızı öneririz.';
 
   @override
-  String get onboardingAndroidBatteryStep1 => '1. Aşağıdaki \"Ayarlara Git\" düğmesine dokunun.';
+  String get onboardingAndroidBatteryStep1 =>
+      '1. Aşağıdaki \"Ayarlara Git\" düğmesine dokunun.';
 
   @override
-  String get onboardingAndroidBatteryStep2 => '2. Sistem isteminde pil optimizasyonlarını yoksaymaya izin verin veya pil ayarlarına gidin.';
+  String get onboardingAndroidBatteryStep2 =>
+      '2. Sistem isteminde pil optimizasyonlarını yoksaymaya izin verin veya pil ayarlarına gidin.';
 
   @override
-  String get onboardingAndroidBatteryStep3 => '3. Ayarlara yönlendirilirseniz \"Kısıtlamasız\" veya \"Kısıtlama Yok\" seçeneğini belirleyin.';
+  String get onboardingAndroidBatteryStep3 =>
+      '3. Ayarlara yönlendirilirseniz \"Kısıtlamasız\" veya \"Kısıtlama Yok\" seçeneğini belirleyin.';
 
   @override
   String get onboardingAndroidBatteryButton => 'Ayarlara Git';
 
   @override
-  String get onboardingAndroidBatteryStatusOptimized => 'Durum: Kısıtlı (arka planda oynatma durabilir)';
+  String get onboardingAndroidBatteryStatusOptimized =>
+      'Durum: Kısıtlı (arka planda oynatma durabilir)';
 
   @override
-  String get onboardingAndroidBatteryStatusUnrestricted => 'Durum: Kısıtlamasız (önerilen, oynatma korunur)';
+  String get onboardingAndroidBatteryStatusUnrestricted =>
+      'Durum: Kısıtlamasız (önerilen, oynatma korunur)';
 
   @override
   String get onboardingAndroidMediaTitle => 'Müzik Kitaplığınıza Erişin';
 
   @override
-  String get onboardingAndroidMediaDescription => 'İzin verildiğinde Vynody, sistem medya kitaplığınızdaki tüm müzikleri doğrudan okuyabilir — klasörleri manuel olarak seçmenize gerek kalmaz. İzin vermeden de belirli klasörlerden müzik aktarabilirsiniz.';
+  String get onboardingAndroidMediaDescription =>
+      'İzin verildiğinde Vynody, sistem medya kitaplığınızdaki tüm müzikleri doğrudan okuyabilir — klasörleri manuel olarak seçmenize gerek kalmaz. İzin vermeden de belirli klasörlerden müzik aktarabilirsiniz.';
 
   @override
-  String get onboardingAndroidMediaStep1 => '1. Hemen Hazır: Telefonunuzdaki tüm müzikleri anında gösterir';
+  String get onboardingAndroidMediaStep1 =>
+      '1. Hemen Hazır: Telefonunuzdaki tüm müzikleri anında gösterir';
 
   @override
-  String get onboardingAndroidMediaStep2 => '2. Otomatik Keşif: Yeni indirilen veya aktarılan müzikler otomatik görünür';
+  String get onboardingAndroidMediaStep2 =>
+      '2. Otomatik Keşif: Yeni indirilen veya aktarılan müzikler otomatik görünür';
 
   @override
-  String get onboardingAndroidMediaStep3 => '3. Gizlilik Güvenli: Yalnızca yerel ses dosyalarını okur ve kitaplığınızı dışarıya yüklemez (AI sözleri gibi bulut servisleri hariç)';
+  String get onboardingAndroidMediaStep3 =>
+      '3. Gizlilik Güvenli: Yalnızca yerel ses dosyalarını okur ve kitaplığınızı dışarıya yüklemez (AI sözleri gibi bulut servisleri hariç)';
 
   @override
-  String get onboardingAndroidMediaButton => 'Medya Kitaplığına Erişim İzni Ver';
+  String get onboardingAndroidMediaButton =>
+      'Medya Kitaplığına Erişim İzni Ver';
 
   @override
-  String get onboardingAndroidMediaStatusGranted => 'Durum: İzin Verildi (Önerilen)';
+  String get onboardingAndroidMediaStatusGranted =>
+      'Durum: İzin Verildi (Önerilen)';
 
   @override
-  String get onboardingAndroidMediaStatusNotGranted => 'Durum: İzin Verilmedi (daha sonra klasörleri manuel ekleyebilirsiniz)';
+  String get onboardingAndroidMediaStatusNotGranted =>
+      'Durum: İzin Verilmedi (daha sonra klasörleri manuel ekleyebilirsiniz)';
 
   @override
   String get exitApp => 'Çıkış';
 
   @override
-  String get openPlaybackOnDirectorySongTap => 'Şarkıya dokunulduğunda oynatma sayfasını aç';
+  String get openPlaybackOnDirectorySongTap =>
+      'Şarkıya dokunulduğunda oynatma sayfasını aç';
 
   @override
-  String get openPlaybackOnDirectorySongTapDescription => 'Dizin görünümünde bir şarkıya dokunulduğunda otomatik olarak oynatma sayfasını açar.';
+  String get openPlaybackOnDirectorySongTapDescription =>
+      'Dizin görünümünde bir şarkıya dokunulduğunda otomatik olarak oynatma sayfasını açar.';
 
   @override
-  String get defaultToLyricsModeOnPlaybackOpen => 'Oynatma sayfasında varsayılan olarak sözler modunu aç';
+  String get defaultToLyricsModeOnPlaybackOpen =>
+      'Oynatma sayfasında varsayılan olarak sözler modunu aç';
 
   @override
-  String get defaultToLyricsModeOnPlaybackOpenDescription => 'Oynatma sayfası açıldığında otomatik olarak şarkı sözü görünümünü gösterir.';
+  String get defaultToLyricsModeOnPlaybackOpenDescription =>
+      'Oynatma sayfası açıldığında otomatik olarak şarkı sözü görünümünü gösterir.';
 
   @override
   String get rewindToStartOnPrevious => 'Öncekine basıldığında başa sar';
 
   @override
-  String get rewindToStartOnPreviousDescription => 'Çalma süresi 3 saniyeyi aştığında, öncekine basıldığında parça değiştirmek yerine parçanın başına sarılır';
+  String get rewindToStartOnPreviousDescription =>
+      'Çalma süresi 3 saniyeyi aştığında, öncekine basıldığında parça değiştirmek yerine parçanın başına sarılır';
 
   @override
-  String get tapCoverToEnterLyricsMode => 'Söz moduna geçmek için kapağa dokunun';
+  String get tapCoverToEnterLyricsMode =>
+      'Söz moduna geçmek için kapağa dokunun';
 
   @override
-  String get longPressLyricsPanelToOpenMenu => 'Menüyü açmak için sözler paneline uzun basın';
+  String get longPressLyricsPanelToOpenMenu =>
+      'Menüyü açmak için sözler paneline uzun basın';
 
   @override
   String get gotIt => 'Anladım';
 
   @override
-  String get doubleSpeedPlayingSwipeUpToLock => 'Hızlı sarılıyor... Kilitlemek için yukarı kaydırın';
+  String get doubleSpeedPlayingSwipeUpToLock =>
+      'Hızlı sarılıyor... Kilitlemek için yukarı kaydırın';
 
   @override
-  String get doubleSpeedLockedSwipeDownToUnlock => 'Hızlı sarma kilitlendi. Kilidi açmak için basılı tutup aşağı kaydırın';
+  String get doubleSpeedLockedSwipeDownToUnlock =>
+      'Hızlı sarma kilitlendi. Kilidi açmak için basılı tutup aşağı kaydırın';
 
   @override
   String get doubleSpeedUnlocked => 'Hızlı sarma kilidi açıldı';
@@ -3536,13 +3779,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get exportLyricsLabel => 'Şarkı Sözü Yedeğini Dışa Aktar';
 
   @override
-  String get exportLyricsDescription => 'Önbelleğe alınmış ve ayarlanmış tüm şarkı sözlerini JSON dosyası olarak dışa aktarın';
+  String get exportLyricsDescription =>
+      'Önbelleğe alınmış ve ayarlanmış tüm şarkı sözlerini JSON dosyası olarak dışa aktarın';
 
   @override
   String get importLyricsLabel => 'Şarkı Sözü Yedeğini İçe Aktar';
 
   @override
-  String get importLyricsDescription => 'Dışa aktarılmış bir JSON dosyasından şarkı sözü önbelleğini içe aktarın';
+  String get importLyricsDescription =>
+      'Dışa aktarılmış bir JSON dosyasından şarkı sözü önbelleğini içe aktarın';
 
   @override
   String get importLyrics => 'Şarkı Sözünü İçe Aktar';
@@ -3648,7 +3893,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get uiDisplayScale => 'Arayüz Ölçeği';
 
   @override
-  String get uiDisplayScaleDescription => 'Arayüz öğelerinin boyutunu ayarlayın';
+  String get uiDisplayScaleDescription =>
+      'Arayüz öğelerinin boyutunu ayarlayın';
 
   @override
   String get uiDisplayScaleDialogTitle => 'Arayüz Ölçeği / Araç Modu';
@@ -3662,13 +3908,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get audioSettings => 'Ses Ayarları';
 
   @override
-  String get audioSettingsDescription => 'Ses çalma, ekolayzer bantları ve hız yapılandırmalarını yönetin';
+  String get audioSettingsDescription =>
+      'Ses çalma, ekolayzer bantları ve hız yapılandırmalarını yönetin';
 
   @override
   String get equalizerBandCount => 'Ekolayzer Bant Sayısı';
 
   @override
-  String get equalizerBandCountDescription => 'Ekolayzer panelindeki bant sayısını yapılandırın. Yüksek bant modları otomatik olarak yatay kaydırmayı etkinleştirir.';
+  String get equalizerBandCountDescription =>
+      'Ekolayzer panelindeki bant sayısını yapılandırın. Yüksek bant modları otomatik olarak yatay kaydırmayı etkinleştirir.';
 
   @override
   String bandsCountOption(int count) {
@@ -3679,7 +3927,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get enableFadeEffect => 'Ses Karartma (Fade) Efekti';
 
   @override
-  String get enableFadeEffectDescription => 'Şarkı değiştirme, çalma ve duraklatma sırasında yumuşak ses geçiş efektini etkinleştirin';
+  String get enableFadeEffectDescription =>
+      'Şarkı değiştirme, çalma ve duraklatma sırasında yumuşak ses geçiş efektini etkinleştirin';
 
   @override
   String get buttonLayoutSettings => 'Düğme Düzeni';
@@ -3688,7 +3937,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get playbackButtonLayoutTitle => 'Oynatma Sayfası Kontrol Düzeni';
 
   @override
-  String get playbackButtonLayoutDescription => 'Oynatma sayfasındaki düğme sırasını ve simgelerini özelleştirin';
+  String get playbackButtonLayoutDescription =>
+      'Oynatma sayfasındaki düğme sırasını ve simgelerini özelleştirin';
 
   @override
   String get topButtonsRowTitle => '7 Düğmeli Satır Sırası';
@@ -3703,7 +3953,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get mainControlsRightButton => 'Sağ Düğme';
 
   @override
-  String get lyricsHeaderRightButtonTitle => 'Sözler Başlık Çubuğu Daraltılmış Düğmesi';
+  String get lyricsHeaderRightButtonTitle =>
+      'Sözler Başlık Çubuğu Daraltılmış Düğmesi';
 
   @override
   String get resetButtonOrder => 'Varsayılana Sıfırla';
@@ -3747,7 +3998,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get remotePinPairHint => 'Lütfen kontrol eden cihazınıza aşağıdaki eşleştirme PIN kodunu girin:';
+  String get remotePinPairHint =>
+      'Lütfen kontrol eden cihazınıza aşağıdaki eşleştirme PIN kodunu girin:';
 
   @override
   String get remotePinExpiresIn => 'PIN geçerlilik süresi:';
@@ -3764,7 +4016,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get remotePinInvalid => 'Geçersiz veya süresi dolmuş PIN. Lütfen tekrar deneyin.';
+  String get remotePinInvalid =>
+      'Geçersiz veya süresi dolmuş PIN. Lütfen tekrar deneyin.';
 
   @override
   String remotePinCooldown(int seconds) {
@@ -3777,7 +4030,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get remotePinTooManyAttempts => 'Çok fazla başarısız deneme. Eşleştirme oturumu sona erdi.';
+  String get remotePinTooManyAttempts =>
+      'Çok fazla başarısız deneme. Eşleştirme oturumu sona erdi.';
 
   @override
   String get remoteConnected => 'Bağlandı';
@@ -3821,28 +4075,36 @@ class AppLocalizationsTr extends AppLocalizations {
   String get allowRemoteControlTitle => 'Uzaktan Kontrole İzin Ver';
 
   @override
-  String get allowRemoteControlSubtitle => 'Eşleştirmeden sonra yerel ağdaki diğer cihazların müzik çalmayı kontrol etmesine izin verin';
+  String get allowRemoteControlSubtitle =>
+      'Eşleştirmeden sonra yerel ağdaki diğer cihazların müzik çalmayı kontrol etmesine izin verin';
 
   @override
-  String get onlyAllowTrustedRemoteControlTitle => 'Yalnızca Güvenilen Cihazlara İzin Ver';
+  String get onlyAllowTrustedRemoteControlTitle =>
+      'Yalnızca Güvenilen Cihazlara İzin Ver';
 
   @override
-  String get onlyAllowTrustedRemoteControlSubtitle => 'Yalnızca güvenilen cihazların doğrudan bağlanmasına izin verin, yeni cihaz eşleştirme isteklerini sessizce reddedin';
+  String get onlyAllowTrustedRemoteControlSubtitle =>
+      'Yalnızca güvenilen cihazların doğrudan bağlanmasına izin verin, yeni cihaz eşleştirme isteklerini sessizce reddedin';
 
   @override
-  String get onlyTrustedDevicesNoDevicesHint => 'Henüz güvenilen cihaz yok. Lütfen önce bir cihaz eşleştirin.';
+  String get onlyTrustedDevicesNoDevicesHint =>
+      'Henüz güvenilen cihaz yok. Lütfen önce bir cihaz eşleştirin.';
 
   @override
-  String get onlyTrustedRemoteDevicesAllowed => 'Ana cihaz yalnızca güvenilen cihazların bağlanmasına izin veriyor';
+  String get onlyTrustedRemoteDevicesAllowed =>
+      'Ana cihaz yalnızca güvenilen cihazların bağlanmasına izin veriyor';
 
   @override
-  String get remoteControlDisabledOnHost => 'Hedef cihazda uzaktan kontrol devre dışı bırakılmış';
+  String get remoteControlDisabledOnHost =>
+      'Hedef cihazda uzaktan kontrol devre dışı bırakılmış';
 
   @override
-  String get trustThisDevice => 'Bu cihaza güven ve gelecekte otomatik olarak izin ver';
+  String get trustThisDevice =>
+      'Bu cihaza güven ve gelecekte otomatik olarak izin ver';
 
   @override
-  String get remoteRequestRejected => 'Bağlantı isteği hedef cihaz tarafından reddedildi.';
+  String get remoteRequestRejected =>
+      'Bağlantı isteği hedef cihaz tarafından reddedildi.';
 
   @override
   String get turkishLanguage => 'Türkçe';
@@ -3859,7 +4121,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get noTrustedDevices => 'Güvenilen cihaz yok';
 
   @override
-  String get noTrustedDevicesHint => 'Eşleme sırasında \"Bu cihaza güven\" seçildiğinde cihazlar burada görünür';
+  String get noTrustedDevicesHint =>
+      'Eşleme sırasında \"Bu cihaza güven\" seçildiğinde cihazlar burada görünür';
 
   @override
   String pairedAtFormat(String time) {
@@ -3875,88 +4138,109 @@ class AppLocalizationsTr extends AppLocalizations {
   String get audioFiles => 'Ses Dosyaları';
 
   @override
-  String get remotePairCancelledByClient => 'Eşleştirme isteği hedef cihaz tarafından iptal edildi.';
+  String get remotePairCancelledByClient =>
+      'Eşleştirme isteği hedef cihaz tarafından iptal edildi.';
 
   @override
-  String get proFeatureAiLyricsTitle => 'Yapay Zeka Kelime Kelime Şarkı Sözleri ve Çeviri';
+  String get proFeatureAiLyricsTitle =>
+      'Yapay Zeka Kelime Kelime Şarkı Sözleri ve Çeviri';
 
   @override
-  String get proFeatureAiLyricsDesc => 'Yapay zeka ile kelime kelime karaoke şarkı sözü oluşturma, zaman çizelgesi hizalama ve çeviri';
+  String get proFeatureAiLyricsDesc =>
+      'Yapay zeka ile kelime kelime karaoke şarkı sözü oluşturma, zaman çizelgesi hizalama ve çeviri';
 
   @override
-  String get proFeatureTagCompletionTitle => 'Şarkı Meta Verilerini Otomatik Tamamlama';
+  String get proFeatureTagCompletionTitle =>
+      'Şarkı Meta Verilerini Otomatik Tamamlama';
 
   @override
-  String get proFeatureTagCompletionDesc => 'MusicBrainz ile şarkı etiketlerini ve albüm meta verilerini otomatik tamamlama';
+  String get proFeatureTagCompletionDesc =>
+      'MusicBrainz ile şarkı etiketlerini ve albüm meta verilerini otomatik tamamlama';
 
   @override
   String get proFeatureEqualizerTitle => 'Çok Bantlı EQ ve Oynatma Hızı (EQ)';
 
   @override
-  String get proFeatureEqualizerDesc => 'Profesyonel frekans ayarı, 0.5x–5.0x oynatma hızı, preamp kazancı ve ses stilleri';
+  String get proFeatureEqualizerDesc =>
+      'Profesyonel frekans ayarı, 0.5x–5.0x oynatma hızı, preamp kazancı ve ses stilleri';
 
   @override
-  String get proFeatureCustomThemeColorTitle => 'Tam Spektrum Temalar ve Gelişmiş Renkler';
+  String get proFeatureCustomThemeColorTitle =>
+      'Tam Spektrum Temalar ve Gelişmiş Renkler';
 
   @override
-  String get proFeatureCustomThemeColorDesc => 'Serbest renk seçici paletini ve özel premium önceden tanımlı tema renklerini açın';
+  String get proFeatureCustomThemeColorDesc =>
+      'Serbest renk seçici paletini ve özel premium önceden tanımlı tema renklerini açın';
 
   @override
   String get proFeatureFftVisualizerTitle => 'Gerçek Zamanlı FFT Ses Spektrumu';
 
   @override
-  String get proFeatureFftVisualizerDesc => '6 spektrum stili (Klasik Çubuklar, Pürüzsüz Dalga, Kayan Başlıklar, Radyal Işık Halkası, Neon Matris, Aynalanmış Dalga) ve tam ekran ortam modu';
+  String get proFeatureFftVisualizerDesc =>
+      '6 spektrum stili (Klasik Çubuklar, Pürüzsüz Dalga, Kayan Başlıklar, Radyal Işık Halkası, Neon Matris, Aynalanmış Dalga) ve tam ekran ortam modu';
 
   @override
-  String get proFeatureWaveformBarTitle => 'Dinamik Ses Dalgası İlerleme Çubuğu';
+  String get proFeatureWaveformBarTitle =>
+      'Dinamik Ses Dalgası İlerleme Çubuğu';
 
   @override
-  String get proFeatureWaveformBarDesc => 'Gerçek zamanlı dalga formu çıkarma ve akıcı etkileşimli arama';
+  String get proFeatureWaveformBarDesc =>
+      'Gerçek zamanlı dalga formu çıkarma ve akıcı etkileşimli arama';
 
   @override
-  String get proFeatureLanSharingTitle => 'Cihazlar Arası Çalma Listesi ve Söz Senkronizasyonu';
+  String get proFeatureLanSharingTitle =>
+      'Cihazlar Arası Çalma Listesi ve Söz Senkronizasyonu';
 
   @override
-  String get proFeatureLanSharingDesc => 'Yerel ağ üzerinden cihazlar arası çalma listesi, şarkı sözü ve müzik senkronizasyonu';
+  String get proFeatureLanSharingDesc =>
+      'Yerel ağ üzerinden cihazlar arası çalma listesi, şarkı sözü ve müzik senkronizasyonu';
 
   @override
   String get proFeatureRemoteControlTitle => 'Çoklu Cihaz Uzaktan Kontrol';
 
   @override
-  String get proFeatureRemoteControlDesc => 'Cihazlar arasında kesintisiz bağlantı ve kablosuz oynatma kontrolü';
+  String get proFeatureRemoteControlDesc =>
+      'Cihazlar arasında kesintisiz bağlantı ve kablosuz oynatma kontrolü';
 
   @override
   String get proFeatureTranscoderTitle => 'Toplu Ses Dönüştürücü';
 
   @override
-  String get proFeatureTranscoderDesc => 'Kayıpsız formatları hızlı dönüştürme ve taşınabilir cihazlar için toplu dışa aktarma';
+  String get proFeatureTranscoderDesc =>
+      'Kayıpsız formatları hızlı dönüştürme ve taşınabilir cihazlar için toplu dışa aktarma';
 
   @override
   String get proFeatureCloudLibraryTitle => 'Bulut Medya Kitaplığı';
 
   @override
-  String get proFeatureCloudLibraryDesc => 'WebDAV, Navidrome, Jellyfin ve SMB üzerinden uzak medya sunucularını yayınlayın ve göz atın';
+  String get proFeatureCloudLibraryDesc =>
+      'WebDAV, Navidrome, Jellyfin ve SMB üzerinden uzak medya sunucularını yayınlayın ve göz atın';
 
   @override
   String get proFeatureDynamicMeshBackgroundTitle => 'Dinamik Mesh Arka Planı';
 
   @override
-  String get proFeatureDynamicMeshBackgroundDesc => 'Albüm kapağı renklerinden üretilen akıcı gradyan animasyonu ve ayarlanabilir hız';
+  String get proFeatureDynamicMeshBackgroundDesc =>
+      'Albüm kapağı renklerinden üretilen akıcı gradyan animasyonu ve ayarlanabilir hız';
 
   @override
-  String get proFeatureCustomImageBackgroundTitle => 'Özel Çalma Arka Plan Duvar Kağıdı';
+  String get proFeatureCustomImageBackgroundTitle =>
+      'Özel Çalma Arka Plan Duvar Kağıdı';
 
   @override
-  String get proFeatureCustomImageBackgroundDesc => 'Favori yerel resimlerinizi ve fotoğraflarınızı oynatıcı arka planı olarak ayarlayın';
+  String get proFeatureCustomImageBackgroundDesc =>
+      'Favori yerel resimlerinizi ve fotoğraflarınızı oynatıcı arka planı olarak ayarlayın';
 
   @override
   String get proFeatureWasapiExclusiveTitle => 'WASAPI Özel Mod ve Bit-Perfect';
 
   @override
-  String get proFeatureWasapiExclusiveDesc => 'Saf ses kalitesi ve bit-perfect doğrudan donanım çıkışı için Windows mikserini atlayın';
+  String get proFeatureWasapiExclusiveDesc =>
+      'Saf ses kalitesi ve bit-perfect doğrudan donanım çıkışı için Windows mikserini atlayın';
 
   @override
-  String get proCommunityUnlocked => 'Topluluk Sürümü: Tüm Pro özelliklerinin kilidi kalıcı olarak açıldı';
+  String get proCommunityUnlocked =>
+      'Topluluk Sürümü: Tüm Pro özelliklerinin kilidi kalıcı olarak açıldı';
 
   @override
   String proTrialActive(int days) {
@@ -3964,10 +4248,12 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get proTrialExpired => 'Ücretsiz deneme süresi doldu. Pro\'ya yükseltin';
+  String get proTrialExpired =>
+      'Ücretsiz deneme süresi doldu. Pro\'ya yükseltin';
 
   @override
-  String get proPermanentlyActivated => 'Tüm Pro özellikleri kalıcı olarak etkinleştirildi';
+  String get proPermanentlyActivated =>
+      'Tüm Pro özellikleri kalıcı olarak etkinleştirildi';
 
   @override
   String proStatusTrialTitle(int days) {
@@ -3975,10 +4261,12 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get proStatusTrialExpiredTitle => 'Lisans Durumu: Deneme süresi doldu (Sınırlı özellikler)';
+  String get proStatusTrialExpiredTitle =>
+      'Lisans Durumu: Deneme süresi doldu (Sınırlı özellikler)';
 
   @override
-  String get proStatusActivatedTitle => 'Lisans Durumu: Vynody Pro etkinleştirildi';
+  String get proStatusActivatedTitle =>
+      'Lisans Durumu: Vynody Pro etkinleştirildi';
 
   @override
   String proSettingsTrialRemaining(int days) {
@@ -3986,10 +4274,12 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get proSettingsUpgradePrompt => 'Yapay zeka sözleri, FFT spektrumu ve Pro özelliklerinin kilidini açın';
+  String get proSettingsUpgradePrompt =>
+      'Yapay zeka sözleri, FFT spektrumu ve Pro özelliklerinin kilidini açın';
 
   @override
-  String get proSettingsLifetimeNotice => 'Tüm Pro özellikleri ve gelecek güncellemeler dahil';
+  String get proSettingsLifetimeNotice =>
+      'Tüm Pro özellikleri ve gelecek güncellemeler dahil';
 
   @override
   String proSettingsCardTrialSubtitle(int days) {
@@ -3997,10 +4287,12 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get proSettingsCardExpiredSubtitle => 'Yapay zeka senkronize sözler, cihazlar arası senkronizasyon ve gelişmiş özellikler için yükseltin';
+  String get proSettingsCardExpiredSubtitle =>
+      'Yapay zeka senkronize sözler, cihazlar arası senkronizasyon ve gelişmiş özellikler için yükseltin';
 
   @override
-  String get proSettingsCardActivatedSubtitle => 'Yapay zeka senkronize sözler, cihazlar arası senkronizasyon ve tüm özelliklerin kilidi açıldı';
+  String get proSettingsCardActivatedSubtitle =>
+      'Yapay zeka senkronize sözler, cihazlar arası senkronizasyon ve tüm özelliklerin kilidi açıldı';
 
   @override
   String get proSettingsUpgrade => 'Yükselt';
@@ -4012,10 +4304,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get connectingToStore => 'Mağazaya bağlanılıyor...';
 
   @override
-  String get buyFullVersionWindowsTrial => 'Microsoft Store\'dan Tam Sürümü Satın Alın';
+  String get buyFullVersionWindowsTrial =>
+      'Microsoft Store\'dan Tam Sürümü Satın Alın';
 
   @override
-  String get buyFullVersionWindows => 'Microsoft Store\'dan Tam Sürümü Satın Alın';
+  String get buyFullVersionWindows =>
+      'Microsoft Store\'dan Tam Sürümü Satın Alın';
 
   @override
   String unlockProLifetimeWithPrice(String price) {
@@ -4041,49 +4335,61 @@ class AppLocalizationsTr extends AppLocalizations {
   String get restoringPurchases => 'Satın alımlar geri yükleniyor...';
 
   @override
-  String get sharingProDescription => 'LAN bağlantısı, Vynody Pro\'ya özel gelişmiş bir özelliktir. Aynı yerel ağda ultra hızlı müzik aktarımı, kütüphane senkronizasyonu ve kablosuz uzaktan kontrolün keyfini çıkarın.';
+  String get sharingProDescription =>
+      'LAN bağlantısı, Vynody Pro\'ya özel gelişmiş bir özelliktir. Aynı yerel ağda ultra hızlı müzik aktarımı, kütüphane senkronizasyonu ve kablosuz uzaktan kontrolün keyfini çıkarın.';
 
   @override
   String get sharingHighlightSpeedTitle => 'Ultra Hızlı LAN Aktarımı';
 
   @override
-  String get sharingHighlightSpeedDesc => 'Wi-Fi LAN içinde veri tüketimi veya sıkıştırma olmadan doğrudan P2P kayıpsız ses aktarımı.';
+  String get sharingHighlightSpeedDesc =>
+      'Wi-Fi LAN içinde veri tüketimi veya sıkıştırma olmadan doğrudan P2P kayıpsız ses aktarımı.';
 
   @override
-  String get sharingHighlightSyncTitle => 'Kütüphane ve Şarkı Sözü Senkronizasyonu';
+  String get sharingHighlightSyncTitle =>
+      'Kütüphane ve Şarkı Sözü Senkronizasyonu';
 
   @override
-  String get sharingHighlightSyncDesc => 'Cihazlarınız arasında müzik kütüphanenizi güncel tutmak için tek tıkla aktarım.';
+  String get sharingHighlightSyncDesc =>
+      'Cihazlarınız arasında müzik kütüphanenizi güncel tutmak için tek tıkla aktarım.';
 
   @override
   String get sharingHighlightRemoteTitle => 'Kablosuz Uzaktan Kontrol';
 
   @override
-  String get sharingHighlightRemoteDesc => 'Telefon, tablet ve bilgisayarlar arasında kesintisiz oynatma, parça değiştirme ve ses kontrolü.';
+  String get sharingHighlightRemoteDesc =>
+      'Telefon, tablet ve bilgisayarlar arasında kesintisiz oynatma, parça değiştirme ve ses kontrolü.';
 
   @override
-  String get sharingHighlightSecurityTitle => 'Uçtan Uca TLS Güvenlik Şifrelemesi';
+  String get sharingHighlightSecurityTitle =>
+      'Uçtan Uca TLS Güvenlik Şifrelemesi';
 
   @override
-  String get sharingHighlightSecurityDesc => 'Gizli ve güvenli aktarım için tam TLS sertifika şifrelemesi ve cihaz güven eşleştirmesi.';
+  String get sharingHighlightSecurityDesc =>
+      'Gizli ve güvenli aktarım için tam TLS sertifika şifrelemesi ve cihaz güven eşleştirmesi.';
 
   @override
   String get upgradeToProToUnlock => 'Vynody Pro\'ya Yükseltin';
 
   @override
-  String get proOneTimePurchaseNotice => 'Tek seferlik satın alma, bu platformdaki tüm Pro özelliklerini ömür boyu açar';
+  String get proOneTimePurchaseNotice =>
+      'Tek seferlik satın alma, bu platformdaki tüm Pro özelliklerini ömür boyu açar';
 
   @override
-  String get proOneTimePurchaseNoticeApple => 'Tek seferlik satın alma, tüm Apple platformlarındaki (iPhone / iPad / Mac) Pro özelliklerini ömür boyu açar';
+  String get proOneTimePurchaseNoticeApple =>
+      'Tek seferlik satın alma, tüm Apple platformlarındaki (iPhone / iPad / Mac) Pro özelliklerini ömür boyu açar';
 
   @override
-  String get proUniversalPurchaseNoticeApple => 'Tek satın alma, iPhone, iPad ve Mac\'te kullanılabilir';
+  String get proUniversalPurchaseNoticeApple =>
+      'Tek satın alma, iPhone, iPad ve Mac\'te kullanılabilir';
 
   @override
-  String get iapPurchaseSuccess => 'Vynody Pro başarıyla satın alındı! Desteğiniz için teşekkür ederiz!';
+  String get iapPurchaseSuccess =>
+      'Vynody Pro başarıyla satın alındı! Desteğiniz için teşekkür ederiz!';
 
   @override
-  String get iapRestoreSuccess => 'Vynody Pro satın alımları başarıyla geri yüklendi!';
+  String get iapRestoreSuccess =>
+      'Vynody Pro satın alımları başarıyla geri yüklendi!';
 
   @override
   String iapPurchaseCancelledOrFailed(String message) {
@@ -4106,7 +4412,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get serverName => 'Sunucu Adı';
 
   @override
-  String get serverNameAlreadyExists => 'Sunucu adı zaten var. Lütfen başka bir ad seçin.';
+  String get serverNameAlreadyExists =>
+      'Sunucu adı zaten var. Lütfen başka bir ad seçin.';
 
   @override
   String get serverType => 'Sunucu Türü';
@@ -4139,7 +4446,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get noRemoteServers => 'Eklenmiş medya sunucusu yok';
 
   @override
-  String get noRemoteServersDesc => 'Kendi müziklerinizi dinlemek için Navidrome (Subsonic) veya WebDAV sunucusu ekleyin';
+  String get noRemoteServersDesc =>
+      'Kendi müziklerinizi dinlemek için Navidrome (Subsonic) veya WebDAV sunucusu ekleyin';
 
   @override
   String get browseServer => 'Göz At';
@@ -4148,10 +4456,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get manageServer => 'Yönet';
 
   @override
-  String get deleteServerConfirm => 'Bu medya sunucusu bağlantısını kaldırmak istediğinizden emin misiniz?';
+  String get deleteServerConfirm =>
+      'Bu medya sunucusu bağlantısını kaldırmak istediğinizden emin misiniz?';
 
   @override
-  String get remoteSongCannotEditTags => 'Uzak şarkıların etiketleri değiştirilemez';
+  String get remoteSongCannotEditTags =>
+      'Uzak şarkıların etiketleri değiştirilemez';
 
   @override
   String get addToServerPlaylist => 'Sunucu Çalma Listesine Ekle';
@@ -4306,7 +4616,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get presetLarge => '%150 Büyük';
 
   @override
-  String get safFallbackScanningNotice => '(Medya izni verilmedi, SAF uyumluluk taraması etkinleştirildi, tarama daha yavaş olabilir)';
+  String get safFallbackScanningNotice =>
+      '(Medya izni verilmedi, SAF uyumluluk taraması etkinleştirildi, tarama daha yavaş olabilir)';
 
   @override
   String get justNow => 'Az önce';
@@ -4422,7 +4733,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get noMatchingInGenre => 'Eşleşen albüm veya şarkı yok';
 
   @override
-  String get searchInArtist => 'Bu sanatçının albümlerinde veya şarkılarında ara';
+  String get searchInArtist =>
+      'Bu sanatçının albümlerinde veya şarkılarında ara';
 
   @override
   String get noMatchingInArtist => 'Eşleşen albüm veya şarkı yok';
@@ -4561,16 +4873,20 @@ class AppLocalizationsTr extends AppLocalizations {
   String get downloadCancelled => 'İptal edildi';
 
   @override
-  String get remoteServerDownloadsDisabled => 'Bu sunucuda indirmeler devre dışı';
+  String get remoteServerDownloadsDisabled =>
+      'Bu sunucuda indirmeler devre dışı';
 
   @override
-  String get remoteDownloadNotAudioResponse => 'Sunucu ses yerine bir hata sayfası döndürdü. Ters proxy ayarlarını kontrol edin';
+  String get remoteDownloadNotAudioResponse =>
+      'Sunucu ses yerine bir hata sayfası döndürdü. Ters proxy ayarlarını kontrol edin';
 
   @override
-  String get remoteDownloadUnauthorized => 'Sunucu indirmeyi reddetti: kimlik doğrulama başarısız veya indirme izni yok';
+  String get remoteDownloadUnauthorized =>
+      'Sunucu indirmeyi reddetti: kimlik doğrulama başarısız veya indirme izni yok';
 
   @override
-  String get remoteDownloadTrackMissing => 'Bu parça artık sunucuda yok. Silinmiş veya erişilemiyor olabilir';
+  String get remoteDownloadTrackMissing =>
+      'Bu parça artık sunucuda yok. Silinmiş veya erişilemiyor olabilir';
 
   @override
   String fileNotFoundAtPath(String path) {
@@ -4596,7 +4912,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get createServerPlaylistFailed => 'Sunucu çalma listesi oluşturulamadı';
+  String get createServerPlaylistFailed =>
+      'Sunucu çalma listesi oluşturulamadı';
 
   @override
   String errorCreatingPlaylist(String error) {
@@ -4669,7 +4986,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get sendPlaylistsToDeviceAction => 'Çalma Listelerini Cihaza Gönder';
 
   @override
-  String get pullPlaylistsFromDeviceAction => 'Bu Cihazdan Çalma Listelerini Al';
+  String get pullPlaylistsFromDeviceAction =>
+      'Bu Cihazdan Çalma Listelerini Al';
 
   @override
   String get selectPlaylistsToSend => 'Gönderilecek Çalma Listelerini Seç';
@@ -4716,7 +5034,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get incomingPlaylistExportTitle => 'Çalma Listesi Dışa Aktarma İsteği';
 
   @override
-  String incomingPlaylistImportFrom(String senderName, int count, int songsCount) {
+  String incomingPlaylistImportFrom(
+    String senderName,
+    int count,
+    int songsCount,
+  ) {
     return '\"$senderName\" cihazı size $count çalma listesi ($songsCount şarkı) göndermek istiyor.';
   }
 
@@ -4729,13 +5051,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get noPlaylistsAvailable => 'Kullanılabilir çalma listesi yok';
 
   @override
-  String get playlistRequestRejected => 'Çalma listesi isteği karşı tarafça reddedildi';
+  String get playlistRequestRejected =>
+      'Çalma listesi isteği karşı tarafça reddedildi';
 
   @override
   String get windowsAudioOutputTitle => 'Ses Çıkış Modu (Windows)';
 
   @override
-  String get windowsAudioOutputDescription => 'Paylaşımlı mod veya WASAPI Özel modunu seçin (Özel mod, Bit-Perfect yüksek kaliteli çıkış için Windows Ses Motorunu atlar).';
+  String get windowsAudioOutputDescription =>
+      'Paylaşımlı mod veya WASAPI Özel modunu seçin (Özel mod, Bit-Perfect yüksek kaliteli çıkış için Windows Ses Motorunu atlar).';
 
   @override
   String get audioOutputModeShared => 'Standart Paylaşımlı Mod';
@@ -4750,22 +5074,27 @@ class AppLocalizationsTr extends AppLocalizations {
   String get audioOutputDeviceDefault => 'Sistem Varsayılan Ses Cihazı';
 
   @override
-  String get wasapiBitPerfectTitle => 'Örnekleme Hızını Otomatik Eşle (Bit-Perfect)';
+  String get wasapiBitPerfectTitle =>
+      'Örnekleme Hızını Otomatik Eşle (Bit-Perfect)';
 
   @override
-  String get wasapiBitPerfectDescription => 'Yeniden örnekleme yapmadan parçalarla eşleşecek şekilde DAC donanım örnekleme hızını otomatik olarak yapılandırır.';
+  String get wasapiBitPerfectDescription =>
+      'Yeniden örnekleme yapmadan parçalarla eşleşecek şekilde DAC donanım örnekleme hızını otomatik olarak yapılandırır.';
 
   @override
-  String get wasapiReleaseOnPauseTitle => 'Duraklatıldığında Cihazı Serbest Bırak';
+  String get wasapiReleaseOnPauseTitle =>
+      'Duraklatıldığında Cihazı Serbest Bırak';
 
   @override
-  String get wasapiReleaseOnPauseDescription => 'Diğer uygulamaların ses çalabilmesi için duraklatıldığında ses çıkış noktasını geçici olarak serbest bırakır.';
+  String get wasapiReleaseOnPauseDescription =>
+      'Diğer uygulamaların ses çalabilmesi için duraklatıldığında ses çıkış noktasını geçici olarak serbest bırakır.';
 
   @override
   String get activeHardwareFormatTitle => 'Aktif Donanım Formatı';
 
   @override
-  String get activeHardwareFormatDescription => 'DAC aktif örnekleme hızı ve bit derinliği';
+  String get activeHardwareFormatDescription =>
+      'DAC aktif örnekleme hızı ve bit derinliği';
 
   @override
   String get activeHardwareBitPerfectBadge => 'Bit-Perfect Doğrudan';
@@ -4774,19 +5103,22 @@ class AppLocalizationsTr extends AppLocalizations {
   String get exclusiveModeTitle => 'Özel Mod';
 
   @override
-  String get exclusiveModeTooltip => 'WASAPI Özel Modu etkin (ses cihazı özel olarak tutuluyor)';
+  String get exclusiveModeTooltip =>
+      'WASAPI Özel Modu etkin (ses cihazı özel olarak tutuluyor)';
 
   @override
   String get toggleWasapiExclusive => 'WASAPI Özel Modunu Aç/Kapat';
 
   @override
-  String get toggleWasapiExclusiveDescription => 'WASAPI Özel ve Paylaşımlı ses çıkışı arasında hızlıca geçiş yapın (Windows)';
+  String get toggleWasapiExclusiveDescription =>
+      'WASAPI Özel ve Paylaşımlı ses çıkışı arasında hızlıca geçiş yapın (Windows)';
 
   @override
   String get wasapiExclusiveShortcutTitle => 'Hızlı Geçiş Kısayolu';
 
   @override
-  String get wasapiExclusiveShortcutDescription => 'Özel ve Paylaşımlı mod arasında hızlıca geçiş yapmak için kısayol kullanın';
+  String get wasapiExclusiveShortcutDescription =>
+      'Özel ve Paylaşımlı mod arasında hızlıca geçiş yapmak için kısayol kullanın';
 
   @override
   String get wasapiExclusiveEnabledNotice => 'WASAPI Özel Modu etkinleştirildi';
@@ -4801,7 +5133,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get nonRecommendedModelWarningTitle => 'Önerilmeyen Model Bildirimi';
 
   @override
-  String nonRecommendedModelWarningMessage(String currentModel, String recommendedModel) {
+  String nonRecommendedModelWarningMessage(
+    String currentModel,
+    String recommendedModel,
+  ) {
     return 'Geçerli şarkı sözü oluşturma modeli \"$currentModel\", ancak \"$recommendedModel\" önerilir. Önerilmeyen modeller hatalı sözlere veya zaman damgası kaymalarına neden olabilir. Önerilen modele geçmek ister misiniz?';
   }
 
@@ -4821,7 +5156,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get proxySettingsTitle => 'Ağ Vekil Sunucusu (Proxy)';
 
   @override
-  String get proxySettingsDescription => 'Ağ istekleri, kapak resimleri ve ses akışı için kullanılacak proxy sunucusunu yapılandırın';
+  String get proxySettingsDescription =>
+      'Ağ istekleri, kapak resimleri ve ses akışı için kullanılacak proxy sunucusunu yapılandırın';
 
   @override
   String get proxyMode => 'Proxy Modu';
@@ -4830,19 +5166,22 @@ class AppLocalizationsTr extends AppLocalizations {
   String get proxyModeSystem => 'Sistemi Takip Et';
 
   @override
-  String get proxyModeSystemDesc => 'İşletim sistemi ağ proxy ayarlarını otomatik olarak algıla';
+  String get proxyModeSystemDesc =>
+      'İşletim sistemi ağ proxy ayarlarını otomatik olarak algıla';
 
   @override
   String get proxyModeDirect => 'Doğrudan Bağlantı (Proxy Yok)';
 
   @override
-  String get proxyModeDirectDesc => 'Herhangi bir proxy kullanmadan doğrudan ağa bağlan';
+  String get proxyModeDirectDesc =>
+      'Herhangi bir proxy kullanmadan doğrudan ağa bağlan';
 
   @override
   String get proxyModeCustom => 'Özel Proxy';
 
   @override
-  String get proxyModeCustomDesc => 'HTTP proxy sunucu adresini ve bağlantı noktasını manuel olarak belirtin';
+  String get proxyModeCustomDesc =>
+      'HTTP proxy sunucu adresini ve bağlantı noktasını manuel olarak belirtin';
 
   @override
   String get proxyHost => 'Proxy Sunucu Adresi';
@@ -4860,7 +5199,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get proxyBypass => 'Proxy\'yi Atla (Beyaz Liste)';
 
   @override
-  String get proxyBypassHint => 'Virgül veya noktalı virgülle ayırın, örn. localhost, 127.0.0.1, <local>';
+  String get proxyBypassHint =>
+      'Virgül veya noktalı virgülle ayırın, örn. localhost, 127.0.0.1, <local>';
 
   @override
   String get proxyTestConnection => 'Bağlantıyı Test Et';
@@ -4872,7 +5212,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get proxyTestFailed => 'Proxy bağlantı testi başarısız';
 
   @override
-  String get proxyHostPortInvalid => 'Lütfen geçerli bir proxy adresi ve bağlantı noktası girin';
+  String get proxyHostPortInvalid =>
+      'Lütfen geçerli bir proxy adresi ve bağlantı noktası girin';
 
   @override
   String get sortPlaylists => 'Çalma Listelerini Sırala';
@@ -4896,7 +5237,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get removeFromMediaLibrary => 'Medya Kitaplığından Kaldır';
 
   @override
-  String get addedToMediaLibrary => 'Medya kitaplığına eklendi, arka planda taranıyor...';
+  String get addedToMediaLibrary =>
+      'Medya kitaplığına eklendi, arka planda taranıyor...';
 
   @override
   String get removedFromMediaLibrary => 'Medya kitaplığından kaldırıldı';
@@ -4908,10 +5250,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get remoteMediaFolders => 'Uzak Ağ Klasörleri';
 
   @override
-  String get remoteFolderAlreadyIndexed => 'Klasör zaten medya kitaplığında dizine eklenmiş';
+  String get remoteFolderAlreadyIndexed =>
+      'Klasör zaten medya kitaplığında dizine eklenmiş';
 
   @override
-  String get remoteLibraryDisconnectConfirm => 'Bu kitaplıktan bağlantı kesilsin mi? Yeniden açmak için tekrar bağlanmanız gerekir. Çalma etkilenmez.';
+  String get remoteLibraryDisconnectConfirm =>
+      'Bu kitaplıktan bağlantı kesilsin mi? Yeniden açmak için tekrar bağlanmanız gerekir. Çalma etkilenmez.';
 
   @override
   String get remoteLibrary => 'Uzak Kitaplık';
@@ -4962,25 +5306,30 @@ class AppLocalizationsTr extends AppLocalizations {
   String get enableDesktopLyrics => 'Masaüstü Sözlerini Etkinleştir';
 
   @override
-  String get enableDesktopLyricsDescription => 'Masaüstünde her zaman üstte duran yarı saydam kayan sözler göster';
+  String get enableDesktopLyricsDescription =>
+      'Masaüstünde her zaman üstte duran yarı saydam kayan sözler göster';
 
   @override
   String get lockDesktopLyrics => 'Söz Konumunu Kilitle';
 
   @override
-  String get lockDesktopLyricsDescription => 'Pencere konumunu sabitleyin ve sürüklemeyi kapatın; kontroller için üzerine gelin';
+  String get lockDesktopLyricsDescription =>
+      'Pencere konumunu sabitleyin ve sürüklemeyi kapatın; kontroller için üzerine gelin';
 
   @override
-  String get desktopLyricsShowTranslation => 'Çeviriyi / Çift Satırlı Sözleri Göster';
+  String get desktopLyricsShowTranslation =>
+      'Çeviriyi / Çift Satırlı Sözleri Göster';
 
   @override
-  String get desktopLyricsShowTranslationDescription => 'Geçerli şarkının çevirisi varsa masaüstü sözlerinde iki satırı aynı anda göster';
+  String get desktopLyricsShowTranslationDescription =>
+      'Geçerli şarkının çevirisi varsa masaüstü sözlerinde iki satırı aynı anda göster';
 
   @override
   String get desktopLyricsShowBackground => 'Kalıcı Koyu Arka Plan';
 
   @override
-  String get desktopLyricsShowBackgroundDescription => 'Açık renkli duvar kağıtlarında okunabilirliği artırmak için masaüstü sözlerinin altında yarı saydam bir kapsül arka plan göster';
+  String get desktopLyricsShowBackgroundDescription =>
+      'Açık renkli duvar kağıtlarında okunabilirliği artırmak için masaüstü sözlerinin altında yarı saydam bir kapsül arka plan göster';
 
   @override
   String desktopLyricsFontSize(int size) {
@@ -4988,19 +5337,23 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get noTranslationAiPrompt => 'Geçerli şarkının çevirisi yok. Yapay zeka ile çeviri oluşturulsun mu?';
+  String get noTranslationAiPrompt =>
+      'Geçerli şarkının çevirisi yok. Yapay zeka ile çeviri oluşturulsun mu?';
 
   @override
-  String get noKaraokeAiPrompt => 'Geçerli şarkının kelime kelime sözleri yok. Yapay zeka ile kelime kelime/karaoke sözlere dönüştürülsün mü?';
+  String get noKaraokeAiPrompt =>
+      'Geçerli şarkının kelime kelime sözleri yok. Yapay zeka ile kelime kelime/karaoke sözlere dönüştürülsün mü?';
 
   @override
   String get wordByWordLyricsEnabled => 'Kelime kelime sözler etkinleştirildi';
 
   @override
-  String get wordByWordLyricsDisabled => 'Kelime kelime sözler devre dışı bırakıldı';
+  String get wordByWordLyricsDisabled =>
+      'Kelime kelime sözler devre dışı bırakıldı';
 
   @override
-  String get ignoreSslDescription => 'Kendinden imzalı veya dahili SSL sertifikaları için';
+  String get ignoreSslDescription =>
+      'Kendinden imzalı veya dahili SSL sertifikaları için';
 
   @override
   String get copyCoverFailed => 'Kapak kopyalanamadı';
@@ -5015,25 +5368,32 @@ class AppLocalizationsTr extends AppLocalizations {
   String get closeDesktopLyrics => 'Masaüstü Sözlerini Kapat';
 
   @override
-  String get unlockDesktopLyrics => 'Masaüstü Sözlerinin Kilidini Aç (Sürüklemeyi Etkinleştir)';
+  String get unlockDesktopLyrics =>
+      'Masaüstü Sözlerinin Kilidini Aç (Sürüklemeyi Etkinleştir)';
 
   @override
-  String get lockDesktopLyricsTray => 'Masaüstü Sözlerini Kilitle (Sabit Konum)';
+  String get lockDesktopLyricsTray =>
+      'Masaüstü Sözlerini Kilitle (Sabit Konum)';
 
   @override
-  String get msStoreLaunchFailed => 'Microsoft Store başlatılamadı. Lütfen mağazada arayıp satın alın.';
+  String get msStoreLaunchFailed =>
+      'Microsoft Store başlatılamadı. Lütfen mağazada arayıp satın alın.';
 
   @override
-  String get storeConnectFailed => 'Ürün bilgileri için uygulama mağazasına bağlanılamıyor. Lütfen ağı kontrol edip tekrar deneyin.';
+  String get storeConnectFailed =>
+      'Ürün bilgileri için uygulama mağazasına bağlanılamıyor. Lütfen ağı kontrol edip tekrar deneyin.';
 
   @override
-  String get msStoreSyncSuccess => 'Microsoft Store satın alma ve lisans durumu senkronize edildi';
+  String get msStoreSyncSuccess =>
+      'Microsoft Store satın alma ve lisans durumu senkronize edildi';
 
   @override
-  String get allProFeaturesUnlocked => 'Geçerli sürüm için kod kullanmaya gerek yok. Tüm Pro özelliklerinin kilidi tamamen açıldı.';
+  String get allProFeaturesUnlocked =>
+      'Geçerli sürüm için kod kullanmaya gerek yok. Tüm Pro özelliklerinin kilidi tamamen açıldı.';
 
   @override
-  String get cannotConnectToMediaServer => 'Medya kitaplığı sunucusuna bağlanılamıyor. Lütfen servisin çalıştığını kontrol edin.';
+  String get cannotConnectToMediaServer =>
+      'Medya kitaplığı sunucusuna bağlanılamıyor. Lütfen servisin çalıştığını kontrol edin.';
 
   @override
   String get playQueue => 'Çalma Sırası';
@@ -5042,7 +5402,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get clearPlaybackQueue => 'Çalma Sırasını Temizle';
 
   @override
-  String get confirmClearPlaybackQueue => 'Kuyruktaki tüm bekleyen şarkıları temizlemek istediğinizden emin misiniz?';
+  String get confirmClearPlaybackQueue =>
+      'Kuyruktaki tüm bekleyen şarkıları temizlemek istediğinizden emin misiniz?';
 
   @override
   String get exitMultiSelect => 'Çoklu Seçimden Çık';
@@ -5076,7 +5437,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get closeDrawer => 'Çekmeceyi Kapat';
 
   @override
-  String get queueEmptyDragHint => 'Kitaplıktan, klasörlerden veya çalma listelerinden şarkıları buraya sürükleyin';
+  String get queueEmptyDragHint =>
+      'Kitaplıktan, klasörlerden veya çalma listelerinden şarkıları buraya sürükleyin';
 
   @override
   String get appendToQueueEnd => 'Kuyruğun Sonuna Ekle';
@@ -5100,7 +5462,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get clearSongs => 'Şarkıları Temizle';
 
   @override
-  String get playlistEmptyDragHint => 'Kitaplıktan şarkıları sürükleyin\nveya yerel ses dosyalarını doğrudan buraya bırakın';
+  String get playlistEmptyDragHint =>
+      'Kitaplıktan şarkıları sürükleyin\nveya yerel ses dosyalarını doğrudan buraya bırakın';
 
   @override
   String get standaloneQueueWindowTitle => 'Çalma Sırası ve Listeler - Vynody';
@@ -5118,10 +5481,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get playNow => 'Şimdi Çal';
 
   @override
-  String get standalonePlaylistDragHint => 'Eklemek için yerel ses dosyalarını doğrudan buraya sürükleyin';
+  String get standalonePlaylistDragHint =>
+      'Eklemek için yerel ses dosyalarını doğrudan buraya sürükleyin';
 
   @override
-  String get standaloneQueueDragHint => 'Şarkıları kitaplıktan, klasörlerden veya dışarıdan buraya sürükleyin';
+  String get standaloneQueueDragHint =>
+      'Şarkıları kitaplıktan, klasörlerden veya dışarıdan buraya sürükleyin';
 
   @override
   String get closeStandaloneQueue => 'Bağımsız Çalma Sırasını Kapat';
@@ -5172,13 +5537,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get librarySourceAll => 'Tüm Müzikler';
 
   @override
-  String get librarySourceAllDescription => 'Yerel ve tüm dizine eklenmiş uzak müzikleri içerir';
+  String get librarySourceAllDescription =>
+      'Yerel ve tüm dizine eklenmiş uzak müzikleri içerir';
 
   @override
   String get librarySourceLocalOnly => 'Yalnızca Yerel Cihaz';
 
   @override
-  String get librarySourceLocalOnlyDescription => 'Yalnızca bu cihazda depolanan müzikleri gösterir';
+  String get librarySourceLocalOnlyDescription =>
+      'Yalnızca bu cihazda depolanan müzikleri gösterir';
 
   @override
   String get librarySourceIndexedRemote => 'Dizine Eklenmiş Uzak Sunucular';
@@ -5237,7 +5604,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get loadingServerPlaylists => 'Sunucu çalma listeleri yükleniyor...';
 
   @override
-  String get jellyfinMediaDeletionPermissionHint => ' (Lütfen Jellyfin kullanıcısının \"Medya silmeye izin ver\" yetkisi olup olmadığını kontrol edin)';
+  String get jellyfinMediaDeletionPermissionHint =>
+      ' (Lütfen Jellyfin kullanıcısının \"Medya silmeye izin ver\" yetkisi olup olmadığını kontrol edin)';
 
   @override
   String get trialResetDialogTitle => 'Deneme Süresi Sıfırlandı';
@@ -5256,13 +5624,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get trialResetDialogButton => 'Başla';
 
   @override
-  String get eqClippingWarning => 'Ses çok yüksek. Bozulmayı önlemek için ön kazancı düşürün.';
+  String get eqClippingWarning =>
+      'Ses çok yüksek. Bozulmayı önlemek için ön kazancı düşürün.';
 
   @override
   String get eqAutoPreamp => 'Otomatik Ön Kazanç';
 
   @override
-  String get eqAutoPreampTooltip => 'Bozulmayı önlemek için ön kazancı otomatik olarak azaltın';
+  String get eqAutoPreampTooltip =>
+      'Bozulmayı önlemek için ön kazancı otomatik olarak azaltın';
 
   @override
   String get lyricsTimelineTitle => 'Şarkı Sözü Zaman Tüneli';
@@ -5276,7 +5646,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lyricsTimelineMaxHistoryLabel => 'Şarkı Sözü Geçmiş Sınırı';
 
   @override
-  String get lyricsTimelineMaxHistoryDescription => 'Şarkı başına tutulan maksimum geçmiş sürüm sayısı (en fazla 50)';
+  String get lyricsTimelineMaxHistoryDescription =>
+      'Şarkı başına tutulan maksimum geçmiş sürüm sayısı (en fazla 50)';
 
   @override
   String lyricsTimelineMaxHistoryCountOption(int count) {
@@ -5300,7 +5671,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get noTimelineHistory => 'Değişiklik geçmişi yok';
 
   @override
-  String get noTimelineHistoryHint => 'Şarkı sözlerini düzenlediğinizde, zamanlamayı ayarladığınızda veya içe aktardığınızda anlık görüntüler buraya otomatik olarak kaydedilir';
+  String get noTimelineHistoryHint =>
+      'Şarkı sözlerini düzenlediğinizde, zamanlamayı ayarladığınızda veya içe aktardığınızda anlık görüntüler buraya otomatik olarak kaydedilir';
 
   @override
   String get currentVersion => 'Geçerli sürüm';
@@ -5379,10 +5751,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get timeMachineSubtitle => 'Geçmiş favorilerinizi yeniden keşfedin';
 
   @override
-  String get timeMachineSongsSubtitle => 'Geçmiş favori şarkılarınızı yeniden keşfedin';
+  String get timeMachineSongsSubtitle =>
+      'Geçmiş favori şarkılarınızı yeniden keşfedin';
 
   @override
-  String get emptyTimeMachineSongs => 'Henüz yeniden keşfedilecek eski favori şarkı yok';
+  String get emptyTimeMachineSongs =>
+      'Henüz yeniden keşfedilecek eski favori şarkı yok';
 
   @override
   String get topRated => 'En Yüksek Puanlılar';
@@ -5442,19 +5816,22 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lastFmSectionTitle => 'Last.fm';
 
   @override
-  String get lastFmSectionDescription => 'Dinlediklerini Last.fm hesabına kaydet.';
+  String get lastFmSectionDescription =>
+      'Dinlediklerini Last.fm hesabına kaydet.';
 
   @override
   String get lastFmScrobblingEnabledTitle => 'Scrobble\'ı etkinleştir';
 
   @override
-  String get lastFmScrobblingEnabledDescription => 'Parçalar dinleme eşiğini geçtiğinde Last.fm\'e kaydedilir.';
+  String get lastFmScrobblingEnabledDescription =>
+      'Parçalar dinleme eşiğini geçtiğinde Last.fm\'e kaydedilir.';
 
   @override
   String get lastFmScrobbleRemoteTitle => 'Uzak kütüphaneleri dahil et';
 
   @override
-  String get lastFmScrobbleRemoteDescription => 'Subsonic, Jellyfin, WebDAV ve SMB parçalarını da kaydeder. Sunucunuz zaten Last.fm\'e scrobble ediyorsa bu seçenek yinelenen kayıtlar oluşturur.';
+  String get lastFmScrobbleRemoteDescription =>
+      'Subsonic, Jellyfin, WebDAV ve SMB parçalarını da kaydeder. Sunucunuz zaten Last.fm\'e scrobble ediyorsa bu seçenek yinelenen kayıtlar oluşturur.';
 
   @override
   String get lastFmAccountTitle => 'Hesap';
@@ -5477,10 +5854,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lastFmDisconnect => 'Bağlantıyı kes';
 
   @override
-  String get lastFmAuthorizationPending => 'Yetkilendirme sayfası tarayıcınızda açıldı.';
+  String get lastFmAuthorizationPending =>
+      'Yetkilendirme sayfası tarayıcınızda açıldı.';
 
   @override
-  String get lastFmAuthorizationHint => 'Tarayıcıda Last.fm\'e giriş yapıp Vynody\'ye izin verin, ardından buraya dönüp \"Yetkilendirmeyi tamamladım\" düğmesine dokunun.';
+  String get lastFmAuthorizationHint =>
+      'Tarayıcıda Last.fm\'e giriş yapıp Vynody\'ye izin verin, ardından buraya dönüp \"Yetkilendirmeyi tamamladım\" düğmesine dokunun.';
 
   @override
   String get lastFmAuthorizationSuccess => 'Last.fm\'e bağlandı.';
@@ -5491,7 +5870,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get lastFmOpenAuthorizationPage => 'Yetkilendirme sayfasını yeniden aç';
+  String get lastFmOpenAuthorizationPage =>
+      'Yetkilendirme sayfasını yeniden aç';
 
   @override
   String lastFmLastScrobble(Object time) {
@@ -5507,7 +5887,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get lastFmCredentialsMissing => 'Bu derleme Last.fm kimlik bilgilerini içermiyor, scrobble kullanılamıyor.';
+  String get lastFmCredentialsMissing =>
+      'Bu derleme Last.fm kimlik bilgilerini içermiyor, scrobble kullanılamıyor.';
 
   @override
   String lanSyncLyricsReceived(int added, int updated, int skipped) {
@@ -5520,7 +5901,12 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String lanSyncLyricsSyncResult(int matched, int added, int updated, int skipped) {
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  ) {
     return 'Eşitleme tamamlandı: $matched eşleşti, $added eklendi, $updated güncellendi, $skipped atlandı';
   }
 
@@ -5530,7 +5916,11 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String lanSyncPlaylistsReceivedPartial(int playlists, int songs, int missing) {
+  String lanSyncPlaylistsReceivedPartial(
+    int playlists,
+    int songs,
+    int missing,
+  ) {
     return '$playlists çalma listesi, $songs parça alındı, $missing parça eşleşmedi';
   }
 
@@ -5545,7 +5935,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get lanSyncErrorTimeout => 'Bağlantı zaman aşımına uğradı. İki cihazın da aynı ağda olduğundan emin olun.';
+  String get lanSyncErrorTimeout =>
+      'Bağlantı zaman aşımına uğradı. İki cihazın da aynı ağda olduğundan emin olun.';
 
   @override
   String get lanSyncErrorNetwork => 'Cihaza bağlanılamadı';
@@ -5559,7 +5950,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lanSyncErrorBusy => 'Bu cihazla eşitleme hâlâ sürüyor';
 
   @override
-  String get lanSyncErrorSessionExpired => 'Aktarım oturumunun süresi doldu. Lütfen tekrar deneyin.';
+  String get lanSyncErrorSessionExpired =>
+      'Aktarım oturumunun süresi doldu. Lütfen tekrar deneyin.';
 
   @override
   String get lanSyncProgressPreparing => 'Eşitlenecek içerik hazırlanıyor…';
@@ -5642,25 +6034,29 @@ class AppLocalizationsTr extends AppLocalizations {
   String get playingIndicatorAnimation => 'Oynatma göstergesi animasyonu';
 
   @override
-  String get playingIndicatorAnimationDescription => 'Kapalıyken geçerli şarkı, animasyonlu ekolayzer yerine duraklat/oynat simgesini sabit olarak gösterir.';
+  String get playingIndicatorAnimationDescription =>
+      'Kapalıyken geçerli şarkı, animasyonlu ekolayzer yerine duraklat/oynat simgesini sabit olarak gösterir.';
 
   @override
   String get miniPlayerSpectrum => 'Mini oynatıcı spektrumu';
 
   @override
-  String get miniPlayerSpectrumDescription => 'Kapalıyken yüzen dock mini oynatıcısının arkasındaki FFT spektrumu gizlenir.';
+  String get miniPlayerSpectrumDescription =>
+      'Kapalıyken yüzen dock mini oynatıcısının arkasındaki FFT spektrumu gizlenir.';
 
   @override
   String get blurEffect => 'Buzlu cam ve bulanıklık efektleri';
 
   @override
-  String get blurEffectDescription => 'Dock, iletişim kutuları ve kayan panellerde bulanıklık efekti kullanır. Kapatılması GPU yükünü azaltır ve akıcılığı artırır.';
+  String get blurEffectDescription =>
+      'Dock, iletişim kutuları ve kayan panellerde bulanıklık efekti kullanır. Kapatılması GPU yükünü azaltır ve akıcılığı artırır.';
 
   @override
   String get lyricsBlurEffect => 'Şarkı sözü bulanıklık efekti';
 
   @override
-  String get lyricsBlurEffectDescription => 'Şarkı sözü modundaki odaklanmamış satırlara Gauss bulanıklığı uygular.';
+  String get lyricsBlurEffectDescription =>
+      'Şarkı sözü modundaki odaklanmamış satırlara Gauss bulanıklığı uygular.';
 
   @override
   String get searchResultsCurrentFolder => 'Geçerli Klasör ve Alt Klasörler';
@@ -5681,7 +6077,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get remoteSearchDeepAction => 'Uzak sunucuda derin arama yap';
 
   @override
-  String get remoteSearchDeepSearching => 'Uzak dizin derinlemesine aranıyor...';
+  String get remoteSearchDeepSearching =>
+      'Uzak dizin derinlemesine aranıyor...';
 
   @override
   String get remoteSearchDeepStop => 'Aramayı durdur';
@@ -5691,4 +6088,25 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get searchFolderHint => 'Şarkı veya klasör ara...';
+
+  @override
+  String get spatialAudio => '空间音效';
+
+  @override
+  String get spatialAudioOff => '关闭';
+
+  @override
+  String get spatialAudioConcertHall => '音乐厅空间';
+
+  @override
+  String get spatialAudioNaturalEcho => '轻度回响';
+
+  @override
+  String get spatialAudioOffDescription => '保持原始干声，不叠加空间混响';
+
+  @override
+  String get spatialAudioConcertHallDescription => '营造宽广立体的音乐厅声场效果';
+
+  @override
+  String get spatialAudioNaturalEchoDescription => '仅施加轻微自然回响，忠实保留原声细节';
 }

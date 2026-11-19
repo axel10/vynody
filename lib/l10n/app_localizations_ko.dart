@@ -40,7 +40,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get directoryAddedNoMusic => '디렉토리가 추가되었지만 재생 가능한 오디오 파일이 없습니다';
 
   @override
-  String get selectDirectoryHint => '선택한 항목은 파일입니다. 폴더를 선택하거나 오른쪽 상단의 \'열기\'를 탭하세요';
+  String get selectDirectoryHint =>
+      '선택한 항목은 파일입니다. 폴더를 선택하거나 오른쪽 상단의 \'열기\'를 탭하세요';
 
   @override
   String get scanDirectory => '소스';
@@ -70,7 +71,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get rebuildDatabase => '데이터베이스 재구축';
 
   @override
-  String get confirmRebuildDatabase => '모든 노래 태그 정보를 수동으로 새로고침하시겠습니까? 커버와 메타데이터를 다시 로드하는 데 시간이 걸릴 수 있습니다.';
+  String get confirmRebuildDatabase =>
+      '모든 노래 태그 정보를 수동으로 새로고침하시겠습니까? 커버와 메타데이터를 다시 로드하는 데 시간이 걸릴 수 있습니다.';
 
   @override
   String get cancel => '취소';
@@ -208,7 +210,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get songNotInScannedFolders => '현재 노래가 검색된 디렉토리에 없습니다';
 
   @override
-  String get remoteAlbumUnavailable => '이 곡의 앨범을 찾을 수 없습니다. 삭제되었거나 서버에 연결할 수 없을 수 있습니다.';
+  String get remoteAlbumUnavailable =>
+      '이 곡의 앨범을 찾을 수 없습니다. 삭제되었거나 서버에 연결할 수 없을 수 있습니다.';
 
   @override
   String get queue => '대기열';
@@ -574,31 +577,36 @@ class AppLocalizationsKo extends AppLocalizations {
   String get immersiveTabBar => '몰입형 탭 바';
 
   @override
-  String get immersiveTabBarDescription => '마우스를 움직이면 탐색 모음을 표시하고, 3초 동안 활동이 없으면 숨깁니다';
+  String get immersiveTabBarDescription =>
+      '마우스를 움직이면 탐색 모음을 표시하고, 3초 동안 활동이 없으면 숨깁니다';
 
   @override
   String get collapseButtonsInLandscapeLyrics => '가로 가사 모드에서 버튼 접기';
 
   @override
-  String get collapseButtonsInLandscapeLyricsDescription => '가로 가사 모드에서 7개 버튼 행을 접고 제목을 왼쪽으로 정렬하며 오른쪽에 작업 버튼을 추가합니다';
+  String get collapseButtonsInLandscapeLyricsDescription =>
+      '가로 가사 모드에서 7개 버튼 행을 접고 제목을 왼쪽으로 정렬하며 오른쪽에 작업 버튼을 추가합니다';
 
   @override
   String get expandPortraitLyricsControlsOnScroll => '세로 가사 스크롤 시 재생 컨트롤 확장';
 
   @override
-  String get expandPortraitLyricsControlsOnScrollDescription => '세로 가사 모드에서 스크롤할 때 하단 재생 컨트롤과 진행률 표시줄을 확장합니다';
+  String get expandPortraitLyricsControlsOnScrollDescription =>
+      '세로 가사 모드에서 스크롤할 때 하단 재생 컨트롤과 진행률 표시줄을 확장합니다';
 
   @override
   String get floatingDockScrollCollapse => '스크롤 시 독 접기';
 
   @override
-  String get floatingDockScrollCollapseDescription => '아래로 스크롤하면 하단 독을 접어 한 줄 미니 플레이어만 표시하고, 위로 스크롤하거나 목록의 처음·끝에 도달하면 다시 펼칩니다. 끄면 독은 항상 완전히 펼쳐진 상태로 유지됩니다.';
+  String get floatingDockScrollCollapseDescription =>
+      '아래로 스크롤하면 하단 독을 접어 한 줄 미니 플레이어만 표시하고, 위로 스크롤하거나 목록의 처음·끝에 도달하면 다시 펼칩니다. 끄면 독은 항상 완전히 펼쳐진 상태로 유지됩니다.';
 
   @override
   String get sampleStride => '샘플 간격';
 
   @override
-  String get sampleStrideDescription => '값이 클수록 빠르게 스캔하지만 파형 정밀도가 낮아집니다 (기본값: 4)';
+  String get sampleStrideDescription =>
+      '값이 클수록 빠르게 스캔하지만 파형 정밀도가 낮아집니다 (기본값: 4)';
 
   @override
   String get waveformSegments => '파형 세그먼트';
@@ -772,7 +780,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get showPlaybackAudioInfo => '오디오 스펙 정보 표시';
 
   @override
-  String get showPlaybackAudioInfoDescription => '재생 컨트롤 아래에 오디오 포맷, 샘플링 레이트, 비트레이트 정보 표시';
+  String get showPlaybackAudioInfoDescription =>
+      '재생 컨트롤 아래에 오디오 포맷, 샘플링 레이트, 비트레이트 정보 표시';
 
   @override
   String get showSongRating => '곡 평점 표시';
@@ -787,19 +796,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get showPlaybackTopDragHandle => '상단 드래그 바 표시';
 
   @override
-  String get showPlaybackTopDragHandleDescription => '재생 화면 상단에 아래로 당겨 접기 표시줄을 표시합니다';
+  String get showPlaybackTopDragHandleDescription =>
+      '재생 화면 상단에 아래로 당겨 접기 표시줄을 표시합니다';
 
   @override
   String get waveformLongPressSeekSpeed => '파형 길게 누르기 빨리감기 속도';
 
   @override
-  String get waveformLongPressSeekSpeedDescription => '스크롤 파형 진행 표시줄을 길게 누를 때 빨리감기 재생 속도(×)';
+  String get waveformLongPressSeekSpeedDescription =>
+      '스크롤 파형 진행 표시줄을 길게 누를 때 빨리감기 재생 속도(×)';
 
   @override
   String get enableWaveformLongPressSeek => '파형 길게 누르기 빨리감기 사용';
 
   @override
-  String get enableWaveformLongPressSeekDescription => '스크롤 파형 진행 표시줄을 길게 눌러 빨리감기 재생을 사용합니다';
+  String get enableWaveformLongPressSeekDescription =>
+      '스크롤 파형 진행 표시줄을 길게 눌러 빨리감기 재생을 사용합니다';
 
   @override
   String get clearWaveformCache => '전체 곡 파형 캐시 삭제';
@@ -817,7 +829,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get remoteAudioCache => '원격 오디오 캐시';
 
   @override
-  String get remoteAudioCacheDescription => 'Navidrome 및 WebDAV 스트리밍 및 프리페치용 로컬 캐시';
+  String get remoteAudioCacheDescription =>
+      'Navidrome 및 WebDAV 스트리밍 및 프리페치용 로컬 캐시';
 
   @override
   String get remoteCacheLimit => '원격 캐시 용량 제한';
@@ -826,7 +839,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get remotePrefetchCount => '원격 트랙 사전 로드 수';
 
   @override
-  String get remotePrefetchCountDescription => '원활한 재생 전환을 위해 재생 대기열의 다음 원격 트랙을 미리 다운로드합니다';
+  String get remotePrefetchCountDescription =>
+      '원활한 재생 전환을 위해 재생 대기열의 다음 원격 트랙을 미리 다운로드합니다';
 
   @override
   String get clearRemoteCache => '원격 캐시 삭제';
@@ -927,7 +941,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transcodeSectionTitle => '오디오 트랜스코딩';
 
   @override
-  String get transcodeSectionDescription => '오디오 변환을 위한 기본 출력 형식 및 품질 프리셋을 설정합니다.';
+  String get transcodeSectionDescription =>
+      '오디오 변환을 위한 기본 출력 형식 및 품질 프리셋을 설정합니다.';
 
   @override
   String get transcodeDefaultFormat => '기본 출력 형식';
@@ -1002,7 +1017,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transcodeQualityExtreme => '최고';
 
   @override
-  String get transcodeLosslessPresetHint => '이 무손실 형식은 품질 등급이나 비트레이트 모드를 사용하지 않습니다.';
+  String get transcodeLosslessPresetHint =>
+      '이 무손실 형식은 품질 등급이나 비트레이트 모드를 사용하지 않습니다.';
 
   @override
   String get transcodeAdvancedOptions => '고급 옵션';
@@ -1014,7 +1030,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get transcodeAdvancedFollowingPreset => '고급 매개변수가 현재 프리셋을 따릅니다';
 
   @override
-  String get transcodeLosslessAdvancedHint => '이 무손실 형식에는 소스 보존 옵션만 사용할 수 있습니다.';
+  String get transcodeLosslessAdvancedHint =>
+      '이 무손실 형식에는 소스 보존 옵션만 사용할 수 있습니다.';
 
   @override
   String get transcodeBitRateInvalid => '유효한 비트레이트를 입력해주세요';
@@ -1284,7 +1301,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get timelineAdjustmentTitle => '타임라인 조정';
 
   @override
-  String get timelineAdjustmentDescription => '오른쪽으로 드래그하면 가사가 늦어지고, 왼쪽으로 드래그하면 빨리 재생됩니다.';
+  String get timelineAdjustmentDescription =>
+      '오른쪽으로 드래그하면 가사가 늦어지고, 왼쪽으로 드래그하면 빨리 재생됩니다.';
 
   @override
   String timelineOffsetEarlier(Object seconds) {
@@ -1306,7 +1324,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get enterAcoustidApiKeyTitle => 'AcoustID API 키 입력';
 
   @override
-  String get acoustidApiKeyDescription => '오디오 핑거프린팅에 사용됩니다. 비워두면 기본 내장 키가 복원됩니다.';
+  String get acoustidApiKeyDescription =>
+      '오디오 핑거프린팅에 사용됩니다. 비워두면 기본 내장 키가 복원됩니다.';
 
   @override
   String get acoustidApiKeyHint => 'AcoustID API 키 붙여넣기';
@@ -1327,7 +1346,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get enterGoogleAiStudioApiKeyTitle => 'Google AI Studio API 키 입력';
 
   @override
-  String get googleAiStudioApiKeyDescription => 'Google AI Studio에서 가사 생성, 타임라인 생성 및 번역에 사용됩니다.';
+  String get googleAiStudioApiKeyDescription =>
+      'Google AI Studio에서 가사 생성, 타임라인 생성 및 번역에 사용됩니다.';
 
   @override
   String get pasteGoogleAiStudioApiKey => 'Google AI Studio API 키 붙여넣기';
@@ -1336,7 +1356,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get enterOpenRouterApiKeyTitle => 'OpenRouter API 키 입력';
 
   @override
-  String get openRouterApiKeyDescription => 'OpenRouter에서 가사 생성, 타임라인 생성 및 가사 번역에 사용됩니다.';
+  String get openRouterApiKeyDescription =>
+      'OpenRouter에서 가사 생성, 타임라인 생성 및 가사 번역에 사용됩니다.';
 
   @override
   String get pasteOpenRouterApiKey => 'OpenRouter API 키 붙여넣기';
@@ -1390,7 +1411,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportArtworkFailed => '커버 내보내기 실패';
 
   @override
-  String get editSongTagsDescription => '변경 사항은 원본 파일에 다시 기록되며, 기록할 수 없는 형식이면 앱에만 저장됩니다.';
+  String get editSongTagsDescription =>
+      '변경 사항은 원본 파일에 다시 기록되며, 기록할 수 없는 형식이면 앱에만 저장됩니다.';
 
   @override
   String get artistLabel => '아티스트';
@@ -1423,7 +1445,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get leaveBlankKeepsCurrentValue => '비워두면 이 필드가 지워집니다';
 
   @override
-  String get currentFileFormatCannotWriteBack => '이 파일 형식은 소스 파일에 다시 쓰기를 지원하지 않습니다. 변경사항은 앱에만 저장할 수 있습니다.';
+  String get currentFileFormatCannotWriteBack =>
+      '이 파일 형식은 소스 파일에 다시 쓰기를 지원하지 않습니다. 변경사항은 앱에만 저장할 수 있습니다.';
 
   @override
   String get leaveBlankDoesNotClearOriginalValue => '팁: 필드를 비워두면 값이 지워집니다.';
@@ -1435,7 +1458,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get saveToSourceFileAndApp => '소스 파일과 앱에 저장';
 
   @override
-  String get saveToSourceFileFailed => '소스 파일 저장에 실패했습니다. 파일 형식이 쓰기를 지원하고 파일이 사용 중이 아닌지 확인해주세요.';
+  String get saveToSourceFileFailed =>
+      '소스 파일 저장에 실패했습니다. 파일 형식이 쓰기를 지원하고 파일이 사용 중이 아닌지 확인해주세요.';
 
   @override
   String get fileOccupiedByOtherApp => '파일이 다른 앱에서 사용 중이어서 쓸 수 없습니다';
@@ -1447,7 +1471,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get batchEditSongTagsTitle => '곡 태그 일괄 편집';
 
   @override
-  String get batchEditSongTagsDescription => '변경 사항은 원본 파일에 다시 기록되며, 기록할 수 없는 형식이면 앱에만 저장됩니다. <keep>으로 표시된 필드는 원래 값을 유지합니다.';
+  String get batchEditSongTagsDescription =>
+      '변경 사항은 원본 파일에 다시 기록되며, 기록할 수 없는 형식이면 앱에만 저장됩니다. <keep>으로 표시된 필드는 원래 값을 유지합니다.';
 
   @override
   String get keepFieldHint => '팁: <keep> 값의 속성은 각 곡의 원래 값을 유지합니다.';
@@ -1503,13 +1528,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get scanSectionTitle => '검색';
 
   @override
-  String get scanSectionDescription => '이 옵션들은 라이브러리 검색이 오디오 파일을 처리하는 방식을 제어합니다.';
+  String get scanSectionDescription =>
+      '이 옵션들은 라이브러리 검색이 오디오 파일을 처리하는 방식을 제어합니다.';
 
   @override
   String get skipShortAudioDuringScan => '검색 중 짧은 오디오 건너뛰기';
 
   @override
-  String get skipShortAudioDuringScanDescription => '임계값보다 짧은 오디오는 라이브러리에 추가되지 않습니다.';
+  String get skipShortAudioDuringScanDescription =>
+      '임계값보다 짧은 오디오는 라이브러리에 추가되지 않습니다.';
 
   @override
   String get shortAudioScanThreshold => '짧은 오디오 임계값';
@@ -1529,7 +1556,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get shortcutSettingsDescription => '클릭하여 플레이어 동작의 단축키를 다시 기록하고 저장합니다.';
 
   @override
-  String get shortcutPhysicalKeyboardHint => '단축키는 외장 물리 키보드(예: 블루투스 또는 매직 키보드) 전용입니다.';
+  String get shortcutPhysicalKeyboardHint =>
+      '단축키는 외장 물리 키보드(예: 블루투스 또는 매직 키보드) 전용입니다.';
 
   @override
   String get edit => '편집';
@@ -1547,7 +1575,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lyricsTranslationTargetLanguageLabel => '번역 대상 언어';
 
   @override
-  String get lyricsTranslationTargetLanguageDescription => '기본값은 시스템 언어이며 수동으로 선택할 수도 있습니다.';
+  String get lyricsTranslationTargetLanguageDescription =>
+      '기본값은 시스템 언어이며 수동으로 선택할 수도 있습니다.';
 
   @override
   String get lyricsSaveMethodLabel => '가사 저장 위치';
@@ -1580,7 +1609,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lyricsLatinFontLabel => '가사 영문/라틴 글꼴';
 
   @override
-  String get lyricsLatinFontDescription => '가사의 라틴 문자, 숫자 및 기호 표시에 사용할 글꼴을 설정합니다.';
+  String get lyricsLatinFontDescription =>
+      '가사의 라틴 문자, 숫자 및 기호 표시에 사용할 글꼴을 설정합니다.';
 
   @override
   String get lyricsCjkFontLabel => '가사 한글/CJK 글꼴';
@@ -1631,7 +1661,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get importedFonts => '가져온 글꼴';
 
   @override
-  String get noImportedFontsHint => '가져온 글꼴이 없습니다. 아래 버튼을 눌러 로컬 .ttf / .otf 글꼴 파일을 가져오세요.';
+  String get noImportedFontsHint =>
+      '가져온 글꼴이 없습니다. 아래 버튼을 눌러 로컬 .ttf / .otf 글꼴 파일을 가져오세요.';
 
   @override
   String deleteFontConfirm(String name) {
@@ -1654,28 +1685,33 @@ class AppLocalizationsKo extends AppLocalizations {
   String get autoSwitchLyricsProvider => '자동 가사 제공자 전환';
 
   @override
-  String get autoSwitchLyricsProviderEnabledDesc => 'Google AI Studio를 먼저 시도합니다. 기본 모델과 대체 모델 모두 429 또는 5xx 오류로 실패하면 앱이 자동으로 OpenRouter로 전환하여 계속 시도합니다.';
+  String get autoSwitchLyricsProviderEnabledDesc =>
+      'Google AI Studio를 먼저 시도합니다. 기본 모델과 대체 모델 모두 429 또는 5xx 오류로 실패하면 앱이 자동으로 OpenRouter로 전환하여 계속 시도합니다.';
 
   @override
-  String get autoSwitchLyricsProviderDisabledDesc => '자동 전환을 활성화하려면 Google AI Studio와 OpenRouter 모두에 대한 API 키가 필요합니다.';
+  String get autoSwitchLyricsProviderDisabledDesc =>
+      '자동 전환을 활성화하려면 Google AI Studio와 OpenRouter 모두에 대한 API 키가 필요합니다.';
 
   @override
   String get lyricsAiProviderTitle => '가사 AI 제공자';
 
   @override
-  String get lyricsAiProviderDescription => '이 설정은 가사 생성 및 타임라인 생성에만 영향을 줍니다. 번역은 항상 Google AI Studio를 사용합니다.';
+  String get lyricsAiProviderDescription =>
+      '이 설정은 가사 생성 및 타임라인 생성에만 영향을 줍니다. 번역은 항상 Google AI Studio를 사용합니다.';
 
   @override
   String get googleAiStudioApiKeySaved => 'Google AI Studio API 키가 저장되었습니다';
 
   @override
-  String get googleAiStudioApiKeyMissing => '아직 Google AI Studio API 키가 저장되지 않았습니다. 가사 생성 및 타임라인 생성 시 먼저 입력하라는 메시지가 표시됩니다.';
+  String get googleAiStudioApiKeyMissing =>
+      '아직 Google AI Studio API 키가 저장되지 않았습니다. 가사 생성 및 타임라인 생성 시 먼저 입력하라는 메시지가 표시됩니다.';
 
   @override
   String get openRouterApiKeySaved => 'OpenRouter API 키가 저장되었습니다';
 
   @override
-  String get openRouterApiKeyMissing => '아직 OpenRouter API 키가 저장되지 않았습니다. 가사 생성 및 타임라인 생성 시 먼저 입력하라는 메시지가 표시됩니다.';
+  String get openRouterApiKeyMissing =>
+      '아직 OpenRouter API 키가 저장되지 않았습니다. 가사 생성 및 타임라인 생성 시 먼저 입력하라는 메시지가 표시됩니다.';
 
   @override
   String get apiKeySavedStatus => '저장됨';
@@ -1696,7 +1732,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get geminiModelsSectionTitle => '모델 선택';
 
   @override
-  String get geminiModelsSectionDescription => '이 모델들은 Google AI Studio에서 가사 생성, 타임라인 생성 및 가사 번역에 사용됩니다.';
+  String get geminiModelsSectionDescription =>
+      '이 모델들은 Google AI Studio에서 가사 생성, 타임라인 생성 및 가사 번역에 사용됩니다.';
 
   @override
   String get primaryModelLabel => '기본 모델';
@@ -1723,13 +1760,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get acoustidApiKeyTitle => 'AcoustID API 키';
 
   @override
-  String get acoustidApiKeyHelp => 'AcoustID는 오디오 핑거프린팅에 사용됩니다. 자체 API 키 사용을 권장합니다.';
+  String get acoustidApiKeyHelp =>
+      'AcoustID는 오디오 핑거프린팅에 사용됩니다. 자체 API 키 사용을 권장합니다.';
 
   @override
   String get acoustidApiKeySaved => 'AcoustID API 키가 저장되었습니다';
 
   @override
-  String get acoustidApiKeyDefault => '현재 내장 기본 키가 사용 중입니다. 자체 키로 교체하는 것을 권장합니다.';
+  String get acoustidApiKeyDefault =>
+      '현재 내장 기본 키가 사용 중입니다. 자체 키로 교체하는 것을 권장합니다.';
 
   @override
   String get applyForApiKey => 'API 키 신청: https://acoustid.org/new-application';
@@ -1783,16 +1822,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String get musicBrainzQueryFailed => 'MusicBrainz 쿼리 실패';
 
   @override
-  String get musicBrainzNetworkErrorHint => '요청이 실패했습니다. 일반적으로 불안정한 네트워크, 시간 초과 또는 서버 거부로 인해 발생합니다. 나중에 다시 시도하세요.';
+  String get musicBrainzNetworkErrorHint =>
+      '요청이 실패했습니다. 일반적으로 불안정한 네트워크, 시간 초과 또는 서버 거부로 인해 발생합니다. 나중에 다시 시도하세요.';
 
   @override
-  String get musicBrainzFilteredEmptyHint => '현재 필터에서 해당 키워드가 포함된 릴리스 제목을 찾을 수 없습니다.';
+  String get musicBrainzFilteredEmptyHint =>
+      '현재 필터에서 해당 키워드가 포함된 릴리스 제목을 찾을 수 없습니다.';
 
   @override
-  String get musicBrainzEmptyHint => 'MusicBrainz가 사용 가능한 결과를 반환하지 않았습니다. 제목, 아티스트 또는 앨범 필터를 완화해보세요.';
+  String get musicBrainzEmptyHint =>
+      'MusicBrainz가 사용 가능한 결과를 반환하지 않았습니다. 제목, 아티스트 또는 앨범 필터를 완화해보세요.';
 
   @override
-  String get musicBrainzEmptyMoreCompleteHint => '나중에 다시 시도하거나 현재 제목 또는 아티스트 정보를 더 완전하게 확인하세요.';
+  String get musicBrainzEmptyMoreCompleteHint =>
+      '나중에 다시 시도하거나 현재 제목 또는 아티스트 정보를 더 완전하게 확인하세요.';
 
   @override
   String get retry => '재시도';
@@ -1822,7 +1865,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noExpandableReleases => '확장 가능한 릴리스가 없습니다';
 
   @override
-  String get noMatchingResultHint => '나중에 다시 시도하거나 현재 제목 또는 아티스트 정보를 더 완전하게 확인하세요.';
+  String get noMatchingResultHint =>
+      '나중에 다시 시도하거나 현재 제목 또는 아티스트 정보를 더 완전하게 확인하세요.';
 
   @override
   String releaseCountLabel(int count) {
@@ -1951,7 +1995,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get pressAgainToExit => '한 번 더 누르면 종료됩니다';
 
   @override
-  String get tagCompletionSuccessWithCover => '태그가 완성되어 저장되었으며, 커버가 임시 디렉토리에 다운로드되었습니다';
+  String get tagCompletionSuccessWithCover =>
+      '태그가 완성되어 저장되었으며, 커버가 임시 디렉토리에 다운로드되었습니다';
 
   @override
   String get tagCompletionSuccess => '태그가 완성되어 저장되었습니다';
@@ -2005,7 +2050,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get no => '아니오';
 
   @override
-  String get remoteCollectionDropFailed => '원격 서버에서 곡을 불러오지 못했습니다. 네트워크나 서버 상태를 확인해 주세요.';
+  String get remoteCollectionDropFailed =>
+      '원격 서버에서 곡을 불러오지 못했습니다. 네트워크나 서버 상태를 확인해 주세요.';
 
   @override
   String dropAddedSongs(int addedCount) {
@@ -2036,7 +2082,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get fileAssociationTitle => '파일 연결';
 
   @override
-  String get fileAssociationDescription => '일반적인 음악 형식(mp3, flac, wav 등)을 이 앱과 연결하여 더블클릭으로 열 수 있습니다.';
+  String get fileAssociationDescription =>
+      '일반적인 음악 형식(mp3, flac, wav 등)을 이 앱과 연결하여 더블클릭으로 열 수 있습니다.';
 
   @override
   String get associateButton => '연결';
@@ -2045,7 +2092,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get disassociateButton => '제거';
 
   @override
-  String get associationSuccess => '연결 성공! 더블클릭이 작동하지 않으면 Windows 기본 앱 설정에서 Vynody를 선택해주세요.';
+  String get associationSuccess =>
+      '연결 성공! 더블클릭이 작동하지 않으면 Windows 기본 앱 설정에서 Vynody를 선택해주세요.';
 
   @override
   String get disassociationSuccess => '파일 연결이 성공적으로 제거되었습니다.';
@@ -2076,19 +2124,23 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingStepFileAssociation => '파일 형식 연결';
 
   @override
-  String get onboardingFileAssociationDesc => '일반적인 음악 형식(mp3, flac, wav 등)을 Vynody와 연결하여 파일 탐색기에서 더블클릭으로 음악을 재생하세요.';
+  String get onboardingFileAssociationDesc =>
+      '일반적인 음악 형식(mp3, flac, wav 등)을 Vynody와 연결하여 파일 탐색기에서 더블클릭으로 음악을 재생하세요.';
 
   @override
-  String get onboardingFileAssociationTip => '연결 후 시스템에서 \'연결 프로그램\' 선택 메뉴가 나타날 수 있습니다. 목록에서 \'Vynody\'를 선택하고 \'항상 이 앱 사용\'을 선택해주세요.';
+  String get onboardingFileAssociationTip =>
+      '연결 후 시스템에서 \'연결 프로그램\' 선택 메뉴가 나타날 수 있습니다. 목록에서 \'Vynody\'를 선택하고 \'항상 이 앱 사용\'을 선택해주세요.';
 
   @override
   String get onboardingStepRootDirectory => '음악 루트 디렉토리 추가';
 
   @override
-  String get onboardingRootDirectoryDesc => '음악 파일이 저장된 폴더를 선택하세요. Vynody가 자동으로 스캔하여 개인 음악 라이브러리를 구축합니다.';
+  String get onboardingRootDirectoryDesc =>
+      '음악 파일이 저장된 폴더를 선택하세요. Vynody가 자동으로 스캔하여 개인 음악 라이브러리를 구축합니다.';
 
   @override
-  String get onboardingAndroidPermissionTip => '참고: Android에서 로컬 음악을 가져오고 스캔하려면 미디어 라이브러리 접근 권한이 필요합니다. [폴더 선택]을 누르면 권한 요청이 표시되므로 허용해 주세요.';
+  String get onboardingAndroidPermissionTip =>
+      '참고: Android에서 로컬 음악을 가져오고 스캔하려면 미디어 라이브러리 접근 권한이 필요합니다. [폴더 선택]을 누르면 권한 요청이 표시되므로 허용해 주세요.';
 
   @override
   String get onboardingSelectDirectory => '폴더 선택';
@@ -2097,13 +2149,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingStepProgressBarStyle => '진행 표시줄 스타일';
 
   @override
-  String get onboardingProgressBarStyleDesc => '데스크톱 재생 시 선호하는 진행 표시줄 스타일을 선택하세요.';
+  String get onboardingProgressBarStyleDesc =>
+      '데스크톱 재생 시 선호하는 진행 표시줄 스타일을 선택하세요.';
 
   @override
-  String get onboardingProgressBarStyleFullWaveformDesc => '와이드스크린에 최적화. 전체 트랙 구성을 한눈에 확인하고 호버 탐색을 지원합니다.';
+  String get onboardingProgressBarStyleFullWaveformDesc =>
+      '와이드스크린에 최적화. 전체 트랙 구성을 한눈에 확인하고 호버 탐색을 지원합니다.';
 
   @override
-  String get onboardingProgressBarStyleScrollingWaveformDesc => '다이내믹한 몰입감. 음악 재생에 따라 파형이 부드럽게 스크롤됩니다.';
+  String get onboardingProgressBarStyleScrollingWaveformDesc =>
+      '다이내믹한 몰입감. 음악 재생에 따라 파형이 부드럽게 스크롤됩니다.';
 
   @override
   String get onboardingProgressBarStyleStandardDesc => '클래식하고 미니멀한 슬라이더 바.';
@@ -2142,7 +2197,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get failedToLoadDetails => '세부 정보를 불러오지 못했습니다';
 
   @override
-  String get remoteAudioNotCachedHint => '이 트랙은 클라우드에 있으며 로컬에 캐시되지 않았습니다. 재생하거나 다운로드하여 전체 오디오 속성을 확인하세요.';
+  String get remoteAudioNotCachedHint =>
+      '이 트랙은 클라우드에 있으며 로컬에 캐시되지 않았습니다. 재생하거나 다운로드하여 전체 오디오 속성을 확인하세요.';
 
   @override
   String get noPropertiesAvailable => '사용 가능한 속성이 없습니다';
@@ -2189,10 +2245,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get localNetworkPermissionDeniedTitle => '로컬 네트워크 접근 제한';
 
   @override
-  String get localNetworkPermissionDeniedMessage => '사용 가능한 로컬 네트워크 IP 주소가 감지되지 않았거나 로컬 네트워크 권한이 거부되었습니다.\n\n다음 사항을 확인해주세요:\n1. 기기가 Wi-Fi 또는 로컬 네트워크에 연결되어 있는지 확인하세요.\n2. 시스템 설정에서 앱이 로컬 네트워크에 접근할 수 있는 권한이 있는지 확인하세요:\n   - iOS/macOS: 설정 > 개인정보 보호 및 보안 > 로컬 네트워크로 이동하여 Vynody의 스위치를 켜세요.\n   - Windows: 연결되어 있는지 확인하고 Windows 방화벽이 Vynody의 네트워크 접근을 허용하는지 확인하세요.';
+  String get localNetworkPermissionDeniedMessage =>
+      '사용 가능한 로컬 네트워크 IP 주소가 감지되지 않았거나 로컬 네트워크 권한이 거부되었습니다.\n\n다음 사항을 확인해주세요:\n1. 기기가 Wi-Fi 또는 로컬 네트워크에 연결되어 있는지 확인하세요.\n2. 시스템 설정에서 앱이 로컬 네트워크에 접근할 수 있는 권한이 있는지 확인하세요:\n   - iOS/macOS: 설정 > 개인정보 보호 및 보안 > 로컬 네트워크로 이동하여 Vynody의 스위치를 켜세요.\n   - Windows: 연결되어 있는지 확인하고 Windows 방화벽이 Vynody의 네트워크 접근을 허용하는지 확인하세요.';
 
   @override
-  String get localNetworkPermissionWindowsMessage => '사용 가능한 로컬 네트워크 IP 주소가 감지되지 않았습니다.\n\n다음 사항을 확인해주세요:\n1. 기기가 로컬 네트워크(Wi-Fi 또는 이더넷)에 연결되어 있는지 확인하세요.\n2. 연결되어 있지만 오류가 지속되면 Windows 방화벽 설정에서 Vynody가 방화벽을 통과하도록 허용되어 있는지 확인하세요.';
+  String get localNetworkPermissionWindowsMessage =>
+      '사용 가능한 로컬 네트워크 IP 주소가 감지되지 않았습니다.\n\n다음 사항을 확인해주세요:\n1. 기기가 로컬 네트워크(Wi-Fi 또는 이더넷)에 연결되어 있는지 확인하세요.\n2. 연결되어 있지만 오류가 지속되면 Windows 방화벽 설정에서 Vynody가 방화벽을 통과하도록 허용되어 있는지 확인하세요.';
 
   @override
   String get openSettingsButton => '설정 열기';
@@ -2225,16 +2283,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get regenerateTimeline => '타임라인 다시 생성';
 
   @override
-  String get regenerateTimelineConfirmation => '현재 타임라인이 지워지고 다시 생성됩니다. 계속하시겠습니까?';
+  String get regenerateTimelineConfirmation =>
+      '현재 타임라인이 지워지고 다시 생성됩니다. 계속하시겠습니까?';
 
   @override
-  String get convertToKaraokeConfirmation => '현재 가사를 단어별 가사로 변환하고 타임라인을 다시 생성하시겠습니까?';
+  String get convertToKaraokeConfirmation =>
+      '현재 가사를 단어별 가사로 변환하고 타임라인을 다시 생성하시겠습니까?';
 
   @override
   String get retranslateLyrics => '가사 다시 번역';
 
   @override
-  String get retranslateLyricsConfirmation => '현재 언어로 다시 번역합니다. 새 결과가 나올 때까지 기존 번역은 유지됩니다. 계속할까요?';
+  String get retranslateLyricsConfirmation =>
+      '현재 언어로 다시 번역합니다. 새 결과가 나올 때까지 기존 번역은 유지됩니다. 계속할까요?';
 
   @override
   String get translationCopiedToClipboard => '번역 결과가 클립보드에 복사되었습니다';
@@ -2270,16 +2331,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get untitledRelease => '제목 없는 릴리스';
 
   @override
-  String get localSongFileNotFoundForGeneration => '로컬 노래 파일이 존재하지 않아 가사를 생성할 수 없습니다.';
+  String get localSongFileNotFoundForGeneration =>
+      '로컬 노래 파일이 존재하지 않아 가사를 생성할 수 없습니다.';
 
   @override
-  String get localSongFileNotFoundForTimeline => '로컬 노래 파일이 존재하지 않아 타임라인을 생성할 수 없습니다.';
+  String get localSongFileNotFoundForTimeline =>
+      '로컬 노래 파일이 존재하지 않아 타임라인을 생성할 수 없습니다.';
 
   @override
   String get noLyricsForTimelineGeneration => '타임라인 생성에 사용할 수 있는 가사가 없습니다.';
 
   @override
-  String get karaokeRequiresSyncedLyrics => '타임라인이 있는 동기화된 가사만 단어별 가사로 변환할 수 있으며, 일반 텍스트 가사는 변환할 수 없습니다.';
+  String get karaokeRequiresSyncedLyrics =>
+      '타임라인이 있는 동기화된 가사만 단어별 가사로 변환할 수 있으며, 일반 텍스트 가사는 변환할 수 없습니다.';
 
   @override
   String get noLyricsAvailableForTranslation => '번역에 사용할 수 있는 가사가 없습니다.';
@@ -2297,7 +2361,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get songAlreadyQueuedForGeneration => '현재 노래가 이미 가사 생성 대기열에 있습니다.';
 
   @override
-  String get songNoLongerExistsForTranslation => '현재 노래가 더 이상 존재하지 않아 가사를 번역할 수 없습니다.';
+  String get songNoLongerExistsForTranslation =>
+      '현재 노래가 더 이상 존재하지 않아 가사를 번역할 수 없습니다.';
 
   @override
   String get generationFailed => '생성 실패.';
@@ -2381,7 +2446,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get doubaoPreUploadTranscodingFailed => 'Doubao 업로드 전 오디오 트랜스코딩 실패';
 
   @override
-  String get doubaoTempTranscodeNotInTempDir => '임시 트랜스코딩 파일이 임시 디렉토리에 생성되지 않았습니다.';
+  String get doubaoTempTranscodeNotInTempDir =>
+      '임시 트랜스코딩 파일이 임시 디렉토리에 생성되지 않았습니다.';
 
   @override
   String get doubaoEmptyStreamingResponse => 'Doubao가 빈 스트리밍 응답을 반환했습니다.';
@@ -2396,7 +2462,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get geminiEmptyResponse => 'Gemini가 빈 응답을 반환했습니다.';
 
   @override
-  String get openRouterEmptyStreamingResponse => 'OpenRouter가 빈 스트리밍 응답을 반환했습니다.';
+  String get openRouterEmptyStreamingResponse =>
+      'OpenRouter가 빈 스트리밍 응답을 반환했습니다.';
 
   @override
   String get openRouterEmptyResponse => 'OpenRouter가 빈 응답을 반환했습니다.';
@@ -2408,7 +2475,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get deepseekEmptyResponse => 'DeepSeek가 빈 응답을 반환했습니다.';
 
   @override
-  String get customProviderEmptyStreamingResponse => '사용자 지정 제공자가 빈 스트리밍 응답을 반환했습니다.';
+  String get customProviderEmptyStreamingResponse =>
+      '사용자 지정 제공자가 빈 스트리밍 응답을 반환했습니다.';
 
   @override
   String get customProviderEmptyResponse => '사용자 지정 제공자가 빈 응답을 반환했습니다.';
@@ -2426,7 +2494,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get tempTranscodeNotInTempDir => '임시 트랜스코딩 파일이 임시 디렉토리에 생성되지 않았습니다.';
 
   @override
-  String get networkRequestFailedCheckProxy => '네트워크 요청 실패. 네트워크 및 프록시 설정을 확인해주세요.';
+  String get networkRequestFailedCheckProxy =>
+      '네트워크 요청 실패. 네트워크 및 프록시 설정을 확인해주세요.';
 
   @override
   String get quotaExhaustedToday => '오늘의 할당량이 소진되었습니다. 내일 초기화된 후 다시 시도해주세요.';
@@ -2501,7 +2570,8 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get enterGoogleAiStudioApiKeyFirst => '먼저 Google AI Studio API 키를 입력해주세요.';
+  String get enterGoogleAiStudioApiKeyFirst =>
+      '먼저 Google AI Studio API 키를 입력해주세요.';
 
   @override
   String get enterDoubaoApiKeyFirst => '먼저 Doubao API 키를 입력해주세요.';
@@ -2625,7 +2695,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get openRelease => '릴리스 열기';
 
   @override
-  String get checkUpdateFailedNetwork => '업데이트 확인 실패. 네트워크 문제 또는 GitHub 속도 제한일 수 있습니다.';
+  String get checkUpdateFailedNetwork =>
+      '업데이트 확인 실패. 네트워크 문제 또는 GitHub 속도 제한일 수 있습니다.';
 
   @override
   String get tags => '태그';
@@ -2637,10 +2708,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get rebuildIndex => '인덱스 재구축';
 
   @override
-  String get rebuildIndexDescription => '모든 노래 기록(외부 소스 제외)을 지우고 모든 루트 디렉토리를 다시 검색합니다.';
+  String get rebuildIndexDescription =>
+      '모든 노래 기록(외부 소스 제외)을 지우고 모든 루트 디렉토리를 다시 검색합니다.';
 
   @override
-  String get rebuildIndexConfirmation => '모든 노래 기록(외부 소스 제외)을 지우고 모든 루트 디렉토리를 다시 검색하시겠습니까? 이 과정은 시간이 걸릴 수 있습니다.';
+  String get rebuildIndexConfirmation =>
+      '모든 노래 기록(외부 소스 제외)을 지우고 모든 루트 디렉토리를 다시 검색하시겠습니까? 이 과정은 시간이 걸릴 수 있습니다.';
 
   @override
   String get rebuildIndexStarted => '인덱스 재구축 시작됨';
@@ -2667,7 +2740,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get autoSaveToSourceFile => '소스 파일에 자동 저장';
 
   @override
-  String get autoSaveToSourceFileDescription => '완료 시 태그를 물리적 오디오 파일에 자동으로 다시 씁니다.';
+  String get autoSaveToSourceFileDescription =>
+      '완료 시 태그를 물리적 오디오 파일에 자동으로 다시 씁니다.';
 
   @override
   String get aboutSectionDescription => '버전 정보, 프로젝트 링크 및 관련 정보.';
@@ -2676,13 +2750,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get checkForUpdates => '업데이트 확인';
 
   @override
-  String get storeUpdateNotice => '이 앱의 업데이트는 Microsoft Store에서 관리합니다. Microsoft Store에서 최신 버전을 확인하실 수 있습니다.';
+  String get storeUpdateNotice =>
+      '이 앱의 업데이트는 Microsoft Store에서 관리합니다. Microsoft Store에서 최신 버전을 확인하실 수 있습니다.';
 
   @override
   String get openMicrosoftStore => 'Microsoft Store로 이동';
 
   @override
-  String get appStoreUpdateNotice => '이 앱의 업데이트는 App Store에서 관리됩니다. App Store에서 최신 버전을 확인하거나 다운로드할 수 있습니다.';
+  String get appStoreUpdateNotice =>
+      '이 앱의 업데이트는 App Store에서 관리됩니다. App Store에서 최신 버전을 확인하거나 다운로드할 수 있습니다.';
 
   @override
   String get openAppStore => 'App Store로 이동';
@@ -2691,13 +2767,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lyricsGenerationModel => '가사 생성 모델';
 
   @override
-  String get lyricsGenerationModelDescription => 'AI 가사 생성 및 타임라인 생성/수정에 사용됩니다.';
+  String get lyricsGenerationModelDescription =>
+      'AI 가사 생성 및 타임라인 생성/수정에 사용됩니다.';
 
   @override
   String get lyricsKaraokeModel => '노래방 가사 모델';
 
   @override
-  String get lyricsKaraokeModelDescription => '가사를 단어별 노래방 타임라인으로 변환하기 위한 고정밀 오디오 정렬 모델입니다。';
+  String get lyricsKaraokeModelDescription =>
+      '가사를 단어별 노래방 타임라인으로 변환하기 위한 고정밀 오디오 정렬 모델입니다。';
 
   @override
   String get lyricsTranslationModel => '가사 번역 모델';
@@ -2921,13 +2999,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiLyricsIntroGeneration => 'AI가 노래에서 가사를 생성하고 타임라인에 맞출 수 있습니다.';
 
   @override
-  String get aiLyricsIntroTranslation => 'AI가 가사를 원하는 언어로 번역하여 노래를 더 쉽게 이해할 수 있게 해줍니다.';
+  String get aiLyricsIntroTranslation =>
+      'AI가 가사를 원하는 언어로 번역하여 노래를 더 쉽게 이해할 수 있게 해줍니다.';
 
   @override
   String get whyNeedApiKey => 'API 키가 왜 필요한가요?';
 
   @override
-  String get apiKeyExplanation => 'API 키는 AI 제공자에 대한 액세스 자격 증명입니다. 앱이 이를 사용하여 가사 생성, 타임라인 조정 또는 번역을 위해 직접 요청을 보냅니다.';
+  String get apiKeyExplanation =>
+      'API 키는 AI 제공자에 대한 액세스 자격 증명입니다. 앱이 이를 사용하여 가사 생성, 타임라인 조정 또는 번역을 위해 직접 요청을 보냅니다.';
 
   @override
   String get apiKeyLocalOnly => 'API 키는 이 기기에만 저장되며 Vynody 개발자 서버에 업로드되지 않습니다.';
@@ -2936,19 +3016,23 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chooseAnAiProvider => 'AI 제공자를 선택하세요:';
 
   @override
-  String get googleProviderPros => '공식 Google 채널로 강력한 Gemini 모델과 넉넉한 무료 할당량이 제공됩니다.';
+  String get googleProviderPros =>
+      '공식 Google 채널로 강력한 Gemini 모델과 넉넉한 무료 할당량이 제공됩니다.';
 
   @override
-  String get googleProviderCons => '트래픽이 많으면 가끔 429 오류가 발생할 수 있습니다. 그런 경우 다른 제공자로 전환하세요.';
+  String get googleProviderCons =>
+      '트래픽이 많으면 가끔 429 오류가 발생할 수 있습니다. 그런 경우 다른 제공자로 전환하세요.';
 
   @override
-  String get openRouterProviderPros => '다양한 AI 모델을 통합 제공하는 해외 플랫폼으로, 일부 무료 모델도 제공합니다.';
+  String get openRouterProviderPros =>
+      '다양한 AI 모델을 통합 제공하는 해외 플랫폼으로, 일부 무료 모델도 제공합니다.';
 
   @override
   String get openRouterProviderCons => '충전에 수수료가 포함될 수 있으며 웹사이트는 영어 전용입니다.';
 
   @override
-  String get doubaoProviderPros => 'ByteDance에서 개발했으며 중국어 텍스트 처리에 강력합니다. 신규 사용자는 모델당 50만 개의 무료 토큰을 받습니다.';
+  String get doubaoProviderPros =>
+      'ByteDance에서 개발했으며 중국어 텍스트 처리에 강력합니다. 신규 사용자는 모델당 50만 개의 무료 토큰을 받습니다.';
 
   @override
   String get doubaoProviderCons => '가입 절차가 비교적 복잡하고 실명 인증이 필요합니다.';
@@ -2957,7 +3041,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get deepseekProviderPros => '중국어 이해도가 좋고 가격이 저렴하며 가사 번역에 적합합니다.';
 
   @override
-  String get deepseekProviderCons => '텍스트 입력만 가능합니다. 가사 생성 및 타임라인 조정은 다른 제공자의 API 키가 필요합니다.';
+  String get deepseekProviderCons =>
+      '텍스트 입력만 가능합니다. 가사 생성 및 타임라인 조정은 다른 제공자의 API 키가 필요합니다.';
 
   @override
   String get highlights => '하이라이트';
@@ -3016,7 +3101,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noteTitle => '참고';
 
   @override
-  String get deepseekTextInputOnlyNote => 'DeepSeek는 텍스트 입력만 지원합니다. 가사 생성 및 타임라인 조정은 다른 제공자의 API 키가 필요합니다.';
+  String get deepseekTextInputOnlyNote =>
+      'DeepSeek는 텍스트 입력만 지원합니다. 가사 생성 및 타임라인 조정은 다른 제공자의 API 키가 필요합니다.';
 
   @override
   String retryAttemptOfMax(Object attempt, Object maxRetry) {
@@ -3043,7 +3129,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get enterDoubaoApiKey => 'Doubao API 키 입력';
 
   @override
-  String get doubaoApiKeyDescription => '가사 생성 및 번역을 위한 Volcano/Doubao API 키를 입력해주세요.';
+  String get doubaoApiKeyDescription =>
+      '가사 생성 및 번역을 위한 Volcano/Doubao API 키를 입력해주세요.';
 
   @override
   String get enterDeepseekApiKey => 'DeepSeek API 키 입력';
@@ -3137,13 +3224,16 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get lanSharingDefaultOffHint => '기본적으로 비활성화됩니다. 활성화하면 로컬 네트워크 권한을 요청합니다.';
+  String get lanSharingDefaultOffHint =>
+      '기본적으로 비활성화됩니다. 활성화하면 로컬 네트워크 권한을 요청합니다.';
 
   @override
-  String get receiveDirectoryNotSetWarning => 'Android에서 파일을 수신하려면 먼저 수신 디렉터리를 선택해야 합니다. 탭하여 설정하세요.';
+  String get receiveDirectoryNotSetWarning =>
+      'Android에서 파일을 수신하려면 먼저 수신 디렉터리를 선택해야 합니다. 탭하여 설정하세요.';
 
   @override
-  String get receiveDirectoryNoWritePermission => '현재 저장 디렉토리에 쓰기 권한이 없습니다. 다시 설정해주세요.';
+  String get receiveDirectoryNoWritePermission =>
+      '현재 저장 디렉토리에 쓰기 권한이 없습니다. 다시 설정해주세요.';
 
   @override
   String get restoreDefaultDirectory => '기본 디렉토리로 복원';
@@ -3318,13 +3408,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get windowsAutoRepairShortcut => '시작 메뉴 바로가기 자동 복구';
 
   @override
-  String get windowsAutoRepairShortcutDescription => '시작할 때마다 시작 메뉴 바로가기를 자동으로 확인 및 생성하여 미디어 컨트롤 이름과 아이콘을 올바르게 표시합니다';
+  String get windowsAutoRepairShortcutDescription =>
+      '시작할 때마다 시작 메뉴 바로가기를 자동으로 확인 및 생성하여 미디어 컨트롤 이름과 아이콘을 올바르게 표시합니다';
 
   @override
   String get confirmDisableShortcutRepair => '이 기능을 비활성화하시겠습니까?';
 
   @override
-  String get confirmDisableShortcutRepairContent => '시작 메뉴 바로가기가 없으면 Windows 미디어 컨트롤에 앱이 \"알 수 없음\"으로 표시되고 아이콘이 표시되지 않을 수 있습니다. 정말 비활성화하시겠습니까?';
+  String get confirmDisableShortcutRepairContent =>
+      '시작 메뉴 바로가기가 없으면 Windows 미디어 컨트롤에 앱이 \"알 수 없음\"으로 표시되고 아이콘이 표시되지 않을 수 있습니다. 정말 비활성화하시겠습니까?';
 
   @override
   String get confirmDisable => '비활성화';
@@ -3395,28 +3487,34 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get gnomeDisksOpenFailed => '디스크 유틸리티를 자동으로 열 수 없습니다. 애플리케이션 메뉴에서 \"Disks\"를 수동으로 열어주세요.';
+  String get gnomeDisksOpenFailed =>
+      '디스크 유틸리티를 자동으로 열 수 없습니다. 애플리케이션 메뉴에서 \"Disks\"를 수동으로 열어주세요.';
 
   @override
-  String get gnomeDisksNotInstalled => 'gnome-disks가 설치되지 않았습니다. 시스템 디스크 유틸리티를 열어 설정하세요.';
+  String get gnomeDisksNotInstalled =>
+      'gnome-disks가 설치되지 않았습니다. 시스템 디스크 유틸리티를 열어 설정하세요.';
 
   @override
   String get linuxMountGuideTitle => '디스크 자동 마운트 구성';
 
   @override
-  String get linuxMountGuideDescription => 'Linux는 기본적으로 외부 파티션을 마운트하지 않습니다. 부팅 시 마운트를 설정하지 않으면 재부팅할 때마다 외부 파티션의 경로가 변경되어 플레이어가 음악 디렉토리에 접근할 수 없게 됩니다. 이를 방지하려면 음악이 저장된 파티션을 부팅 시 자동 마운트하도록 설정하세요.';
+  String get linuxMountGuideDescription =>
+      'Linux는 기본적으로 외부 파티션을 마운트하지 않습니다. 부팅 시 마운트를 설정하지 않으면 재부팅할 때마다 외부 파티션의 경로가 변경되어 플레이어가 음악 디렉토리에 접근할 수 없게 됩니다. 이를 방지하려면 음악이 저장된 파티션을 부팅 시 자동 마운트하도록 설정하세요.';
 
   @override
-  String get linuxMountGuideWarning => '주의: 음악이 마운트가 필요한 외장 또는 내장 파티션에 있는 경우, 반드시 \"시스템 시작 시 자동 마운트\"되도록 설정해야 합니다. 그렇지 않으면 재부팅 후 음악 디렉터리를 찾지 못하거나 액세스를 위해 비밀번호를 입력해야 할 수 있습니다.';
+  String get linuxMountGuideWarning =>
+      '주의: 음악이 마운트가 필요한 외장 또는 내장 파티션에 있는 경우, 반드시 \"시스템 시작 시 자동 마운트\"되도록 설정해야 합니다. 그렇지 않으면 재부팅 후 음악 디렉터리를 찾지 못하거나 액세스를 위해 비밀번호를 입력해야 할 수 있습니다.';
 
   @override
   String get linuxMountGuideStep1 => '1. 시스템의 \"Disks\" 유틸리티를 엽니다';
 
   @override
-  String get linuxMountGuideStep2 => '2. 음악 파티션을 선택하고 ⚙️ 톱니바퀴 아이콘을 클릭합니다 (추가 파티션 옵션)';
+  String get linuxMountGuideStep2 =>
+      '2. 음악 파티션을 선택하고 ⚙️ 톱니바퀴 아이콘을 클릭합니다 (추가 파티션 옵션)';
 
   @override
-  String get linuxMountGuideStep3 => '3. \"마운트 옵션 편집\"을 선택하고 \"사용자 세션 기본값\"을 끈 후 \"시스템 시작 시 마운트\"를 체크합니다';
+  String get linuxMountGuideStep3 =>
+      '3. \"마운트 옵션 편집\"을 선택하고 \"사용자 세션 기본값\"을 끈 후 \"시스템 시작 시 마운트\"를 체크합니다';
 
   @override
   String get linuxMountGuideOpenButton => '디스크 관리자(Disks) 열기';
@@ -3440,40 +3538,48 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingAndroidBatteryTitle => '백그라운드 재생 보호 설정';
 
   @override
-  String get onboardingAndroidBatteryDescription => '안드로이드의 엄격한 배터리 최적화 정책으로 인해 백그라운드에서 음악 재생이 강제 종료되는 것을 방지하려면 Vynody의 배터리 사용 제한을 \'제한 없음\'(Unrestricted)으로 설정하는 것이 좋습니다.';
+  String get onboardingAndroidBatteryDescription =>
+      '안드로이드의 엄격한 배터리 최적화 정책으로 인해 백그라운드에서 음악 재생이 강제 종료되는 것을 방지하려면 Vynody의 배터리 사용 제한을 \'제한 없음\'(Unrestricted)으로 설정하는 것이 좋습니다.';
 
   @override
   String get onboardingAndroidBatteryStep1 => '1. 아래 \'설정으로 이동\' 버튼을 누릅니다.';
 
   @override
-  String get onboardingAndroidBatteryStep2 => '2. 시스템 팝업에서 배터리 최적화 예외를 허용하거나 배터리 설정 페이지로 이동합니다.';
+  String get onboardingAndroidBatteryStep2 =>
+      '2. 시스템 팝업에서 배터리 최적화 예외를 허용하거나 배터리 설정 페이지로 이동합니다.';
 
   @override
-  String get onboardingAndroidBatteryStep3 => '3. 설정 페이지로 이동하면 \'제한 없음\'을 선택하십시오.';
+  String get onboardingAndroidBatteryStep3 =>
+      '3. 설정 페이지로 이동하면 \'제한 없음\'을 선택하십시오.';
 
   @override
   String get onboardingAndroidBatteryButton => '설정으로 이동';
 
   @override
-  String get onboardingAndroidBatteryStatusOptimized => '현재 상태: 제한됨 (백그라운드 재생이 중단될 수 있음)';
+  String get onboardingAndroidBatteryStatusOptimized =>
+      '현재 상태: 제한됨 (백그라운드 재생이 중단될 수 있음)';
 
   @override
-  String get onboardingAndroidBatteryStatusUnrestricted => '현재 상태: 제한 없음 (권장, 백그라운드 재생 보호됨)';
+  String get onboardingAndroidBatteryStatusUnrestricted =>
+      '현재 상태: 제한 없음 (권장, 백그라운드 재생 보호됨)';
 
   @override
   String get onboardingAndroidMediaTitle => '음악 라이브러리 접근';
 
   @override
-  String get onboardingAndroidMediaDescription => '권한을 허용하면 Vynody가 수동으로 폴더를 선택할 필요 없이 기기 미디어 라이브러리의 모든 음악을 직접 읽어옵니다. 권한을 허용하지 않아도 수동으로 폴더를 가져올 수 있습니다.';
+  String get onboardingAndroidMediaDescription =>
+      '권한을 허용하면 Vynody가 수동으로 폴더를 선택할 필요 없이 기기 미디어 라이브러리의 모든 음악을 직접 읽어옵니다. 권한을 허용하지 않아도 수동으로 폴더를 가져올 수 있습니다.';
 
   @override
   String get onboardingAndroidMediaStep1 => '1. 즉시 사용: 휴대폰의 모든 음악을 즉시 표시';
 
   @override
-  String get onboardingAndroidMediaStep2 => '2. 자동 감지: 새로 추가된 음악이 라이브러리에 자동으로 나타남';
+  String get onboardingAndroidMediaStep2 =>
+      '2. 자동 감지: 새로 추가된 음악이 라이브러리에 자동으로 나타남';
 
   @override
-  String get onboardingAndroidMediaStep3 => '3. 개인정보 보호: 로컬 오디오 파일만 읽으며 라이브러리를 자동으로 업로드하지 않음 (AI 가사 등 클라우드 서비스 제외)';
+  String get onboardingAndroidMediaStep3 =>
+      '3. 개인정보 보호: 로컬 오디오 파일만 읽으며 라이브러리를 자동으로 업로드하지 않음 (AI 가사 등 클라우드 서비스 제외)';
 
   @override
   String get onboardingAndroidMediaButton => '음악 라이브러리 접근 허용';
@@ -3482,7 +3588,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingAndroidMediaStatusGranted => '현재 상태: 허용됨 (권장)';
 
   @override
-  String get onboardingAndroidMediaStatusNotGranted => '현재 상태: 허용 안 됨 (나중에 수동으로 폴더를 가져올 수 있음)';
+  String get onboardingAndroidMediaStatusNotGranted =>
+      '현재 상태: 허용 안 됨 (나중에 수동으로 폴더를 가져올 수 있음)';
 
   @override
   String get exitApp => '종료';
@@ -3491,19 +3598,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get openPlaybackOnDirectorySongTap => '곡을 탭할 때 재생 페이지로 이동';
 
   @override
-  String get openPlaybackOnDirectorySongTapDescription => '폴더 뷰에서 곡을 탭하여 재생할 때 자동으로 재생 페이지로 이동합니다.';
+  String get openPlaybackOnDirectorySongTapDescription =>
+      '폴더 뷰에서 곡을 탭하여 재생할 때 자동으로 재생 페이지로 이동합니다.';
 
   @override
   String get defaultToLyricsModeOnPlaybackOpen => '재생 페이지 진입 시 가사 모드 기본 사용';
 
   @override
-  String get defaultToLyricsModeOnPlaybackOpenDescription => '재생 페이지를 열 때 자동으로 가사 모드로 전환합니다.';
+  String get defaultToLyricsModeOnPlaybackOpenDescription =>
+      '재생 페이지를 열 때 자동으로 가사 모드로 전환합니다.';
 
   @override
   String get rewindToStartOnPrevious => '이전 곡 클릭 시 처음으로 돌아가기';
 
   @override
-  String get rewindToStartOnPreviousDescription => '재생 시간이 3초를 초과한 경우 이전 곡을 누르면 이전 트랙으로 건너뛰지 않고 현재 곡의 처음으로 돌아갑니다';
+  String get rewindToStartOnPreviousDescription =>
+      '재생 시간이 3초를 초과한 경우 이전 곡을 누르면 이전 트랙으로 건너뛰지 않고 현재 곡의 처음으로 돌아갑니다';
 
   @override
   String get tapCoverToEnterLyricsMode => '커버를 탭하여 가사 모드로 전환';
@@ -3518,7 +3628,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get doubleSpeedPlayingSwipeUpToLock => '빨리 감기 중... 위로 스와이프하여 잠금';
 
   @override
-  String get doubleSpeedLockedSwipeDownToUnlock => '빨리 감기 잠금됨. 길게 누르고 아래로 스와이프하여 해제';
+  String get doubleSpeedLockedSwipeDownToUnlock =>
+      '빨리 감기 잠금됨. 길게 누르고 아래로 스와이프하여 해제';
 
   @override
   String get doubleSpeedUnlocked => '빨리 감기 잠금 해제됨';
@@ -3648,7 +3759,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get uiDisplayScale => 'UI 디스플레이 스케일';
 
   @override
-  String get uiDisplayScaleDescription => '차량용 디스플레이 등에 맞게 모든 UI 구성 요소 및 텍스트 크기를 전체적으로 조정';
+  String get uiDisplayScaleDescription =>
+      '차량용 디스플레이 등에 맞게 모든 UI 구성 요소 및 텍스트 크기를 전체적으로 조정';
 
   @override
   String get uiDisplayScaleDialogTitle => 'UI 디스플레이 스케일 / 차량 모드';
@@ -3668,7 +3780,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get equalizerBandCount => '이퀄라이저 밴드 수';
 
   @override
-  String get equalizerBandCountDescription => '이퀄라이저 패널에 표시할 밴드 수를 설정합니다. 높은 밴드 모드에서는 부드러운 가로 스크롤이 자동으로 활성화됩니다.';
+  String get equalizerBandCountDescription =>
+      '이퀄라이저 패널에 표시할 밴드 수를 설정합니다. 높은 밴드 모드에서는 부드러운 가로 스크롤이 자동으로 활성화됩니다.';
 
   @override
   String bandsCountOption(int count) {
@@ -3679,7 +3792,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get enableFadeEffect => '오디오 페이드 효과';
 
   @override
-  String get enableFadeEffectDescription => '곡 전환, 재생/일시정지 시 부드러운 페이드 인/아웃 및 크로스페이드 전환 사용';
+  String get enableFadeEffectDescription =>
+      '곡 전환, 재생/일시정지 시 부드러운 페이드 인/아웃 및 크로스페이드 전환 사용';
 
   @override
   String get buttonLayoutSettings => '버튼 레이아웃';
@@ -3688,7 +3802,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get playbackButtonLayoutTitle => '재생 화면 버튼 레이아웃';
 
   @override
-  String get playbackButtonLayoutDescription => '재생 화면 7버튼 및 5버튼 행의 표시 및 순서 사용자 지정';
+  String get playbackButtonLayoutDescription =>
+      '재생 화면 7버튼 및 5버튼 행의 표시 및 순서 사용자 지정';
 
   @override
   String get topButtonsRowTitle => '7버튼 행 순서';
@@ -3821,19 +3936,23 @@ class AppLocalizationsKo extends AppLocalizations {
   String get allowRemoteControlTitle => '원격 제어 허용';
 
   @override
-  String get allowRemoteControlSubtitle => '페어링 후 LAN 내 다른 기기가 이 기기의 음악 재생을 제어하도록 허용';
+  String get allowRemoteControlSubtitle =>
+      '페어링 후 LAN 내 다른 기기가 이 기기의 음악 재생을 제어하도록 허용';
 
   @override
   String get onlyAllowTrustedRemoteControlTitle => '신뢰할 수 있는 기기만 허용';
 
   @override
-  String get onlyAllowTrustedRemoteControlSubtitle => '신뢰할 수 있는 기기의 직접 연결만 허용하고, 새로운 기기의 페어링 요청은 자동으로 거절합니다';
+  String get onlyAllowTrustedRemoteControlSubtitle =>
+      '신뢰할 수 있는 기기의 직접 연결만 허용하고, 새로운 기기의 페어링 요청은 자동으로 거절합니다';
 
   @override
-  String get onlyTrustedDevicesNoDevicesHint => '현재 신뢰할 수 있는 기기가 없습니다. 먼저 기기를 페어링해 주세요.';
+  String get onlyTrustedDevicesNoDevicesHint =>
+      '현재 신뢰할 수 있는 기기가 없습니다. 먼저 기기를 페어링해 주세요.';
 
   @override
-  String get onlyTrustedRemoteDevicesAllowed => '해당 호스트는 신뢰할 수 있는 기기의 제어만 허용합니다';
+  String get onlyTrustedRemoteDevicesAllowed =>
+      '해당 호스트는 신뢰할 수 있는 기기의 제어만 허용합니다';
 
   @override
   String get remoteControlDisabledOnHost => '상대 기기에서 원격 제어가 비활성화되어 있습니다';
@@ -3887,25 +4006,29 @@ class AppLocalizationsKo extends AppLocalizations {
   String get proFeatureTagCompletionTitle => '음악 메타데이터 자동 완성';
 
   @override
-  String get proFeatureTagCompletionDesc => 'MusicBrainz를 통한 곡 태그 및 앨범 메타데이터 자동 완성';
+  String get proFeatureTagCompletionDesc =>
+      'MusicBrainz를 통한 곡 태그 및 앨범 메타데이터 자동 완성';
 
   @override
   String get proFeatureEqualizerTitle => '다중 밴드 EQ 및 재생 속도 (EQ)';
 
   @override
-  String get proFeatureEqualizerDesc => '전문가 수준의 주파수 튜닝, 0.5x~5.0x 배속 재생, 프리앰프 및 사운드 스타일';
+  String get proFeatureEqualizerDesc =>
+      '전문가 수준의 주파수 튜닝, 0.5x~5.0x 배속 재생, 프리앰프 및 사운드 스타일';
 
   @override
   String get proFeatureCustomThemeColorTitle => '풀 스펙트럼 테마 및 고급 색상 커스텀';
 
   @override
-  String get proFeatureCustomThemeColorDesc => '자유 색상 선택기 팔레트 및 독점 프리미엄 프리셋 테마 색상 잠금 해제';
+  String get proFeatureCustomThemeColorDesc =>
+      '자유 색상 선택기 팔레트 및 독점 프리미엄 프리셋 테마 색상 잠금 해제';
 
   @override
   String get proFeatureFftVisualizerTitle => '실시간 FFT 오디오 스펙트럼';
 
   @override
-  String get proFeatureFftVisualizerDesc => '클래식 바, 스무스 웨이브, 플로팅 캡, 래디얼 헤일로, 네온 매트릭스, 미러 웨이브 등 6가지 스펙트럼 스타일 및 전체 화면 앰비언트 모드';
+  String get proFeatureFftVisualizerDesc =>
+      '클래식 바, 스무스 웨이브, 플로팅 캡, 래디얼 헤일로, 네온 매트릭스, 미러 웨이브 등 6가지 스펙트럼 스타일 및 전체 화면 앰비언트 모드';
 
   @override
   String get proFeatureWaveformBarTitle => '동적 오디오 파형 진행률 바';
@@ -3917,7 +4040,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get proFeatureLanSharingTitle => '기기 간 플레이리스트·가사 동기화 및 LAN 전송';
 
   @override
-  String get proFeatureLanSharingDesc => '동일 네트워크에서 플레이리스트, 가사 및 음악 파일 초고속 동기화와 전송';
+  String get proFeatureLanSharingDesc =>
+      '동일 네트워크에서 플레이리스트, 가사 및 음악 파일 초고속 동기화와 전송';
 
   @override
   String get proFeatureRemoteControlTitle => '멀티 디바이스 원격 제어';
@@ -3935,25 +4059,29 @@ class AppLocalizationsKo extends AppLocalizations {
   String get proFeatureCloudLibraryTitle => '클라우드 미디어 라이브러리';
 
   @override
-  String get proFeatureCloudLibraryDesc => 'WebDAV, Navidrome, Jellyfin 및 SMB를 통해 원격 미디어 서버 스트리밍 및 탐색';
+  String get proFeatureCloudLibraryDesc =>
+      'WebDAV, Navidrome, Jellyfin 및 SMB를 통해 원격 미디어 서버 스트리밍 및 탐색';
 
   @override
   String get proFeatureDynamicMeshBackgroundTitle => '동적 메시 배경';
 
   @override
-  String get proFeatureDynamicMeshBackgroundDesc => '앨범 아트 색상 기반의 유체 그라데이션 애니메이션 및 속도 조절';
+  String get proFeatureDynamicMeshBackgroundDesc =>
+      '앨범 아트 색상 기반의 유체 그라데이션 애니메이션 및 속도 조절';
 
   @override
   String get proFeatureCustomImageBackgroundTitle => '사용자 지정 재생 배경';
 
   @override
-  String get proFeatureCustomImageBackgroundDesc => '로컬 이미지와 사진을 재생 화면 배경으로 자유롭게 설정';
+  String get proFeatureCustomImageBackgroundDesc =>
+      '로컬 이미지와 사진을 재생 화면 배경으로 자유롭게 설정';
 
   @override
   String get proFeatureWasapiExclusiveTitle => 'WASAPI 독점 모드 & Bit-Perfect';
 
   @override
-  String get proFeatureWasapiExclusiveDesc => 'Windows 믹서를 우회하여 오디오 하드웨어를 직접 독점하고 비트 퍼펙트 출력을 지원합니다';
+  String get proFeatureWasapiExclusiveDesc =>
+      'Windows 믹서를 우회하여 오디오 하드웨어를 직접 독점하고 비트 퍼펙트 출력을 지원합니다';
 
   @override
   String get proCommunityUnlocked => '커뮤니티 버전: 모든 Pro 기능이 영구 잠금 해제되었습니다';
@@ -3997,10 +4125,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get proSettingsCardExpiredSubtitle => 'Pro로 업그레이드하여 AI 실시간 가사 및 기기 간 동기화 등 고급 기능을 잠금 해제하세요';
+  String get proSettingsCardExpiredSubtitle =>
+      'Pro로 업그레이드하여 AI 실시간 가사 및 기기 간 동기화 등 고급 기능을 잠금 해제하세요';
 
   @override
-  String get proSettingsCardActivatedSubtitle => 'AI 실시간 가사 및 기기 간 동기화 등 모든 기능이 활성화되었습니다';
+  String get proSettingsCardActivatedSubtitle =>
+      'AI 실시간 가사 및 기기 간 동기화 등 모든 기능이 활성화되었습니다';
 
   @override
   String get proSettingsUpgrade => '업그레이드';
@@ -4041,43 +4171,51 @@ class AppLocalizationsKo extends AppLocalizations {
   String get restoringPurchases => '구매 내역 복원 중...';
 
   @override
-  String get sharingProDescription => 'LAN 상호 연결은 Vynody Pro 전용 고급 기능입니다. 동일 로컬 네트워크에서 초고속 음악 전송, 라이브러리 동기화 및 무선 원격 제어를 이용할 수 있습니다.';
+  String get sharingProDescription =>
+      'LAN 상호 연결은 Vynody Pro 전용 고급 기능입니다. 동일 로컬 네트워크에서 초고속 음악 전송, 라이브러리 동기화 및 무선 원격 제어를 이용할 수 있습니다.';
 
   @override
   String get sharingHighlightSpeedTitle => '초고속 LAN 전송';
 
   @override
-  String get sharingHighlightSpeedDesc => 'Wi-Fi LAN 내 P2P 초고속 전송. 데이터 소모 없이 무손실 음원과 재생목록을 무압축 전송.';
+  String get sharingHighlightSpeedDesc =>
+      'Wi-Fi LAN 내 P2P 초고속 전송. 데이터 소모 없이 무손실 음원과 재생목록을 무압축 전송.';
 
   @override
   String get sharingHighlightSyncTitle => '라이브러리 및 가사 동기화';
 
   @override
-  String get sharingHighlightSyncDesc => '다운로드한 가사 및 곡을 원클릭으로 전송하여 여러 기기의 음악 라이브러리를 동기화 유지.';
+  String get sharingHighlightSyncDesc =>
+      '다운로드한 가사 및 곡을 원클릭으로 전송하여 여러 기기의 음악 라이브러리를 동기화 유지.';
 
   @override
   String get sharingHighlightRemoteTitle => '크로스 플랫폼 원격 제어';
 
   @override
-  String get sharingHighlightRemoteDesc => '스마트폰, 태블릿, PC 간 매끄러운 연동으로 언제 어디서나 무선 재생 제어, 곡 전환 및 볼륨 조절.';
+  String get sharingHighlightRemoteDesc =>
+      '스마트폰, 태블릿, PC 간 매끄러운 연동으로 언제 어디서나 무선 재생 제어, 곡 전환 및 볼륨 조절.';
 
   @override
   String get sharingHighlightSecurityTitle => '종단간 TLS 보안 암호화';
 
   @override
-  String get sharingHighlightSecurityDesc => '전체 LAN 통신 구간 TLS 인증서 암호화 및 기기 인증으로 안전하고 개인적인 전송 보장.';
+  String get sharingHighlightSecurityDesc =>
+      '전체 LAN 통신 구간 TLS 인증서 암호화 및 기기 인증으로 안전하고 개인적인 전송 보장.';
 
   @override
   String get upgradeToProToUnlock => 'Vynody Pro로 업그레이드하여 잠금 해제';
 
   @override
-  String get proOneTimePurchaseNotice => '일회성 구매로 현재 플랫폼의 모든 Pro 고급 기능 영구 잠금 해제';
+  String get proOneTimePurchaseNotice =>
+      '일회성 구매로 현재 플랫폼의 모든 Pro 고급 기능 영구 잠금 해제';
 
   @override
-  String get proOneTimePurchaseNoticeApple => '일회성 구매로 Apple 플랫폼(iPhone / iPad / Mac)의 모든 Pro 고급 기능 영구 잠금 해제';
+  String get proOneTimePurchaseNoticeApple =>
+      '일회성 구매로 Apple 플랫폼(iPhone / iPad / Mac)의 모든 Pro 고급 기능 영구 잠금 해제';
 
   @override
-  String get proUniversalPurchaseNoticeApple => '한 번 구매로 iPhone, iPad 및 Mac에서 모두 사용 가능';
+  String get proUniversalPurchaseNoticeApple =>
+      '한 번 구매로 iPhone, iPad 및 Mac에서 모두 사용 가능';
 
   @override
   String get iapPurchaseSuccess => 'Vynody Pro 구매가 완료되었습니다! 지원해 주셔서 감사합니다!';
@@ -4139,7 +4277,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noRemoteServers => '추가된 미디어 서버 없음';
 
   @override
-  String get noRemoteServersDesc => 'Navidrome (Subsonic) 또는 WebDAV 서버를 추가하여 개인 클라우드 음악을 즐겨보세요';
+  String get noRemoteServersDesc =>
+      'Navidrome (Subsonic) 또는 WebDAV 서버를 추가하여 개인 클라우드 음악을 즐겨보세요';
 
   @override
   String get browseServer => '탐색';
@@ -4306,7 +4445,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get presetLarge => '150% 크게';
 
   @override
-  String get safFallbackScanningNotice => '(미디어 권한이 부여되지 않아 SAF 호환 스캔을 사용 중입니다. 속도가 느릴 수 있습니다)';
+  String get safFallbackScanningNotice =>
+      '(미디어 권한이 부여되지 않아 SAF 호환 스캔을 사용 중입니다. 속도가 느릴 수 있습니다)';
 
   @override
   String get justNow => '방금 전';
@@ -4564,13 +4704,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get remoteServerDownloadsDisabled => '서버에서 다운로드가 비활성화되어 있습니다';
 
   @override
-  String get remoteDownloadNotAudioResponse => '서버가 오디오 대신 오류 페이지를 반환했습니다. 리버스 프록시 설정을 확인하세요';
+  String get remoteDownloadNotAudioResponse =>
+      '서버가 오디오 대신 오류 페이지를 반환했습니다. 리버스 프록시 설정을 확인하세요';
 
   @override
-  String get remoteDownloadUnauthorized => '서버가 다운로드를 거부했습니다(인증 실패 또는 다운로드 권한 없음)';
+  String get remoteDownloadUnauthorized =>
+      '서버가 다운로드를 거부했습니다(인증 실패 또는 다운로드 권한 없음)';
 
   @override
-  String get remoteDownloadTrackMissing => '서버에서 이 곡을 찾을 수 없습니다. 삭제되었거나 접근 권한이 없을 수 있습니다';
+  String get remoteDownloadTrackMissing =>
+      '서버에서 이 곡을 찾을 수 없습니다. 삭제되었거나 접근 권한이 없을 수 있습니다';
 
   @override
   String fileNotFoundAtPath(String path) {
@@ -4716,7 +4859,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get incomingPlaylistExportTitle => '재생목록 내보내기 요청 수신';
 
   @override
-  String incomingPlaylistImportFrom(String senderName, int count, int songsCount) {
+  String incomingPlaylistImportFrom(
+    String senderName,
+    int count,
+    int songsCount,
+  ) {
     return '\"$senderName\" 기기에서 $count개의 재생목록(총 $songsCount곡)을 보내려고 합니다.';
   }
 
@@ -4735,7 +4882,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get windowsAudioOutputTitle => '오디오 출력 모드 (Windows)';
 
   @override
-  String get windowsAudioOutputDescription => '공유 모드 또는 WASAPI 독점 모드를 선택합니다 (독점 모드는 Windows 오디오 엔진을 우회하여 비트 퍼펙트 고음질 출력을 지원합니다).';
+  String get windowsAudioOutputDescription =>
+      '공유 모드 또는 WASAPI 독점 모드를 선택합니다 (독점 모드는 Windows 오디오 엔진을 우회하여 비트 퍼펙트 고음질 출력을 지원합니다).';
 
   @override
   String get audioOutputModeShared => '표준 공유 모드 (Shared)';
@@ -4753,13 +4901,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get wasapiBitPerfectTitle => '샘플 레이트 자동 일치 (Bit-Perfect)';
 
   @override
-  String get wasapiBitPerfectDescription => '리샘플링 없이 음원 파일의 원본 샘플 레이트 및 채널에 맞춰 DAC 하드웨어 출력을 자동으로 구성합니다.';
+  String get wasapiBitPerfectDescription =>
+      '리샘플링 없이 음원 파일의 원본 샘플 레이트 및 채널에 맞춰 DAC 하드웨어 출력을 자동으로 구성합니다.';
 
   @override
   String get wasapiReleaseOnPauseTitle => '일시정지 시 장치 독점 해제';
 
   @override
-  String get wasapiReleaseOnPauseDescription => '재생 일시정지 시 오디오 장치를 일시적으로 해제하여 다른 애플리케이션에서 소리를 재생할 수 있도록 합니다.';
+  String get wasapiReleaseOnPauseDescription =>
+      '재생 일시정지 시 오디오 장치를 일시적으로 해제하여 다른 애플리케이션에서 소리를 재생할 수 있도록 합니다.';
 
   @override
   String get activeHardwareFormatTitle => '현재 하드웨어 출력 형식';
@@ -4774,19 +4924,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exclusiveModeTitle => '독점 모드';
 
   @override
-  String get exclusiveModeTooltip => 'WASAPI 독점 모드가 활성화되어 있습니다 (오디오 장치 독점 점유 중)';
+  String get exclusiveModeTooltip =>
+      'WASAPI 독점 모드가 활성화되어 있습니다 (오디오 장치 독점 점유 중)';
 
   @override
   String get toggleWasapiExclusive => 'WASAPI 독점 모드 전환';
 
   @override
-  String get toggleWasapiExclusiveDescription => 'WASAPI 독점 출력과 시스템 공유 출력 간을 빠르게 전환합니다 (Windows)';
+  String get toggleWasapiExclusiveDescription =>
+      'WASAPI 독점 출력과 시스템 공유 출력 간을 빠르게 전환합니다 (Windows)';
 
   @override
   String get wasapiExclusiveShortcutTitle => '단축키 빠른 전환';
 
   @override
-  String get wasapiExclusiveShortcutDescription => '단축키를 사용하여 독점 모드와 시스템 공유 출력 간을 빠르게 전환합니다';
+  String get wasapiExclusiveShortcutDescription =>
+      '단축키를 사용하여 독점 모드와 시스템 공유 출력 간을 빠르게 전환합니다';
 
   @override
   String get wasapiExclusiveEnabledNotice => 'WASAPI 독점 모드가 활성화되었습니다';
@@ -4801,7 +4954,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get nonRecommendedModelWarningTitle => '비권장 모델 알림';
 
   @override
-  String nonRecommendedModelWarningMessage(String currentModel, String recommendedModel) {
+  String nonRecommendedModelWarningMessage(
+    String currentModel,
+    String recommendedModel,
+  ) {
     return '현재 가사 생성 모델은 \"$currentModel\"이며, 권장 모델은 \"$recommendedModel\"입니다. 비권장 모델은 가사 정확도 저하 또는 타임스탬프 불일치가 발생할 수 있습니다. 권장 모델로 전환하시겠습니까?';
   }
 
@@ -4821,7 +4977,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get proxySettingsTitle => '네트워크 프록시';
 
   @override
-  String get proxySettingsDescription => '네트워크 요청, 커버 아트 로드 및 오디오 스트리밍에 사용할 프록시 서버 설정';
+  String get proxySettingsDescription =>
+      '네트워크 요청, 커버 아트 로드 및 오디오 스트리밍에 사용할 프록시 서버 설정';
 
   @override
   String get proxyMode => '프록시 모드';
@@ -4860,7 +5017,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get proxyBypass => '프록시 우회 대상 (화이트리스트)';
 
   @override
-  String get proxyBypassHint => '쉼표 또는 세미콜론으로 구분 (예: localhost, 127.0.0.1, <local>)';
+  String get proxyBypassHint =>
+      '쉼표 또는 세미콜론으로 구분 (예: localhost, 127.0.0.1, <local>)';
 
   @override
   String get proxyTestConnection => '연결 테스트';
@@ -4911,7 +5069,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get remoteFolderAlreadyIndexed => '해당 폴더는 이미 미디어 라이브러리에 인덱싱되어 있습니다';
 
   @override
-  String get remoteLibraryDisconnectConfirm => '이 라이브러리에서 연결을 해제할까요? 다시 열려면 재연결이 필요합니다. 재생 중인 곡에는 영향이 없습니다.';
+  String get remoteLibraryDisconnectConfirm =>
+      '이 라이브러리에서 연결을 해제할까요? 다시 열려면 재연결이 필요합니다. 재생 중인 곡에는 영향이 없습니다.';
 
   @override
   String get remoteLibrary => '원격 라이브러리';
@@ -4968,19 +5127,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lockDesktopLyrics => '가사 위치 잠금';
 
   @override
-  String get lockDesktopLyricsDescription => '가사 창 위치를 고정하여 드래그를 비활성화합니다. 마우스를 올리면 컨트롤이 표시됩니다';
+  String get lockDesktopLyricsDescription =>
+      '가사 창 위치를 고정하여 드래그를 비활성화합니다. 마우스를 올리면 컨트롤이 표시됩니다';
 
   @override
   String get desktopLyricsShowTranslation => '번역 / 2줄 가사 표시';
 
   @override
-  String get desktopLyricsShowTranslationDescription => '현재 곡에 번역이 있는 경우 데스크톱 가사에 두 줄로 동시에 표시합니다';
+  String get desktopLyricsShowTranslationDescription =>
+      '현재 곡에 번역이 있는 경우 데스크톱 가사에 두 줄로 동시에 표시합니다';
 
   @override
   String get desktopLyricsShowBackground => '항상 어두운 배경 표시';
 
   @override
-  String get desktopLyricsShowBackgroundDescription => '데스크톱 가사 아래에 반투명 캡슐 배경을 항상 표시하여 밝은 배경화면에서의 가독성을 높입니다';
+  String get desktopLyricsShowBackgroundDescription =>
+      '데스크톱 가사 아래에 반투명 캡슐 배경을 항상 표시하여 밝은 배경화면에서의 가독성을 높입니다';
 
   @override
   String desktopLyricsFontSize(int size) {
@@ -4991,7 +5153,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noTranslationAiPrompt => '현재 곡에 번역이 없습니다. AI를 사용하여 번역을 생성하시겠습니까?';
 
   @override
-  String get noKaraokeAiPrompt => '현재 곡에 단어별 가사가 없습니다. AI를 사용하여 단어별/노래방 가사로 변환하시겠습니까?';
+  String get noKaraokeAiPrompt =>
+      '현재 곡에 단어별 가사가 없습니다. AI를 사용하여 단어별/노래방 가사로 변환하시겠습니까?';
 
   @override
   String get wordByWordLyricsEnabled => '단어별 가사가 활성화되었습니다';
@@ -5021,19 +5184,23 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lockDesktopLyricsTray => '데스크톱 가사 잠금 (위치 고정)';
 
   @override
-  String get msStoreLaunchFailed => 'Microsoft Store를 실행하지 못했습니다. 스토어에서 검색하여 구매해 주세요.';
+  String get msStoreLaunchFailed =>
+      'Microsoft Store를 실행하지 못했습니다. 스토어에서 검색하여 구매해 주세요.';
 
   @override
-  String get storeConnectFailed => '앱 스토어에 연결하여 상품 정보를 가져올 수 없습니다. 네트워크를 확인한 후 다시 시도해 주세요.';
+  String get storeConnectFailed =>
+      '앱 스토어에 연결하여 상품 정보를 가져올 수 없습니다. 네트워크를 확인한 후 다시 시도해 주세요.';
 
   @override
   String get msStoreSyncSuccess => 'Microsoft Store 구매 및 라이선스 상태가 동기화되었습니다';
 
   @override
-  String get allProFeaturesUnlocked => '현재 버전에서는 교환이 필요하지 않습니다. 모든 Pro 기능이 완전히 잠금 해제되었습니다.';
+  String get allProFeaturesUnlocked =>
+      '현재 버전에서는 교환이 필요하지 않습니다. 모든 Pro 기능이 완전히 잠금 해제되었습니다.';
 
   @override
-  String get cannotConnectToMediaServer => '미디어 라이브러리 서버에 연결할 수 없습니다. 서비스가 실행 중인지 확인하세요.';
+  String get cannotConnectToMediaServer =>
+      '미디어 라이브러리 서버에 연결할 수 없습니다. 서비스가 실행 중인지 확인하세요.';
 
   @override
   String get playQueue => '재생 대기열';
@@ -5237,7 +5404,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get loadingServerPlaylists => '서버 재생목록 로드 중...';
 
   @override
-  String get jellyfinMediaDeletionPermissionHint => ' (Jellyfin 사용자에게 \"미디어 삭제 허용\" 권한이 있는지 확인하세요)';
+  String get jellyfinMediaDeletionPermissionHint =>
+      ' (Jellyfin 사용자에게 \"미디어 삭제 허용\" 권한이 있는지 확인하세요)';
 
   @override
   String get trialResetDialogTitle => '체험 기간 재설정 완료';
@@ -5276,7 +5444,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lyricsTimelineMaxHistoryLabel => '가사 타임라인 기록 한도';
 
   @override
-  String get lyricsTimelineMaxHistoryDescription => '곡당 보관할 최대 수정 내역 버전 수 (최대 50개)';
+  String get lyricsTimelineMaxHistoryDescription =>
+      '곡당 보관할 최대 수정 내역 버전 수 (최대 50개)';
 
   @override
   String lyricsTimelineMaxHistoryCountOption(int count) {
@@ -5300,7 +5469,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noTimelineHistory => '수정 내역이 없습니다';
 
   @override
-  String get noTimelineHistoryHint => '가사 편집, 타임라인 조정 또는 가사 가져오기 시 수정 스냅샷이 여기에 자동으로 기록됩니다';
+  String get noTimelineHistoryHint =>
+      '가사 편집, 타임라인 조정 또는 가사 가져오기 시 수정 스냅샷이 여기에 자동으로 기록됩니다';
 
   @override
   String get currentVersion => '현재 버전';
@@ -5448,13 +5618,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lastFmScrobblingEnabledTitle => '스크로블 사용';
 
   @override
-  String get lastFmScrobblingEnabledDescription => '재생 시간이 기준을 넘으면 자동으로 Last.fm에 기록합니다.';
+  String get lastFmScrobblingEnabledDescription =>
+      '재생 시간이 기준을 넘으면 자동으로 Last.fm에 기록합니다.';
 
   @override
   String get lastFmScrobbleRemoteTitle => '원격 라이브러리 포함';
 
   @override
-  String get lastFmScrobbleRemoteDescription => 'Subsonic, Jellyfin, WebDAV, SMB의 곡도 기록합니다. 서버에서 이미 Last.fm과 연동되어 있다면 중복 기록이 생깁니다.';
+  String get lastFmScrobbleRemoteDescription =>
+      'Subsonic, Jellyfin, WebDAV, SMB의 곡도 기록합니다. 서버에서 이미 Last.fm과 연동되어 있다면 중복 기록이 생깁니다.';
 
   @override
   String get lastFmAccountTitle => '계정';
@@ -5480,7 +5652,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lastFmAuthorizationPending => '브라우저에서 인증 페이지를 열었습니다.';
 
   @override
-  String get lastFmAuthorizationHint => '브라우저에서 Last.fm에 로그인하고 Vynody를 허용한 뒤 돌아와서 \"인증을 완료했습니다\"를 누르세요.';
+  String get lastFmAuthorizationHint =>
+      '브라우저에서 Last.fm에 로그인하고 Vynody를 허용한 뒤 돌아와서 \"인증을 완료했습니다\"를 누르세요.';
 
   @override
   String get lastFmAuthorizationSuccess => 'Last.fm에 연결되었습니다.';
@@ -5507,7 +5680,8 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get lastFmCredentialsMissing => '이 빌드에는 Last.fm 자격 증명이 없어 스크로블을 사용할 수 없습니다.';
+  String get lastFmCredentialsMissing =>
+      '이 빌드에는 Last.fm 자격 증명이 없어 스크로블을 사용할 수 없습니다.';
 
   @override
   String lanSyncLyricsReceived(int added, int updated, int skipped) {
@@ -5520,7 +5694,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String lanSyncLyricsSyncResult(int matched, int added, int updated, int skipped) {
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  ) {
     return '동기화 완료: 일치 $matched곡, 추가 $added곡, 업데이트 $updated곡, 건너뜀 $skipped곡';
   }
 
@@ -5530,7 +5709,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String lanSyncPlaylistsReceivedPartial(int playlists, int songs, int missing) {
+  String lanSyncPlaylistsReceivedPartial(
+    int playlists,
+    int songs,
+    int missing,
+  ) {
     return '재생목록 $playlists개, $songs곡을 받았습니다 ($missing곡 일치 없음)';
   }
 
@@ -5642,25 +5825,29 @@ class AppLocalizationsKo extends AppLocalizations {
   String get playingIndicatorAnimation => '재생 중 아이콘 애니메이션';
 
   @override
-  String get playingIndicatorAnimationDescription => '끄면 현재 곡에 애니메이션 이퀄라이저 대신 정지된 일시정지/재생 아이콘이 표시됩니다.';
+  String get playingIndicatorAnimationDescription =>
+      '끄면 현재 곡에 애니메이션 이퀄라이저 대신 정지된 일시정지/재생 아이콘이 표시됩니다.';
 
   @override
   String get miniPlayerSpectrum => '미니 플레이어 스펙트럼';
 
   @override
-  String get miniPlayerSpectrumDescription => '끄면 플로팅 독 미니 플레이어 뒤의 FFT 스펙트럼이 숨겨집니다.';
+  String get miniPlayerSpectrumDescription =>
+      '끄면 플로팅 독 미니 플레이어 뒤의 FFT 스펙트럼이 숨겨집니다.';
 
   @override
   String get blurEffect => '반투명 유리 및 블러 효과';
 
   @override
-  String get blurEffectDescription => '독, 대화상자 및 플로팅 시트에 블러 효과를 사용합니다. 끄면 GPU 렌더링 부하가 줄어들고 부드러움이 향상됩니다.';
+  String get blurEffectDescription =>
+      '독, 대화상자 및 플로팅 시트에 블러 효과를 사용합니다. 끄면 GPU 렌더링 부하가 줄어들고 부드러움이 향상됩니다.';
 
   @override
   String get lyricsBlurEffect => '가사 블러 효과';
 
   @override
-  String get lyricsBlurEffectDescription => '가사 모드의 비포커스 라인에 가우시안 블러를 적용합니다. 끄면 전개 및 스크롤 프레임 속도가 향상됩니다.';
+  String get lyricsBlurEffectDescription =>
+      '가사 모드의 비포커스 라인에 가우시안 블러를 적용합니다. 끄면 전개 및 스크롤 프레임 속도가 향상됩니다.';
 
   @override
   String get searchResultsCurrentFolder => '현재 폴더 및 하위 폴더';
@@ -5691,4 +5878,25 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get searchFolderHint => '노래 또는 폴더 검색...';
+
+  @override
+  String get spatialAudio => '空间音效';
+
+  @override
+  String get spatialAudioOff => '关闭';
+
+  @override
+  String get spatialAudioConcertHall => '音乐厅空间';
+
+  @override
+  String get spatialAudioNaturalEcho => '轻度回响';
+
+  @override
+  String get spatialAudioOffDescription => '保持原始干声，不叠加空间混响';
+
+  @override
+  String get spatialAudioConcertHallDescription => '营造宽广立体的音乐厅声场效果';
+
+  @override
+  String get spatialAudioNaturalEchoDescription => '仅施加轻微自然回响，忠实保留原声细节';
 }

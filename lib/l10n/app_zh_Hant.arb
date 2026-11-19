@@ -1940,5 +1940,12 @@
   "remoteSearchDeepSearching": "正在深層搜尋遠端目錄...",
   "remoteSearchDeepStop": "停止搜尋",
   "remoteSearchDeepCompleted": "深層搜尋完成",
-  "searchFolderHint": "搜尋目前目錄或全域歌曲、資料夾..."
+  "searchFolderHint": "搜尋目前目錄或全域歌曲、資料夾...",
+  "spatialAudio": "空間音效",
+  "spatialAudioOff": "關閉",
+  "spatialAudioConcertHall": "音樂廳空間",
+  "spatialAudioNaturalEcho": "輕度回響",
+  "spatialAudioOffDescription": "保持原始乾聲，不疊加空間混響",
+  "spatialAudioConcertHallDescription": "營造寬廣立體的音樂廳聲場效果",
+  "spatialAudioNaturalEchoDescription": "僅施加輕微自然回響，忠實保留原聲細節"
 }

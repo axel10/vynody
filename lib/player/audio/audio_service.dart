@@ -15,6 +15,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_snapshot.dart';
 import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:vynody/player/audio/playback_source.dart';
+import 'package:vynody/player/audio/spatial_audio_mode.dart';
 import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
@@ -512,6 +513,13 @@ class AudioService extends Notifier<AudioSnapshot> {
       final currentEqualizerEnabled =
           isUnlocked && settingsService.equalizerEnabled;
       unawaited(_player.setEqualizerEnabled(currentEqualizerEnabled));
+      unawaited(
+        _player.setReverbConfig(
+          settingsService.spatialAudioMode.toReverbConfig(
+            isProUnlocked: isUnlocked,
+          ),
+        ),
+      );
       if (Platform.isWindows) {
         final isExclusive = isUnlocked &&
             settingsService.windowsAudioOutputMode == 'wasapi_exclusive';
@@ -677,6 +685,11 @@ class AudioService extends Notifier<AudioSnapshot> {
             bassBoostFrequencyHz: EqualizerController.bassBoostFrequencyHz,
             bassBoostQ: EqualizerController.bassBoostQ,
             bandGainsDb: gainsList,
+          ),
+        );
+        await _player.setReverbConfig(
+          settingsService.spatialAudioMode.toReverbConfig(
+            isProUnlocked: isProUnlocked,
           ),
         );
         await _restorePlaybackSession();
@@ -2319,6 +2332,20 @@ class AudioService extends Notifier<AudioSnapshot> {
     notifyListeners();
   }
 
+  SpatialAudioMode get spatialAudioMode => settingsService.spatialAudioMode;
+
+  Future<void> setSpatialAudioMode(SpatialAudioMode mode) async {
+    final isProUnlocked = ref.read(isProUnlockedProvider);
+    if (mode != SpatialAudioMode.off && !isProUnlocked) {
+      return;
+    }
+    settingsService.spatialAudioMode = mode;
+    await _player.setReverbConfig(
+      mode.toReverbConfig(isProUnlocked: isProUnlocked),
+    );
+    notifyListeners();
+  }
+
   bool get isRandomMode => _player.playlist.randomPolicy != null;
   AudioSnapshot get snapshot => AudioSnapshot(
     isPlaying: _isPlaying,
@@ -2336,6 +2363,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     isShuffleRandomMode: isShuffleRandomMode,
     playbackMode: playbackMode,
     equalizerConfig: equalizerConfig,
+    spatialAudioMode: spatialAudioMode,
     currentVisualizerOptions: currentVisualizerOptions,
     randomHistory: List<MusicFile>.unmodifiable(randomHistory),
     randomQueue: List<MusicFile>.unmodifiable(randomQueue),

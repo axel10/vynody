@@ -37,10 +37,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get directoryAddedSuccess => 'Répertoire ajouté avec succès';
 
   @override
-  String get directoryAddedNoMusic => 'Répertoire ajouté, mais aucun fichier audio trouvé';
+  String get directoryAddedNoMusic =>
+      'Répertoire ajouté, mais aucun fichier audio trouvé';
 
   @override
-  String get selectDirectoryHint => 'L\'élément sélectionné est un fichier. Veuillez sélectionner un dossier ou appuyer sur « Ouvrir » en haut à droite';
+  String get selectDirectoryHint =>
+      'L\'élément sélectionné est un fichier. Veuillez sélectionner un dossier ou appuyer sur « Ouvrir » en haut à droite';
 
   @override
   String get scanDirectory => 'Sources';
@@ -55,13 +57,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get goBack => 'Retour';
 
   @override
-  String get noMediaLibraryPermission => 'Pas d\'accès à la bibliothèque multimédia';
+  String get noMediaLibraryPermission =>
+      'Pas d\'accès à la bibliothèque multimédia';
 
   @override
   String get grantPermission => 'Accorder la permission';
 
   @override
-  String get needPermissionToScan => 'Permission requise pour analyser la musique locale';
+  String get needPermissionToScan =>
+      'Permission requise pour analyser la musique locale';
 
   @override
   String get rebuildTagDatabase => 'Reconstruire la base d\'étiquettes';
@@ -70,7 +74,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get rebuildDatabase => 'Reconstruire la base de données';
 
   @override
-  String get confirmRebuildDatabase => 'Voulez-vous vraiment reconstruire toutes les étiquettes des chansons ? Cela peut prendre du temps.';
+  String get confirmRebuildDatabase =>
+      'Voulez-vous vraiment reconstruire toutes les étiquettes des chansons ? Cela peut prendre du temps.';
 
   @override
   String get cancel => 'Annuler';
@@ -79,7 +84,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get confirm => 'Confirmer';
 
   @override
-  String get rebuildingDatabase => 'Reconstruction de la base d\'étiquettes des chansons...';
+  String get rebuildingDatabase =>
+      'Reconstruction de la base d\'étiquettes des chansons...';
 
   @override
   String get sortBy => 'Trier par';
@@ -106,7 +112,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get descending => 'Décroissant';
 
   @override
-  String get sortOnlyThisFolderHint => 'Ce dossier utilise les réglages ci-dessus';
+  String get sortOnlyThisFolderHint =>
+      'Ce dossier utilise les réglages ci-dessus';
 
   @override
   String get sortFollowsGlobalHint => 'Ce dossier suit le tri global';
@@ -196,7 +203,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get clearQueue => 'Vider la file d\'attente';
 
   @override
-  String get confirmClearQueue => 'Voulez-vous vraiment vider la file d\'attente actuelle ?';
+  String get confirmClearQueue =>
+      'Voulez-vous vraiment vider la file d\'attente actuelle ?';
 
   @override
   String get queueCleared => 'File d\'attente vidée';
@@ -205,10 +213,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get locateCurrentSong => 'Localiser la chanson actuelle';
 
   @override
-  String get songNotInScannedFolders => 'La chanson actuelle n\'est pas dans les répertoires analysés';
+  String get songNotInScannedFolders =>
+      'La chanson actuelle n\'est pas dans les répertoires analysés';
 
   @override
-  String get remoteAlbumUnavailable => 'Impossible de localiser l\'album de cette chanson. Il a peut-être été supprimé ou le serveur est injoignable.';
+  String get remoteAlbumUnavailable =>
+      'Impossible de localiser l\'album de cette chanson. Il a peut-être été supprimé ou le serveur est injoignable.';
 
   @override
   String get queue => 'File d\'attente';
@@ -331,13 +341,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get artists => 'Artistes';
 
   @override
-  String get mostPlayedDescription => 'Classées par nombre d\'écoutes complètes';
+  String get mostPlayedDescription =>
+      'Classées par nombre d\'écoutes complètes';
 
   @override
-  String get recentlyPlayedDescription => 'Trier par heure de lecture, y compris les fichiers externes';
+  String get recentlyPlayedDescription =>
+      'Trier par heure de lecture, y compris les fichiers externes';
 
   @override
-  String get recentlyAddedDescription => 'Triées par date d\'ajout à la bibliothèque';
+  String get recentlyAddedDescription =>
+      'Triées par date d\'ajout à la bibliothèque';
 
   @override
   String get allTime => 'Tout le temps';
@@ -361,13 +374,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noRecentlyPlayedSongs => 'Aucun historique de lecture';
 
   @override
-  String get noRecentlyPlayedInRange => 'Aucun historique de lecture dans cette plage horaire';
+  String get noRecentlyPlayedInRange =>
+      'Aucun historique de lecture dans cette plage horaire';
 
   @override
   String get noRecentlyAddedSongs => 'Aucune chanson dans votre bibliothèque';
 
   @override
-  String get noRecentlyAddedInRange => 'Aucune chanson ajoutée dans cette période';
+  String get noRecentlyAddedInRange =>
+      'Aucune chanson ajoutée dans cette période';
 
   @override
   String get addedOn => 'Ajoutée le';
@@ -475,7 +490,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get emptyList => 'La liste est vide';
 
   @override
-  String get dragToAddMusic => 'Glissez des fichiers ou dossiers pour ajouter de la musique';
+  String get dragToAddMusic =>
+      'Glissez des fichiers ou dossiers pour ajouter de la musique';
 
   @override
   String get unknownAlbum => 'Album inconnu';
@@ -574,37 +590,45 @@ class AppLocalizationsFr extends AppLocalizations {
   String get immersiveTabBar => 'Barre d\'onglets immersive';
 
   @override
-  String get immersiveTabBarDescription => 'Affiche la barre au mouvement de la souris, la cache après 3 secondes d\'inactivité';
+  String get immersiveTabBarDescription =>
+      'Affiche la barre au mouvement de la souris, la cache après 3 secondes d\'inactivité';
 
   @override
-  String get collapseButtonsInLandscapeLyrics => 'Réduire les boutons en mode paroles paysage';
+  String get collapseButtonsInLandscapeLyrics =>
+      'Réduire les boutons en mode paroles paysage';
 
   @override
-  String get collapseButtonsInLandscapeLyricsDescription => 'Réduit les 7 boutons, aligne le titre à gauche et ajoute des boutons à droite en mode paroles paysage';
+  String get collapseButtonsInLandscapeLyricsDescription =>
+      'Réduit les 7 boutons, aligne le titre à gauche et ajoute des boutons à droite en mode paroles paysage';
 
   @override
-  String get expandPortraitLyricsControlsOnScroll => 'Développer les commandes lors du défilement des paroles en portrait';
+  String get expandPortraitLyricsControlsOnScroll =>
+      'Développer les commandes lors du défilement des paroles en portrait';
 
   @override
-  String get expandPortraitLyricsControlsOnScrollDescription => 'Développer les commandes et la barre de progression lors du défilement des paroles en mode portrait';
+  String get expandPortraitLyricsControlsOnScrollDescription =>
+      'Développer les commandes et la barre de progression lors du défilement des paroles en mode portrait';
 
   @override
   String get floatingDockScrollCollapse => 'Réduire le dock au défilement';
 
   @override
-  String get floatingDockScrollCollapseDescription => 'Réduit le dock flottant à un mini-lecteur sur une seule ligne lors d\'un défilement vers le bas, et le redéploie lors d\'un défilement vers le haut ou à l\'approche du début ou de la fin de la liste. Désactivé, le dock reste toujours entièrement déployé.';
+  String get floatingDockScrollCollapseDescription =>
+      'Réduit le dock flottant à un mini-lecteur sur une seule ligne lors d\'un défilement vers le bas, et le redéploie lors d\'un défilement vers le haut ou à l\'approche du début ou de la fin de la liste. Désactivé, le dock reste toujours entièrement déployé.';
 
   @override
   String get sampleStride => 'Pas d\'échantillonnage';
 
   @override
-  String get sampleStrideDescription => 'Plus la valeur est grande, plus l\'analyse est rapide mais moins précise (défaut: 4)';
+  String get sampleStrideDescription =>
+      'Plus la valeur est grande, plus l\'analyse est rapide mais moins précise (défaut: 4)';
 
   @override
   String get waveformSegments => 'Segments de forme d\'onde';
 
   @override
-  String get waveformSegmentsDescription => 'Nombre de barres de forme d\'onde à afficher (défaut: 80)';
+  String get waveformSegmentsDescription =>
+      'Nombre de barres de forme d\'onde à afficher (défaut: 80)';
 
   @override
   String get showDeveloperOptions => 'Afficher les options développeur';
@@ -661,7 +685,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get autoDarkLayer => 'Couche sombre automatique';
 
   @override
-  String get autoDarkLayerDesc => 'Ajuste automatiquement la couche sombre selon la luminosité de l\'arrière-plan';
+  String get autoDarkLayerDesc =>
+      'Ajuste automatiquement la couche sombre selon la luminosité de l\'arrière-plan';
 
   @override
   String get lyricsOpacity => 'Opacité de la couche sombre des paroles';
@@ -745,10 +770,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get landscapeGap => 'Espacement paysage';
 
   @override
-  String get enableWaveformProgressBar => 'Activer la barre de progression ondulée';
+  String get enableWaveformProgressBar =>
+      'Activer la barre de progression ondulée';
 
   @override
-  String get enableWaveformProgressBarDescription => 'Utiliser la forme d\'onde complète au lieu du curseur standard';
+  String get enableWaveformProgressBarDescription =>
+      'Utiliser la forme d\'onde complète au lieu du curseur standard';
 
   @override
   String get playbackElementsGroup => 'Éléments d\'interface';
@@ -757,7 +784,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get progressBarStyle => 'Style de barre de progression';
 
   @override
-  String get progressBarStyleDescription => 'Sélectionnez le style d\'affichage de la barre de progression';
+  String get progressBarStyleDescription =>
+      'Sélectionnez le style d\'affichage de la barre de progression';
 
   @override
   String get progressBarStyleStandard => 'Curseur standard';
@@ -772,40 +800,48 @@ class AppLocalizationsFr extends AppLocalizations {
   String get showPlaybackAudioInfo => 'Afficher les informations audio';
 
   @override
-  String get showPlaybackAudioInfoDescription => 'Afficher le format audio, le taux d\'échantillonnage et le débit binaire sous les commandes de lecture';
+  String get showPlaybackAudioInfoDescription =>
+      'Afficher le format audio, le taux d\'échantillonnage et le débit binaire sous les commandes de lecture';
 
   @override
   String get showSongRating => 'Afficher la note du morceau';
 
   @override
-  String get showSongRatingDescription => 'Afficher la note à cinq étoiles en bas à gauche de la pochette';
+  String get showSongRatingDescription =>
+      'Afficher la note à cinq étoiles en bas à gauche de la pochette';
 
   @override
   String get topDragHandleSectionTitle => 'Barre d\'indication supérieure';
 
   @override
-  String get showPlaybackTopDragHandle => 'Afficher la barre de glissement supérieure';
+  String get showPlaybackTopDragHandle =>
+      'Afficher la barre de glissement supérieure';
 
   @override
-  String get showPlaybackTopDragHandleDescription => 'Afficher l\'indicateur pour réduire vers le bas en haut de la page de lecture';
+  String get showPlaybackTopDragHandleDescription =>
+      'Afficher l\'indicateur pour réduire vers le bas en haut de la page de lecture';
 
   @override
   String get waveformLongPressSeekSpeed => 'Vitesse d\'avance appui long';
 
   @override
-  String get waveformLongPressSeekSpeedDescription => 'Vitesse de lecture en maintenant la barre d\'onde (×)';
+  String get waveformLongPressSeekSpeedDescription =>
+      'Vitesse de lecture en maintenant la barre d\'onde (×)';
 
   @override
-  String get enableWaveformLongPressSeek => 'Activer l\'avance rapide par appui long';
+  String get enableWaveformLongPressSeek =>
+      'Activer l\'avance rapide par appui long';
 
   @override
-  String get enableWaveformLongPressSeekDescription => 'Maintenez la barre d\'onde pour une lecture accélérée';
+  String get enableWaveformLongPressSeekDescription =>
+      'Maintenez la barre d\'onde pour une lecture accélérée';
 
   @override
   String get clearWaveformCache => 'Vider le cache des formes d\'onde';
 
   @override
-  String get clearWaveformCacheDescription => 'Effacer les données de forme d\'onde en cache de la base de données et recalculer';
+  String get clearWaveformCacheDescription =>
+      'Effacer les données de forme d\'onde en cache de la base de données et recalculer';
 
   @override
   String get waveformCacheCleared => 'Cache des formes d\'onde effacé';
@@ -817,7 +853,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get remoteAudioCache => 'Cache audio distant';
 
   @override
-  String get remoteAudioCacheDescription => 'Cache local pour le streaming et le préchargement Navidrome et WebDAV';
+  String get remoteAudioCacheDescription =>
+      'Cache local pour le streaming et le préchargement Navidrome et WebDAV';
 
   @override
   String get remoteCacheLimit => 'Limite du cache distant';
@@ -826,7 +863,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get remotePrefetchCount => 'Nombre de pistes distantes préchargées';
 
   @override
-  String get remotePrefetchCountDescription => 'Télécharger à l\'avance les pistes distantes de la file d\'attente pour une lecture fluide';
+  String get remotePrefetchCountDescription =>
+      'Télécharger à l\'avance les pistes distantes de la file d\'attente pour une lecture fluide';
 
   @override
   String get clearRemoteCache => 'Vider le cache distant';
@@ -874,10 +912,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get saveTagsToFile => 'Sauvegarder les étiquettes dans le fichier';
 
   @override
-  String get saveCurrentTagsToFile => 'Sauvegarder les étiquettes de la chanson actuelle';
+  String get saveCurrentTagsToFile =>
+      'Sauvegarder les étiquettes de la chanson actuelle';
 
   @override
-  String get saveQueueTagsToFile => 'Sauvegarder toutes les étiquettes de la file';
+  String get saveQueueTagsToFile =>
+      'Sauvegarder toutes les étiquettes de la file';
 
   @override
   String get tagsSaved => 'Étiquettes sauvegardées avec succès';
@@ -901,7 +941,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get unsupportedFormatSingle => 'Ce format ne prend pas en charge l\'écriture des étiquettes';
+  String get unsupportedFormatSingle =>
+      'Ce format ne prend pas en charge l\'écriture des étiquettes';
 
   @override
   String get savingTags => 'Sauvegarde des étiquettes...';
@@ -927,7 +968,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get transcodeSectionTitle => 'Transcodage audio';
 
   @override
-  String get transcodeSectionDescription => 'Définir le format de sortie par défaut et la qualité prédéfinie.';
+  String get transcodeSectionDescription =>
+      'Définir le format de sortie par défaut et la qualité prédéfinie.';
 
   @override
   String get transcodeDefaultFormat => 'Format de sortie par défaut';
@@ -976,7 +1018,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get transcodeUsingSystemFfmpeg => 'Utilisation de ffmpeg depuis le PATH système.';
+  String get transcodeUsingSystemFfmpeg =>
+      'Utilisation de ffmpeg depuis le PATH système.';
 
   @override
   String transcodeUsingCustomFfmpeg(Object path) {
@@ -1002,22 +1045,27 @@ class AppLocalizationsFr extends AppLocalizations {
   String get transcodeQualityExtreme => 'Maximale';
 
   @override
-  String get transcodeLosslessPresetHint => 'Ce format sans perte n\'utilise pas de niveaux de qualité ni de mode de débit.';
+  String get transcodeLosslessPresetHint =>
+      'Ce format sans perte n\'utilise pas de niveaux de qualité ni de mode de débit.';
 
   @override
   String get transcodeAdvancedOptions => 'Options avancées';
 
   @override
-  String get transcodeAdvancedCustomized => 'Paramètres avancés modifiés manuellement';
+  String get transcodeAdvancedCustomized =>
+      'Paramètres avancés modifiés manuellement';
 
   @override
-  String get transcodeAdvancedFollowingPreset => 'Les paramètres avancés suivent le préréglage actuel';
+  String get transcodeAdvancedFollowingPreset =>
+      'Les paramètres avancés suivent le préréglage actuel';
 
   @override
-  String get transcodeLosslessAdvancedHint => 'Ce format sans perte ne conserve que les options liées à la source.';
+  String get transcodeLosslessAdvancedHint =>
+      'Ce format sans perte ne conserve que les options liées à la source.';
 
   @override
-  String get transcodeBitRateInvalid => 'Veuillez entrer un débit binaire valide';
+  String get transcodeBitRateInvalid =>
+      'Veuillez entrer un débit binaire valide';
 
   @override
   String get transcodeBitRate => 'Débit binaire';
@@ -1047,7 +1095,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get transcodeResetToPreset => 'Réinitialiser au préréglage actuel';
 
   @override
-  String get transcodeResetLosslessOptions => 'Réinitialiser les options sans perte';
+  String get transcodeResetLosslessOptions =>
+      'Réinitialiser les options sans perte';
 
   @override
   String get transcodeOutputDirectory => 'Répertoire de sortie';
@@ -1074,10 +1123,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get openFolderLocation => 'Ouvrir l\'emplacement du dossier';
 
   @override
-  String get songTagsSavedToSourceFileAndApp => 'Étiquettes sauvegardées dans le fichier source et l\'application';
+  String get songTagsSavedToSourceFileAndApp =>
+      'Étiquettes sauvegardées dans le fichier source et l\'application';
 
   @override
-  String get songTagsSavedToApp => 'Étiquettes sauvegardées dans l\'application';
+  String get songTagsSavedToApp =>
+      'Étiquettes sauvegardées dans l\'application';
 
   @override
   String get durationZero => '0:00';
@@ -1128,16 +1179,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sleepTimerTitle => 'Minuteur de sommeil';
 
   @override
-  String get sleepTimerDescription => 'Choisissez un compte à rebours. La lecture se mettra en pause à la fin.';
+  String get sleepTimerDescription =>
+      'Choisissez un compte à rebours. La lecture se mettra en pause à la fin.';
 
   @override
   String get sleepTimerRunningTitle => 'Minuteur de sommeil en cours';
 
   @override
-  String get sleepTimerRunningDescription => 'La lecture se mettra automatiquement en pause à la fin du compte à rebours.';
+  String get sleepTimerRunningDescription =>
+      'La lecture se mettra automatiquement en pause à la fin du compte à rebours.';
 
   @override
-  String get sleepTimerStopAfterCurrentSong => 'Arrêter après la dernière chanson';
+  String get sleepTimerStopAfterCurrentSong =>
+      'Arrêter après la dernière chanson';
 
   @override
   String get remainingTime => 'Temps restant';
@@ -1203,7 +1257,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get saveAsPreset => 'Enregistrer comme préréglage';
 
   @override
-  String get saveCurrentAsPreset => 'Enregistrer le réglage actuel comme nouveau préréglage';
+  String get saveCurrentAsPreset =>
+      'Enregistrer le réglage actuel comme nouveau préréglage';
 
   @override
   String get enterPresetName => 'Entrez le nom du préréglage';
@@ -1215,7 +1270,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get presetNameAlreadyExists => 'Le nom du préréglage existe déjà';
 
   @override
-  String get presetNameCannotBeEmpty => 'Le nom du préréglage ne peut pas être vide';
+  String get presetNameCannotBeEmpty =>
+      'Le nom du préréglage ne peut pas être vide';
 
   @override
   String get presetSaved => 'Préréglage enregistré';
@@ -1245,7 +1301,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get deletePreset => 'Supprimer le préréglage';
 
   @override
-  String get deletePresetConfirm => 'Voulez-vous vraiment supprimer ce préréglage ?';
+  String get deletePresetConfirm =>
+      'Voulez-vous vraiment supprimer ce préréglage ?';
 
   @override
   String get custom => 'Personnalisé';
@@ -1254,7 +1311,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noCustomPresets => 'Aucun préréglage personnalisé pour le moment';
 
   @override
-  String get savePresetPrompt => 'Enregistrer les gains de bande EQ actuels, l\'amplification des basses et le gain du préampli';
+  String get savePresetPrompt =>
+      'Enregistrer les gains de bande EQ actuels, l\'amplification des basses et le gain du préampli';
 
   @override
   String get effects => 'Effets';
@@ -1284,7 +1342,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timelineAdjustmentTitle => 'Ajuster la chronologie manuellement';
 
   @override
-  String get timelineAdjustmentDescription => 'Glisser vers la droite retarde les paroles, vers la gauche les avance.';
+  String get timelineAdjustmentDescription =>
+      'Glisser vers la droite retarde les paroles, vers la gauche les avance.';
 
   @override
   String timelineOffsetEarlier(Object seconds) {
@@ -1306,7 +1365,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get enterAcoustidApiKeyTitle => 'Saisir la clé API AcoustID';
 
   @override
-  String get acoustidApiKeyDescription => 'Utilisé pour l\'empreinte audio. Laisser vide pour restaurer la clé intégrée.';
+  String get acoustidApiKeyDescription =>
+      'Utilisé pour l\'empreinte audio. Laisser vide pour restaurer la clé intégrée.';
 
   @override
   String get acoustidApiKeyHint => 'Collez votre clé API AcoustID';
@@ -1321,13 +1381,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get enterLyricsTitle => 'Saisir les paroles';
 
   @override
-  String get lyricsInputHint => 'Collez ou tapez les paroles ici. Le texte multiligne est pris en charge.';
+  String get lyricsInputHint =>
+      'Collez ou tapez les paroles ici. Le texte multiligne est pris en charge.';
 
   @override
-  String get enterGoogleAiStudioApiKeyTitle => 'Saisir la clé API Google AI Studio';
+  String get enterGoogleAiStudioApiKeyTitle =>
+      'Saisir la clé API Google AI Studio';
 
   @override
-  String get googleAiStudioApiKeyDescription => 'Utilisé pour la génération de paroles, la chronologie et la traduction.';
+  String get googleAiStudioApiKeyDescription =>
+      'Utilisé pour la génération de paroles, la chronologie et la traduction.';
 
   @override
   String get pasteGoogleAiStudioApiKey => 'Coller la clé API Google AI Studio';
@@ -1336,7 +1399,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get enterOpenRouterApiKeyTitle => 'Saisir la clé API OpenRouter';
 
   @override
-  String get openRouterApiKeyDescription => 'Utilisé pour la génération de paroles, de chronologie et la traduction de paroles dans OpenRouter.';
+  String get openRouterApiKeyDescription =>
+      'Utilisé pour la génération de paroles, de chronologie et la traduction de paroles dans OpenRouter.';
 
   @override
   String get pasteOpenRouterApiKey => 'Coller la clé API OpenRouter';
@@ -1345,7 +1409,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get enterGeminiApiKeyTitle => 'Saisir la clé API Gemini';
 
   @override
-  String get geminiApiKeyDescription => 'Utilisé pour la traduction des paroles.';
+  String get geminiApiKeyDescription =>
+      'Utilisé pour la traduction des paroles.';
 
   @override
   String get pasteGeminiApiKey => 'Coller la clé API Gemini';
@@ -1390,7 +1455,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportArtworkFailed => 'Échec de l\'exportation de la pochette';
 
   @override
-  String get editSongTagsDescription => 'Les modifications sont écrites dans le fichier source ; si le format ne le permet pas, elles sont enregistrées uniquement dans l\'application.';
+  String get editSongTagsDescription =>
+      'Les modifications sont écrites dans le fichier source ; si le format ne le permet pas, elles sont enregistrées uniquement dans l\'application.';
 
   @override
   String get artistLabel => 'Artiste';
@@ -1405,7 +1471,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get trackNumberLabel => 'Numéro de piste';
 
   @override
-  String get trackNumberMustBeInteger => 'Le numéro de piste doit être un entier';
+  String get trackNumberMustBeInteger =>
+      'Le numéro de piste doit être un entier';
 
   @override
   String get genreLabel => 'Genre';
@@ -1420,37 +1487,46 @@ class AppLocalizationsFr extends AppLocalizations {
   String get genresSeparatorHint => 'Séparez plusieurs genres par des virgules';
 
   @override
-  String get leaveBlankKeepsCurrentValue => 'Laisser vide pour effacer ce champ';
+  String get leaveBlankKeepsCurrentValue =>
+      'Laisser vide pour effacer ce champ';
 
   @override
-  String get currentFileFormatCannotWriteBack => 'Ce format de fichier ne permet pas d\'écrire dans le fichier source.';
+  String get currentFileFormatCannotWriteBack =>
+      'Ce format de fichier ne permet pas d\'écrire dans le fichier source.';
 
   @override
-  String get leaveBlankDoesNotClearOriginalValue => 'Astuce : laisser un champ vide effacera sa valeur.';
+  String get leaveBlankDoesNotClearOriginalValue =>
+      'Astuce : laisser un champ vide effacera sa valeur.';
 
   @override
   String get saveToApp => 'Sauvegarder dans l\'application';
 
   @override
-  String get saveToSourceFileAndApp => 'Sauvegarder dans le fichier source et l\'application';
+  String get saveToSourceFileAndApp =>
+      'Sauvegarder dans le fichier source et l\'application';
 
   @override
-  String get saveToSourceFileFailed => 'Échec de la sauvegarde dans le fichier source. Vérifiez que le format prend en charge l\'écriture.';
+  String get saveToSourceFileFailed =>
+      'Échec de la sauvegarde dans le fichier source. Vérifiez que le format prend en charge l\'écriture.';
 
   @override
-  String get fileOccupiedByOtherApp => 'Le fichier est utilisé par une autre application';
+  String get fileOccupiedByOtherApp =>
+      'Le fichier est utilisé par une autre application';
 
   @override
-  String get saveFailed => 'Échec de la sauvegarde. Veuillez réessayer plus tard.';
+  String get saveFailed =>
+      'Échec de la sauvegarde. Veuillez réessayer plus tard.';
 
   @override
   String get batchEditSongTagsTitle => 'Modifier les balises par lot';
 
   @override
-  String get batchEditSongTagsDescription => 'Les modifications sont écrites dans les fichiers source ; si un format ne le permet pas, elles sont enregistrées uniquement dans l\'application. Les champs avec <keep> conservent leurs valeurs.';
+  String get batchEditSongTagsDescription =>
+      'Les modifications sont écrites dans les fichiers source ; si un format ne le permet pas, elles sont enregistrées uniquement dans l\'application. Les champs avec <keep> conservent leurs valeurs.';
 
   @override
-  String get keepFieldHint => 'Astuce : les champs avec <keep> conservent leurs valeurs d\'origine.';
+  String get keepFieldHint =>
+      'Astuce : les champs avec <keep> conservent leurs valeurs d\'origine.';
 
   @override
   String get multipleArtworkKeep => 'Conserver les pochettes individuelles';
@@ -1482,7 +1558,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get generalSectionTitle => 'Interface et comportement';
 
   @override
-  String get generalSectionDescription => 'Configurez l\'apparence, les interactions de lecture et le comportement des fenêtres système.';
+  String get generalSectionDescription =>
+      'Configurez l\'apparence, les interactions de lecture et le comportement des fenêtres système.';
 
   @override
   String get uiAppearanceGroup => 'Apparence et affichage';
@@ -1491,31 +1568,37 @@ class AppLocalizationsFr extends AppLocalizations {
   String get playbackBehaviorGroup => 'Lecture et interaction';
 
   @override
-  String get systemWindowBehaviorGroup => 'Comportement de la fenêtre et du système';
+  String get systemWindowBehaviorGroup =>
+      'Comportement de la fenêtre et du système';
 
   @override
   String get interfaceLanguage => 'Langue de l\'interface';
 
   @override
-  String get interfaceLanguageDescription => 'Sélectionnez la langue d\'affichage de l\'application.';
+  String get interfaceLanguageDescription =>
+      'Sélectionnez la langue d\'affichage de l\'application.';
 
   @override
   String get scanSectionTitle => 'Analyse';
 
   @override
-  String get scanSectionDescription => 'Ces options contrôlent la façon dont l\'analyse de la bibliothèque traite les fichiers audio.';
+  String get scanSectionDescription =>
+      'Ces options contrôlent la façon dont l\'analyse de la bibliothèque traite les fichiers audio.';
 
   @override
-  String get skipShortAudioDuringScan => 'Ignorer l\'audio court lors de l\'analyse';
+  String get skipShortAudioDuringScan =>
+      'Ignorer l\'audio court lors de l\'analyse';
 
   @override
-  String get skipShortAudioDuringScanDescription => 'L\'audio plus court que le seuil ne sera pas ajouté à la bibliothèque.';
+  String get skipShortAudioDuringScanDescription =>
+      'L\'audio plus court que le seuil ne sera pas ajouté à la bibliothèque.';
 
   @override
   String get shortAudioScanThreshold => 'Seuil d\'audio court';
 
   @override
-  String get shortAudioScanThresholdDescription => 'Les fichiers plus courts que cette durée seront ignorés.';
+  String get shortAudioScanThresholdDescription =>
+      'Les fichiers plus courts que cette durée seront ignorés.';
 
   @override
   String shortAudioScanThresholdValue(Object seconds) {
@@ -1526,10 +1609,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shortcutSettingsTitle => 'Raccourcis personnalisés';
 
   @override
-  String get shortcutSettingsDescription => 'Cliquez pour redéfinir et enregistrer les raccourcis des actions du lecteur.';
+  String get shortcutSettingsDescription =>
+      'Cliquez pour redéfinir et enregistrer les raccourcis des actions du lecteur.';
 
   @override
-  String get shortcutPhysicalKeyboardHint => 'Les raccourcis sont conçus pour les claviers physiques externes (ex. Bluetooth ou Magic Keyboard).';
+  String get shortcutPhysicalKeyboardHint =>
+      'Les raccourcis sont conçus pour les claviers physiques externes (ex. Bluetooth ou Magic Keyboard).';
 
   @override
   String get edit => 'Modifier';
@@ -1541,19 +1626,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get lyricsSectionTitle => 'Paroles';
 
   @override
-  String get lyricsSectionDescription => 'Ces réglages n\'affectent que la génération de paroles et de chronologie.';
+  String get lyricsSectionDescription =>
+      'Ces réglages n\'affectent que la génération de paroles et de chronologie.';
 
   @override
-  String get lyricsTranslationTargetLanguageLabel => 'Langue cible de traduction';
+  String get lyricsTranslationTargetLanguageLabel =>
+      'Langue cible de traduction';
 
   @override
-  String get lyricsTranslationTargetLanguageDescription => 'Par défaut, suit la langue du système, ou choisissez manuellement.';
+  String get lyricsTranslationTargetLanguageDescription =>
+      'Par défaut, suit la langue du système, ou choisissez manuellement.';
 
   @override
   String get lyricsSaveMethodLabel => 'Lieu de sauvegarde des paroles';
 
   @override
-  String get lyricsSaveMethodDescription => 'Choisissez où les paroles sont sauvegardées lors de l\'écriture.';
+  String get lyricsSaveMethodDescription =>
+      'Choisissez où les paroles sont sauvegardées lors de l\'écriture.';
 
   @override
   String get lyricsSaveMethodOriginal => 'Comme la source';
@@ -1568,7 +1657,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get lyricsStyleLabel => 'Style de panneau de paroles';
 
   @override
-  String get lyricsStyleDescription => 'Choisissez le style d\'affichage pour le panneau de paroles.';
+  String get lyricsStyleDescription =>
+      'Choisissez le style d\'affichage pour le panneau de paroles.';
 
   @override
   String get lyricsStyleTraditional => 'Traditionnel';
@@ -1580,13 +1670,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get lyricsLatinFontLabel => 'Police des paroles (latin)';
 
   @override
-  String get lyricsLatinFontDescription => 'Définir la police utilisée pour les caractères latins, les chiffres et les symboles dans les paroles.';
+  String get lyricsLatinFontDescription =>
+      'Définir la police utilisée pour les caractères latins, les chiffres et les symboles dans les paroles.';
 
   @override
   String get lyricsCjkFontLabel => 'Police des paroles (chinois/CJK)';
 
   @override
-  String get lyricsCjkFontDescription => 'Définir la police utilisée pour les caractères chinois/CJK dans les paroles.';
+  String get lyricsCjkFontDescription =>
+      'Définir la police utilisée pour les caractères chinois/CJK dans les paroles.';
 
   @override
   String get customFontOption => 'Police personnalisée...';
@@ -1631,7 +1723,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get importedFonts => 'Polices importées';
 
   @override
-  String get noImportedFontsHint => 'Aucune police importée. Appuyez ci-dessous pour importer un fichier .ttf / .otf.';
+  String get noImportedFontsHint =>
+      'Aucune police importée. Appuyez ci-dessous pour importer un fichier .ttf / .otf.';
 
   @override
   String deleteFontConfirm(String name) {
@@ -1651,31 +1744,38 @@ class AppLocalizationsFr extends AppLocalizations {
   String get followSystemLanguage => 'Suivre le système';
 
   @override
-  String get autoSwitchLyricsProvider => 'Changement automatique de fournisseur';
+  String get autoSwitchLyricsProvider =>
+      'Changement automatique de fournisseur';
 
   @override
-  String get autoSwitchLyricsProviderEnabledDesc => 'Google AI Studio est essayé en premier. Si le modèle principal et le modèle de secours échouent tous deux avec des erreurs 429 ou 5xx, l\'application bascule automatiquement vers OpenRouter et continue d\'essayer.';
+  String get autoSwitchLyricsProviderEnabledDesc =>
+      'Google AI Studio est essayé en premier. Si le modèle principal et le modèle de secours échouent tous deux avec des erreurs 429 ou 5xx, l\'application bascule automatiquement vers OpenRouter et continue d\'essayer.';
 
   @override
-  String get autoSwitchLyricsProviderDisabledDesc => 'Vous avez besoin des clés API Google AI Studio et OpenRouter pour activer le changement automatique.';
+  String get autoSwitchLyricsProviderDisabledDesc =>
+      'Vous avez besoin des clés API Google AI Studio et OpenRouter pour activer le changement automatique.';
 
   @override
   String get lyricsAiProviderTitle => 'Fournisseur IA de paroles';
 
   @override
-  String get lyricsAiProviderDescription => 'Cela n\'affecte que la génération de paroles et de chronologie. La traduction utilise toujours Google AI Studio.';
+  String get lyricsAiProviderDescription =>
+      'Cela n\'affecte que la génération de paroles et de chronologie. La traduction utilise toujours Google AI Studio.';
 
   @override
-  String get googleAiStudioApiKeySaved => 'Clé API Google AI Studio sauvegardée';
+  String get googleAiStudioApiKeySaved =>
+      'Clé API Google AI Studio sauvegardée';
 
   @override
-  String get googleAiStudioApiKeyMissing => 'Aucune clé API Google AI Studio sauvegardée. La génération vous le rappellera.';
+  String get googleAiStudioApiKeyMissing =>
+      'Aucune clé API Google AI Studio sauvegardée. La génération vous le rappellera.';
 
   @override
   String get openRouterApiKeySaved => 'Clé API OpenRouter sauvegardée';
 
   @override
-  String get openRouterApiKeyMissing => 'Aucune clé API OpenRouter sauvegardée. La génération vous le rappellera.';
+  String get openRouterApiKeyMissing =>
+      'Aucune clé API OpenRouter sauvegardée. La génération vous le rappellera.';
 
   @override
   String get apiKeySavedStatus => 'Sauvegardée';
@@ -1696,7 +1796,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get geminiModelsSectionTitle => 'Sélectionner un modèle';
 
   @override
-  String get geminiModelsSectionDescription => 'Ces modèles sont utilisés pour la génération de paroles, la chronologie et la traduction.';
+  String get geminiModelsSectionDescription =>
+      'Ces modèles sont utilisés pour la génération de paroles, la chronologie et la traduction.';
 
   @override
   String get primaryModelLabel => 'Modèle principal';
@@ -1723,16 +1824,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get acoustidApiKeyTitle => 'Clé API AcoustID';
 
   @override
-  String get acoustidApiKeyHelp => 'AcoustID est utilisé pour l\'empreinte audio. Utilisez votre propre clé API.';
+  String get acoustidApiKeyHelp =>
+      'AcoustID est utilisé pour l\'empreinte audio. Utilisez votre propre clé API.';
 
   @override
   String get acoustidApiKeySaved => 'Clé API AcoustID sauvegardée';
 
   @override
-  String get acoustidApiKeyDefault => 'La clé intégrée est actuellement utilisée. Remplacez-la par votre propre clé.';
+  String get acoustidApiKeyDefault =>
+      'La clé intégrée est actuellement utilisée. Remplacez-la par votre propre clé.';
 
   @override
-  String get applyForApiKey => 'Obtenir une clé API : https://acoustid.org/new-application';
+  String get applyForApiKey =>
+      'Obtenir une clé API : https://acoustid.org/new-application';
 
   @override
   String get queueTabBarFavoriteAdded => 'Ajouté aux favoris';
@@ -1744,7 +1848,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get tagCompletion => 'Complétion des étiquettes';
 
   @override
-  String get tagCompletionDescription => 'Faire correspondre les étiquettes avec les résultats AcoustID et MusicBrainz';
+  String get tagCompletionDescription =>
+      'Faire correspondre les étiquettes avec les résultats AcoustID et MusicBrainz';
 
   @override
   String get goToSettings => 'Aller aux paramètres';
@@ -1759,7 +1864,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get refreshResults => 'Actualiser les résultats';
 
   @override
-  String get filterMusicBrainzReleaseTitle => 'Filtrer les titres de sortie MusicBrainz';
+  String get filterMusicBrainzReleaseTitle =>
+      'Filtrer les titres de sortie MusicBrainz';
 
   @override
   String get clearSearch => 'Effacer la recherche';
@@ -1774,7 +1880,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get musicBrainzLoading => 'Chargement de MusicBrainz';
 
   @override
-  String get musicBrainzLoadingWithResults => 'Les résultats existants resteront dans le panneau';
+  String get musicBrainzLoadingWithResults =>
+      'Les résultats existants resteront dans le panneau';
 
   @override
   String get musicBrainzLoadingHint => 'Veuillez patienter';
@@ -1783,16 +1890,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get musicBrainzQueryFailed => 'Échec de la requête MusicBrainz';
 
   @override
-  String get musicBrainzNetworkErrorHint => 'La requête a échoué, généralement en raison d\'un réseau instable ou d\'un délai d\'attente.';
+  String get musicBrainzNetworkErrorHint =>
+      'La requête a échoué, généralement en raison d\'un réseau instable ou d\'un délai d\'attente.';
 
   @override
-  String get musicBrainzFilteredEmptyHint => 'Aucun titre de sortie contenant ce mot-clé sous les filtres actuels.';
+  String get musicBrainzFilteredEmptyHint =>
+      'Aucun titre de sortie contenant ce mot-clé sous les filtres actuels.';
 
   @override
-  String get musicBrainzEmptyHint => 'MusicBrainz n\'a retourné aucun résultat. Essayez d\'assouplir les filtres.';
+  String get musicBrainzEmptyHint =>
+      'MusicBrainz n\'a retourné aucun résultat. Essayez d\'assouplir les filtres.';
 
   @override
-  String get musicBrainzEmptyMoreCompleteHint => 'Réessayez plus tard ou vérifiez les informations du titre/artiste.';
+  String get musicBrainzEmptyMoreCompleteHint =>
+      'Réessayez plus tard ou vérifiez les informations du titre/artiste.';
 
   @override
   String get retry => 'Réessayer';
@@ -1810,7 +1921,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get searchAgain => 'Rechercher à nouveau';
 
   @override
-  String get acoustidRecognitionRecords => 'Enregistrements de reconnaissance AcoustID';
+  String get acoustidRecognitionRecords =>
+      'Enregistrements de reconnaissance AcoustID';
 
   @override
   String get musicBrainzRecordings => 'Enregistrements MusicBrainz';
@@ -1822,7 +1934,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noExpandableReleases => 'Aucune sortie extensible';
 
   @override
-  String get noMatchingResultHint => 'Réessayez plus tard ou vérifiez les informations du titre/artiste.';
+  String get noMatchingResultHint =>
+      'Réessayez plus tard ou vérifiez les informations du titre/artiste.';
 
   @override
   String releaseCountLabel(int count) {
@@ -1931,7 +2044,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get persistentAccessDenied => 'Impossible de sauvegarder l\'accès à ce dossier. Veuillez le sélectionner à nouveau.';
+  String get persistentAccessDenied =>
+      'Impossible de sauvegarder l\'accès à ce dossier. Veuillez le sélectionner à nouveau.';
 
   @override
   String get folderAddFailed => 'Échec de l\'ajout du dossier';
@@ -1948,10 +2062,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get unknownArtistOrAlbum => 'Inconnu';
 
   @override
-  String get pressAgainToExit => 'Appuyez à nouveau pour quitter l\'application';
+  String get pressAgainToExit =>
+      'Appuyez à nouveau pour quitter l\'application';
 
   @override
-  String get tagCompletionSuccessWithCover => 'Étiquettes complétées et sauvegardées, pochette téléchargée';
+  String get tagCompletionSuccessWithCover =>
+      'Étiquettes complétées et sauvegardées, pochette téléchargée';
 
   @override
   String get tagCompletionSuccess => 'Étiquettes complétées et sauvegardées';
@@ -2005,7 +2121,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get no => 'Non';
 
   @override
-  String get remoteCollectionDropFailed => 'Impossible de charger les pistes du serveur distant. Vérifiez le réseau ou l\'état du serveur.';
+  String get remoteCollectionDropFailed =>
+      'Impossible de charger les pistes du serveur distant. Vérifiez le réseau ou l\'état du serveur.';
 
   @override
   String dropAddedSongs(int addedCount) {
@@ -2024,7 +2141,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get copyCoverSuccess => 'Pochette copiée dans le presse-papier';
 
   @override
-  String get searchLyricsPlaceholder => 'Entrez le titre, l\'artiste ou les paroles pour rechercher';
+  String get searchLyricsPlaceholder =>
+      'Entrez le titre, l\'artiste ou les paroles pour rechercher';
 
   @override
   String get share => 'Partager';
@@ -2036,7 +2154,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fileAssociationTitle => 'Association de fichiers';
 
   @override
-  String get fileAssociationDescription => 'Associer les formats musicaux courants (mp3, flac, wav...) à cette application.';
+  String get fileAssociationDescription =>
+      'Associer les formats musicaux courants (mp3, flac, wav...) à cette application.';
 
   @override
   String get associateButton => 'Associer';
@@ -2045,10 +2164,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get disassociateButton => 'Dissocier';
 
   @override
-  String get associationSuccess => 'Association réussie ! Si le double-clic ne fonctionne pas, sélectionnez Vynody dans les applications par défaut.';
+  String get associationSuccess =>
+      'Association réussie ! Si le double-clic ne fonctionne pas, sélectionnez Vynody dans les applications par défaut.';
 
   @override
-  String get disassociationSuccess => 'Association de fichiers supprimée avec succès.';
+  String get disassociationSuccess =>
+      'Association de fichiers supprimée avec succès.';
 
   @override
   String associationFailed(Object error) {
@@ -2059,7 +2180,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingTitle => 'Bienvenue sur Vynody';
 
   @override
-  String get onboardingSubtitle => 'Quelques étapes simples pour commencer votre voyage musical.';
+  String get onboardingSubtitle =>
+      'Quelques étapes simples pour commencer votre voyage musical.';
 
   @override
   String onboardingProTrialBadge(int days) {
@@ -2070,25 +2192,30 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingProPurchasedBadge => 'Vynody Pro activé';
 
   @override
-  String get onboardingProExpiredBadge => 'Essai Pro terminé · Lecture de base toujours gratuite';
+  String get onboardingProExpiredBadge =>
+      'Essai Pro terminé · Lecture de base toujours gratuite';
 
   @override
   String get onboardingStepFileAssociation => 'Associer les types de fichiers';
 
   @override
-  String get onboardingFileAssociationDesc => 'Associez les formats musicaux à Vynody pour une lecture en double-clic.';
+  String get onboardingFileAssociationDesc =>
+      'Associez les formats musicaux à Vynody pour une lecture en double-clic.';
 
   @override
-  String get onboardingFileAssociationTip => 'Après l\'association, le système peut afficher un menu. Choisissez \'Vynody\' et \'Toujours utiliser\'.';
+  String get onboardingFileAssociationTip =>
+      'Après l\'association, le système peut afficher un menu. Choisissez \'Vynody\' et \'Toujours utiliser\'.';
 
   @override
   String get onboardingStepRootDirectory => 'Ajouter un dossier de musique';
 
   @override
-  String get onboardingRootDirectoryDesc => 'Sélectionnez le dossier contenant votre musique. Vynody construira votre bibliothèque automatiquement.';
+  String get onboardingRootDirectoryDesc =>
+      'Sélectionnez le dossier contenant votre musique. Vynody construira votre bibliothèque automatiquement.';
 
   @override
-  String get onboardingAndroidPermissionTip => 'Remarque : Sur Android, l\'importation et l\'analyse de la musique locale nécessitent d\'accorder l\'autorisation d\'accès à la bibliothèque multimédia. Appuyer sur [Sélectionner le dossier] demandera l\'autorisation, veuillez l\'autoriser.';
+  String get onboardingAndroidPermissionTip =>
+      'Remarque : Sur Android, l\'importation et l\'analyse de la musique locale nécessitent d\'accorder l\'autorisation d\'accès à la bibliothèque multimédia. Appuyer sur [Sélectionner le dossier] demandera l\'autorisation, veuillez l\'autoriser.';
 
   @override
   String get onboardingSelectDirectory => 'Sélectionner un dossier';
@@ -2097,16 +2224,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingStepProgressBarStyle => 'Style de barre de progression';
 
   @override
-  String get onboardingProgressBarStyleDesc => 'Choisissez votre style de barre de progression préféré pour la lecture sur bureau.';
+  String get onboardingProgressBarStyleDesc =>
+      'Choisissez votre style de barre de progression préféré pour la lecture sur bureau.';
 
   @override
-  String get onboardingProgressBarStyleFullWaveformDesc => 'Idéal pour écran large. Aperçu complet de la piste avec recherche au survol.';
+  String get onboardingProgressBarStyleFullWaveformDesc =>
+      'Idéal pour écran large. Aperçu complet de la piste avec recherche au survol.';
 
   @override
-  String get onboardingProgressBarStyleScrollingWaveformDesc => 'Immersion dynamique. La forme d\'onde défile en douceur avec la lecture audio.';
+  String get onboardingProgressBarStyleScrollingWaveformDesc =>
+      'Immersion dynamique. La forme d\'onde défile en douceur avec la lecture audio.';
 
   @override
-  String get onboardingProgressBarStyleStandardDesc => 'Curseur minimaliste classique.';
+  String get onboardingProgressBarStyleStandardDesc =>
+      'Curseur minimaliste classique.';
 
   @override
   String get onboardingRecommendedTag => 'Recommandé';
@@ -2115,7 +2246,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingSuccessTitle => 'Tout est prêt !';
 
   @override
-  String get onboardingSuccessDesc => 'Bibliothèque ajoutée avec succès. Profitez de votre musique !';
+  String get onboardingSuccessDesc =>
+      'Bibliothèque ajoutée avec succès. Profitez de votre musique !';
 
   @override
   String get onboardingStartButton => 'Entrer dans Vynody';
@@ -2133,7 +2265,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get resetOnboarding => 'Réinitialiser le guide de bienvenue';
 
   @override
-  String get resetOnboardingDesc => 'Le guide de bienvenue sera réaffiché au prochain démarrage.';
+  String get resetOnboardingDesc =>
+      'Le guide de bienvenue sera réaffiché au prochain démarrage.';
 
   @override
   String get songProperties => 'Propriétés de la chanson';
@@ -2142,7 +2275,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get failedToLoadDetails => 'Impossible de charger les détails';
 
   @override
-  String get remoteAudioNotCachedHint => 'Ce morceau est dans le cloud et n\'est pas mis en cache localement. Écoutez-le ou téléchargez-le pour afficher les propriétés audio complètes.';
+  String get remoteAudioNotCachedHint =>
+      'Ce morceau est dans le cloud et n\'est pas mis en cache localement. Écoutez-le ou téléchargez-le pour afficher les propriétés audio complètes.';
 
   @override
   String get noPropertiesAvailable => 'Aucune propriété disponible';
@@ -2186,13 +2320,16 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get localNetworkPermissionDeniedTitle => 'Accès au réseau local restreint';
+  String get localNetworkPermissionDeniedTitle =>
+      'Accès au réseau local restreint';
 
   @override
-  String get localNetworkPermissionDeniedMessage => 'Aucune adresse IP locale disponible ou l\'accès au réseau local a été refusé.\n\nVeuillez vérifier les points suivants :\n1. Assurez-vous que votre appareil est connecté à un réseau Wi-Fi ou local.\n2. Assurez-vous que l\'application est autorisée à accéder au réseau local dans les paramètres système :\n   - iOS/macOS : Allez dans Réglages > Confidentialité et sécurité > Réseau local, et activez Vynody.\n   - Windows : Assurez-vous d\'être connecté et vérifiez que le pare-feu Windows autorise l\'accès à Vynody.';
+  String get localNetworkPermissionDeniedMessage =>
+      'Aucune adresse IP locale disponible ou l\'accès au réseau local a été refusé.\n\nVeuillez vérifier les points suivants :\n1. Assurez-vous que votre appareil est connecté à un réseau Wi-Fi ou local.\n2. Assurez-vous que l\'application est autorisée à accéder au réseau local dans les paramètres système :\n   - iOS/macOS : Allez dans Réglages > Confidentialité et sécurité > Réseau local, et activez Vynody.\n   - Windows : Assurez-vous d\'être connecté et vérifiez que le pare-feu Windows autorise l\'accès à Vynody.';
 
   @override
-  String get localNetworkPermissionWindowsMessage => 'Aucune adresse IP locale détectée.\n\nVérifiez :\n1. Connexion au réseau local.\n2. Vérifiez le pare-feu Windows pour autoriser Vynody.';
+  String get localNetworkPermissionWindowsMessage =>
+      'Aucune adresse IP locale détectée.\n\nVérifiez :\n1. Connexion au réseau local.\n2. Vérifiez le pare-feu Windows pour autoriser Vynody.';
 
   @override
   String get openSettingsButton => 'Ouvrir les paramètres';
@@ -2207,7 +2344,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get copyTranslation => 'Copier la traduction';
 
   @override
-  String get copyTranslationWithTimestamps => 'Copier la traduction avec horodatage';
+  String get copyTranslationWithTimestamps =>
+      'Copier la traduction avec horodatage';
 
   @override
   String get writeLyricsToFile => 'Écrire les paroles dans le fichier';
@@ -2219,31 +2357,37 @@ class AppLocalizationsFr extends AppLocalizations {
   String get regenerateLyrics => 'Régénérer les paroles';
 
   @override
-  String get regenerateLyricsConfirmation => 'Les paroles actuelles seront effacées et régénérées. Continuer ?';
+  String get regenerateLyricsConfirmation =>
+      'Les paroles actuelles seront effacées et régénérées. Continuer ?';
 
   @override
   String get regenerateTimeline => 'Régénérer la chronologie';
 
   @override
-  String get regenerateTimelineConfirmation => 'La chronologie actuelle sera effacée et régénérée. Continuer ?';
+  String get regenerateTimelineConfirmation =>
+      'La chronologie actuelle sera effacée et régénérée. Continuer ?';
 
   @override
-  String get convertToKaraokeConfirmation => 'Convertir les paroles actuelles en paroles mot à mot et régénérer la chronologie. Continuer ?';
+  String get convertToKaraokeConfirmation =>
+      'Convertir les paroles actuelles en paroles mot à mot et régénérer la chronologie. Continuer ?';
 
   @override
   String get retranslateLyrics => 'Retraduire les paroles';
 
   @override
-  String get retranslateLyricsConfirmation => 'La langue actuelle sera retraduite. La traduction existante est conservée jusqu\'à l\'arrivée des nouvelles lignes. Continuer ?';
+  String get retranslateLyricsConfirmation =>
+      'La langue actuelle sera retraduite. La traduction existante est conservée jusqu\'à l\'arrivée des nouvelles lignes. Continuer ?';
 
   @override
-  String get translationCopiedToClipboard => 'Résultats de traduction copiés dans le presse-papier';
+  String get translationCopiedToClipboard =>
+      'Résultats de traduction copiés dans le presse-papier';
 
   @override
   String get writingLyrics => 'Écriture des paroles...';
 
   @override
-  String get lyricsWrittenToFile => 'Paroles écrites dans le fichier avec succès';
+  String get lyricsWrittenToFile =>
+      'Paroles écrites dans le fichier avec succès';
 
   @override
   String get writeLyricsFailed => 'Échec de l\'écriture des paroles';
@@ -2270,19 +2414,24 @@ class AppLocalizationsFr extends AppLocalizations {
   String get untitledRelease => 'Sortie sans titre';
 
   @override
-  String get localSongFileNotFoundForGeneration => 'Le fichier local n\'existe pas. Impossible de générer les paroles.';
+  String get localSongFileNotFoundForGeneration =>
+      'Le fichier local n\'existe pas. Impossible de générer les paroles.';
 
   @override
-  String get localSongFileNotFoundForTimeline => 'Le fichier local n\'existe pas. Impossible de générer la chronologie.';
+  String get localSongFileNotFoundForTimeline =>
+      'Le fichier local n\'existe pas. Impossible de générer la chronologie.';
 
   @override
-  String get noLyricsForTimelineGeneration => 'Aucune parole disponible pour générer la chronologie.';
+  String get noLyricsForTimelineGeneration =>
+      'Aucune parole disponible pour générer la chronologie.';
 
   @override
-  String get karaokeRequiresSyncedLyrics => 'Seules les paroles synchronisées avec horodatage peuvent être converties en paroles mot à mot. Les paroles en texte brut ne sont pas prises en charge.';
+  String get karaokeRequiresSyncedLyrics =>
+      'Seules les paroles synchronisées avec horodatage peuvent être converties en paroles mot à mot. Les paroles en texte brut ne sont pas prises en charge.';
 
   @override
-  String get noLyricsAvailableForTranslation => 'Aucune parole disponible pour la traduction.';
+  String get noLyricsAvailableForTranslation =>
+      'Aucune parole disponible pour la traduction.';
 
   @override
   String get noCurrentSongAvailable => 'Aucune chanson en cours.';
@@ -2291,13 +2440,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get invalidTargetLanguage => 'Langue cible invalide.';
 
   @override
-  String get songAlreadyQueuedForTranslation => 'La chanson est déjà en file d\'attente pour la traduction.';
+  String get songAlreadyQueuedForTranslation =>
+      'La chanson est déjà en file d\'attente pour la traduction.';
 
   @override
-  String get songAlreadyQueuedForGeneration => 'La chanson est déjà en file d\'attente pour la génération.';
+  String get songAlreadyQueuedForGeneration =>
+      'La chanson est déjà en file d\'attente pour la génération.';
 
   @override
-  String get songNoLongerExistsForTranslation => 'La chanson n\'existe plus. Impossible de traduire.';
+  String get songNoLongerExistsForTranslation =>
+      'La chanson n\'existe plus. Impossible de traduire.';
 
   @override
   String get generationFailed => 'Échec de la génération.';
@@ -2324,10 +2476,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get uploadingSongFile => 'Téléversement du fichier audio';
 
   @override
-  String get fileUploadedWaitingForReadiness => 'Fichier téléversé, en attente de disponibilité';
+  String get fileUploadedWaitingForReadiness =>
+      'Fichier téléversé, en attente de disponibilité';
 
   @override
-  String get waitingForFileReadiness => 'En attente de disponibilité du fichier';
+  String get waitingForFileReadiness =>
+      'En attente de disponibilité du fichier';
 
   @override
   String get requestingModelResponse => 'Demande de réponse du modèle';
@@ -2360,79 +2514,98 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get unknownGenerationError => 'Erreur inconnue lors de la génération des paroles.';
+  String get unknownGenerationError =>
+      'Erreur inconnue lors de la génération des paroles.';
 
   @override
-  String get unknownTimelineGenerationError => 'Erreur inconnue lors de la génération de la chronologie.';
+  String get unknownTimelineGenerationError =>
+      'Erreur inconnue lors de la génération de la chronologie.';
 
   @override
-  String get unknownTranslationError => 'Erreur inconnue lors de la traduction des paroles.';
+  String get unknownTranslationError =>
+      'Erreur inconnue lors de la traduction des paroles.';
 
   @override
   String get unknownError => 'Erreur inconnue';
 
   @override
-  String get modelRefusedToGenerateLyrics => 'Le modèle a refusé de générer les paroles.';
+  String get modelRefusedToGenerateLyrics =>
+      'Le modèle a refusé de générer les paroles.';
 
   @override
-  String get modelRefusedToGenerateTimeline => 'Le modèle a refusé de générer la chronologie.';
+  String get modelRefusedToGenerateTimeline =>
+      'Le modèle a refusé de générer la chronologie.';
 
   @override
-  String get doubaoPreUploadTranscodingFailed => 'Échec du transcodage audio avant le téléversement Doubao.';
+  String get doubaoPreUploadTranscodingFailed =>
+      'Échec du transcodage audio avant le téléversement Doubao.';
 
   @override
-  String get doubaoTempTranscodeNotInTempDir => 'Le fichier temporaire Doubao n\'est pas dans le dossier temp.';
+  String get doubaoTempTranscodeNotInTempDir =>
+      'Le fichier temporaire Doubao n\'est pas dans le dossier temp.';
 
   @override
-  String get doubaoEmptyStreamingResponse => 'Doubao a retourné une réponse de flux vide.';
+  String get doubaoEmptyStreamingResponse =>
+      'Doubao a retourné une réponse de flux vide.';
 
   @override
   String get doubaoEmptyResponse => 'Doubao a retourné une réponse vide.';
 
   @override
-  String get geminiEmptyStreamingResponse => 'Gemini a retourné une réponse de flux vide.';
+  String get geminiEmptyStreamingResponse =>
+      'Gemini a retourné une réponse de flux vide.';
 
   @override
   String get geminiEmptyResponse => 'Gemini a retourné une réponse vide.';
 
   @override
-  String get openRouterEmptyStreamingResponse => 'OpenRouter a retourné une réponse de flux vide.';
+  String get openRouterEmptyStreamingResponse =>
+      'OpenRouter a retourné une réponse de flux vide.';
 
   @override
-  String get openRouterEmptyResponse => 'OpenRouter a retourné une réponse vide.';
+  String get openRouterEmptyResponse =>
+      'OpenRouter a retourné une réponse vide.';
 
   @override
-  String get deepseekEmptyStreamingResponse => 'DeepSeek a retourné une réponse de flux vide.';
+  String get deepseekEmptyStreamingResponse =>
+      'DeepSeek a retourné une réponse de flux vide.';
 
   @override
   String get deepseekEmptyResponse => 'DeepSeek a retourné une réponse vide.';
 
   @override
-  String get customProviderEmptyStreamingResponse => 'Le fournisseur personnalisé a retourné une réponse de flux vide.';
+  String get customProviderEmptyStreamingResponse =>
+      'Le fournisseur personnalisé a retourné une réponse de flux vide.';
 
   @override
-  String get customProviderEmptyResponse => 'Le fournisseur personnalisé a retourné une réponse vide.';
+  String get customProviderEmptyResponse =>
+      'Le fournisseur personnalisé a retourné une réponse vide.';
 
   @override
   String get fileUploadFailed => 'Échec du téléversement. Veuillez réessayer.';
 
   @override
-  String get uploadedFileNotReady => 'Le fichier téléversé n\'est pas prêt. Réessayez plus tard.';
+  String get uploadedFileNotReady =>
+      'Le fichier téléversé n\'est pas prêt. Réessayez plus tard.';
 
   @override
   String get audioTranscodingFailed => 'Échec du transcodage audio.';
 
   @override
-  String get tempTranscodeNotInTempDir => 'Le fichier temporaire n\'est pas dans le dossier temp.';
+  String get tempTranscodeNotInTempDir =>
+      'Le fichier temporaire n\'est pas dans le dossier temp.';
 
   @override
-  String get networkRequestFailedCheckProxy => 'Échec de la requête réseau. Vérifiez votre connexion et proxy.';
+  String get networkRequestFailedCheckProxy =>
+      'Échec de la requête réseau. Vérifiez votre connexion et proxy.';
 
   @override
-  String get quotaExhaustedToday => 'Le quota d\'aujourd\'hui est épuisé. Réessayez demain.';
+  String get quotaExhaustedToday =>
+      'Le quota d\'aujourd\'hui est épuisé. Réessayez demain.';
 
   @override
-  String get googleAiHeavyLoad => 'Google AI est surchargé et temporairement indisponible.';
+  String get googleAiHeavyLoad =>
+      'Google AI est surchargé et temporairement indisponible.';
 
   @override
   String lyricsGenerationFailedWithError(Object error) {
@@ -2450,10 +2623,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get apiKeyInvalidCheckKey => 'Clé API non valide. Veuillez vérifier la validité de la clé.';
+  String get apiKeyInvalidCheckKey =>
+      'Clé API non valide. Veuillez vérifier la validité de la clé.';
 
   @override
-  String get googleServerFlaky => 'Google a des difficultés. Réessayez, cela pourrait fonctionner.';
+  String get googleServerFlaky =>
+      'Google a des difficultés. Réessayez, cela pourrait fonctionner.';
 
   @override
   String get translateLyricsAction => 'traduire les paroles';
@@ -2468,19 +2643,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get convertToKaraokeAction => 'convertir en paroles mot à mot';
 
   @override
-  String get deepseekOnlyTranslation => 'DeepSeek est uniquement disponible pour la traduction de paroles.';
+  String get deepseekOnlyTranslation =>
+      'DeepSeek est uniquement disponible pour la traduction de paroles.';
 
   @override
-  String get customProviderOnlyTranslation => 'Le fournisseur personnalisé est uniquement disponible pour la traduction.';
+  String get customProviderOnlyTranslation =>
+      'Le fournisseur personnalisé est uniquement disponible pour la traduction.';
 
   @override
-  String get customProviderNoBaseUrl => 'L\'URL de base du fournisseur personnalisé n\'est pas configurée.';
+  String get customProviderNoBaseUrl =>
+      'L\'URL de base du fournisseur personnalisé n\'est pas configurée.';
 
   @override
   String get pleaseEnterApiKey => 'Veuillez entrer une clé API.';
 
   @override
-  String get connectionSuccessVerificationPassed => 'Connexion réussie, vérification passée.';
+  String get connectionSuccessVerificationPassed =>
+      'Connexion réussie, vérification passée.';
 
   @override
   String connectionSuccessDetectedModels(Object count) {
@@ -2493,7 +2672,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get testFailedCheckNetworkOrApiKey => 'Échec du test. Vérifiez le réseau ou la clé API.';
+  String get testFailedCheckNetworkOrApiKey =>
+      'Échec du test. Vérifiez le réseau ou la clé API.';
 
   @override
   String testFailedStatusCheckApiKey(Object statusCode) {
@@ -2501,16 +2681,20 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get enterGoogleAiStudioApiKeyFirst => 'Veuillez d\'abord entrer une clé API Google AI Studio.';
+  String get enterGoogleAiStudioApiKeyFirst =>
+      'Veuillez d\'abord entrer une clé API Google AI Studio.';
 
   @override
-  String get enterDoubaoApiKeyFirst => 'Veuillez d\'abord entrer une clé API Doubao.';
+  String get enterDoubaoApiKeyFirst =>
+      'Veuillez d\'abord entrer une clé API Doubao.';
 
   @override
-  String get enterDeepseekApiKeyFirst => 'Veuillez d\'abord entrer une clé API DeepSeek.';
+  String get enterDeepseekApiKeyFirst =>
+      'Veuillez d\'abord entrer une clé API DeepSeek.';
 
   @override
-  String get enterCustomApiKeyAndBaseUrl => 'Veuillez d\'abord entrer la clé API personnalisée et l\'URL de base.';
+  String get enterCustomApiKeyAndBaseUrl =>
+      'Veuillez d\'abord entrer la clé API personnalisée et l\'URL de base.';
 
   @override
   String fetchedCountModels(Object count) {
@@ -2523,7 +2707,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get requestFailedCheckNetwork => 'Requête échouée. Vérifiez le réseau.';
+  String get requestFailedCheckNetwork =>
+      'Requête échouée. Vérifiez le réseau.';
 
   @override
   String requestFailedStatus(Object statusCode) {
@@ -2545,7 +2730,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get writeTagDatabaseFailed => 'Échec d\'écriture de la base de données d\'étiquettes';
+  String get writeTagDatabaseFailed =>
+      'Échec d\'écriture de la base de données d\'étiquettes';
 
   @override
   String get playPause => 'Lecture / Pause';
@@ -2599,7 +2785,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get seekBackward5sDescription => 'Reculer de 5 secondes.';
 
   @override
-  String get toggleFullScreenDescription => 'Basculer entre le mode fenêtré et le plein écran.';
+  String get toggleFullScreenDescription =>
+      'Basculer entre le mode fenêtré et le plein écran.';
 
   @override
   String get unknownKey => 'Touche inconnue';
@@ -2611,7 +2798,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get removeFromPlaylist => 'Retirer de la liste de lecture';
 
   @override
-  String get alreadyLatestVersion => 'Vous avez déjà la version la plus récente.';
+  String get alreadyLatestVersion =>
+      'Vous avez déjà la version la plus récente.';
 
   @override
   String get updateAvailable => 'Mise à jour disponible';
@@ -2625,7 +2813,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get openRelease => 'Voir la version';
 
   @override
-  String get checkUpdateFailedNetwork => 'Échec de la vérification des mises à jour. Problème réseau ou limite GitHub.';
+  String get checkUpdateFailedNetwork =>
+      'Échec de la vérification des mises à jour. Problème réseau ou limite GitHub.';
 
   @override
   String get tags => 'Étiquettes';
@@ -2637,10 +2826,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get rebuildIndex => 'Reconstruire l\'index';
 
   @override
-  String get rebuildIndexDescription => 'Effacer tous les enregistrements (sauf sources externes) et réanalyser tous les répertoires racine.';
+  String get rebuildIndexDescription =>
+      'Effacer tous les enregistrements (sauf sources externes) et réanalyser tous les répertoires racine.';
 
   @override
-  String get rebuildIndexConfirmation => 'Confirmez-vous l\'effacement de tous les enregistrements et la réanalyse ? Cela peut prendre du temps.';
+  String get rebuildIndexConfirmation =>
+      'Confirmez-vous l\'effacement de tous les enregistrements et la réanalyse ? Cela peut prendre du temps.';
 
   @override
   String get rebuildIndexStarted => 'Reconstruction de l\'index démarrée';
@@ -2652,37 +2843,46 @@ class AppLocalizationsFr extends AppLocalizations {
   String get advanced => 'Avancé';
 
   @override
-  String get advancedOptionsDescription => 'Options de débogage et de réglage du comportement.';
+  String get advancedOptionsDescription =>
+      'Options de débogage et de réglage du comportement.';
 
   @override
-  String get showDeveloperOptionsDescription => 'Afficher plus d\'options avancées pour le débogage.';
+  String get showDeveloperOptionsDescription =>
+      'Afficher plus d\'options avancées pour le débogage.';
 
   @override
-  String get onboardingReset => 'Guide de bienvenue réinitialisé. Effet au prochain démarrage.';
+  String get onboardingReset =>
+      'Guide de bienvenue réinitialisé. Effet au prochain démarrage.';
 
   @override
-  String get tagsSectionDescription => 'Configurer les métadonnées audio et la complétion automatique.';
+  String get tagsSectionDescription =>
+      'Configurer les métadonnées audio et la complétion automatique.';
 
   @override
-  String get autoSaveToSourceFile => 'Sauvegarde automatique dans le fichier source';
+  String get autoSaveToSourceFile =>
+      'Sauvegarde automatique dans le fichier source';
 
   @override
-  String get autoSaveToSourceFileDescription => 'Écrire automatiquement les étiquettes dans le fichier audio physique.';
+  String get autoSaveToSourceFileDescription =>
+      'Écrire automatiquement les étiquettes dans le fichier audio physique.';
 
   @override
-  String get aboutSectionDescription => 'Informations de version, liens du projet et ressources.';
+  String get aboutSectionDescription =>
+      'Informations de version, liens du projet et ressources.';
 
   @override
   String get checkForUpdates => 'Vérifier les mises à jour';
 
   @override
-  String get storeUpdateNotice => 'Les mises à jour de cette application sont gérées par le Microsoft Store. Vous pouvez vérifier la dernière version dans le Microsoft Store.';
+  String get storeUpdateNotice =>
+      'Les mises à jour de cette application sont gérées par le Microsoft Store. Vous pouvez vérifier la dernière version dans le Microsoft Store.';
 
   @override
   String get openMicrosoftStore => 'Ouvrir le Microsoft Store';
 
   @override
-  String get appStoreUpdateNotice => 'Les mises à jour de cette application sont gérées par l\'App Store. Vous pouvez consulter ou télécharger la dernière version sur l\'App Store.';
+  String get appStoreUpdateNotice =>
+      'Les mises à jour de cette application sont gérées par l\'App Store. Vous pouvez consulter ou télécharger la dernière version sur l\'App Store.';
 
   @override
   String get openAppStore => 'Ouvrir l\'App Store';
@@ -2691,25 +2891,29 @@ class AppLocalizationsFr extends AppLocalizations {
   String get lyricsGenerationModel => 'Modèle de génération de paroles';
 
   @override
-  String get lyricsGenerationModelDescription => 'Pour la génération de paroles par IA et la correction de chronologie.';
+  String get lyricsGenerationModelDescription =>
+      'Pour la génération de paroles par IA et la correction de chronologie.';
 
   @override
   String get lyricsKaraokeModel => 'Modèle de paroles karaoké';
 
   @override
-  String get lyricsKaraokeModelDescription => 'Modèle d\'alignement audio haute précision pour convertir les paroles en chronologie karaoké mot à mot.';
+  String get lyricsKaraokeModelDescription =>
+      'Modèle d\'alignement audio haute précision pour convertir les paroles en chronologie karaoké mot à mot.';
 
   @override
   String get lyricsTranslationModel => 'Modèle de traduction de paroles';
 
   @override
-  String get lyricsTranslationModelDescription => 'Pour traduire les paroles dans la langue cible.';
+  String get lyricsTranslationModelDescription =>
+      'Pour traduire les paroles dans la langue cible.';
 
   @override
   String get onlyForLyricTranslation => 'Traduction uniquement';
 
   @override
-  String get fillApiKeyFirstEnablesModels => 'Remplissez au moins une clé API pour activer la sélection de modèles.';
+  String get fillApiKeyFirstEnablesModels =>
+      'Remplissez au moins une clé API pour activer la sélection de modèles.';
 
   @override
   String get customApiProvider => 'Fournisseur d\'API personnalisé';
@@ -2727,7 +2931,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get clearedDeepseekApiKey => 'Clé API DeepSeek effacée';
 
   @override
-  String get clearedCustomProviderConfig => 'Configuration personnalisée effacée';
+  String get clearedCustomProviderConfig =>
+      'Configuration personnalisée effacée';
 
   @override
   String get savedDoubaoApiKey => 'Clé API Doubao sauvegardée';
@@ -2736,10 +2941,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get savedDeepseekApiKey => 'Clé API DeepSeek sauvegardée';
 
   @override
-  String get savedCustomProviderConfig => 'Configuration personnalisée sauvegardée';
+  String get savedCustomProviderConfig =>
+      'Configuration personnalisée sauvegardée';
 
   @override
-  String get noMatchingFoldersOrSongs => 'Aucun dossier ou chanson correspondant trouvé';
+  String get noMatchingFoldersOrSongs =>
+      'Aucun dossier ou chanson correspondant trouvé';
 
   @override
   String get searching => 'Recherche...';
@@ -2785,7 +2992,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get searchInFolderAndSubfolders => 'Rechercher dans le dossier et les sous-dossiers...';
+  String get searchInFolderAndSubfolders =>
+      'Rechercher dans le dossier et les sous-dossiers...';
 
   @override
   String get shuffle => 'Aléatoire';
@@ -2823,7 +3031,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get filesToTranscode => 'Fichiers à transcoder';
 
   @override
-  String get chooseAndroidOutputDirectoryFirst => 'Choisissez d\'abord un répertoire de sortie Android.';
+  String get chooseAndroidOutputDirectoryFirst =>
+      'Choisissez d\'abord un répertoire de sortie Android.';
 
   @override
   String currentSongProgressPercent(Object percent) {
@@ -2836,7 +3045,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get pleaseChooseOutputDirectory => 'Veuillez d\'abord choisir un répertoire de sortie.';
+  String get pleaseChooseOutputDirectory =>
+      'Veuillez d\'abord choisir un répertoire de sortie.';
 
   @override
   String selectedArtistsCount(Object count) {
@@ -2915,49 +3125,62 @@ class AppLocalizationsFr extends AppLocalizations {
   String get whatAreAiLyrics => 'Que sont les paroles IA ?';
 
   @override
-  String get whatIsAiLyricTranslation => 'Qu\'est-ce que la traduction de paroles IA ?';
+  String get whatIsAiLyricTranslation =>
+      'Qu\'est-ce que la traduction de paroles IA ?';
 
   @override
-  String get aiLyricsIntroGeneration => 'L\'IA peut générer des paroles à partir de la chanson et les aligner temporellement.';
+  String get aiLyricsIntroGeneration =>
+      'L\'IA peut générer des paroles à partir de la chanson et les aligner temporellement.';
 
   @override
-  String get aiLyricsIntroTranslation => 'L\'IA peut traduire les paroles dans votre langue préférée.';
+  String get aiLyricsIntroTranslation =>
+      'L\'IA peut traduire les paroles dans votre langue préférée.';
 
   @override
   String get whyNeedApiKey => 'Pourquoi ai-je besoin d\'une clé API ?';
 
   @override
-  String get apiKeyExplanation => 'Une clé API est votre identifiant d\'accès pour un fournisseur IA. L\'application l\'utilise pour envoyer des demandes directes de génération de paroles, d\'ajustement de chronologie ou de traduction.';
+  String get apiKeyExplanation =>
+      'Une clé API est votre identifiant d\'accès pour un fournisseur IA. L\'application l\'utilise pour envoyer des demandes directes de génération de paroles, d\'ajustement de chronologie ou de traduction.';
 
   @override
-  String get apiKeyLocalOnly => 'Votre clé API est stockée localement et n\'est jamais envoyée aux serveurs Vynody.';
+  String get apiKeyLocalOnly =>
+      'Votre clé API est stockée localement et n\'est jamais envoyée aux serveurs Vynody.';
 
   @override
   String get chooseAnAiProvider => 'Choisissez un fournisseur IA :';
 
   @override
-  String get googleProviderPros => 'Chaîne officielle Google, modèles Gemini puissants et quotas gratuits généreux.';
+  String get googleProviderPros =>
+      'Chaîne officielle Google, modèles Gemini puissants et quotas gratuits généreux.';
 
   @override
-  String get googleProviderCons => 'Peut occasionner des erreurs 429. Changez de fournisseur si nécessaire.';
+  String get googleProviderCons =>
+      'Peut occasionner des erreurs 429. Changez de fournisseur si nécessaire.';
 
   @override
-  String get openRouterProviderPros => 'Agrégateur de modèles avec accès à plusieurs fournisseurs.';
+  String get openRouterProviderPros =>
+      'Agrégateur de modèles avec accès à plusieurs fournisseurs.';
 
   @override
-  String get openRouterProviderCons => 'Les rechargements peuvent inclure des frais. Site en anglais uniquement.';
+  String get openRouterProviderCons =>
+      'Les rechargements peuvent inclure des frais. Site en anglais uniquement.';
 
   @override
-  String get doubaoProviderPros => 'De ByteDance, performant en chinois. 500k tokens gratuits par modèle pour les nouveaux.';
+  String get doubaoProviderPros =>
+      'De ByteDance, performant en chinois. 500k tokens gratuits par modèle pour les nouveaux.';
 
   @override
-  String get doubaoProviderCons => 'Inscription nécessite une vérification d\'identité réelle.';
+  String get doubaoProviderCons =>
+      'Inscription nécessite une vérification d\'identité réelle.';
 
   @override
-  String get deepseekProviderPros => 'Bonne compréhension du chinois, prix bas, idéal pour la traduction.';
+  String get deepseekProviderPros =>
+      'Bonne compréhension du chinois, prix bas, idéal pour la traduction.';
 
   @override
-  String get deepseekProviderCons => 'Texte uniquement. Pour générer des paroles, un autre fournisseur est nécessaire.';
+  String get deepseekProviderCons =>
+      'Texte uniquement. Pour générer des paroles, un autre fournisseur est nécessaire.';
 
   @override
   String get highlights => 'Points forts';
@@ -3016,7 +3239,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noteTitle => 'Note';
 
   @override
-  String get deepseekTextInputOnlyNote => 'DeepSeek ne supporte que le texte. Pour générer des paroles, utilisez un autre fournisseur.';
+  String get deepseekTextInputOnlyNote =>
+      'DeepSeek ne supporte que le texte. Pour générer des paroles, utilisez un autre fournisseur.';
 
   @override
   String retryAttemptOfMax(Object attempt, Object maxRetry) {
@@ -3043,13 +3267,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get enterDoubaoApiKey => 'Entrer la clé API Doubao';
 
   @override
-  String get doubaoApiKeyDescription => 'Entrez votre clé API Volcano/Doubao pour la génération et la traduction.';
+  String get doubaoApiKeyDescription =>
+      'Entrez votre clé API Volcano/Doubao pour la génération et la traduction.';
 
   @override
   String get enterDeepseekApiKey => 'Entrer la clé API DeepSeek';
 
   @override
-  String get deepseekApiKeyDescription => 'Entrez votre clé API DeepSeek pour la traduction uniquement.';
+  String get deepseekApiKeyDescription =>
+      'Entrez votre clé API DeepSeek pour la traduction uniquement.';
 
   @override
   String get pleaseEnterApiKeyHint => 'Veuillez entrer la clé API';
@@ -3070,7 +3296,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get leaveEmpty => 'Laisser vide';
 
   @override
-  String get leaveEmptyFallbackDescription => 'Sélectionnez ceci pour ne pas définir de modèle de secours.';
+  String get leaveEmptyFallbackDescription =>
+      'Sélectionnez ceci pour ne pas définir de modèle de secours.';
 
   @override
   String get modelSearchHint => 'Entrez le nom ou l\'ID du modèle';
@@ -3097,7 +3324,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get lanSharingStartFailed => 'Échec du démarrage du partage LAN. Vérifiez les permissions réseau.';
+  String get lanSharingStartFailed =>
+      'Échec du démarrage du partage LAN. Vérifiez les permissions réseau.';
 
   @override
   String syncingLyricsToDevice(Object deviceName) {
@@ -3120,7 +3348,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get transferInProgressDoNotLeave => 'Transfert en cours. Ne quittez pas la page de partage.';
+  String get transferInProgressDoNotLeave =>
+      'Transfert en cours. Ne quittez pas la page de partage.';
 
   @override
   String get lanSharingTitle => 'Connexion LAN';
@@ -3137,13 +3366,16 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get lanSharingDefaultOffHint => 'Désactivé par défaut. L\'activation demandera la permission LAN.';
+  String get lanSharingDefaultOffHint =>
+      'Désactivé par défaut. L\'activation demandera la permission LAN.';
 
   @override
-  String get receiveDirectoryNotSetWarning => 'Aucun répertoire de réception défini. Veuillez en configurer un.';
+  String get receiveDirectoryNotSetWarning =>
+      'Aucun répertoire de réception défini. Veuillez en configurer un.';
 
   @override
-  String get receiveDirectoryNoWritePermission => 'Le répertoire actuel n\'a pas de permission d\'écriture. Veuillez le modifier.';
+  String get receiveDirectoryNoWritePermission =>
+      'Le répertoire actuel n\'a pas de permission d\'écriture. Veuillez le modifier.';
 
   @override
   String get restoreDefaultDirectory => 'Restaurer le répertoire par défaut';
@@ -3152,7 +3384,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get chooseOtherDirectory => 'Choisir un autre répertoire';
 
   @override
-  String get receiveDirectoryRestoredDefault => 'Répertoire de réception par défaut restauré';
+  String get receiveDirectoryRestoredDefault =>
+      'Répertoire de réception par défaut restauré';
 
   @override
   String receiveDirectoryUpdated(Object path) {
@@ -3172,7 +3405,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get searchingDevices => 'Recherche d\'autres appareils sur le LAN...';
 
   @override
-  String get startSharingToFindDevices => 'Activez le partage pour découvrir les appareils';
+  String get startSharingToFindDevices =>
+      'Activez le partage pour découvrir les appareils';
 
   @override
   String get deviceOnline => 'En ligne';
@@ -3187,10 +3421,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sendFolder => 'Envoyer un dossier';
 
   @override
-  String get syncLyricsToDeviceAction => 'Synchroniser les paroles vers l\'appareil';
+  String get syncLyricsToDeviceAction =>
+      'Synchroniser les paroles vers l\'appareil';
 
   @override
-  String get syncLyricsFromDeviceAction => 'Synchroniser les paroles depuis l\'appareil';
+  String get syncLyricsFromDeviceAction =>
+      'Synchroniser les paroles depuis l\'appareil';
 
   @override
   String loadDevicesError(Object error) {
@@ -3216,7 +3452,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get receiveFileHint => 'Les fichiers reçus seront sauvegardés dans le dossier musical et ajoutés à la bibliothèque.';
+  String get receiveFileHint =>
+      'Les fichiers reçus seront sauvegardés dans le dossier musical et ajoutés à la bibliothèque.';
 
   @override
   String get reject => 'Refuser';
@@ -3241,7 +3478,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get lyricsRequestRejected => 'L\'appareil distant a refusé la demande de synchronisation des paroles.';
+  String get lyricsRequestRejected =>
+      'L\'appareil distant a refusé la demande de synchronisation des paroles.';
 
   @override
   String sendCompleted(Object fileName) {
@@ -3285,7 +3523,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fileConflictTitle => 'Conflit de fichiers';
 
   @override
-  String get fileConflictMessage => 'Un fichier du même nom existe déjà sur l\'appareil de destination :';
+  String get fileConflictMessage =>
+      'Un fichier du même nom existe déjà sur l\'appareil de destination :';
 
   @override
   String get fileConflictChooseAction => 'Choisissez une action :';
@@ -3315,16 +3554,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fileAssociationDisabled => 'Association désactivée';
 
   @override
-  String get windowsAutoRepairShortcut => 'Réparer automatiquement le raccourci du menu Démarrer';
+  String get windowsAutoRepairShortcut =>
+      'Réparer automatiquement le raccourci du menu Démarrer';
 
   @override
-  String get windowsAutoRepairShortcutDescription => 'Vérifier et créer le raccourci du menu Démarrer à chaque démarrage pour afficher le nom et l\'icône corrects du contrôle multimédia';
+  String get windowsAutoRepairShortcutDescription =>
+      'Vérifier et créer le raccourci du menu Démarrer à chaque démarrage pour afficher le nom et l\'icône corrects du contrôle multimédia';
 
   @override
   String get confirmDisableShortcutRepair => 'Désactiver cette fonction ?';
 
   @override
-  String get confirmDisableShortcutRepairContent => 'Sans le raccourci du menu Démarrer, les contrôles multimédias Windows peuvent afficher l\'application comme \"Inconnue\" et sans icône. Voulez-vous vraiment désactiver cela ?';
+  String get confirmDisableShortcutRepairContent =>
+      'Sans le raccourci du menu Démarrer, les contrôles multimédias Windows peuvent afficher l\'application comme \"Inconnue\" et sans icône. Voulez-vous vraiment désactiver cela ?';
 
   @override
   String get confirmDisable => 'Désactiver';
@@ -3333,40 +3575,48 @@ class AppLocalizationsFr extends AppLocalizations {
   String get enableSystemTray => 'Activer la barre d\'état système';
 
   @override
-  String get enableSystemTrayDescription => 'Afficher l\'icône dans la barre d\'état système pour un contrôle rapide de la lecture';
+  String get enableSystemTrayDescription =>
+      'Afficher l\'icône dans la barre d\'état système pour un contrôle rapide de la lecture';
 
   @override
-  String get closeToTray => 'Réduire dans la zone de notification à la fermeture';
+  String get closeToTray =>
+      'Réduire dans la zone de notification à la fermeture';
 
   @override
-  String get closeToTrayDescription => 'Poursuivre la lecture en arrière-plan à la fermeture de la fenêtre principale sans quitter l’application';
+  String get closeToTrayDescription =>
+      'Poursuivre la lecture en arrière-plan à la fermeture de la fenêtre principale sans quitter l’application';
 
   @override
   String get closeWindowActionTitle => 'Lors de la fermeture de la fenêtre';
 
   @override
-  String get closeWindowActionDescription => 'Choisir l’action lors du clic sur le bouton de fermeture de la fenêtre principale';
+  String get closeWindowActionDescription =>
+      'Choisir l’action lors du clic sur le bouton de fermeture de la fenêtre principale';
 
   @override
   String get closeWindowActionAsk => 'Toujours demander';
 
   @override
-  String get closeWindowActionMinimize => 'Réduire dans la zone de notification';
+  String get closeWindowActionMinimize =>
+      'Réduire dans la zone de notification';
 
   @override
   String get closeWindowActionExit => 'Quitter l’application';
 
   @override
-  String get closeWindowActionRemember => 'Mémoriser mon choix et ne plus demander';
+  String get closeWindowActionRemember =>
+      'Mémoriser mon choix et ne plus demander';
 
   @override
-  String get closeWindowActionTrayDisabledTip => '(La zone de notification doit être activée au préalable)';
+  String get closeWindowActionTrayDisabledTip =>
+      '(La zone de notification doit être activée au préalable)';
 
   @override
   String get closeWindowDialogTitle => 'Confirmation de fermeture';
 
   @override
-  String get closeWindowDialogContent => 'Veuillez sélectionner l’action à effectuer lors du clic sur le bouton de fermeture :';
+  String get closeWindowDialogContent =>
+      'Veuillez sélectionner l’action à effectuer lors du clic sur le bouton de fermeture :';
 
   @override
   String get googleAiStudioApiKey => 'Google AI Studio API Key';
@@ -3387,7 +3637,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get baseUrl => 'Base URL';
 
   @override
-  String get openaiCompatibleEndpoint => 'Point de terminaison d\'API compatible OpenAI';
+  String get openaiCompatibleEndpoint =>
+      'Point de terminaison d\'API compatible OpenAI';
 
   @override
   String onboardingAddedDirectoriesCount(Object count) {
@@ -3395,31 +3646,40 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get gnomeDisksOpenFailed => 'Impossible d\'ouvrir l\'utilitaire de disque automatiquement. Veuillez ouvrir \"Disques\" manuellement depuis le menu des applications.';
+  String get gnomeDisksOpenFailed =>
+      'Impossible d\'ouvrir l\'utilitaire de disque automatiquement. Veuillez ouvrir \"Disques\" manuellement depuis le menu des applications.';
 
   @override
-  String get gnomeDisksNotInstalled => 'gnome-disks n\'est pas installé. Veuillez ouvrir l\'utilitaire de disque de votre système pour configurer.';
+  String get gnomeDisksNotInstalled =>
+      'gnome-disks n\'est pas installé. Veuillez ouvrir l\'utilitaire de disque de votre système pour configurer.';
 
   @override
-  String get linuxMountGuideTitle => 'Configurer le montage automatique du disque';
+  String get linuxMountGuideTitle =>
+      'Configurer le montage automatique du disque';
 
   @override
-  String get linuxMountGuideDescription => 'Par défaut, Linux ne monte pas automatiquement les partitions externes. Si vous ne configurez pas le montage au démarrage, le chemin des partitions externes peut changer à chaque redémarrage, empêchant le lecteur d\'accéder au répertoire musical. Pour éviter cela, veuillez configurer le montage automatique au démarrage de la partition contenant votre musique.';
+  String get linuxMountGuideDescription =>
+      'Par défaut, Linux ne monte pas automatiquement les partitions externes. Si vous ne configurez pas le montage au démarrage, le chemin des partitions externes peut changer à chaque redémarrage, empêchant le lecteur d\'accéder au répertoire musical. Pour éviter cela, veuillez configurer le montage automatique au démarrage de la partition contenant votre musique.';
 
   @override
-  String get linuxMountGuideWarning => 'Attention : Si votre musique est située sur une partition de disque externe ou interne qui nécessite un montage, vous DEVEZ la configurer sur \"montage automatique au démarrage du système\". Sinon, le répertoire de musique risque de ne pas être trouvé après un redémarrage, ou vous devez saisir un mot de passe pour y accéder.';
+  String get linuxMountGuideWarning =>
+      'Attention : Si votre musique est située sur une partition de disque externe ou interne qui nécessite un montage, vous DEVEZ la configurer sur \"montage automatique au démarrage du système\". Sinon, le répertoire de musique risque de ne pas être trouvé après un redémarrage, ou vous devez saisir un mot de passe pour y accéder.';
 
   @override
-  String get linuxMountGuideStep1 => '1. Ouvrez l\'utilitaire \"Disques\" du système';
+  String get linuxMountGuideStep1 =>
+      '1. Ouvrez l\'utilitaire \"Disques\" du système';
 
   @override
-  String get linuxMountGuideStep2 => '2. Sélectionnez la partition musicale, cliquez sur l\'icône d\'engrenage ⚙️ (Options supplémentaires de partition)';
+  String get linuxMountGuideStep2 =>
+      '2. Sélectionnez la partition musicale, cliquez sur l\'icône d\'engrenage ⚙️ (Options supplémentaires de partition)';
 
   @override
-  String get linuxMountGuideStep3 => '3. Sélectionnez \"Modifier les options de montage\", désactivez \"Valeurs par défaut de la session utilisateur\" et cochez \"Monter au démarrage du système\"';
+  String get linuxMountGuideStep3 =>
+      '3. Sélectionnez \"Modifier les options de montage\", désactivez \"Valeurs par défaut de la session utilisateur\" et cochez \"Monter au démarrage du système\"';
 
   @override
-  String get linuxMountGuideOpenButton => 'Ouvrir le gestionnaire de disques (Disks)';
+  String get linuxMountGuideOpenButton =>
+      'Ouvrir le gestionnaire de disques (Disks)';
 
   @override
   String get unmute => 'Réactiver le son';
@@ -3437,88 +3697,112 @@ class AppLocalizationsFr extends AppLocalizations {
   String get hideWindow => 'Masquer la fenêtre';
 
   @override
-  String get onboardingAndroidBatteryTitle => 'Protection de lecture en arrière-plan';
+  String get onboardingAndroidBatteryTitle =>
+      'Protection de lecture en arrière-plan';
 
   @override
-  String get onboardingAndroidBatteryDescription => 'En raison des règles strictes d\'optimisation de la batterie d\'Android, pour éviter que la lecture de musique ne soit interrompue en arrière-plan, nous vous recommandons de définir la restriction de batterie de Vynody sur « Non restreinte » (Unrestricted).';
+  String get onboardingAndroidBatteryDescription =>
+      'En raison des règles strictes d\'optimisation de la batterie d\'Android, pour éviter que la lecture de musique ne soit interrompue en arrière-plan, nous vous recommandons de définir la restriction de batterie de Vynody sur « Non restreinte » (Unrestricted).';
 
   @override
-  String get onboardingAndroidBatteryStep1 => '1. Appuyez sur le bouton « Aller aux paramètres » ci-dessous.';
+  String get onboardingAndroidBatteryStep1 =>
+      '1. Appuyez sur le bouton « Aller aux paramètres » ci-dessous.';
 
   @override
-  String get onboardingAndroidBatteryStep2 => '2. Autorisez l\'ignorance des optimisations de batterie dans l\'invite système, ou accédez aux paramètres de la batterie.';
+  String get onboardingAndroidBatteryStep2 =>
+      '2. Autorisez l\'ignorance des optimisations de batterie dans l\'invite système, ou accédez aux paramètres de la batterie.';
 
   @override
-  String get onboardingAndroidBatteryStep3 => '3. Si vous êtes redirigé vers les paramètres, sélectionnez « Non restreinte » ou « Aucune restriction ».';
+  String get onboardingAndroidBatteryStep3 =>
+      '3. Si vous êtes redirigé vers les paramètres, sélectionnez « Non restreinte » ou « Aucune restriction ».';
 
   @override
   String get onboardingAndroidBatteryButton => 'Aller aux paramètres';
 
   @override
-  String get onboardingAndroidBatteryStatusOptimized => 'Statut : Restreint (la lecture peut s\'arrêter en arrière-plan)';
+  String get onboardingAndroidBatteryStatusOptimized =>
+      'Statut : Restreint (la lecture peut s\'arrêter en arrière-plan)';
 
   @override
-  String get onboardingAndroidBatteryStatusUnrestricted => 'Statut : Non restreinte (recommandé, lecture protégée)';
+  String get onboardingAndroidBatteryStatusUnrestricted =>
+      'Statut : Non restreinte (recommandé, lecture protégée)';
 
   @override
-  String get onboardingAndroidMediaTitle => 'Accéder à la bibliothèque musicale';
+  String get onboardingAndroidMediaTitle =>
+      'Accéder à la bibliothèque musicale';
 
   @override
-  String get onboardingAndroidMediaDescription => 'Une fois l’autorisation accordée, Vynody peut lire directement toute la musique de la bibliothèque système sans sélectionner de dossiers manuellement. Vous pouvez toujours importer des dossiers manuellement sans cette autorisation.';
+  String get onboardingAndroidMediaDescription =>
+      'Une fois l’autorisation accordée, Vynody peut lire directement toute la musique de la bibliothèque système sans sélectionner de dossiers manuellement. Vous pouvez toujours importer des dossiers manuellement sans cette autorisation.';
 
   @override
-  String get onboardingAndroidMediaStep1 => '1. Prêt à l’emploi : Affiche instantanément toute la musique déjà présente sur votre téléphone';
+  String get onboardingAndroidMediaStep1 =>
+      '1. Prêt à l’emploi : Affiche instantanément toute la musique déjà présente sur votre téléphone';
 
   @override
-  String get onboardingAndroidMediaStep2 => '2. Découverte automatique : Les nouveaux morceaux ajoutés apparaissent automatiquement';
+  String get onboardingAndroidMediaStep2 =>
+      '2. Découverte automatique : Les nouveaux morceaux ajoutés apparaissent automatiquement';
 
   @override
-  String get onboardingAndroidMediaStep3 => '3. Respect de la vie privée : Lit uniquement les fichiers audio locaux et n\'envoie pas automatiquement votre bibliothèque (sauf utilisation de services cloud comme les paroles IA)';
+  String get onboardingAndroidMediaStep3 =>
+      '3. Respect de la vie privée : Lit uniquement les fichiers audio locaux et n\'envoie pas automatiquement votre bibliothèque (sauf utilisation de services cloud comme les paroles IA)';
 
   @override
-  String get onboardingAndroidMediaButton => 'Autoriser l’accès à la bibliothèque musicale';
+  String get onboardingAndroidMediaButton =>
+      'Autoriser l’accès à la bibliothèque musicale';
 
   @override
-  String get onboardingAndroidMediaStatusGranted => 'Statut : Accordé (Recommandé)';
+  String get onboardingAndroidMediaStatusGranted =>
+      'Statut : Accordé (Recommandé)';
 
   @override
-  String get onboardingAndroidMediaStatusNotGranted => 'Statut : Non accordé (vous pourrez importer des dossiers manuellement plus tard)';
+  String get onboardingAndroidMediaStatusNotGranted =>
+      'Statut : Non accordé (vous pourrez importer des dossiers manuellement plus tard)';
 
   @override
   String get exitApp => 'Quitter';
 
   @override
-  String get openPlaybackOnDirectorySongTap => 'Ouvrir la page de lecture lors d\'un appui sur un morceau';
+  String get openPlaybackOnDirectorySongTap =>
+      'Ouvrir la page de lecture lors d\'un appui sur un morceau';
 
   @override
-  String get openPlaybackOnDirectorySongTapDescription => 'Ouvre automatiquement la page de lecture lors d\'un appui sur un morceau dans la vue des dossiers.';
+  String get openPlaybackOnDirectorySongTapDescription =>
+      'Ouvre automatiquement la page de lecture lors d\'un appui sur un morceau dans la vue des dossiers.';
 
   @override
-  String get defaultToLyricsModeOnPlaybackOpen => 'Mode paroles par défaut sur la page de lecture';
+  String get defaultToLyricsModeOnPlaybackOpen =>
+      'Mode paroles par défaut sur la page de lecture';
 
   @override
-  String get defaultToLyricsModeOnPlaybackOpenDescription => 'Passe automatiquement en mode paroles lors de l\'ouverture de la page de lecture.';
+  String get defaultToLyricsModeOnPlaybackOpenDescription =>
+      'Passe automatiquement en mode paroles lors de l\'ouverture de la page de lecture.';
 
   @override
   String get rewindToStartOnPrevious => 'Revenir au début avec précédent';
 
   @override
-  String get rewindToStartOnPreviousDescription => 'Si la lecture dépasse 3 secondes, cliquer sur précédent revient au début au lieu de changer de piste';
+  String get rewindToStartOnPreviousDescription =>
+      'Si la lecture dépasse 3 secondes, cliquer sur précédent revient au début au lieu de changer de piste';
 
   @override
-  String get tapCoverToEnterLyricsMode => 'Appuyez sur la pochette pour passer en mode paroles';
+  String get tapCoverToEnterLyricsMode =>
+      'Appuyez sur la pochette pour passer en mode paroles';
 
   @override
-  String get longPressLyricsPanelToOpenMenu => 'Appuie longuement sur le panneau de paroles pour ouvrir le menu';
+  String get longPressLyricsPanelToOpenMenu =>
+      'Appuie longuement sur le panneau de paroles pour ouvrir le menu';
 
   @override
   String get gotIt => 'J\'ai compris';
 
   @override
-  String get doubleSpeedPlayingSwipeUpToLock => 'Avance rapide... Balayez vers le haut pour verrouiller';
+  String get doubleSpeedPlayingSwipeUpToLock =>
+      'Avance rapide... Balayez vers le haut pour verrouiller';
 
   @override
-  String get doubleSpeedLockedSwipeDownToUnlock => 'Avance rapide verrouillée. Maintenez et balayez vers le bas pour déverrouiller';
+  String get doubleSpeedLockedSwipeDownToUnlock =>
+      'Avance rapide verrouillée. Maintenez et balayez vers le bas pour déverrouiller';
 
   @override
   String get doubleSpeedUnlocked => 'Avance rapide déverrouillée';
@@ -3536,13 +3820,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportLyricsLabel => 'Exporter la sauvegarde des paroles';
 
   @override
-  String get exportLyricsDescription => 'Exporter toutes les paroles mises en cache et ajustées dans un fichier JSON';
+  String get exportLyricsDescription =>
+      'Exporter toutes les paroles mises en cache et ajustées dans un fichier JSON';
 
   @override
   String get importLyricsLabel => 'Importer la sauvegarde des paroles';
 
   @override
-  String get importLyricsDescription => 'Importer le cache de paroles depuis un fichier JSON exporté';
+  String get importLyricsDescription =>
+      'Importer le cache de paroles depuis un fichier JSON exporté';
 
   @override
   String get importLyrics => 'Importer les paroles';
@@ -3648,7 +3934,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get uiDisplayScale => 'Échelle d’affichage de l’interface';
 
   @override
-  String get uiDisplayScaleDescription => 'Ajuster globalement la taille des composants et du texte de l’interface, adapté aux écrans embarqués';
+  String get uiDisplayScaleDescription =>
+      'Ajuster globalement la taille des composants et du texte de l’interface, adapté aux écrans embarqués';
 
   @override
   String get uiDisplayScaleDialogTitle => 'Échelle d’affichage / Mode véhicule';
@@ -3662,13 +3949,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get audioSettings => 'Paramètres audio';
 
   @override
-  String get audioSettingsDescription => 'Gérer la lecture audio, les bandes de l’égaliseur et la vitesse de lecture';
+  String get audioSettingsDescription =>
+      'Gérer la lecture audio, les bandes de l’égaliseur et la vitesse de lecture';
 
   @override
   String get equalizerBandCount => 'Nombre de bandes de l’égaliseur';
 
   @override
-  String get equalizerBandCountDescription => 'Configurer le nombre de bandes affichées dans l’égaliseur. Les modes à nombreuses bandes activeront le défilement horizontal fluide.';
+  String get equalizerBandCountDescription =>
+      'Configurer le nombre de bandes affichées dans l’égaliseur. Les modes à nombreuses bandes activeront le défilement horizontal fluide.';
 
   @override
   String bandsCountOption(int count) {
@@ -3679,22 +3968,26 @@ class AppLocalizationsFr extends AppLocalizations {
   String get enableFadeEffect => 'Effet de fondu audio';
 
   @override
-  String get enableFadeEffectDescription => 'Activer des transitions fluides en fondu et fondu enchaîné lors du changement de morceau, de la lecture et de la pause';
+  String get enableFadeEffectDescription =>
+      'Activer des transitions fluides en fondu et fondu enchaîné lors du changement de morceau, de la lecture et de la pause';
 
   @override
   String get buttonLayoutSettings => 'Disposition des boutons';
 
   @override
-  String get playbackButtonLayoutTitle => 'Disposition des commandes de la page de lecture';
+  String get playbackButtonLayoutTitle =>
+      'Disposition des commandes de la page de lecture';
 
   @override
-  String get playbackButtonLayoutDescription => 'Personnalisez l\'ordre et l\'affichage des boutons dans les rangées de 7 et 5 boutons';
+  String get playbackButtonLayoutDescription =>
+      'Personnalisez l\'ordre et l\'affichage des boutons dans les rangées de 7 et 5 boutons';
 
   @override
   String get topButtonsRowTitle => 'Ordre de la rangée de 7 boutons';
 
   @override
-  String get mainButtonsRowTitle => 'Boutons gauche et droit de la rangée de 5 boutons';
+  String get mainButtonsRowTitle =>
+      'Boutons gauche et droit de la rangée de 5 boutons';
 
   @override
   String get mainControlsLeftButton => 'Bouton gauche';
@@ -3703,7 +3996,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get mainControlsRightButton => 'Bouton droit';
 
   @override
-  String get lyricsHeaderRightButtonTitle => 'Bouton droit lorsque la barre de titre des paroles est réduite';
+  String get lyricsHeaderRightButtonTitle =>
+      'Bouton droit lorsque la barre de titre des paroles est réduite';
 
   @override
   String get resetButtonOrder => 'Rétablir la disposition par défaut';
@@ -3747,7 +4041,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get remotePinPairHint => 'Veuillez saisir le code PIN d\'appairage suivant sur l\'appareil de contrôle :';
+  String get remotePinPairHint =>
+      'Veuillez saisir le code PIN d\'appairage suivant sur l\'appareil de contrôle :';
 
   @override
   String get remotePinExpiresIn => 'Le code PIN expire dans :';
@@ -3764,7 +4059,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get remotePinInvalid => 'Code PIN non valide ou expiré. Veuillez réessayer.';
+  String get remotePinInvalid =>
+      'Code PIN non valide ou expiré. Veuillez réessayer.';
 
   @override
   String remotePinCooldown(int seconds) {
@@ -3777,7 +4073,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get remotePinTooManyAttempts => 'Trop de tentatives échouées. Session d\'appairage expirée.';
+  String get remotePinTooManyAttempts =>
+      'Trop de tentatives échouées. Session d\'appairage expirée.';
 
   @override
   String get remoteConnected => 'Connecté';
@@ -3797,10 +4094,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get trustedDevicesTitle => 'Appareils de contrôle à distance de confiance';
+  String get trustedDevicesTitle =>
+      'Appareils de contrôle à distance de confiance';
 
   @override
-  String get manageTrustedDevicesTitle => 'Gérer les appareils de contrôle à distance de confiance';
+  String get manageTrustedDevicesTitle =>
+      'Gérer les appareils de contrôle à distance de confiance';
 
   @override
   String get removeTrustedDevice => 'Supprimer la confiance';
@@ -3821,28 +4120,36 @@ class AppLocalizationsFr extends AppLocalizations {
   String get allowRemoteControlTitle => 'Autoriser le contrôle à distance';
 
   @override
-  String get allowRemoteControlSubtitle => 'Permet aux autres appareils du réseau de contrôler la lecture après l\'appairage';
+  String get allowRemoteControlSubtitle =>
+      'Permet aux autres appareils du réseau de contrôler la lecture après l\'appairage';
 
   @override
-  String get onlyAllowTrustedRemoteControlTitle => 'Autoriser uniquement les appareils de confiance';
+  String get onlyAllowTrustedRemoteControlTitle =>
+      'Autoriser uniquement les appareils de confiance';
 
   @override
-  String get onlyAllowTrustedRemoteControlSubtitle => 'Autoriser uniquement la connexion directe des appareils de confiance, en rejetant silencieusement les nouvelles demandes d\'association';
+  String get onlyAllowTrustedRemoteControlSubtitle =>
+      'Autoriser uniquement la connexion directe des appareils de confiance, en rejetant silencieusement les nouvelles demandes d\'association';
 
   @override
-  String get onlyTrustedDevicesNoDevicesHint => 'Aucun appareil de confiance pour le moment. Veuillez d\'abord associer un appareil.';
+  String get onlyTrustedDevicesNoDevicesHint =>
+      'Aucun appareil de confiance pour le moment. Veuillez d\'abord associer un appareil.';
 
   @override
-  String get onlyTrustedRemoteDevicesAllowed => 'Cet hôte n\'autorise que le contrôle par des appareils de confiance';
+  String get onlyTrustedRemoteDevicesAllowed =>
+      'Cet hôte n\'autorise que le contrôle par des appareils de confiance';
 
   @override
-  String get remoteControlDisabledOnHost => 'Le contrôle à distance est désactivé sur l\'appareil cible';
+  String get remoteControlDisabledOnHost =>
+      'Le contrôle à distance est désactivé sur l\'appareil cible';
 
   @override
-  String get trustThisDevice => 'Faire confiance à cet appareil et l\'autoriser automatiquement à l\'avenir';
+  String get trustThisDevice =>
+      'Faire confiance à cet appareil et l\'autoriser automatiquement à l\'avenir';
 
   @override
-  String get remoteRequestRejected => 'La demande de connexion a été refusée par l\'appareil cible.';
+  String get remoteRequestRejected =>
+      'La demande de connexion a été refusée par l\'appareil cible.';
 
   @override
   String get turkishLanguage => 'Turc';
@@ -3859,7 +4166,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noTrustedDevices => 'Aucun appareil de confiance';
 
   @override
-  String get noTrustedDevicesHint => 'Les appareils apparaîtront ici après avoir coché « Faire confiance à cet appareil » lors de l\'association';
+  String get noTrustedDevicesHint =>
+      'Les appareils apparaîtront ici après avoir coché « Faire confiance à cet appareil » lors de l\'association';
 
   @override
   String pairedAtFormat(String time) {
@@ -3875,88 +4183,110 @@ class AppLocalizationsFr extends AppLocalizations {
   String get audioFiles => 'Fichiers audio';
 
   @override
-  String get remotePairCancelledByClient => 'La demande de jumelage a été annulée par l\'appareil cible.';
+  String get remotePairCancelledByClient =>
+      'La demande de jumelage a été annulée par l\'appareil cible.';
 
   @override
   String get proFeatureAiLyricsTitle => 'Paroles mot à mot IA & Traduction';
 
   @override
-  String get proFeatureAiLyricsDesc => 'Génération de paroles karaoké mot à mot par IA, synchronisation temporelle et traduction';
+  String get proFeatureAiLyricsDesc =>
+      'Génération de paroles karaoké mot à mot par IA, synchronisation temporelle et traduction';
 
   @override
   String get proFeatureTagCompletionTitle => 'Autocomplétion des métadonnées';
 
   @override
-  String get proFeatureTagCompletionDesc => 'Complétion automatique des tags et métadonnées d\'albums via MusicBrainz';
+  String get proFeatureTagCompletionDesc =>
+      'Complétion automatique des tags et métadonnées d\'albums via MusicBrainz';
 
   @override
   String get proFeatureEqualizerTitle => 'Égaliseur multibande et vitesse (EQ)';
 
   @override
-  String get proFeatureEqualizerDesc => 'Réglage de fréquence professionnel, vitesse de lecture 0.5x–5.0x, gain et styles personnalisés';
+  String get proFeatureEqualizerDesc =>
+      'Réglage de fréquence professionnel, vitesse de lecture 0.5x–5.0x, gain et styles personnalisés';
 
   @override
-  String get proFeatureCustomThemeColorTitle => 'Thèmes à spectre complet et couleurs avancées';
+  String get proFeatureCustomThemeColorTitle =>
+      'Thèmes à spectre complet et couleurs avancées';
 
   @override
-  String get proFeatureCustomThemeColorDesc => 'Débloquez la palette de sélection de couleurs libre et les couleurs de thème prédéfinies premium exclusives';
+  String get proFeatureCustomThemeColorDesc =>
+      'Débloquez la palette de sélection de couleurs libre et les couleurs de thème prédéfinies premium exclusives';
 
   @override
   String get proFeatureFftVisualizerTitle => 'Spectre audio FFT en temps réel';
 
   @override
-  String get proFeatureFftVisualizerDesc => '6 styles de spectre (Barres classiques, Onde fluide, Chapeaux flottants, Halo radial, Matrice néon, Onde miroir) et mode ambiant plein écran';
+  String get proFeatureFftVisualizerDesc =>
+      '6 styles de spectre (Barres classiques, Onde fluide, Chapeaux flottants, Halo radial, Matrice néon, Onde miroir) et mode ambiant plein écran';
 
   @override
-  String get proFeatureWaveformBarTitle => 'Barre de progression à forme d\'onde';
+  String get proFeatureWaveformBarTitle =>
+      'Barre de progression à forme d\'onde';
 
   @override
-  String get proFeatureWaveformBarDesc => 'Extraction de forme d\'onde en temps réel avec navigation interactive fluide';
+  String get proFeatureWaveformBarDesc =>
+      'Extraction de forme d\'onde en temps réel avec navigation interactive fluide';
 
   @override
-  String get proFeatureLanSharingTitle => 'Synchronisation de playlists & paroles multi-appareils';
+  String get proFeatureLanSharingTitle =>
+      'Synchronisation de playlists & paroles multi-appareils';
 
   @override
-  String get proFeatureLanSharingDesc => 'Synchronisation ultra-rapide des playlists, paroles et morceaux sur le réseau local';
+  String get proFeatureLanSharingDesc =>
+      'Synchronisation ultra-rapide des playlists, paroles et morceaux sur le réseau local';
 
   @override
-  String get proFeatureRemoteControlTitle => 'Contrôle à distance multi-appareils';
+  String get proFeatureRemoteControlTitle =>
+      'Contrôle à distance multi-appareils';
 
   @override
-  String get proFeatureRemoteControlDesc => 'Connexion fluide et contrôle sans fil de la lecture entre appareils';
+  String get proFeatureRemoteControlDesc =>
+      'Connexion fluide et contrôle sans fil de la lecture entre appareils';
 
   @override
   String get proFeatureTranscoderTitle => 'Convertisseur audio par lot';
 
   @override
-  String get proFeatureTranscoderDesc => 'Conversion rapide de formats sans perte et export par lot pour appareils portables';
+  String get proFeatureTranscoderDesc =>
+      'Conversion rapide de formats sans perte et export par lot pour appareils portables';
 
   @override
   String get proFeatureCloudLibraryTitle => 'Médiathèque cloud';
 
   @override
-  String get proFeatureCloudLibraryDesc => 'Diffusez et parcourez des serveurs multimédias distants via WebDAV, Navidrome, Jellyfin et SMB';
+  String get proFeatureCloudLibraryDesc =>
+      'Diffusez et parcourez des serveurs multimédias distants via WebDAV, Navidrome, Jellyfin et SMB';
 
   @override
-  String get proFeatureDynamicMeshBackgroundTitle => 'Arrière-plan maillage dynamique';
+  String get proFeatureDynamicMeshBackgroundTitle =>
+      'Arrière-plan maillage dynamique';
 
   @override
-  String get proFeatureDynamicMeshBackgroundDesc => 'Animation de dégradé fluide basée sur les couleurs de la pochette avec vitesse réglable';
+  String get proFeatureDynamicMeshBackgroundDesc =>
+      'Animation de dégradé fluide basée sur les couleurs de la pochette avec vitesse réglable';
 
   @override
-  String get proFeatureCustomImageBackgroundTitle => 'Fond de lecture personnalisé';
+  String get proFeatureCustomImageBackgroundTitle =>
+      'Fond de lecture personnalisé';
 
   @override
-  String get proFeatureCustomImageBackgroundDesc => 'Importez vos propres photos et fonds d\'écran comme arrière-plan immersif';
+  String get proFeatureCustomImageBackgroundDesc =>
+      'Importez vos propres photos et fonds d\'écran comme arrière-plan immersif';
 
   @override
-  String get proFeatureWasapiExclusiveTitle => 'Mode exclusif WASAPI & Bit-Perfect';
+  String get proFeatureWasapiExclusiveTitle =>
+      'Mode exclusif WASAPI & Bit-Perfect';
 
   @override
-  String get proFeatureWasapiExclusiveDesc => 'Contournez le mixeur Windows pour une sortie matérielle pure et bit-perfect';
+  String get proFeatureWasapiExclusiveDesc =>
+      'Contournez le mixeur Windows pour une sortie matérielle pure et bit-perfect';
 
   @override
-  String get proCommunityUnlocked => 'Édition communautaire : toutes les fonctionnalités Pro débloquées à vie';
+  String get proCommunityUnlocked =>
+      'Édition communautaire : toutes les fonctionnalités Pro débloquées à vie';
 
   @override
   String proTrialActive(int days) {
@@ -3964,10 +4294,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get proTrialExpired => 'Période d\'essai terminée. Passez à Pro pour débloquer les fonctionnalités';
+  String get proTrialExpired =>
+      'Période d\'essai terminée. Passez à Pro pour débloquer les fonctionnalités';
 
   @override
-  String get proPermanentlyActivated => 'Toutes les fonctionnalités Pro sont activées de façon permanente';
+  String get proPermanentlyActivated =>
+      'Toutes les fonctionnalités Pro sont activées de façon permanente';
 
   @override
   String proStatusTrialTitle(int days) {
@@ -3975,7 +4307,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get proStatusTrialExpiredTitle => 'Statut de licence : Essai expiré (fonctionnalités limitées)';
+  String get proStatusTrialExpiredTitle =>
+      'Statut de licence : Essai expiré (fonctionnalités limitées)';
 
   @override
   String get proStatusActivatedTitle => 'Statut de licence : Vynody Pro activé';
@@ -3986,10 +4319,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get proSettingsUpgradePrompt => 'Mettre à niveau pour débloquer les paroles IA, le spectre FFT et les fonctionnalités Pro';
+  String get proSettingsUpgradePrompt =>
+      'Mettre à niveau pour débloquer les paroles IA, le spectre FFT et les fonctionnalités Pro';
 
   @override
-  String get proSettingsLifetimeNotice => 'Toutes les fonctionnalités Pro et futures mises à jour incluses';
+  String get proSettingsLifetimeNotice =>
+      'Toutes les fonctionnalités Pro et futures mises à jour incluses';
 
   @override
   String proSettingsCardTrialSubtitle(int days) {
@@ -3997,10 +4332,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get proSettingsCardExpiredSubtitle => 'Passez à Pro pour débloquer les paroles synchronisées par IA, la synchronisation multi-appareils, etc.';
+  String get proSettingsCardExpiredSubtitle =>
+      'Passez à Pro pour débloquer les paroles synchronisées par IA, la synchronisation multi-appareils, etc.';
 
   @override
-  String get proSettingsCardActivatedSubtitle => 'Accès complet aux paroles synchronisées par IA, à la synchronisation multi-appareils, etc.';
+  String get proSettingsCardActivatedSubtitle =>
+      'Accès complet aux paroles synchronisées par IA, à la synchronisation multi-appareils, etc.';
 
   @override
   String get proSettingsUpgrade => 'Mettre à niveau';
@@ -4012,10 +4349,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get connectingToStore => 'Connexion au store en cours...';
 
   @override
-  String get buyFullVersionWindowsTrial => 'Acheter la version complète sur le Microsoft Store';
+  String get buyFullVersionWindowsTrial =>
+      'Acheter la version complète sur le Microsoft Store';
 
   @override
-  String get buyFullVersionWindows => 'Acheter la version complète sur le Microsoft Store';
+  String get buyFullVersionWindows =>
+      'Acheter la version complète sur le Microsoft Store';
 
   @override
   String unlockProLifetimeWithPrice(String price) {
@@ -4041,46 +4380,55 @@ class AppLocalizationsFr extends AppLocalizations {
   String get restoringPurchases => 'Restauration des achats en cours...';
 
   @override
-  String get sharingProDescription => 'L\'interconnexion LAN est une fonctionnalité exclusive de Vynody Pro. Débloquez-la pour profiter du transfert ultra-rapide de morceaux, de la synchronisation de bibliothèque et du contrôle à distance sur votre réseau local.';
+  String get sharingProDescription =>
+      'L\'interconnexion LAN est une fonctionnalité exclusive de Vynody Pro. Débloquez-la pour profiter du transfert ultra-rapide de morceaux, de la synchronisation de bibliothèque et du contrôle à distance sur votre réseau local.';
 
   @override
   String get sharingHighlightSpeedTitle => 'Transfert LAN ultra-rapide';
 
   @override
-  String get sharingHighlightSpeedDesc => 'Transfert direct P2P de musique sans perte et de listes de lecture en Wi-Fi, sans compression ni conso de données.';
+  String get sharingHighlightSpeedDesc =>
+      'Transfert direct P2P de musique sans perte et de listes de lecture en Wi-Fi, sans compression ni conso de données.';
 
   @override
   String get sharingHighlightSyncTitle => 'Synchro de bibliothèque & paroles';
 
   @override
-  String get sharingHighlightSyncDesc => 'Envoi en un clic des paroles et morceaux téléchargés pour synchroniser vos différents appareils.';
+  String get sharingHighlightSyncDesc =>
+      'Envoi en un clic des paroles et morceaux téléchargés pour synchroniser vos différents appareils.';
 
   @override
   String get sharingHighlightRemoteTitle => 'Contrôle à distance sans fil';
 
   @override
-  String get sharingHighlightRemoteDesc => 'Connexion fluide entre smartphones, tablettes et PC pour contrôler la lecture, changer de piste et régler le volume.';
+  String get sharingHighlightRemoteDesc =>
+      'Connexion fluide entre smartphones, tablettes et PC pour contrôler la lecture, changer de piste et régler le volume.';
 
   @override
   String get sharingHighlightSecurityTitle => 'Chiffrement TLS de bout en bout';
 
   @override
-  String get sharingHighlightSecurityDesc => 'Chiffrement complet TLS et appairage de confiance pour des transferts privés et sécurisés.';
+  String get sharingHighlightSecurityDesc =>
+      'Chiffrement complet TLS et appairage de confiance pour des transferts privés et sécurisés.';
 
   @override
   String get upgradeToProToUnlock => 'Passer à Vynody Pro';
 
   @override
-  String get proOneTimePurchaseNotice => 'Achat unique, débloque à vie toutes les fonctionnalités Pro sur cette plateforme';
+  String get proOneTimePurchaseNotice =>
+      'Achat unique, débloque à vie toutes les fonctionnalités Pro sur cette plateforme';
 
   @override
-  String get proOneTimePurchaseNoticeApple => 'Achat unique, débloque à vie toutes les fonctionnalités Pro sur les plateformes Apple (iPhone / iPad / Mac)';
+  String get proOneTimePurchaseNoticeApple =>
+      'Achat unique, débloque à vie toutes les fonctionnalités Pro sur les plateformes Apple (iPhone / iPad / Mac)';
 
   @override
-  String get proUniversalPurchaseNoticeApple => 'Un seul achat, utilisable sur iPhone, iPad et Mac';
+  String get proUniversalPurchaseNoticeApple =>
+      'Un seul achat, utilisable sur iPhone, iPad et Mac';
 
   @override
-  String get iapPurchaseSuccess => 'Achat de Vynody Pro réussi ! Merci pour votre soutien !';
+  String get iapPurchaseSuccess =>
+      'Achat de Vynody Pro réussi ! Merci pour votre soutien !';
 
   @override
   String get iapRestoreSuccess => 'Achats Vynody Pro restaurés avec succès !';
@@ -4106,7 +4454,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get serverName => 'Nom du serveur';
 
   @override
-  String get serverNameAlreadyExists => 'Le nom du serveur existe déjà. Veuillez en choisir un autre.';
+  String get serverNameAlreadyExists =>
+      'Le nom du serveur existe déjà. Veuillez en choisir un autre.';
 
   @override
   String get serverType => 'Type de serveur';
@@ -4139,7 +4488,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noRemoteServers => 'Aucun serveur multimédia ajouté';
 
   @override
-  String get noRemoteServersDesc => 'Ajoutez des serveurs Navidrome (Subsonic) ou WebDAV pour écouter votre musique hébergée';
+  String get noRemoteServersDesc =>
+      'Ajoutez des serveurs Navidrome (Subsonic) ou WebDAV pour écouter votre musique hébergée';
 
   @override
   String get browseServer => 'Parcourir';
@@ -4148,10 +4498,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get manageServer => 'Gérer';
 
   @override
-  String get deleteServerConfirm => 'Voulez-vous vraiment supprimer cette connexion au serveur ?';
+  String get deleteServerConfirm =>
+      'Voulez-vous vraiment supprimer cette connexion au serveur ?';
 
   @override
-  String get remoteSongCannotEditTags => 'Impossible de modifier les tags des morceaux distants';
+  String get remoteSongCannotEditTags =>
+      'Impossible de modifier les tags des morceaux distants';
 
   @override
   String get addToServerPlaylist => 'Ajouter à la playlist du serveur';
@@ -4193,7 +4545,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get alreadyDownloaded => 'Ce morceau existe déjà dans la bibliothèque locale';
+  String get alreadyDownloaded =>
+      'Ce morceau existe déjà dans la bibliothèque locale';
 
   @override
   String get starItem => 'Ajouter aux favoris du serveur';
@@ -4265,7 +4618,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get downloadFolder => 'Emplacement de téléchargement';
 
   @override
-  String get downloadAllAudio => 'Télécharger tous les fichiers audio du dossier';
+  String get downloadAllAudio =>
+      'Télécharger tous les fichiers audio du dossier';
 
   @override
   String get starredSongs => 'Morceaux favoris';
@@ -4306,7 +4660,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get presetLarge => '150% Grand';
 
   @override
-  String get safFallbackScanningNotice => '(Autorisation multimédia non accordée, analyse de secours SAF activée, cela peut être plus lent)';
+  String get safFallbackScanningNotice =>
+      '(Autorisation multimédia non accordée, analyse de secours SAF activée, cela peut être plus lent)';
 
   @override
   String get justNow => 'À l\'instant';
@@ -4422,7 +4777,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noMatchingInGenre => 'Aucun album ni morceau correspondant';
 
   @override
-  String get searchInArtist => 'Rechercher des albums ou morceaux de cet artiste';
+  String get searchInArtist =>
+      'Rechercher des albums ou morceaux de cet artiste';
 
   @override
   String get noMatchingInArtist => 'Aucun album ni morceau correspondant';
@@ -4454,7 +4810,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get searchRemoteHint => 'Rechercher des titres, albums, artistes...';
 
   @override
-  String get searchLibraryHint => 'Rechercher des titres, albums, artistes, playlists...';
+  String get searchLibraryHint =>
+      'Rechercher des titres, albums, artistes, playlists...';
 
   @override
   String errorLoadingAlbums(String error) {
@@ -4513,7 +4870,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get artistNotFound => 'Détails de l\'artiste introuvables sur le serveur';
+  String get artistNotFound =>
+      'Détails de l\'artiste introuvables sur le serveur';
 
   @override
   String get noTracksForArtist => 'Aucun morceau trouvé pour cet artiste';
@@ -4522,7 +4880,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noAlbumsForArtist => 'Aucun album trouvé pour cet artiste';
 
   @override
-  String get playlistNotFound => 'Détails de la playlist introuvables sur le serveur';
+  String get playlistNotFound =>
+      'Détails de la playlist introuvables sur le serveur';
 
   @override
   String removedFromPlaylistSuccess(String title) {
@@ -4561,16 +4920,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get downloadCancelled => 'Annulé';
 
   @override
-  String get remoteServerDownloadsDisabled => 'Les téléchargements sont désactivés sur ce serveur';
+  String get remoteServerDownloadsDisabled =>
+      'Les téléchargements sont désactivés sur ce serveur';
 
   @override
-  String get remoteDownloadNotAudioResponse => 'Le serveur a renvoyé une page d\'erreur au lieu d\'un fichier audio. Vérifiez la configuration du proxy inverse';
+  String get remoteDownloadNotAudioResponse =>
+      'Le serveur a renvoyé une page d\'erreur au lieu d\'un fichier audio. Vérifiez la configuration du proxy inverse';
 
   @override
-  String get remoteDownloadUnauthorized => 'Le serveur a refusé le téléchargement : authentification échouée ou téléchargement non autorisé';
+  String get remoteDownloadUnauthorized =>
+      'Le serveur a refusé le téléchargement : authentification échouée ou téléchargement non autorisé';
 
   @override
-  String get remoteDownloadTrackMissing => 'Ce morceau n\'est plus disponible sur le serveur. Il a peut-être été supprimé ou n\'est pas accessible';
+  String get remoteDownloadTrackMissing =>
+      'Ce morceau n\'est plus disponible sur le serveur. Il a peut-être été supprimé ou n\'est pas accessible';
 
   @override
   String fileNotFoundAtPath(String path) {
@@ -4596,7 +4959,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get createServerPlaylistFailed => 'Échec de la création de la playlist sur le serveur';
+  String get createServerPlaylistFailed =>
+      'Échec de la création de la playlist sur le serveur';
 
   @override
   String errorCreatingPlaylist(String error) {
@@ -4669,7 +5033,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sendPlaylistsToDeviceAction => 'Envoyer des listes à l\'appareil';
 
   @override
-  String get pullPlaylistsFromDeviceAction => 'Obtenir des listes de cet appareil';
+  String get pullPlaylistsFromDeviceAction =>
+      'Obtenir des listes de cet appareil';
 
   @override
   String get selectPlaylistsToSend => 'Sélectionner les listes à envoyer';
@@ -4710,13 +5075,19 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get incomingPlaylistImportTitle => 'Demande de partage de listes de lecture';
+  String get incomingPlaylistImportTitle =>
+      'Demande de partage de listes de lecture';
 
   @override
-  String get incomingPlaylistExportTitle => 'Demande d\'exportation de listes de lecture';
+  String get incomingPlaylistExportTitle =>
+      'Demande d\'exportation de listes de lecture';
 
   @override
-  String incomingPlaylistImportFrom(String senderName, int count, int songsCount) {
+  String incomingPlaylistImportFrom(
+    String senderName,
+    int count,
+    int songsCount,
+  ) {
     return 'L\'appareil « $senderName » souhaite vous envoyer $count listes ($songsCount morceaux).';
   }
 
@@ -4735,7 +5106,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get windowsAudioOutputTitle => 'Mode de sortie audio (Windows)';
 
   @override
-  String get windowsAudioOutputDescription => 'Sélectionnez le mode partagé ou le mode exclusif WASAPI (le mode exclusif contourne le mixeur audio Windows pour une sortie haute fidélité bit-perfect).';
+  String get windowsAudioOutputDescription =>
+      'Sélectionnez le mode partagé ou le mode exclusif WASAPI (le mode exclusif contourne le mixeur audio Windows pour une sortie haute fidélité bit-perfect).';
 
   @override
   String get audioOutputModeShared => 'Mode partagé standard';
@@ -4747,25 +5119,31 @@ class AppLocalizationsFr extends AppLocalizations {
   String get audioOutputDeviceTitle => 'Périphérique de sortie audio';
 
   @override
-  String get audioOutputDeviceDefault => 'Périphérique audio par défaut du système';
+  String get audioOutputDeviceDefault =>
+      'Périphérique audio par défaut du système';
 
   @override
-  String get wasapiBitPerfectTitle => 'Ajustement automatique du taux d\'échantillonnage (Bit-Perfect)';
+  String get wasapiBitPerfectTitle =>
+      'Ajustement automatique du taux d\'échantillonnage (Bit-Perfect)';
 
   @override
-  String get wasapiBitPerfectDescription => 'Configure automatiquement le taux d\'échantillonnage matériel du DAC pour correspondre aux pistes sans rééchantillonnage.';
+  String get wasapiBitPerfectDescription =>
+      'Configure automatiquement le taux d\'échantillonnage matériel du DAC pour correspondre aux pistes sans rééchantillonnage.';
 
   @override
-  String get wasapiReleaseOnPauseTitle => 'Libérer le périphérique lors de la pause';
+  String get wasapiReleaseOnPauseTitle =>
+      'Libérer le périphérique lors de la pause';
 
   @override
-  String get wasapiReleaseOnPauseDescription => 'Libère temporairement le point de sortie audio lors de la pause pour permettre à d\'autres applications de diffuser du son.';
+  String get wasapiReleaseOnPauseDescription =>
+      'Libère temporairement le point de sortie audio lors de la pause pour permettre à d\'autres applications de diffuser du son.';
 
   @override
   String get activeHardwareFormatTitle => 'Format matériel actif';
 
   @override
-  String get activeHardwareFormatDescription => 'Taux d\'échantillonnage et profondeur de bits actifs du DAC';
+  String get activeHardwareFormatDescription =>
+      'Taux d\'échantillonnage et profondeur de bits actifs du DAC';
 
   @override
   String get activeHardwareBitPerfectBadge => 'Bit-Perfect Direct';
@@ -4774,19 +5152,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exclusiveModeTitle => 'Mode exclusif';
 
   @override
-  String get exclusiveModeTooltip => 'Le mode exclusif WASAPI est actif (périphérique audio réservé exclusivement)';
+  String get exclusiveModeTooltip =>
+      'Le mode exclusif WASAPI est actif (périphérique audio réservé exclusivement)';
 
   @override
   String get toggleWasapiExclusive => 'Basculer le mode exclusif WASAPI';
 
   @override
-  String get toggleWasapiExclusiveDescription => 'Basculer rapidement entre la sortie audio exclusive WASAPI et la sortie partagée (Windows)';
+  String get toggleWasapiExclusiveDescription =>
+      'Basculer rapidement entre la sortie audio exclusive WASAPI et la sortie partagée (Windows)';
 
   @override
   String get wasapiExclusiveShortcutTitle => 'Raccourci de basculement rapide';
 
   @override
-  String get wasapiExclusiveShortcutDescription => 'Utilisez un raccourci pour basculer rapidement entre le mode exclusif et le mode partagé';
+  String get wasapiExclusiveShortcutDescription =>
+      'Utilisez un raccourci pour basculer rapidement entre le mode exclusif et le mode partagé';
 
   @override
   String get wasapiExclusiveEnabledNotice => 'Mode exclusif WASAPI activé';
@@ -4798,10 +5179,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get editShortcutTitle => 'Modifier le raccourci';
 
   @override
-  String get nonRecommendedModelWarningTitle => 'Avis sur le modèle non recommandé';
+  String get nonRecommendedModelWarningTitle =>
+      'Avis sur le modèle non recommandé';
 
   @override
-  String nonRecommendedModelWarningMessage(String currentModel, String recommendedModel) {
+  String nonRecommendedModelWarningMessage(
+    String currentModel,
+    String recommendedModel,
+  ) {
     return 'Le modèle actuel de génération de paroles est \"$currentModel\", mais \"$recommendedModel\" est recommandé. Les modèles non recommandés peuvent produire des paroles inexactes ou des horodatages décalés. Souhaitez-vous passer au modèle recommandé ?';
   }
 
@@ -4821,7 +5206,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get proxySettingsTitle => 'Proxy réseau';
 
   @override
-  String get proxySettingsDescription => 'Configurer le serveur proxy pour les requêtes réseau, les pochettes et le streaming audio';
+  String get proxySettingsDescription =>
+      'Configurer le serveur proxy pour les requêtes réseau, les pochettes et le streaming audio';
 
   @override
   String get proxyMode => 'Mode proxy';
@@ -4830,19 +5216,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get proxyModeSystem => 'Suivre le système';
 
   @override
-  String get proxyModeSystemDesc => 'Détecter automatiquement les paramètres de proxy du système d\'exploitation';
+  String get proxyModeSystemDesc =>
+      'Détecter automatiquement les paramètres de proxy du système d\'exploitation';
 
   @override
   String get proxyModeDirect => 'Direct (aucun proxy)';
 
   @override
-  String get proxyModeDirectDesc => 'Se connecter directement au réseau sans passer par un proxy';
+  String get proxyModeDirectDesc =>
+      'Se connecter directement au réseau sans passer par un proxy';
 
   @override
   String get proxyModeCustom => 'Proxy personnalisé';
 
   @override
-  String get proxyModeCustomDesc => 'Spécifier manuellement l\'adresse et le port du serveur proxy HTTP';
+  String get proxyModeCustomDesc =>
+      'Spécifier manuellement l\'adresse et le port du serveur proxy HTTP';
 
   @override
   String get proxyHost => 'Adresse du serveur proxy';
@@ -4860,7 +5249,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get proxyBypass => 'Ignorer le proxy pour (liste blanche)';
 
   @override
-  String get proxyBypassHint => 'Séparé par une virgule ou un point-virgule, ex. localhost, 127.0.0.1, <local>';
+  String get proxyBypassHint =>
+      'Séparé par une virgule ou un point-virgule, ex. localhost, 127.0.0.1, <local>';
 
   @override
   String get proxyTestConnection => 'Tester la connexion';
@@ -4872,7 +5262,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get proxyTestFailed => 'Échec du test de connexion au proxy';
 
   @override
-  String get proxyHostPortInvalid => 'Veuillez entrer une adresse et un port de proxy valides';
+  String get proxyHostPortInvalid =>
+      'Veuillez entrer une adresse et un port de proxy valides';
 
   @override
   String get sortPlaylists => 'Trier les playlists';
@@ -4896,7 +5287,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get removeFromMediaLibrary => 'Retirer de la bibliothèque multimédia';
 
   @override
-  String get addedToMediaLibrary => 'Ajouté à la bibliothèque multimédia, analyse en arrière-plan...';
+  String get addedToMediaLibrary =>
+      'Ajouté à la bibliothèque multimédia, analyse en arrière-plan...';
 
   @override
   String get removedFromMediaLibrary => 'Retiré de la bibliothèque multimédia';
@@ -4908,10 +5300,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get remoteMediaFolders => 'Dossiers réseau distants';
 
   @override
-  String get remoteFolderAlreadyIndexed => 'Le dossier est déjà indexé dans la bibliothèque';
+  String get remoteFolderAlreadyIndexed =>
+      'Le dossier est déjà indexé dans la bibliothèque';
 
   @override
-  String get remoteLibraryDisconnectConfirm => 'Se déconnecter de cette bibliothèque ? Une reconnexion sera nécessaire pour la rouvrir. La lecture n’est pas affectée.';
+  String get remoteLibraryDisconnectConfirm =>
+      'Se déconnecter de cette bibliothèque ? Une reconnexion sera nécessaire pour la rouvrir. La lecture n’est pas affectée.';
 
   @override
   String get remoteLibrary => 'Bibliothèque distante';
@@ -4923,7 +5317,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get remoteLibraryBadge => 'Cloud';
 
   @override
-  String get remoteLibraryTooltip => 'Depuis la bibliothèque multimédia distante';
+  String get remoteLibraryTooltip =>
+      'Depuis la bibliothèque multimédia distante';
 
   @override
   String get remoteSourceTitle => 'Source multimédia distante';
@@ -4962,25 +5357,30 @@ class AppLocalizationsFr extends AppLocalizations {
   String get enableDesktopLyrics => 'Activer les paroles sur le bureau';
 
   @override
-  String get enableDesktopLyricsDescription => 'Afficher des paroles flottantes translucides toujours au premier plan';
+  String get enableDesktopLyricsDescription =>
+      'Afficher des paroles flottantes translucides toujours au premier plan';
 
   @override
   String get lockDesktopLyrics => 'Verrouiller la position des paroles';
 
   @override
-  String get lockDesktopLyricsDescription => 'Verrouille la position de la fenêtre ; survolez pour afficher les commandes';
+  String get lockDesktopLyricsDescription =>
+      'Verrouille la position de la fenêtre ; survolez pour afficher les commandes';
 
   @override
-  String get desktopLyricsShowTranslation => 'Afficher la traduction / paroles sur deux lignes';
+  String get desktopLyricsShowTranslation =>
+      'Afficher la traduction / paroles sur deux lignes';
 
   @override
-  String get desktopLyricsShowTranslationDescription => 'Si le morceau a une traduction, afficher les deux lignes simultanément';
+  String get desktopLyricsShowTranslationDescription =>
+      'Si le morceau a une traduction, afficher les deux lignes simultanément';
 
   @override
   String get desktopLyricsShowBackground => 'Arrière-plan sombre permanent';
 
   @override
-  String get desktopLyricsShowBackgroundDescription => 'Affiche un fond de capsule translucide pour améliorer la lisibilité sur les fonds clairs';
+  String get desktopLyricsShowBackgroundDescription =>
+      'Affiche un fond de capsule translucide pour améliorer la lisibilité sur les fonds clairs';
 
   @override
   String desktopLyricsFontSize(int size) {
@@ -4988,10 +5388,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get noTranslationAiPrompt => 'Aucune traduction disponible pour ce morceau. Générer la traduction avec l\'IA ?';
+  String get noTranslationAiPrompt =>
+      'Aucune traduction disponible pour ce morceau. Générer la traduction avec l\'IA ?';
 
   @override
-  String get noKaraokeAiPrompt => 'Ce morceau n\'a pas de paroles mot à mot. Les convertir en karaoké mot à mot avec l\'IA ?';
+  String get noKaraokeAiPrompt =>
+      'Ce morceau n\'a pas de paroles mot à mot. Les convertir en karaoké mot à mot avec l\'IA ?';
 
   @override
   String get wordByWordLyricsEnabled => 'Paroles mot à mot activées';
@@ -5000,7 +5402,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get wordByWordLyricsDisabled => 'Paroles mot à mot désactivées';
 
   @override
-  String get ignoreSslDescription => 'Pour les certificats SSL auto-signés ou internes';
+  String get ignoreSslDescription =>
+      'Pour les certificats SSL auto-signés ou internes';
 
   @override
   String get copyCoverFailed => 'Échec de la copie de la pochette';
@@ -5015,25 +5418,32 @@ class AppLocalizationsFr extends AppLocalizations {
   String get closeDesktopLyrics => 'Fermer les paroles sur le bureau';
 
   @override
-  String get unlockDesktopLyrics => 'Déverrouiller les paroles sur le bureau (activer le déplacement)';
+  String get unlockDesktopLyrics =>
+      'Déverrouiller les paroles sur le bureau (activer le déplacement)';
 
   @override
-  String get lockDesktopLyricsTray => 'Verrouiller les paroles sur le bureau (position fixe)';
+  String get lockDesktopLyricsTray =>
+      'Verrouiller les paroles sur le bureau (position fixe)';
 
   @override
-  String get msStoreLaunchFailed => 'Échec du lancement du Microsoft Store. Veuillez rechercher et acheter dans le Store.';
+  String get msStoreLaunchFailed =>
+      'Échec du lancement du Microsoft Store. Veuillez rechercher et acheter dans le Store.';
 
   @override
-  String get storeConnectFailed => 'Impossible de se connecter au magasin d\'applications. Veuillez vérifier le réseau et réessayer.';
+  String get storeConnectFailed =>
+      'Impossible de se connecter au magasin d\'applications. Veuillez vérifier le réseau et réessayer.';
 
   @override
-  String get msStoreSyncSuccess => 'État de l\'achat et de la licence Microsoft Store synchronisé';
+  String get msStoreSyncSuccess =>
+      'État de l\'achat et de la licence Microsoft Store synchronisé';
 
   @override
-  String get allProFeaturesUnlocked => 'Aucun échange requis pour la version actuelle. Toutes les fonctionnalités Pro sont débloquées.';
+  String get allProFeaturesUnlocked =>
+      'Aucun échange requis pour la version actuelle. Toutes les fonctionnalités Pro sont débloquées.';
 
   @override
-  String get cannotConnectToMediaServer => 'Impossible de se connecter au serveur multimédia. Veuillez vérifier si le service est actif.';
+  String get cannotConnectToMediaServer =>
+      'Impossible de se connecter au serveur multimédia. Veuillez vérifier si le service est actif.';
 
   @override
   String get playQueue => 'File de lecture';
@@ -5042,7 +5452,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get clearPlaybackQueue => 'Vider la file de lecture';
 
   @override
-  String get confirmClearPlaybackQueue => 'Voulez-vous vraiment effacer tous les morceaux de la file d\'attente ?';
+  String get confirmClearPlaybackQueue =>
+      'Voulez-vous vraiment effacer tous les morceaux de la file d\'attente ?';
 
   @override
   String get exitMultiSelect => 'Quitter la sélection multiple';
@@ -5070,13 +5481,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get moreOptions => 'Plus d\'options';
 
   @override
-  String get detachToStandaloneWindow => 'Détacher dans une fenêtre indépendante';
+  String get detachToStandaloneWindow =>
+      'Détacher dans une fenêtre indépendante';
 
   @override
   String get closeDrawer => 'Fermer le volet';
 
   @override
-  String get queueEmptyDragHint => 'Glissez des morceaux ici depuis la bibliothèque, les dossiers ou les listes';
+  String get queueEmptyDragHint =>
+      'Glissez des morceaux ici depuis la bibliothèque, les dossiers ou les listes';
 
   @override
   String get appendToQueueEnd => 'Ajouter à la fin de la file';
@@ -5100,7 +5513,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get clearSongs => 'Effacer les morceaux';
 
   @override
-  String get playlistEmptyDragHint => 'Glissez des morceaux depuis la bibliothèque\nou directement des fichiers audio locaux ici';
+  String get playlistEmptyDragHint =>
+      'Glissez des morceaux depuis la bibliothèque\nou directement des fichiers audio locaux ici';
 
   @override
   String get standaloneQueueWindowTitle => 'File de lecture & Listes - Vynody';
@@ -5118,10 +5532,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get playNow => 'Lire maintenant';
 
   @override
-  String get standalonePlaylistDragHint => 'Glissez directement des fichiers audio locaux ici pour les ajouter';
+  String get standalonePlaylistDragHint =>
+      'Glissez directement des fichiers audio locaux ici pour les ajouter';
 
   @override
-  String get standaloneQueueDragHint => 'Glissez des morceaux ici depuis la bibliothèque, les dossiers ou l\'extérieur';
+  String get standaloneQueueDragHint =>
+      'Glissez des morceaux ici depuis la bibliothèque, les dossiers ou l\'extérieur';
 
   @override
   String get closeStandaloneQueue => 'Fermer la file de lecture indépendante';
@@ -5166,19 +5582,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get currentlyAscending => 'Actuellement trié par ordre croissant';
 
   @override
-  String get librarySourceFilterTitle => 'Filtre des sources de la bibliothèque';
+  String get librarySourceFilterTitle =>
+      'Filtre des sources de la bibliothèque';
 
   @override
   String get librarySourceAll => 'Toute la musique';
 
   @override
-  String get librarySourceAllDescription => 'Inclut la musique locale et tous les morceaux distants indexés';
+  String get librarySourceAllDescription =>
+      'Inclut la musique locale et tous les morceaux distants indexés';
 
   @override
   String get librarySourceLocalOnly => 'Appareil local uniquement';
 
   @override
-  String get librarySourceLocalOnlyDescription => 'Affiche uniquement la musique stockée sur cet appareil';
+  String get librarySourceLocalOnlyDescription =>
+      'Affiche uniquement la musique stockée sur cet appareil';
 
   @override
   String get librarySourceIndexedRemote => 'Serveurs distants indexés';
@@ -5237,7 +5656,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loadingServerPlaylists => 'Chargement des listes du serveur...';
 
   @override
-  String get jellyfinMediaDeletionPermissionHint => ' (Vérifiez si l\'utilisateur Jellyfin a la permission \"Autoriser la suppression de médias\")';
+  String get jellyfinMediaDeletionPermissionHint =>
+      ' (Vérifiez si l\'utilisateur Jellyfin a la permission \"Autoriser la suppression de médias\")';
 
   @override
   String get trialResetDialogTitle => 'Période d\'essai réinitialisée';
@@ -5256,13 +5676,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get trialResetDialogButton => 'Commencer';
 
   @override
-  String get eqClippingWarning => 'Volume trop élevé. Réduisez le gain du préampli pour éviter la saturation.';
+  String get eqClippingWarning =>
+      'Volume trop élevé. Réduisez le gain du préampli pour éviter la saturation.';
 
   @override
   String get eqAutoPreamp => 'Préampli auto';
 
   @override
-  String get eqAutoPreampTooltip => 'Réduire automatiquement le gain du préampli pour éviter la saturation';
+  String get eqAutoPreampTooltip =>
+      'Réduire automatiquement le gain du préampli pour éviter la saturation';
 
   @override
   String get lyricsTimelineTitle => 'Historique des paroles';
@@ -5273,10 +5695,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get lyricsTimelineMaxHistoryLabel => 'Limite d\'historique des paroles';
+  String get lyricsTimelineMaxHistoryLabel =>
+      'Limite d\'historique des paroles';
 
   @override
-  String get lyricsTimelineMaxHistoryDescription => 'Nombre maximal de versions d\'historique conservées par chanson (jusqu\'à 50)';
+  String get lyricsTimelineMaxHistoryDescription =>
+      'Nombre maximal de versions d\'historique conservées par chanson (jusqu\'à 50)';
 
   @override
   String lyricsTimelineMaxHistoryCountOption(int count) {
@@ -5300,7 +5724,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noTimelineHistory => 'Aucun historique de modification';
 
   @override
-  String get noTimelineHistoryHint => 'Les instantanés seront automatiquement enregistrés ici lorsque vous modifiez, ajustez le timing ou importez des paroles';
+  String get noTimelineHistoryHint =>
+      'Les instantanés seront automatiquement enregistrés ici lorsque vous modifiez, ajustez le timing ou importez des paroles';
 
   @override
   String get currentVersion => 'Version actuelle';
@@ -5367,10 +5792,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get thisWeekTop => 'Les plus écoutés cette semaine';
 
   @override
-  String get thisWeekTopSubtitle => 'Titres les plus écoutés au cours des 7 derniers jours';
+  String get thisWeekTopSubtitle =>
+      'Titres les plus écoutés au cours des 7 derniers jours';
 
   @override
-  String get thisWeekTopAlbumsSubtitle => 'Albums les plus écoutés au cours des 7 derniers jours';
+  String get thisWeekTopAlbumsSubtitle =>
+      'Albums les plus écoutés au cours des 7 derniers jours';
 
   @override
   String get timeMachine => 'Machine à remonter le temps';
@@ -5379,10 +5806,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timeMachineSubtitle => 'Redécouvrez vos anciens favoris';
 
   @override
-  String get timeMachineSongsSubtitle => 'Redécouvrez vos anciens morceaux favoris';
+  String get timeMachineSongsSubtitle =>
+      'Redécouvrez vos anciens morceaux favoris';
 
   @override
-  String get emptyTimeMachineSongs => 'Aucun ancien morceau favori à redécouvrir pour le moment';
+  String get emptyTimeMachineSongs =>
+      'Aucun ancien morceau favori à redécouvrir pour le moment';
 
   @override
   String get topRated => 'Les mieux notés';
@@ -5391,10 +5820,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get topRatedSubtitle => 'Votre collection 4-5 étoiles';
 
   @override
-  String get emptyTimeMachine => 'Aucun ancien favori à redécouvrir pour le moment';
+  String get emptyTimeMachine =>
+      'Aucun ancien favori à redécouvrir pour le moment';
 
   @override
-  String get emptyTopRated => 'Aucun morceau noté 4 à 5 étoiles pour l\'instant';
+  String get emptyTopRated =>
+      'Aucun morceau noté 4 à 5 étoiles pour l\'instant';
 
   @override
   String get emptyThisWeekTop => 'Aucun historique de lecture cette semaine';
@@ -5406,7 +5837,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get viewAll => 'Tout afficher';
 
   @override
-  String get ratedSongsSubtitle => 'Tous les morceaux notés de votre bibliothèque';
+  String get ratedSongsSubtitle =>
+      'Tous les morceaux notés de votre bibliothèque';
 
   @override
   String get emptyRatedSongs => 'Aucun morceau noté pour l\'instant';
@@ -5442,19 +5874,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get lastFmSectionTitle => 'Last.fm';
 
   @override
-  String get lastFmSectionDescription => 'Enregistrez vos écoutes sur votre compte Last.fm.';
+  String get lastFmSectionDescription =>
+      'Enregistrez vos écoutes sur votre compte Last.fm.';
 
   @override
   String get lastFmScrobblingEnabledTitle => 'Activer le scrobbling';
 
   @override
-  String get lastFmScrobblingEnabledDescription => 'Les titres sont envoyés à Last.fm dès que le seuil d\'écoute est atteint.';
+  String get lastFmScrobblingEnabledDescription =>
+      'Les titres sont envoyés à Last.fm dès que le seuil d\'écoute est atteint.';
 
   @override
   String get lastFmScrobbleRemoteTitle => 'Inclure les bibliothèques distantes';
 
   @override
-  String get lastFmScrobbleRemoteDescription => 'Envoie les titres de Subsonic, Jellyfin, WebDAV et SMB. Si votre serveur scrobble déjà vers Last.fm, les activer créera des doublons.';
+  String get lastFmScrobbleRemoteDescription =>
+      'Envoie les titres de Subsonic, Jellyfin, WebDAV et SMB. Si votre serveur scrobble déjà vers Last.fm, les activer créera des doublons.';
 
   @override
   String get lastFmAccountTitle => 'Compte';
@@ -5477,10 +5912,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get lastFmDisconnect => 'Déconnecter';
 
   @override
-  String get lastFmAuthorizationPending => 'La page d\'autorisation a été ouverte dans votre navigateur.';
+  String get lastFmAuthorizationPending =>
+      'La page d\'autorisation a été ouverte dans votre navigateur.';
 
   @override
-  String get lastFmAuthorizationHint => 'Connectez-vous à Last.fm dans le navigateur et autorisez Vynody, puis revenez ici et appuyez sur « J\'ai autorisé ».';
+  String get lastFmAuthorizationHint =>
+      'Connectez-vous à Last.fm dans le navigateur et autorisez Vynody, puis revenez ici et appuyez sur « J\'ai autorisé ».';
 
   @override
   String get lastFmAuthorizationSuccess => 'Connecté à Last.fm.';
@@ -5507,7 +5944,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get lastFmCredentialsMissing => 'Cette version n\'inclut pas les identifiants Last.fm ; le scrobbling est donc indisponible.';
+  String get lastFmCredentialsMissing =>
+      'Cette version n\'inclut pas les identifiants Last.fm ; le scrobbling est donc indisponible.';
 
   @override
   String lanSyncLyricsReceived(int added, int updated, int skipped) {
@@ -5520,7 +5958,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String lanSyncLyricsSyncResult(int matched, int added, int updated, int skipped) {
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  ) {
     return 'Synchronisation terminée : $matched correspondances, $added ajoutées, $updated mises à jour, $skipped ignorées';
   }
 
@@ -5530,7 +5973,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String lanSyncPlaylistsReceivedPartial(int playlists, int songs, int missing) {
+  String lanSyncPlaylistsReceivedPartial(
+    int playlists,
+    int songs,
+    int missing,
+  ) {
     return '$playlists liste(s) reçue(s), $songs titre(s), $missing sans correspondance';
   }
 
@@ -5545,7 +5992,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get lanSyncErrorTimeout => 'Délai de connexion dépassé. Vérifiez que les deux appareils sont sur le même réseau.';
+  String get lanSyncErrorTimeout =>
+      'Délai de connexion dépassé. Vérifiez que les deux appareils sont sur le même réseau.';
 
   @override
   String get lanSyncErrorNetwork => 'Impossible de se connecter à l\'appareil';
@@ -5556,13 +6004,16 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get lanSyncErrorBusy => 'Une synchronisation avec cet appareil est déjà en cours';
+  String get lanSyncErrorBusy =>
+      'Une synchronisation avec cet appareil est déjà en cours';
 
   @override
-  String get lanSyncErrorSessionExpired => 'La session de transfert a expiré. Réessayez.';
+  String get lanSyncErrorSessionExpired =>
+      'La session de transfert a expiré. Réessayez.';
 
   @override
-  String get lanSyncProgressPreparing => 'Préparation des éléments à synchroniser…';
+  String get lanSyncProgressPreparing =>
+      'Préparation des éléments à synchroniser…';
 
   @override
   String get lanSyncProgressTransferring => 'Transfert en cours';
@@ -5633,34 +6084,40 @@ class AppLocalizationsFr extends AppLocalizations {
   String get lanSyncLastSync => 'Dernière synchronisation';
 
   @override
-  String get lanSyncLastSyncNever => 'Cet appareil n\'a pas encore été synchronisé';
+  String get lanSyncLastSyncNever =>
+      'Cet appareil n\'a pas encore été synchronisé';
 
   @override
   String get animationsAndEffectsGroup => 'Animations et effets';
 
   @override
-  String get playingIndicatorAnimation => 'Animation de l\'indicateur de lecture';
+  String get playingIndicatorAnimation =>
+      'Animation de l\'indicateur de lecture';
 
   @override
-  String get playingIndicatorAnimationDescription => 'Désactivée : le morceau en cours affiche une icône statique pause ou lecture au lieu de l’égaliseur animé.';
+  String get playingIndicatorAnimationDescription =>
+      'Désactivée : le morceau en cours affiche une icône statique pause ou lecture au lieu de l’égaliseur animé.';
 
   @override
   String get miniPlayerSpectrum => 'Spectre du mini lecteur';
 
   @override
-  String get miniPlayerSpectrumDescription => 'Désactivé : le spectre FFT derrière le mini lecteur de la barre flottante est masqué.';
+  String get miniPlayerSpectrumDescription =>
+      'Désactivé : le spectre FFT derrière le mini lecteur de la barre flottante est masqué.';
 
   @override
   String get blurEffect => 'Effets de verre dépoli et de flou';
 
   @override
-  String get blurEffectDescription => 'Utilise le flou d\'arrière-plan sur le dock, les dialogues et les panneaux. Désactiver réduit la charge GPU et fluidifie l\'affichage.';
+  String get blurEffectDescription =>
+      'Utilise le flou d\'arrière-plan sur le dock, les dialogues et les panneaux. Désactiver réduit la charge GPU et fluidifie l\'affichage.';
 
   @override
   String get lyricsBlurEffect => 'Effet de flou des paroles';
 
   @override
-  String get lyricsBlurEffectDescription => 'Applique un flou gaussien aux lignes non actives en mode paroles.';
+  String get lyricsBlurEffectDescription =>
+      'Applique un flou gaussien aux lignes non actives en mode paroles.';
 
   @override
   String get searchResultsCurrentFolder => 'Dossier actuel et sous-dossiers';
@@ -5678,10 +6135,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get remoteSearchCachedTitle => 'Éléments en cache';
 
   @override
-  String get remoteSearchDeepAction => 'Recherche approfondie sur le serveur distant';
+  String get remoteSearchDeepAction =>
+      'Recherche approfondie sur le serveur distant';
 
   @override
-  String get remoteSearchDeepSearching => 'Recherche approfondie dans le répertoire distant...';
+  String get remoteSearchDeepSearching =>
+      'Recherche approfondie dans le répertoire distant...';
 
   @override
   String get remoteSearchDeepStop => 'Arrêter la recherche';
@@ -5691,4 +6150,25 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get searchFolderHint => 'Rechercher des chansons ou des dossiers...';
+
+  @override
+  String get spatialAudio => '空间音效';
+
+  @override
+  String get spatialAudioOff => '关闭';
+
+  @override
+  String get spatialAudioConcertHall => '音乐厅空间';
+
+  @override
+  String get spatialAudioNaturalEcho => '轻度回响';
+
+  @override
+  String get spatialAudioOffDescription => '保持原始干声，不叠加空间混响';
+
+  @override
+  String get spatialAudioConcertHallDescription => '营造宽广立体的音乐厅声场效果';
+
+  @override
+  String get spatialAudioNaturalEchoDescription => '仅施加轻微自然回响，忠实保留原声细节';
 }

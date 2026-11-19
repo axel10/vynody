@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/utils/secure_storage.dart';
 
 import 'package:vynody/player/audio/equalizer_presets.dart';
+import 'package:vynody/player/audio/spatial_audio_mode.dart';
 import 'package:vynody/player/settings/shortcut_bindings.dart';
 import 'package:vynody/transcode/transcode_models.dart';
 import 'package:vynody/utils/language_code_utils.dart';
@@ -800,6 +801,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyEqualizerGains = 'equalizer_gains';
   static const String _keyEqualizerPreamp = 'equalizer_preamp';
   static const String _keyEqualizerBassBoost = 'equalizer_bass_boost';
+  static const String _keySpatialAudioMode = 'spatial_audio_mode';
   static const String _keyCustomEqPresets = 'custom_eq_presets';
   static const String _keyShowDeveloperOptions = 'show_developer_options';
   static const String skipShortAudioScanEnabledStorageKey =
@@ -2356,6 +2358,17 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _spatialAudioModeProperty = SettingProperty<SpatialAudioMode>(
+    key: _keySpatialAudioMode,
+    defaultValue: SpatialAudioMode.off,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) =>
+        SpatialAudioMode.fromStorage(prefs.getString(key)),
+    customWrite: (prefs, key, value) =>
+        prefs.setString(key, value.storageValue),
+  );
+
   late final _customEqPresetsProperty = SettingProperty<List<EqPreset>>(
     key: _keyCustomEqPresets,
     defaultValue: const <EqPreset>[],
@@ -3537,6 +3550,10 @@ class SettingsService extends ChangeNotifier {
   double get equalizerBassBoost => _equalizerBassBoostProperty.value.clamp(0.0, 12.0);
   set equalizerBassBoost(double value) =>
       _equalizerBassBoostProperty.value = value.clamp(0.0, 12.0);
+
+  SpatialAudioMode get spatialAudioMode => _spatialAudioModeProperty.value;
+  set spatialAudioMode(SpatialAudioMode value) =>
+      _spatialAudioModeProperty.value = value;
 
   List<EqPreset> get customEqPresets => _customEqPresetsProperty.value;
 

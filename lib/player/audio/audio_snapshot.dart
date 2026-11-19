@@ -4,6 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/app_playback_mode.dart';
+import 'package:vynody/player/audio/spatial_audio_mode.dart';
 
 part 'audio_snapshot.freezed.dart';
 
@@ -27,6 +28,7 @@ abstract class AudioSnapshot with _$AudioSnapshot {
     required bool isShuffleRandomMode,
     required AppPlaybackMode playbackMode,
     required EqualizerConfig equalizerConfig,
+    @Default(SpatialAudioMode.off) SpatialAudioMode spatialAudioMode,
     required VisualizerOptimizationOptions currentVisualizerOptions,
     @Default(<MusicFile>[]) List<MusicFile> randomHistory,
     @Default(<MusicFile>[]) List<MusicFile> randomQueue,

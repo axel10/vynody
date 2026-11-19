@@ -68,7 +68,8 @@ import 'app_localizations_zh.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale)
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -76,7 +77,8 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -88,12 +90,13 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
@@ -105,7 +108,7 @@ abstract class AppLocalizations {
     Locale('ko'),
     Locale('tr'),
     Locale('zh'),
-    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant')
+    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
   /// The title of the application
@@ -8890,7 +8893,11 @@ abstract class AppLocalizations {
   ///
   /// In zh, this message translates to:
   /// **'设备 “{senderName}” 请求向您发送 {count} 个播放列表（共 {songsCount} 首歌曲）。'**
-  String incomingPlaylistImportFrom(String senderName, int count, int songsCount);
+  String incomingPlaylistImportFrom(
+    String senderName,
+    int count,
+    int songsCount,
+  );
 
   /// Message for incoming playlist export prompt
   ///
@@ -9052,7 +9059,10 @@ abstract class AppLocalizations {
   ///
   /// In zh, this message translates to:
   /// **'当前歌词生成模型为「{currentModel}」，非官方推荐模型（推荐使用「{recommendedModel}」）。非推荐模型可能存在生成歌词不准确、时间轴偏移等问题，是否换成推荐模型？'**
-  String nonRecommendedModelWarningMessage(String currentModel, String recommendedModel);
+  String nonRecommendedModelWarningMessage(
+    String currentModel,
+    String recommendedModel,
+  );
 
   /// No description provided for @switchAndGenerate.
   ///
@@ -10402,7 +10412,12 @@ abstract class AppLocalizations {
   ///
   /// In zh, this message translates to:
   /// **'同步完成：匹配 {matched} 首，新增 {added} 首，更新 {updated} 首，忽略 {skipped} 首'**
-  String lanSyncLyricsSyncResult(int matched, int added, int updated, int skipped);
+  String lanSyncLyricsSyncResult(
+    int matched,
+    int added,
+    int updated,
+    int skipped,
+  );
 
   /// Playlists received from another device
   ///
@@ -10703,9 +10718,52 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'搜索当前目录或全局歌曲、文件夹...'**
   String get searchFolderHint;
+
+  /// No description provided for @spatialAudio.
+  ///
+  /// In zh, this message translates to:
+  /// **'空间音效'**
+  String get spatialAudio;
+
+  /// No description provided for @spatialAudioOff.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭'**
+  String get spatialAudioOff;
+
+  /// No description provided for @spatialAudioConcertHall.
+  ///
+  /// In zh, this message translates to:
+  /// **'音乐厅空间'**
+  String get spatialAudioConcertHall;
+
+  /// No description provided for @spatialAudioNaturalEcho.
+  ///
+  /// In zh, this message translates to:
+  /// **'轻度回响'**
+  String get spatialAudioNaturalEcho;
+
+  /// No description provided for @spatialAudioOffDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'保持原始干声，不叠加空间混响'**
+  String get spatialAudioOffDescription;
+
+  /// No description provided for @spatialAudioConcertHallDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'营造宽广立体的音乐厅声场效果'**
+  String get spatialAudioConcertHallDescription;
+
+  /// No description provided for @spatialAudioNaturalEchoDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅施加轻微自然回响，忠实保留原声细节'**
+  String get spatialAudioNaturalEchoDescription;
 }
 
-class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -10714,40 +10772,58 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
   }
 
   @override
-  bool isSupported(Locale locale) => <String>['de', 'en', 'es', 'fr', 'ja', 'ko', 'tr', 'zh'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>[
+    'de',
+    'en',
+    'es',
+    'fr',
+    'ja',
+    'ko',
+    'tr',
+    'zh',
+  ].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
-
   // Lookup logic when language+script codes are specified.
   switch (locale.languageCode) {
-    case 'zh': {
-  switch (locale.scriptCode) {
-    case 'Hant': return AppLocalizationsZhHant();
-   }
-  break;
-   }
+    case 'zh':
+      {
+        switch (locale.scriptCode) {
+          case 'Hant':
+            return AppLocalizationsZhHant();
+        }
+        break;
+      }
   }
 
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'de': return AppLocalizationsDe();
-    case 'en': return AppLocalizationsEn();
-    case 'es': return AppLocalizationsEs();
-    case 'fr': return AppLocalizationsFr();
-    case 'ja': return AppLocalizationsJa();
-    case 'ko': return AppLocalizationsKo();
-    case 'tr': return AppLocalizationsTr();
-    case 'zh': return AppLocalizationsZh();
+    case 'de':
+      return AppLocalizationsDe();
+    case 'en':
+      return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
+    case 'fr':
+      return AppLocalizationsFr();
+    case 'ja':
+      return AppLocalizationsJa();
+    case 'ko':
+      return AppLocalizationsKo();
+    case 'tr':
+      return AppLocalizationsTr();
+    case 'zh':
+      return AppLocalizationsZh();
   }
 
   throw FlutterError(
     'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
     'an issue with the localizations generation tool. Please file an issue '
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.'
+    'that was used.',
   );
 }

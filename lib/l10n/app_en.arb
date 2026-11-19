@@ -2616,5 +2616,12 @@
   "remoteSearchDeepSearching": "Deep searching remote directory...",
   "remoteSearchDeepStop": "Stop search",
   "remoteSearchDeepCompleted": "Deep search completed",
-  "searchFolderHint": "Search songs or folders..."
+  "searchFolderHint": "Search songs or folders...",
+  "spatialAudio": "Spatial Audio",
+  "spatialAudioOff": "Off",
+  "spatialAudioConcertHall": "Concert Hall",
+  "spatialAudioNaturalEcho": "Gentle Echo",
+  "spatialAudioOffDescription": "Original sound without spatial reverb",
+  "spatialAudioConcertHallDescription": "Expansive, immersive concert hall soundstage",
+  "spatialAudioNaturalEchoDescription": "Subtle, natural echo that preserves original detail"
 }

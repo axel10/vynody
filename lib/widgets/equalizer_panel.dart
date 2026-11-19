@@ -6,6 +6,7 @@ import 'package:audio_core/audio_core.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/audio/equalizer_presets.dart';
+import 'package:vynody/player/audio/spatial_audio_mode.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/app_snack_bar.dart';
@@ -55,6 +56,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     final audio = ref.read(audioServiceProvider);
     final snapshot = ref.watch(audioSnapshotProvider);
     final config = snapshot.equalizerConfig;
+    final spatialAudioMode = snapshot.spatialAudioMode;
     final playbackSpeed = snapshot.playbackSpeed;
     final frequencies = audio.getEqualizerBandCenters(bandCount: bandCount);
     final l10n = AppLocalizations.of(context)!;
@@ -142,11 +144,135 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                   : theme.colorScheme.outlineVariant
                       .withValues(alpha: 0.5),
             ),
+            const SizedBox(height: 20),
+            _buildSpatialAudioControl(
+              audio,
+              spatialAudioMode,
+              accentColor,
+              l10n,
+            ),
+            const SizedBox(height: 20),
+            Divider(
+              height: 1,
+              color: isDark
+                  ? Colors.white10
+                  : theme.colorScheme.outlineVariant
+                      .withValues(alpha: 0.5),
+            ),
             const SizedBox(height: 24),
             _buildSpeedControl(audio, playbackSpeed, accentColor, l10n),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSpatialAudioControl(
+    AudioService audio,
+    SpatialAudioMode currentMode,
+    Color accentColor,
+    AppLocalizations l10n,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    String labelFor(SpatialAudioMode mode) {
+      switch (mode) {
+        case SpatialAudioMode.off:
+          return l10n.spatialAudioOff;
+        case SpatialAudioMode.concertHall:
+          return l10n.spatialAudioConcertHall;
+        case SpatialAudioMode.naturalEcho:
+          return l10n.spatialAudioNaturalEcho;
+      }
+    }
+
+    String descriptionFor(SpatialAudioMode mode) {
+      switch (mode) {
+        case SpatialAudioMode.off:
+          return l10n.spatialAudioOffDescription;
+        case SpatialAudioMode.concertHall:
+          return l10n.spatialAudioConcertHallDescription;
+        case SpatialAudioMode.naturalEcho:
+          return l10n.spatialAudioNaturalEchoDescription;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              l10n.spatialAudio,
+              style: TextStyle(
+                color: isDark
+                    ? Colors.white70
+                    : theme.colorScheme.onSurfaceVariant,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Text(
+                labelFor(currentMode),
+                style: TextStyle(
+                  color: currentMode == SpatialAudioMode.off
+                      ? (isDark ? Colors.white54 : theme.colorScheme.outline)
+                      : accentColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: SpatialAudioMode.values.map((mode) {
+            final isSelected = currentMode == mode;
+            return ChoiceChip(
+              label: Text(
+                labelFor(mode),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected
+                      ? (isDark ? Colors.black : Colors.white)
+                      : (isDark ? Colors.white70 : Colors.black87),
+                ),
+              ),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected) {
+                  audio.setSpatialAudioMode(mode);
+                }
+              },
+              showCheckmark: false,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              selectedColor: accentColor,
+              backgroundColor: isDark
+                  ? Colors.white10
+                  : Colors.black.withValues(alpha: 0.04),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          descriptionFor(currentMode),
+          style: TextStyle(
+            fontSize: 12,
+            color: isDark
+                ? Colors.white54
+                : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
+          ),
+        ),
+      ],
     );
   }
 
