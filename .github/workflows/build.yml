@@ -129,24 +129,30 @@ jobs:
   android-smoke-test:
     name: Smoke Test Android APK (arm64-v8a)
     needs: [android]
-    runs-on: macos-15
+    runs-on: ubuntu-latest
 
     steps:
+      - name: Enable KVM group permissions
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - name: Download Android APK
         uses: actions/download-artifact@v4
         with:
           name: android-apk
           path: android_apks
 
-      - name: Run launch smoke test on arm64-v8a emulator
+      - name: Run launch smoke test on x86_64 emulator (arm64-v8a via libndk_translation)
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
           target: google_apis
-          arch: arm64-v8a
+          arch: x86_64
           profile: pixel_6
           disable-animations: true
-          emulator-options: -no-snapshot-save -no-window -gpu auto -noaudio -no-boot-anim
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
             set -euo pipefail
             APK_FILE=$(ls android_apks/vynody-android-*-arm64-v8a.apk | head -n 1)
