@@ -55,6 +55,13 @@ if [[ -z "${LIBCLANG_PATH:-}" ]]; then
   fi
   export LIBCLANG_PATH="$LIBCLANG_DIR"
   echo "Using NDK LIBCLANG_PATH=$LIBCLANG_PATH"
+
+  CLANG_STDDEF="$(find "$LIBCLANG_DIR/clang" -maxdepth 3 -name "stddef.h" 2>/dev/null | head -n 1 || true)"
+  if [[ -n "$CLANG_STDDEF" ]]; then
+    CLANG_RESOURCE_DIR="$(dirname "$(dirname "$CLANG_STDDEF")")"
+    export BINDGEN_EXTRA_CLANG_ARGS="${BINDGEN_EXTRA_CLANG_ARGS:+$BINDGEN_EXTRA_CLANG_ARGS }-resource-dir=$CLANG_RESOURCE_DIR"
+    echo "Using NDK clang resource-dir=$CLANG_RESOURCE_DIR"
+  fi
 fi
 
 export CARGO_NET_OFFLINE=true
