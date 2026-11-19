@@ -2357,5 +2357,12 @@
   "remoteSearchDeepSearching": "Uzak dizin derinlemesine aranıyor...",
   "remoteSearchDeepStop": "Aramayı durdur",
   "remoteSearchDeepCompleted": "Derin arama tamamlandı",
-  "searchFolderHint": "Şarkı veya klasör ara..."
+  "searchFolderHint": "Şarkı veya klasör ara...",
+  "spatialAudio": "Uzamsal Ses",
+  "spatialAudioOff": "Kapalı",
+  "spatialAudioConcertHall": "Konser Salonu",
+  "spatialAudioNaturalEcho": "Hafif Yankı",
+  "spatialAudioOffDescription": "Uzamsal yankı olmadan orijinal ses",
+  "spatialAudioConcertHallDescription": "Geniş ve sürükleyici konser salonu ses sahnesi",
+  "spatialAudioNaturalEchoDescription": "Orijinal ayrıntıları koruyan hafif ve doğal yankı"
 }

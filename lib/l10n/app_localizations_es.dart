@@ -6151,23 +6151,26 @@ class AppLocalizationsEs extends AppLocalizations {
   String get searchFolderHint => 'Buscar canciones o carpetas...';
 
   @override
-  String get spatialAudio => '空间音效';
+  String get spatialAudio => 'Audio espacial';
 
   @override
-  String get spatialAudioOff => '关闭';
+  String get spatialAudioOff => 'Desactivado';
 
   @override
-  String get spatialAudioConcertHall => '音乐厅空间';
+  String get spatialAudioConcertHall => 'Sala de conciertos';
 
   @override
-  String get spatialAudioNaturalEcho => '轻度回响';
+  String get spatialAudioNaturalEcho => 'Eco suave';
 
   @override
-  String get spatialAudioOffDescription => '保持原始干声，不叠加空间混响';
+  String get spatialAudioOffDescription =>
+      'Sonido original sin reverberación espacial';
 
   @override
-  String get spatialAudioConcertHallDescription => '营造宽广立体的音乐厅声场效果';
+  String get spatialAudioConcertHallDescription =>
+      'Escenario sonoro amplio e inmersivo de sala de conciertos';
 
   @override
-  String get spatialAudioNaturalEchoDescription => '仅施加轻微自然回响，忠实保留原声细节';
+  String get spatialAudioNaturalEchoDescription =>
+      'Eco sutil y natural que conserva los detalles originales';
 }

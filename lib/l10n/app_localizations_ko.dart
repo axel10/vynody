@@ -5880,23 +5880,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get searchFolderHint => '노래 또는 폴더 검색...';
 
   @override
-  String get spatialAudio => '空间音效';
+  String get spatialAudio => '공간 음향';
 
   @override
-  String get spatialAudioOff => '关闭';
+  String get spatialAudioOff => '끔';
 
   @override
-  String get spatialAudioConcertHall => '音乐厅空间';
+  String get spatialAudioConcertHall => '콘서트홀';
 
   @override
-  String get spatialAudioNaturalEcho => '轻度回响';
+  String get spatialAudioNaturalEcho => '부드러운 에코';
 
   @override
-  String get spatialAudioOffDescription => '保持原始干声，不叠加空间混响';
+  String get spatialAudioOffDescription => '공간 잔향 없이 원음 그대로 재생';
 
   @override
-  String get spatialAudioConcertHallDescription => '营造宽广立体的音乐厅声场效果';
+  String get spatialAudioConcertHallDescription => '넓고 입체적인 콘서트홀 사운드 스테이지 구현';
 
   @override
-  String get spatialAudioNaturalEchoDescription => '仅施加轻微自然回响，忠实保留原声细节';
+  String get spatialAudioNaturalEchoDescription =>
+      '원음의 디테일을 유지하면서 은은하고 자연스러운 잔향 적용';
 }

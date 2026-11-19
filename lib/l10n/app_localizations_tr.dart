@@ -6090,23 +6090,25 @@ class AppLocalizationsTr extends AppLocalizations {
   String get searchFolderHint => 'Şarkı veya klasör ara...';
 
   @override
-  String get spatialAudio => '空间音效';
+  String get spatialAudio => 'Uzamsal Ses';
 
   @override
-  String get spatialAudioOff => '关闭';
+  String get spatialAudioOff => 'Kapalı';
 
   @override
-  String get spatialAudioConcertHall => '音乐厅空间';
+  String get spatialAudioConcertHall => 'Konser Salonu';
 
   @override
-  String get spatialAudioNaturalEcho => '轻度回响';
+  String get spatialAudioNaturalEcho => 'Hafif Yankı';
 
   @override
-  String get spatialAudioOffDescription => '保持原始干声，不叠加空间混响';
+  String get spatialAudioOffDescription => 'Uzamsal yankı olmadan orijinal ses';
 
   @override
-  String get spatialAudioConcertHallDescription => '营造宽广立体的音乐厅声场效果';
+  String get spatialAudioConcertHallDescription =>
+      'Geniş ve sürükleyici konser salonu ses sahnesi';
 
   @override
-  String get spatialAudioNaturalEchoDescription => '仅施加轻微自然回响，忠实保留原声细节';
+  String get spatialAudioNaturalEchoDescription =>
+      'Orijinal ayrıntıları koruyan hafif ve doğal yankı';
 }

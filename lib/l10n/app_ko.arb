@@ -2225,5 +2225,12 @@
   "remoteSearchDeepSearching": "원격 디렉토리 정밀 검색 중...",
   "remoteSearchDeepStop": "검색 중지",
   "remoteSearchDeepCompleted": "정밀 검색 완료",
-  "searchFolderHint": "노래 또는 폴더 검색..."
+  "searchFolderHint": "노래 또는 폴더 검색...",
+  "spatialAudio": "공간 음향",
+  "spatialAudioOff": "끔",
+  "spatialAudioConcertHall": "콘서트홀",
+  "spatialAudioNaturalEcho": "부드러운 에코",
+  "spatialAudioOffDescription": "공간 잔향 없이 원음 그대로 재생",
+  "spatialAudioConcertHallDescription": "넓고 입체적인 콘서트홀 사운드 스테이지 구현",
+  "spatialAudioNaturalEchoDescription": "원음의 디테일을 유지하면서 은은하고 자연스러운 잔향 적용"
 }

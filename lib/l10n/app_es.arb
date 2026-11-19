@@ -2225,5 +2225,12 @@
   "remoteSearchDeepSearching": "Buscando en profundidad en el directorio remoto...",
   "remoteSearchDeepStop": "Detener búsqueda",
   "remoteSearchDeepCompleted": "Búsqueda profunda completada",
-  "searchFolderHint": "Buscar canciones o carpetas..."
+  "searchFolderHint": "Buscar canciones o carpetas...",
+  "spatialAudio": "Audio espacial",
+  "spatialAudioOff": "Desactivado",
+  "spatialAudioConcertHall": "Sala de conciertos",
+  "spatialAudioNaturalEcho": "Eco suave",
+  "spatialAudioOffDescription": "Sonido original sin reverberación espacial",
+  "spatialAudioConcertHallDescription": "Escenario sonoro amplio e inmersivo de sala de conciertos",
+  "spatialAudioNaturalEchoDescription": "Eco sutil y natural que conserva los detalles originales"
 }

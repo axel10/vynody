@@ -2324,5 +2324,12 @@
   "remoteSearchDeepSearching": "リモートディレクトリを詳細検索中...",
   "remoteSearchDeepStop": "検索を停止",
   "remoteSearchDeepCompleted": "詳細検索が完了しました",
-  "searchFolderHint": "曲やフォルダを検索..."
+  "searchFolderHint": "曲やフォルダを検索...",
+  "spatialAudio": "空間オーディオ",
+  "spatialAudioOff": "オフ",
+  "spatialAudioConcertHall": "コンサートホール",
+  "spatialAudioNaturalEcho": "軽めのエコー",
+  "spatialAudioOffDescription": "空間リバーブを加えない原音のままの再生",
+  "spatialAudioConcertHallDescription": "広がりと立体感のあるコンサートホールの音場を再現",
+  "spatialAudioNaturalEchoDescription": "原音のディテールを忠実に保ちつつ、控えめで自然な残響を加えます"
 }
