@@ -117,7 +117,7 @@ fi
 if command -v rustup >/dev/null 2>&1; then
   rustup toolchain install stable --profile minimal
   rustup default stable
-  rustup target add aarch64-linux-android armv7-linux-androideabi
+  rustup target add aarch64-linux-android
 fi
 
 flutter pub get

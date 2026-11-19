@@ -16,11 +16,10 @@ fi
 
 JOBS="${JOBS:-$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)}"
 
-echo "==> [1/3] Compiling FFmpeg/Opus/LAME from source for Android (armeabi-v7a, arm64-v8a)..."
+echo "==> [1/3] Compiling FFmpeg/Opus/LAME from source for Android (arm64-v8a)..."
 bash "$ROOT_DIR/audio_core/build-ffmpeg-android.sh" \
   --sdk "$SDK_ROOT" \
   --jobs "$JOBS" \
-  --abi armeabi-v7a \
   --abi arm64-v8a
 
 echo "==> [2/3] Writing ffmpeg_lib/version.txt from audio_core/ffmpeg_version.env..."
@@ -31,11 +30,37 @@ if [[ -z "$FFMPEG_VERSION" ]]; then
 fi
 printf '%s' "$FFMPEG_VERSION" > "$ROOT_DIR/audio_core/android/ffmpeg_lib/version.txt"
 
-echo "==> [3/3] Building Flutter release APKs (offline)..."
+echo "==> [3/3] Building Flutter release APK (offline, arm64-v8a)..."
+if [[ -z "${LIBCLANG_PATH:-}" ]]; then
+  NDK_SEARCH_ROOT="${ANDROID_NDK_HOME:-${NDK_HOME:-}}"
+  LIBCLANG_DIR=""
+  if [[ -n "$NDK_SEARCH_ROOT" && -d "$NDK_SEARCH_ROOT" ]]; then
+    LIBCLANG_CANDIDATE="$(find "$NDK_SEARCH_ROOT/toolchains/llvm/prebuilt" -maxdepth 3 \( -name "libclang.so" -o -name "libclang.so.*" -o -name "libclang.dylib" \) 2>/dev/null | head -n 1 || true)"
+    if [[ -n "$LIBCLANG_CANDIDATE" ]]; then
+      LIBCLANG_DIR="$(dirname "$LIBCLANG_CANDIDATE")"
+    fi
+  elif [[ -d "$SDK_ROOT/ndk" ]]; then
+    while IFS= read -r ndk_dir; do
+      LIBCLANG_CANDIDATE="$(find "$ndk_dir/toolchains/llvm/prebuilt" -maxdepth 3 \( -name "libclang.so" -o -name "libclang.so.*" -o -name "libclang.dylib" \) 2>/dev/null | head -n 1 || true)"
+      if [[ -n "$LIBCLANG_CANDIDATE" ]]; then
+        LIBCLANG_DIR="$(dirname "$LIBCLANG_CANDIDATE")"
+        break
+      fi
+    done < <(find "$SDK_ROOT/ndk" -mindepth 1 -maxdepth 1 -type d | sort -r)
+  fi
+
+  if [[ -z "$LIBCLANG_DIR" ]]; then
+    echo "Error: Could not locate libclang in Android NDK under '$SDK_ROOT/ndk'. Set LIBCLANG_PATH manually." >&2
+    exit 1
+  fi
+  export LIBCLANG_PATH="$LIBCLANG_DIR"
+  echo "Using NDK LIBCLANG_PATH=$LIBCLANG_PATH"
+fi
+
 export CARGO_NET_OFFLINE=true
 flutter build apk --release \
   --no-pub \
-  --target-platform android-arm,android-arm64 \
+  --target-platform android-arm64 \
   --split-per-abi
 
 echo "F-Droid build finished successfully."
