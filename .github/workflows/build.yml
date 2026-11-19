@@ -213,7 +213,7 @@ jobs:
         run: New-Item -ItemType Directory -Force -Path $env:PUB_CACHE | Out-Null
 
       - name: Install dependencies
-        run: flutter pub get --enforce-lockfile
+        run: flutter pub get
 
       - name: Patch cargokit symlink resolver
         shell: pwsh
