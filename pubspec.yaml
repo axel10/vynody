@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 3.4.0
+version: 3.4.0+1
 
 environment:
   sdk: ^3.11.1
@@ -271,6 +271,7 @@ msix_config:
   publisher_display_name: "Vynody Studio" 
   identity_name: VynodyStudio.Vynody
   publisher: "CN=B7B226EF-AAE5-43BA-8F9E-880DB742EFD0"
+  msix_version: 3.4.0.0
   store: true
   logo_path: assets/images/icon-windows-and-linux.png
   output_name: Vynody
