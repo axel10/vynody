@@ -180,7 +180,7 @@ SPEC CHECKSUMS:
   DKImagePickerController: 946cec48c7873164274ecc4624d19e3da4c1ef3c
   DKPhotoGallery: b3834fecb755ee09a593d7c9e389d8b5d6deed60
   file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
-  file_selector_ios: ec57ec07954363dd730b642e765e58f199bb621a
+  file_selector_ios: fb1dd93b450e9c1ac595c0c8cf29cc855ea24d61
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   flutter_secure_storage: 1ed9476fba7e7a782b22888f956cce43e2c62f13
   flutter_taglib: cc3aa57678a502616b821de3e98b412806bf288d

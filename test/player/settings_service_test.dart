@@ -635,23 +635,23 @@ void main() {
       expect(reloaded.isLibraryTabVisible('playlist'), isTrue);
     });
 
-    test('rewindToStartOnPrevious defaults to true and can be toggled', () async {
+    test('rewindToStartOnPrevious defaults to false and can be toggled', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       final settings = SettingsService(prefs);
 
-      expect(settings.rewindToStartOnPrevious, isTrue);
-
-      settings.rewindToStartOnPrevious = false;
       expect(settings.rewindToStartOnPrevious, isFalse);
-      expect(prefs.getBool('rewind_to_start_on_previous'), isFalse);
+
+      settings.rewindToStartOnPrevious = true;
+      expect(settings.rewindToStartOnPrevious, isTrue);
+      expect(prefs.getBool('rewind_to_start_on_previous'), isTrue);
 
       final reloaded = SettingsService(prefs);
-      expect(reloaded.rewindToStartOnPrevious, isFalse);
-
-      reloaded.rewindToStartOnPrevious = true;
       expect(reloaded.rewindToStartOnPrevious, isTrue);
-      expect(prefs.getBool('rewind_to_start_on_previous'), isTrue);
+
+      reloaded.rewindToStartOnPrevious = false;
+      expect(reloaded.rewindToStartOnPrevious, isFalse);
+      expect(prefs.getBool('rewind_to_start_on_previous'), isFalse);
     });
 
     test('showPlaybackTopDragHandle defaults to true, persists, and resets', () async {

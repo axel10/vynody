@@ -322,19 +322,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(settings.rewindToStartOnPrevious, isTrue);
+    expect(settings.rewindToStartOnPrevious, isFalse);
 
     final l10n = await AppLocalizations.delegate.load(const Locale('zh'));
     final tileFinder = find.widgetWithText(SwitchListTile, l10n.rewindToStartOnPrevious);
     expect(tileFinder, findsOneWidget);
 
     final switchTile = tester.widget<SwitchListTile>(tileFinder);
-    expect(switchTile.value, isTrue);
+    expect(switchTile.value, isFalse);
 
     await tester.tap(tileFinder);
     await tester.pumpAndSettle();
 
-    expect(settings.rewindToStartOnPrevious, isFalse);
+    expect(settings.rewindToStartOnPrevious, isTrue);
   });
 
   testWidgets('ProxySection renders correctly', (tester) async {

@@ -1485,7 +1485,7 @@ class SettingsService extends ChangeNotifier {
 
   late final _rewindToStartOnPreviousProperty = SettingProperty<bool>(
     key: _keyRewindToStartOnPrevious,
-    defaultValue: true,
+    defaultValue: false,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
