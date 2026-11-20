@@ -133,6 +133,16 @@ flutter run -d <device-id>
 flutter test
 ```
 
+## 致谢
+
+Vynody 的实现离不开开源社区的支持，谨向以下开源项目、第三方插件及在线服务致以诚挚谢意：
+
+- **音频内核与音效**：[Rodio](https://github.com/RustAudio/rodio)、[FFmpeg](https://ffmpeg.org/)、[ExoPlayer (Media3)](https://github.com/androidx/media)、[TagLib](https://github.com/taglib/taglib)，以及为空间音效提供算法参考的 [Freeverb](https://github.com/sinshu/freeverb)
+- **系统集成与桌面增强**：[`audio_service`](https://github.com/ryanheise/audio_service/tree/minor/audio_service)、[`audio_session`](https://github.com/ryanheise/audio_session)、[`audio_service_mpris`](https://github.com/bdrazhzhov/audio-service-mpris)、[`smtc_windows`](https://github.com/KRTirtho/frb_plugins/tree/main/packages/smtc_windows)、[`on_audio_query`](https://github.com/rozpo/on_audio_query)、[`window_manager`](https://github.com/leanflutter/window_manager)、[`desktop_multi_window`](https://github.com/MixinNetwork/flutter-plugins/tree/main/packages/desktop_multi_window)、[`super_drag_and_drop`](https://github.com/superlistapp/super_native_extensions)、[`windows_taskbar`](https://github.com/alexmercerind/windows_taskbar)、[`file_picker`](https://github.com/vicajilau/flutter_file_picker/tree/main/packages/file_picker)
+- **视觉与交互**：[`mesh_gradient`](https://github.com/ben-fornefeld/mesh_gradient)、以及为「动态流变 v2」提供设计灵感的 [QueMusic](https://github.com/BroNekoX/QueMusic)
+- **状态管理、存储与网络**：[`flutter_riverpod`](https://github.com/rrousselGit/riverpod)、[`drift`](https://github.com/simolus3/drift)、[`dio`](https://github.com/cfug/dio/blob/main/dio)、[`bonsoir`](https://github.com/Skyost/Bonsoir/tree/main/packages/bonsoir)
+- **在线数据服务**：[LRCLIB](https://lrclib.net/)、[MusicBrainz](https://musicbrainz.org/)、[AcoustID](https://acoustid.org/)
+
 ## License
 
 本项目基于 [GPL-3.0](LICENSE) 协议开源。
