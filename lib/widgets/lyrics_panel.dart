@@ -1373,6 +1373,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                   _lastActiveIndex = activeIndex;
                   _isFocusMode = true;
                   _enteringFocusModeTriggered = true;
+                  _lastScrollDelta = 0.0;
+                  _scrollTriggerTime = 0;
                 }
               } else {
                 if (_activePointers == 0) {
@@ -1668,6 +1670,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       setState(() {
         _isFocusMode = true;
         _enteringFocusModeTriggered = true;
+        _lastScrollDelta = 0.0;
+        _scrollTriggerTime = 0;
         _overrideActiveIndex = index;
         _seekTargetTimestamp = targetPosition;
         _seekSetTime = DateTime.now();
@@ -2344,6 +2348,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                     if (_isFocusMode) {
                       setState(() {
                         _isFocusMode = false;
+                        _lastScrollDelta = 0.0;
+                        _scrollTriggerTime = 0;
                       });
                     }
                   }

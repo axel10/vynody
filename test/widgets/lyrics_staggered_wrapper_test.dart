@@ -109,4 +109,105 @@ void main() {
     await tester.pump(const Duration(milliseconds: 700));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('重新进入错峰窗口时，过期的 scrollTriggerTime 不会触发旧位移', (tester) async {
+    final int staleTrigger =
+        DateTime.now().millisecondsSinceEpoch - 2000;
+
+    await tester.pumpWidget(
+      _host(
+        enabled: false,
+        scrollTriggerTime: staleTrigger,
+        onProbeInit: () {},
+      ),
+    );
+
+    // 模拟点击歌词提前切回 isFocusMode=true 但尚未 jumpTo：enabled 翻回 true，仍携带过期时间戳
+    await tester.pumpWidget(
+      _host(
+        enabled: true,
+        scrollTriggerTime: staleTrigger,
+        onProbeInit: () {},
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 16));
+    final Transform? movedTransform = tester
+        .widgetList<Transform>(find.byType(Transform))
+        .cast<Transform?>()
+        .firstWhere(
+          (t) => t!.transform.getTranslation().y != 0,
+          orElse: () => null,
+        );
+    expect(movedTransform, isNull, reason: '过期时间戳重新启用时不应把歌词凭空向下推移');
+  });
+
+  test('进入焦点模式时由点击行及运动前方行同步带动，仅后方行轻微错峰', () {
+    // 往上滚动（scrollDelta > 0）：index <= activeIndex 立即动，下方行错峰跟进
+    expect(
+      computeStaggeredLyricsDelayMs(
+        index: 8,
+        activeIndex: 10,
+        scrollDelta: 300,
+        isEnteringFocusMode: true,
+      ),
+      0,
+    );
+    expect(
+      computeStaggeredLyricsDelayMs(
+        index: 10,
+        activeIndex: 10,
+        scrollDelta: 300,
+        isEnteringFocusMode: true,
+      ),
+      0,
+    );
+    expect(
+      computeStaggeredLyricsDelayMs(
+        index: 12,
+        activeIndex: 10,
+        scrollDelta: 300,
+        isEnteringFocusMode: true,
+      ),
+      30,
+    );
+    expect(
+      computeStaggeredLyricsDelayMs(
+        index: 30,
+        activeIndex: 10,
+        scrollDelta: 300,
+        isEnteringFocusMode: true,
+      ),
+      240,
+    );
+
+    // 往下滚动（scrollDelta < 0）：index >= activeIndex 立即动，上方行错峰跟进
+    expect(
+      computeStaggeredLyricsDelayMs(
+        index: 10,
+        activeIndex: 10,
+        scrollDelta: -300,
+        isEnteringFocusMode: true,
+      ),
+      0,
+    );
+    expect(
+      computeStaggeredLyricsDelayMs(
+        index: 13,
+        activeIndex: 10,
+        scrollDelta: -300,
+        isEnteringFocusMode: true,
+      ),
+      0,
+    );
+    expect(
+      computeStaggeredLyricsDelayMs(
+        index: 8,
+        activeIndex: 10,
+        scrollDelta: -300,
+        isEnteringFocusMode: true,
+      ),
+      30,
+    );
+  });
 }

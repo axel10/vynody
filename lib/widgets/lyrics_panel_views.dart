@@ -982,6 +982,33 @@ class _LyricsFadeShaderMask extends StatelessWidget {
   }
 }
 
+@visibleForTesting
+int computeStaggeredLyricsDelayMs({
+  required int index,
+  required int activeIndex,
+  required double scrollDelta,
+  required bool isEnteringFocusMode,
+}) {
+  if (isEnteringFocusMode) {
+    // 点击/回到焦点模式时，由目标行及运动前方的行立刻同步带动滚动，
+    // 仅让运动后方的行轻微错峰跟进，避免大距离滚动时与前方行挤压重叠。
+    if (scrollDelta >= 0) {
+      if (index <= activeIndex) return 0;
+      return math.min(240, (index - activeIndex) * 15);
+    } else {
+      if (index >= activeIndex) return 0;
+      return math.min(240, (activeIndex - index) * 15);
+    }
+  }
+  if (index > activeIndex) {
+    return math.min(300, (index - activeIndex) * 24);
+  } else if (index < activeIndex) {
+    return math.min(120, (activeIndex - index) * 12);
+  } else {
+    return 0;
+  }
+}
+
 /// 苹果歌词面板在滚动 / 切行时给附近行做的「逐行错峰滑入」包装层。
 ///
 /// 这一层**必须常驻**，不允许按条件增删：错峰窗口的边界跟着
@@ -1080,9 +1107,18 @@ class _StaggeredAppleLyricsScrollWrapperState
       return;
     }
     if (_controller == null) {
-      // 刚刚进入错峰窗口：补建控制器并按当前滚动参数播一次。
+      // 刚刚进入错峰窗口：补建控制器；仅当滚动参数未过期且非转场时才播一次，
+      // 避免重新进入焦点模式但尚未 jumpTo 的瞬间重播历史位移。
       _ensureController();
-      _startAnimation();
+      final double maxDelta = widget.isEnteringFocusMode ? 1500.0 : 800.0;
+      final timePassed =
+          DateTime.now().millisecondsSinceEpoch - widget.scrollTriggerTime;
+      if (widget.scrollTriggerTime > 0 &&
+          !widget.isTransitioning &&
+          timePassed < 700 &&
+          widget.scrollDelta.abs() <= maxDelta) {
+        _startAnimation();
+      }
       return;
     }
 
@@ -1117,21 +1153,12 @@ class _StaggeredAppleLyricsScrollWrapperState
       return;
     }
 
-    final int delayMs;
-    if (widget.isEnteringFocusMode) {
-      delayMs = math.min(
-        350,
-        math.max(0, widget.index - widget.firstVisibleIndex) * 15,
-      );
-    } else {
-      if (widget.index > widget.activeIndex) {
-        delayMs = math.min(300, (widget.index - widget.activeIndex) * 24);
-      } else if (widget.index < widget.activeIndex) {
-        delayMs = math.min(120, (widget.activeIndex - widget.index) * 12);
-      } else {
-        delayMs = 0;
-      }
-    }
+    final int delayMs = computeStaggeredLyricsDelayMs(
+      index: widget.index,
+      activeIndex: widget.activeIndex,
+      scrollDelta: widget.scrollDelta,
+      isEnteringFocusMode: widget.isEnteringFocusMode,
+    );
 
     _startOffset = widget.scrollDelta + _currentOffset;
 
