@@ -6111,4 +6111,43 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get spatialAudioNaturalEchoDescription =>
       'Orijinal ayrıntıları koruyan hafif ve doğal yankı';
+
+  @override
+  String get proFeatureUsbAudioExclusiveTitle => 'USB DAC Özel Modu';
+
+  @override
+  String get proFeatureUsbAudioExclusiveDesc =>
+      'Android sistem ses yeniden örneklemesini atlayarak PCM sesini doğrudan harici USB DAC cihazlarına iletir';
+
+  @override
+  String get androidUsbAudioTitle => 'USB Ses Çıkışı';
+
+  @override
+  String get androidUsbAudioDescription =>
+      'Android sistem mikserini atlayarak PCM akışını doğrudan harici USB DAC\'a gönderir. Özel mod etkinken diğer uygulamaların sesi kapatılır.';
+
+  @override
+  String get androidUsbExclusiveModeTitle => 'USB Özel Modu';
+
+  @override
+  String get androidUsbExclusiveModeDescription =>
+      'Bağlı USB DAC cihazını doğrudan devralarak bit-perfect donanım çıkışı sağlar';
+
+  @override
+  String get androidUsbDeviceTitle => 'USB Ses Cihazı';
+
+  @override
+  String get androidUsbNoDeviceDetected =>
+      'USB ses cihazı algılanmadı. Bir USB DAC bağlayıp yenileyin.';
+
+  @override
+  String get androidUsbRefreshDevices => 'Cihazları yenile';
+
+  @override
+  String get androidUsbExclusiveDetachedNotice =>
+      'USB ses cihazının bağlantısı kesildi. Sistem ses çıkışı geri yüklendi.';
+
+  @override
+  String get androidUsbExclusiveBadgeTooltip =>
+      'USB Özel Modu etkin (ses ayarlarını açmak için dokunun)';
 }

@@ -2331,5 +2331,16 @@
   "spatialAudioNaturalEcho": "軽めのエコー",
   "spatialAudioOffDescription": "空間リバーブを加えない原音のままの再生",
   "spatialAudioConcertHallDescription": "広がりと立体感のあるコンサートホールの音場を再現",
-  "spatialAudioNaturalEchoDescription": "原音のディテールを忠実に保ちつつ、控えめで自然な残響を加えます"
+  "spatialAudioNaturalEchoDescription": "原音のディテールを忠実に保ちつつ、控えめで自然な残響を加えます",
+  "proFeatureUsbAudioExclusiveTitle": "USB DAC 排他モード",
+  "proFeatureUsbAudioExclusiveDesc": "Android のシステムミキサーをバイパスし、外部 USB DAC へ PCM 音声を直接出力します",
+  "androidUsbAudioTitle": "USB オーディオ出力",
+  "androidUsbAudioDescription": "Android システムのリサンプリングをバイパスし、外部 USB DAC へ直接出力します。排他モード有効中は他のアプリは消音されます。",
+  "androidUsbExclusiveModeTitle": "USB 排他モード",
+  "androidUsbExclusiveModeDescription": "接続された USB DAC を排他的に占有し、ビットパーフェクト出力を行います",
+  "androidUsbDeviceTitle": "USB オーディオデバイス",
+  "androidUsbNoDeviceDetected": "USB オーディオデバイスが検出されません。DAC を接続して更新してください。",
+  "androidUsbRefreshDevices": "デバイスを更新",
+  "androidUsbExclusiveDetachedNotice": "USB オーディオデバイスが切断されました。システム音声出力に戻しました。",
+  "androidUsbExclusiveBadgeTooltip": "USB 排他モードが有効です（タップしてオーディオ設定を開く）"
 }

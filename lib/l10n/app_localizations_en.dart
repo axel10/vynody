@@ -6085,4 +6085,43 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get spatialAudioNaturalEchoDescription =>
       'Subtle, natural echo that preserves original detail';
+
+  @override
+  String get proFeatureUsbAudioExclusiveTitle => 'USB DAC Exclusive Mode';
+
+  @override
+  String get proFeatureUsbAudioExclusiveDesc =>
+      'Bypass Android system audio resampling and output PCM directly to external USB DACs';
+
+  @override
+  String get androidUsbAudioTitle => 'USB Audio Output';
+
+  @override
+  String get androidUsbAudioDescription =>
+      'Bypass Android system audio mixer and stream PCM directly to an external USB DAC. Other apps will be muted while exclusive mode is active.';
+
+  @override
+  String get androidUsbExclusiveModeTitle => 'USB Exclusive Mode';
+
+  @override
+  String get androidUsbExclusiveModeDescription =>
+      'Directly claim the connected USB DAC for bit-perfect hardware output';
+
+  @override
+  String get androidUsbDeviceTitle => 'USB Audio Device';
+
+  @override
+  String get androidUsbNoDeviceDetected =>
+      'No USB audio device detected. Connect a USB DAC and refresh.';
+
+  @override
+  String get androidUsbRefreshDevices => 'Refresh devices';
+
+  @override
+  String get androidUsbExclusiveDetachedNotice =>
+      'USB audio device disconnected. System audio output restored.';
+
+  @override
+  String get androidUsbExclusiveBadgeTooltip =>
+      'USB Exclusive Mode is active (tap to open audio settings)';
 }

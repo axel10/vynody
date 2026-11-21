@@ -2232,5 +2232,16 @@
   "spatialAudioNaturalEcho": "Écho léger",
   "spatialAudioOffDescription": "Son d'origine sans réverbération spatiale",
   "spatialAudioConcertHallDescription": "Scène sonore ample et immersive d'une salle de concert",
-  "spatialAudioNaturalEchoDescription": "Écho subtil et naturel préservant les détails d'origine"
+  "spatialAudioNaturalEchoDescription": "Écho subtil et naturel préservant les détails d'origine",
+  "proFeatureUsbAudioExclusiveTitle": "Mode exclusif USB DAC",
+  "proFeatureUsbAudioExclusiveDesc": "Contourne le rééchantillonnage système d'Android et envoie le flux PCM directement vers un DAC USB externe",
+  "androidUsbAudioTitle": "Sortie audio USB",
+  "androidUsbAudioDescription": "Contourne le mixeur audio Android et envoie directement le PCM vers un DAC USB externe. Les autres applications seront coupées pendant l'activation.",
+  "androidUsbExclusiveModeTitle": "Mode exclusif USB",
+  "androidUsbExclusiveModeDescription": "Prend le contrôle exclusif du DAC USB connecté pour une sortie matérielle bit-perfect",
+  "androidUsbDeviceTitle": "Périphérique audio USB",
+  "androidUsbNoDeviceDetected": "Aucun périphérique audio USB détecté. Connectez un DAC USB puis actualisez.",
+  "androidUsbRefreshDevices": "Actualiser les périphériques",
+  "androidUsbExclusiveDetachedNotice": "Périphérique audio USB déconnecté. Sortie audio système rétablie.",
+  "androidUsbExclusiveBadgeTooltip": "Mode exclusif USB actif (appuyez pour ouvrir les paramètres audio)"
 }

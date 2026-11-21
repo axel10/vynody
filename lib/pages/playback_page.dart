@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/layout_constants.dart';
+import 'package:vynody/player/audio/android_usb_exclusive_controller.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/audio/app_playback_mode.dart';
@@ -1453,9 +1454,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                                 final progressBarStyle =
                                     ref.watch(effectiveProgressBarStyleProvider);
                                 final showAudioInfo = ref.watch(
-                                  settingsServiceProvider.select(
-                                    (s) => s.showPlaybackAudioInfo,
-                                  ),
+                                  showPlaybackAudioInfoRowProvider,
                                 );
                                 final isScrollingWaveform =
                                     progressBarStyle == ProgressBarStyle.scrollingWaveform;

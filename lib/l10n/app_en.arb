@@ -2623,5 +2623,16 @@
   "spatialAudioNaturalEcho": "Gentle Echo",
   "spatialAudioOffDescription": "Original sound without spatial reverb",
   "spatialAudioConcertHallDescription": "Expansive, immersive concert hall soundstage",
-  "spatialAudioNaturalEchoDescription": "Subtle, natural echo that preserves original detail"
+  "spatialAudioNaturalEchoDescription": "Subtle, natural echo that preserves original detail",
+  "proFeatureUsbAudioExclusiveTitle": "USB DAC Exclusive Mode",
+  "proFeatureUsbAudioExclusiveDesc": "Bypass Android system audio resampling and output PCM directly to external USB DACs",
+  "androidUsbAudioTitle": "USB Audio Output",
+  "androidUsbAudioDescription": "Bypass Android system audio mixer and stream PCM directly to an external USB DAC. Other apps will be muted while exclusive mode is active.",
+  "androidUsbExclusiveModeTitle": "USB Exclusive Mode",
+  "androidUsbExclusiveModeDescription": "Directly claim the connected USB DAC for bit-perfect hardware output",
+  "androidUsbDeviceTitle": "USB Audio Device",
+  "androidUsbNoDeviceDetected": "No USB audio device detected. Connect a USB DAC and refresh.",
+  "androidUsbRefreshDevices": "Refresh devices",
+  "androidUsbExclusiveDetachedNotice": "USB audio device disconnected. System audio output restored.",
+  "androidUsbExclusiveBadgeTooltip": "USB Exclusive Mode is active (tap to open audio settings)"
 }

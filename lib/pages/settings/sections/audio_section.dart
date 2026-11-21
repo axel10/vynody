@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/dialogs/shortcut_settings_dialog.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/player/audio/android_usb_exclusive_controller.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
@@ -251,6 +252,380 @@ class AudioSection extends ConsumerWidget {
     );
   }
 
+  Widget _buildAndroidUsbAudioCard(
+    BuildContext context,
+    WidgetRef ref,
+  ) {
+    final usbState = ref.watch(androidUsbExclusiveProvider);
+    if (!usbState.isSupported) return const SizedBox.shrink();
+
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final controller = ref.read(androidUsbExclusiveProvider.notifier);
+    final isProUnlocked = ref.watch(isProUnlockedProvider);
+    final isExclusive = usbState.isExclusiveActive && isProUnlocked;
+    final hasDevices = usbState.devices.isNotEmpty;
+
+    final canToggle = !usbState.isBusy &&
+        (isExclusive || !isProUnlocked || hasDevices);
+
+    final status = usbState.status;
+    final deviceLabel = status.deviceName.isNotEmpty
+        ? status.deviceName
+        : (usbState.devices
+                .where((d) => d.deviceName == usbState.selectedDeviceName)
+                .firstOrNull
+                ?.productName ??
+            'USB DAC');
+
+    String? formatStr;
+    if (status.sampleRate > 0) {
+      final sr = status.sampleRate;
+      final sampleRateFormatted =
+          '${(sr / 1000).toStringAsFixed(sr % 1000 == 0 ? 0 : 1)} kHz';
+      final channelDesc = status.channels == 2
+          ? 'Stereo (2.0)'
+          : (status.channels > 0 ? '${status.channels} Channels' : '');
+      final parts = <String>[
+        sampleRateFormatted,
+        if (status.bitDepth > 0) '${status.bitDepth}-bit',
+        if (channelDesc.isNotEmpty) channelDesc,
+      ];
+      formatStr = parts.join(' / ');
+    }
+
+    return SettingsGroupCard(
+      title: l10n.androidUsbAudioTitle,
+      icon: Icons.usb_rounded,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Text(
+            l10n.androidUsbAudioDescription,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        SwitchListTile(
+          secondary: usbState.isBusy
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.2),
+                )
+              : const Icon(Icons.graphic_eq_rounded),
+          title: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              Text(l10n.androidUsbExclusiveModeTitle),
+              if (!isProUnlocked) const ProBadge(size: 9.5),
+            ],
+          ),
+          subtitle: Text(l10n.androidUsbExclusiveModeDescription),
+          value: isExclusive,
+          onChanged: canToggle
+              ? (enable) async {
+                  if (enable) {
+                    final allowed = await checkProGate(
+                      context,
+                      ref,
+                      feature: ProFeature.usbAudioExclusive,
+                    );
+                    if (!allowed) return;
+                  }
+                  unawaited(controller.setExclusiveMode(enable));
+                }
+              : null,
+        ),
+        if (!hasDevices)
+          ListTile(
+            leading: Icon(
+              Icons.usb_off_rounded,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            title: Text(
+              l10n.androidUsbNoDeviceDetected,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            trailing: IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              tooltip: l10n.androidUsbRefreshDevices,
+              onPressed: usbState.isBusy ? null : () => controller.refresh(),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: Builder(
+              builder: (context) {
+                String deviceDisplayName(UsbAudioDeviceInfo dev) {
+                  return dev.manufacturerName.isNotEmpty &&
+                          !dev.productName
+                              .toLowerCase()
+                              .contains(dev.manufacturerName.toLowerCase())
+                      ? '${dev.manufacturerName} ${dev.productName}'
+                      : dev.productName;
+                }
+
+                final selectedDev = usbState.devices
+                        .where((d) => d.deviceName == usbState.selectedDeviceName)
+                        .firstOrNull ??
+                    usbState.devices.first;
+                final isDropdownEnabled = !usbState.isBusy;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.headphones_rounded,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            l10n.androidUsbDeviceTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.refresh_rounded),
+                          tooltip: l10n.androidUsbRefreshDevices,
+                          onPressed:
+                              usbState.isBusy ? null : () => controller.refresh(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    PopupMenuButton<String>(
+                      enabled: isDropdownEnabled,
+                      onSelected: isDropdownEnabled
+                          ? (newDeviceName) {
+                              unawaited(controller.selectDevice(newDeviceName));
+                            }
+                          : null,
+                      borderRadius: BorderRadius.circular(12),
+                      itemBuilder: (context) => [
+                        for (final dev in usbState.devices)
+                          PopupMenuItem<String>(
+                            value: dev.deviceName,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    deviceDisplayName(dev),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontWeight:
+                                          dev.deviceName == selectedDev.deviceName
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                      color:
+                                          dev.deviceName == selectedDev.deviceName
+                                              ? colorScheme.primary
+                                              : null,
+                                    ),
+                                  ),
+                                ),
+                                if (dev.deviceName == selectedDev.deviceName) ...[
+                                  const SizedBox(width: 12),
+                                  Icon(
+                                    Icons.check_rounded,
+                                    size: 18,
+                                    color: colorScheme.primary,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                      ],
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDropdownEnabled
+                              ? colorScheme.surfaceContainerHigh
+                              : colorScheme.surfaceContainerHigh
+                                  .withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant
+                                .withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                deviceDisplayName(selectedDev),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: isDropdownEnabled
+                                      ? colorScheme.onSurface
+                                      : colorScheme.onSurface
+                                          .withValues(alpha: 0.38),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.unfold_more_rounded,
+                              size: 18,
+                              color: isDropdownEnabled
+                                  ? colorScheme.onSurfaceVariant
+                                  : colorScheme.onSurface
+                                      .withValues(alpha: 0.38),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        if (usbState.lastError != null && usbState.lastError!.trim().isNotEmpty)
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colorScheme.errorContainer.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colorScheme.error.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.error_outline_rounded,
+                  color: colorScheme.error,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    usbState.lastError!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (isExclusive)
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: colorScheme.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          Text(
+                            l10n.activeHardwareFormatTitle,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          if (status.uacVersion.isNotEmpty &&
+                              status.uacVersion.toLowerCase() != 'none')
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.secondaryContainer,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                status.uacVersion.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSecondaryContainer,
+                                ),
+                              ),
+                            ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              l10n.activeHardwareBitPerfectBadge,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        formatStr != null
+                            ? '$deviceLabel • $formatStr'
+                            : deviceLabel,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -263,6 +638,7 @@ class AudioSection extends ConsumerWidget {
           description: l10n.audioSettingsDescription,
         ),
         if (Platform.isWindows) _buildWindowsAudioOutputCard(context, ref),
+        _buildAndroidUsbAudioCard(context, ref),
         SettingsGroupCard(
           title: l10n.equalizerBandCount,
           icon: Icons.equalizer_rounded,

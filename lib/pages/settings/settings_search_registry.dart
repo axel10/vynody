@@ -201,6 +201,21 @@ final List<SettingSearchItem> settingsSearchRegistry = [
       description: (l10n) => l10n.wasapiReleaseOnPauseDescription,
     ),
   ],
+  if (Platform.isAndroid) ...[
+    SettingSearchItem(
+      id: 'audio.android_usb_exclusive',
+      section: SettingsSection.audio,
+      icon: Icons.usb_rounded,
+      title: (l10n) => l10n.androidUsbExclusiveModeTitle,
+      description: (l10n) => l10n.androidUsbAudioDescription,
+    ),
+    SettingSearchItem(
+      id: 'audio.android_usb_device',
+      section: SettingsSection.audio,
+      icon: Icons.headphones_rounded,
+      title: (l10n) => l10n.androidUsbDeviceTitle,
+    ),
+  ],
   SettingSearchItem(
     id: 'audio.equalizer_bands',
     section: SettingsSection.audio,

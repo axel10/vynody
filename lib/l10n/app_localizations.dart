@@ -10760,6 +10760,72 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'仅施加轻微自然回响，忠实保留原声细节'**
   String get spatialAudioNaturalEchoDescription;
+
+  /// No description provided for @proFeatureUsbAudioExclusiveTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'USB DAC 独占模式'**
+  String get proFeatureUsbAudioExclusiveTitle;
+
+  /// No description provided for @proFeatureUsbAudioExclusiveDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'绕过 Android 系统音频重采样，直接向外部 USB 解码耳放输出原生 PCM 音频流'**
+  String get proFeatureUsbAudioExclusiveDesc;
+
+  /// No description provided for @androidUsbAudioTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'USB 音频输出'**
+  String get androidUsbAudioTitle;
+
+  /// No description provided for @androidUsbAudioDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'绕过 Android 系统混音器，将音频流直接输出至外接 USB 解码耳放（DAC）。启用独占期间，其他应用将暂时静音。'**
+  String get androidUsbAudioDescription;
+
+  /// No description provided for @androidUsbExclusiveModeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'USB 独占模式'**
+  String get androidUsbExclusiveModeTitle;
+
+  /// No description provided for @androidUsbExclusiveModeDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'独占接管已连接的 USB 音频设备，实现源码直出'**
+  String get androidUsbExclusiveModeDescription;
+
+  /// No description provided for @androidUsbDeviceTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'USB 音频设备'**
+  String get androidUsbDeviceTitle;
+
+  /// No description provided for @androidUsbNoDeviceDetected.
+  ///
+  /// In zh, this message translates to:
+  /// **'未检测到 USB 音频设备，请连接解码耳放后刷新'**
+  String get androidUsbNoDeviceDetected;
+
+  /// No description provided for @androidUsbRefreshDevices.
+  ///
+  /// In zh, this message translates to:
+  /// **'刷新设备'**
+  String get androidUsbRefreshDevices;
+
+  /// No description provided for @androidUsbExclusiveDetachedNotice.
+  ///
+  /// In zh, this message translates to:
+  /// **'USB 音频设备已断开，已恢复系统音频输出'**
+  String get androidUsbExclusiveDetachedNotice;
+
+  /// No description provided for @androidUsbExclusiveBadgeTooltip.
+  ///
+  /// In zh, this message translates to:
+  /// **'USB 独占模式已启用（点击进入音频设置）'**
+  String get androidUsbExclusiveBadgeTooltip;
 }
 
 class _AppLocalizationsDelegate

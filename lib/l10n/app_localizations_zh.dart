@@ -5797,6 +5797,41 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get spatialAudioNaturalEchoDescription => '仅施加轻微自然回响，忠实保留原声细节';
+
+  @override
+  String get proFeatureUsbAudioExclusiveTitle => 'USB DAC 独占模式';
+
+  @override
+  String get proFeatureUsbAudioExclusiveDesc =>
+      '绕过 Android 系统音频重采样，直接向外部 USB 解码耳放输出原生 PCM 音频流';
+
+  @override
+  String get androidUsbAudioTitle => 'USB 音频输出';
+
+  @override
+  String get androidUsbAudioDescription =>
+      '绕过 Android 系统混音器，将音频流直接输出至外接 USB 解码耳放（DAC）。启用独占期间，其他应用将暂时静音。';
+
+  @override
+  String get androidUsbExclusiveModeTitle => 'USB 独占模式';
+
+  @override
+  String get androidUsbExclusiveModeDescription => '独占接管已连接的 USB 音频设备，实现源码直出';
+
+  @override
+  String get androidUsbDeviceTitle => 'USB 音频设备';
+
+  @override
+  String get androidUsbNoDeviceDetected => '未检测到 USB 音频设备，请连接解码耳放后刷新';
+
+  @override
+  String get androidUsbRefreshDevices => '刷新设备';
+
+  @override
+  String get androidUsbExclusiveDetachedNotice => 'USB 音频设备已断开，已恢复系统音频输出';
+
+  @override
+  String get androidUsbExclusiveBadgeTooltip => 'USB 独占模式已启用（点击进入音频设置）';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11592,4 +11627,39 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get spatialAudioNaturalEchoDescription => '僅施加輕微自然回響，忠實保留原聲細節';
+
+  @override
+  String get proFeatureUsbAudioExclusiveTitle => 'USB DAC 獨佔模式';
+
+  @override
+  String get proFeatureUsbAudioExclusiveDesc =>
+      '繞過 Android 系統音訊重採樣，直接向外部 USB 解碼耳擴輸出原生 PCM 音訊串流';
+
+  @override
+  String get androidUsbAudioTitle => 'USB 音訊輸出';
+
+  @override
+  String get androidUsbAudioDescription =>
+      '繞過 Android 系統混音器，將音訊串流直接輸出至外接 USB 解碼耳擴（DAC）。啟用獨佔期間，其他應用程式將暫時靜音。';
+
+  @override
+  String get androidUsbExclusiveModeTitle => 'USB 獨佔模式';
+
+  @override
+  String get androidUsbExclusiveModeDescription => '獨佔接管已連接的 USB 音訊裝置，實現原始碼直出';
+
+  @override
+  String get androidUsbDeviceTitle => 'USB 音訊裝置';
+
+  @override
+  String get androidUsbNoDeviceDetected => '未偵測到 USB 音訊裝置，請連接解碼耳擴後重新整理';
+
+  @override
+  String get androidUsbRefreshDevices => '重新整理裝置';
+
+  @override
+  String get androidUsbExclusiveDetachedNotice => 'USB 音訊裝置已斷開，已恢復系統音訊輸出';
+
+  @override
+  String get androidUsbExclusiveBadgeTooltip => 'USB 獨佔模式已啟用（點擊進入音訊設定）';
 }

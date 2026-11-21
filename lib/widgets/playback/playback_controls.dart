@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/audio/android_usb_exclusive_controller.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_song_task_state.dart';
@@ -977,9 +978,7 @@ class PlaybackControls extends ConsumerWidget {
               mainControlsRow,
             ],
           ),
-          if (ref.watch(
-            settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
-          )) ...[
+          if (ref.watch(showPlaybackAudioInfoRowProvider)) ...[
             SizedBox(
               height: PlaybackHeroCardUiTuning.audioInfoGap * controlsScale,
             ),
@@ -1052,9 +1051,7 @@ class PlaybackControls extends ConsumerWidget {
                 controlsScale,
           ),
           mainControlsRow,
-          if (ref.watch(
-            settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
-          )) ...[
+          if (ref.watch(showPlaybackAudioInfoRowProvider)) ...[
             SizedBox(
               height: PlaybackHeroCardUiTuning.audioInfoGap * controlsScale,
             ),
@@ -1106,9 +1103,7 @@ class PlaybackControls extends ConsumerWidget {
               PlaybackHeroCardUiTuning.controlsRowPortraitGap * controlsScale,
         ),
         mainControlsRow,
-        if (ref.watch(
-          settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
-        )) ...[
+        if (ref.watch(showPlaybackAudioInfoRowProvider)) ...[
           SizedBox(
             height: PlaybackHeroCardUiTuning.audioInfoGap * controlsScale,
           ),

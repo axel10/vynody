@@ -1947,5 +1947,16 @@
   "spatialAudioNaturalEcho": "輕度回響",
   "spatialAudioOffDescription": "保持原始乾聲，不疊加空間混響",
   "spatialAudioConcertHallDescription": "營造寬廣立體的音樂廳聲場效果",
-  "spatialAudioNaturalEchoDescription": "僅施加輕微自然回響，忠實保留原聲細節"
+  "spatialAudioNaturalEchoDescription": "僅施加輕微自然回響，忠實保留原聲細節",
+  "proFeatureUsbAudioExclusiveTitle": "USB DAC 獨佔模式",
+  "proFeatureUsbAudioExclusiveDesc": "繞過 Android 系統音訊重採樣，直接向外部 USB 解碼耳擴輸出原生 PCM 音訊串流",
+  "androidUsbAudioTitle": "USB 音訊輸出",
+  "androidUsbAudioDescription": "繞過 Android 系統混音器，將音訊串流直接輸出至外接 USB 解碼耳擴（DAC）。啟用獨佔期間，其他應用程式將暫時靜音。",
+  "androidUsbExclusiveModeTitle": "USB 獨佔模式",
+  "androidUsbExclusiveModeDescription": "獨佔接管已連接的 USB 音訊裝置，實現原始碼直出",
+  "androidUsbDeviceTitle": "USB 音訊裝置",
+  "androidUsbNoDeviceDetected": "未偵測到 USB 音訊裝置，請連接解碼耳擴後重新整理",
+  "androidUsbRefreshDevices": "重新整理裝置",
+  "androidUsbExclusiveDetachedNotice": "USB 音訊裝置已斷開，已恢復系統音訊輸出",
+  "androidUsbExclusiveBadgeTooltip": "USB 獨佔模式已啟用（點擊進入音訊設定）"
 }

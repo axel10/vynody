@@ -43,6 +43,9 @@ enum ProFeature {
   /// Windows WASAPI Exclusive Mode & Bit-Perfect audio output
   wasapiExclusive,
 
+  /// Android USB DAC Exclusive Mode & Bit-Perfect audio output
+  usbAudioExclusive,
+
   /// Cloud & remote media server streaming & mounting (WebDAV, Navidrome, Jellyfin, SMB)
   cloudLibrary;
 
@@ -75,6 +78,8 @@ enum ProFeature {
         return l10n.proFeatureCustomImageBackgroundTitle;
       case ProFeature.wasapiExclusive:
         return l10n.proFeatureWasapiExclusiveTitle;
+      case ProFeature.usbAudioExclusive:
+        return l10n.proFeatureUsbAudioExclusiveTitle;
     }
   }
 
@@ -107,6 +112,8 @@ enum ProFeature {
         return l10n.proFeatureCustomImageBackgroundDesc;
       case ProFeature.wasapiExclusive:
         return l10n.proFeatureWasapiExclusiveDesc;
+      case ProFeature.usbAudioExclusive:
+        return l10n.proFeatureUsbAudioExclusiveDesc;
     }
   }
 
@@ -139,6 +146,8 @@ enum ProFeature {
         return Icons.wallpaper_rounded;
       case ProFeature.wasapiExclusive:
         return Icons.speaker_group_rounded;
+      case ProFeature.usbAudioExclusive:
+        return Icons.usb_rounded;
     }
   }
 }

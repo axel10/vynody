@@ -8,6 +8,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:vynody/player/audio/android_usb_exclusive_controller.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
@@ -396,9 +397,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
         !effectiveIsLandscape;
 
     final progressBarStyle = ref.watch(effectiveProgressBarStyleProvider);
-    final bool showAudioInfo = ref.watch(
-      settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
-    );
+    final bool showAudioInfo = ref.watch(showPlaybackAudioInfoRowProvider);
     final bool isScrollingWaveform =
         progressBarStyle == ProgressBarStyle.scrollingWaveform;
     final bool isFullWaveform =

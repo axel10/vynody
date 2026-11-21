@@ -4146,5 +4146,16 @@
   "spatialAudioNaturalEcho": "轻度回响",
   "spatialAudioOffDescription": "保持原始干声，不叠加空间混响",
   "spatialAudioConcertHallDescription": "营造宽广立体的音乐厅声场效果",
-  "spatialAudioNaturalEchoDescription": "仅施加轻微自然回响，忠实保留原声细节"
+  "spatialAudioNaturalEchoDescription": "仅施加轻微自然回响，忠实保留原声细节",
+  "proFeatureUsbAudioExclusiveTitle": "USB DAC 独占模式",
+  "proFeatureUsbAudioExclusiveDesc": "绕过 Android 系统音频重采样，直接向外部 USB 解码耳放输出原生 PCM 音频流",
+  "androidUsbAudioTitle": "USB 音频输出",
+  "androidUsbAudioDescription": "绕过 Android 系统混音器，将音频流直接输出至外接 USB 解码耳放（DAC）。启用独占期间，其他应用将暂时静音。",
+  "androidUsbExclusiveModeTitle": "USB 独占模式",
+  "androidUsbExclusiveModeDescription": "独占接管已连接的 USB 音频设备，实现源码直出",
+  "androidUsbDeviceTitle": "USB 音频设备",
+  "androidUsbNoDeviceDetected": "未检测到 USB 音频设备，请连接解码耳放后刷新",
+  "androidUsbRefreshDevices": "刷新设备",
+  "androidUsbExclusiveDetachedNotice": "USB 音频设备已断开，已恢复系统音频输出",
+  "androidUsbExclusiveBadgeTooltip": "USB 独占模式已启用（点击进入音频设置）"
 }

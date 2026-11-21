@@ -17,6 +17,7 @@ import '../main.dart' show navigatorKey;
 import '../utils/app_log.dart';
 import '../utils/app_orientation_manager.dart';
 import 'package:vynody/utils/blur_constants.dart';
+import 'package:vynody/player/audio/android_usb_exclusive_controller.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
@@ -1264,6 +1265,22 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         showIncomingRemotePairDialog(context, next);
       }
     });
+
+    // Listen for Android USB exclusive DAC unexpected detachments
+    ref.listen<int>(
+      androidUsbExclusiveProvider.select((s) => s.detachedNoticeTick),
+      (previous, next) {
+        if (previous != null && next > previous) {
+          AppSnackBar.show(
+            context,
+            ref,
+            SnackBar(
+              content: Text(l10n.androidUsbExclusiveDetachedNotice),
+            ),
+          );
+        }
+      },
+    );
 
     // Listen for sharing warnings
     ref.listen<String?>(sharingWarningProvider, (previous, next) {

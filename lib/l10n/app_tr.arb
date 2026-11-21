@@ -2364,5 +2364,16 @@
   "spatialAudioNaturalEcho": "Hafif Yankı",
   "spatialAudioOffDescription": "Uzamsal yankı olmadan orijinal ses",
   "spatialAudioConcertHallDescription": "Geniş ve sürükleyici konser salonu ses sahnesi",
-  "spatialAudioNaturalEchoDescription": "Orijinal ayrıntıları koruyan hafif ve doğal yankı"
+  "spatialAudioNaturalEchoDescription": "Orijinal ayrıntıları koruyan hafif ve doğal yankı",
+  "proFeatureUsbAudioExclusiveTitle": "USB DAC Özel Modu",
+  "proFeatureUsbAudioExclusiveDesc": "Android sistem ses yeniden örneklemesini atlayarak PCM sesini doğrudan harici USB DAC cihazlarına iletir",
+  "androidUsbAudioTitle": "USB Ses Çıkışı",
+  "androidUsbAudioDescription": "Android sistem mikserini atlayarak PCM akışını doğrudan harici USB DAC'a gönderir. Özel mod etkinken diğer uygulamaların sesi kapatılır.",
+  "androidUsbExclusiveModeTitle": "USB Özel Modu",
+  "androidUsbExclusiveModeDescription": "Bağlı USB DAC cihazını doğrudan devralarak bit-perfect donanım çıkışı sağlar",
+  "androidUsbDeviceTitle": "USB Ses Cihazı",
+  "androidUsbNoDeviceDetected": "USB ses cihazı algılanmadı. Bir USB DAC bağlayıp yenileyin.",
+  "androidUsbRefreshDevices": "Cihazları yenile",
+  "androidUsbExclusiveDetachedNotice": "USB ses cihazının bağlantısı kesildi. Sistem ses çıkışı geri yüklendi.",
+  "androidUsbExclusiveBadgeTooltip": "USB Özel Modu etkin (ses ayarlarını açmak için dokunun)"
 }

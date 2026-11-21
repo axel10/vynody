@@ -40,6 +40,8 @@ class UpgradeToProDialog extends ConsumerWidget {
     final features = [
       if (Platform.isWindows || highlightedFeature == ProFeature.wasapiExclusive)
         ProFeatureInfo.fromFeature(ProFeature.wasapiExclusive, l10n),
+      if (Platform.isAndroid || highlightedFeature == ProFeature.usbAudioExclusive)
+        ProFeatureInfo.fromFeature(ProFeature.usbAudioExclusive, l10n),
       ProFeatureInfo.fromFeature(ProFeature.aiLyrics, l10n),
       ProFeatureInfo.fromFeature(ProFeature.dynamicMeshBackground, l10n),
       ProFeatureInfo.fromFeature(ProFeature.customImageBackground, l10n),

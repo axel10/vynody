@@ -2232,5 +2232,16 @@
   "spatialAudioNaturalEcho": "부드러운 에코",
   "spatialAudioOffDescription": "공간 잔향 없이 원음 그대로 재생",
   "spatialAudioConcertHallDescription": "넓고 입체적인 콘서트홀 사운드 스테이지 구현",
-  "spatialAudioNaturalEchoDescription": "원음의 디테일을 유지하면서 은은하고 자연스러운 잔향 적용"
+  "spatialAudioNaturalEchoDescription": "원음의 디테일을 유지하면서 은은하고 자연스러운 잔향 적용",
+  "proFeatureUsbAudioExclusiveTitle": "USB DAC 독점 모드",
+  "proFeatureUsbAudioExclusiveDesc": "Android 시스템 오디오 리샘플링을 우회하여 외장 USB DAC로 원음 PCM을 직접 출력합니다",
+  "androidUsbAudioTitle": "USB 오디오 출력",
+  "androidUsbAudioDescription": "Android 시스템 믹서를 우회하여 외장 USB DAC로 직접 출력합니다. 독점 모드가 활성화된 동안 다른 앱의 소리는 음소거됩니다.",
+  "androidUsbExclusiveModeTitle": "USB 독점 모드",
+  "androidUsbExclusiveModeDescription": "연결된 USB DAC를 독점 제어하여 비트 퍼펙트 하드웨어 출력을 제공합니다",
+  "androidUsbDeviceTitle": "USB 오디오 장치",
+  "androidUsbNoDeviceDetected": "연결된 USB 오디오 장치가 없습니다. USB DAC를 연결한 후 새로고침하세요.",
+  "androidUsbRefreshDevices": "장치 새로고침",
+  "androidUsbExclusiveDetachedNotice": "USB 오디오 장치 연결이 해제되어 시스템 오디오 출력으로 복원되었습니다.",
+  "androidUsbExclusiveBadgeTooltip": "USB 독점 모드가 활성화되었습니다 (탭하여 오디오 설정 열기)"
 }

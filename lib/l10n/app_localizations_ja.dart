@@ -5895,4 +5895,43 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get spatialAudioNaturalEchoDescription =>
       '原音のディテールを忠実に保ちつつ、控えめで自然な残響を加えます';
+
+  @override
+  String get proFeatureUsbAudioExclusiveTitle => 'USB DAC 排他モード';
+
+  @override
+  String get proFeatureUsbAudioExclusiveDesc =>
+      'Android のシステムミキサーをバイパスし、外部 USB DAC へ PCM 音声を直接出力します';
+
+  @override
+  String get androidUsbAudioTitle => 'USB オーディオ出力';
+
+  @override
+  String get androidUsbAudioDescription =>
+      'Android システムのリサンプリングをバイパスし、外部 USB DAC へ直接出力します。排他モード有効中は他のアプリは消音されます。';
+
+  @override
+  String get androidUsbExclusiveModeTitle => 'USB 排他モード';
+
+  @override
+  String get androidUsbExclusiveModeDescription =>
+      '接続された USB DAC を排他的に占有し、ビットパーフェクト出力を行います';
+
+  @override
+  String get androidUsbDeviceTitle => 'USB オーディオデバイス';
+
+  @override
+  String get androidUsbNoDeviceDetected =>
+      'USB オーディオデバイスが検出されません。DAC を接続して更新してください。';
+
+  @override
+  String get androidUsbRefreshDevices => 'デバイスを更新';
+
+  @override
+  String get androidUsbExclusiveDetachedNotice =>
+      'USB オーディオデバイスが切断されました。システム音声出力に戻しました。';
+
+  @override
+  String get androidUsbExclusiveBadgeTooltip =>
+      'USB 排他モードが有効です（タップしてオーディオ設定を開く）';
 }

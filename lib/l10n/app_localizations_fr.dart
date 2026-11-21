@@ -6174,4 +6174,43 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get spatialAudioNaturalEchoDescription =>
       'Écho subtil et naturel préservant les détails d\'origine';
+
+  @override
+  String get proFeatureUsbAudioExclusiveTitle => 'Mode exclusif USB DAC';
+
+  @override
+  String get proFeatureUsbAudioExclusiveDesc =>
+      'Contourne le rééchantillonnage système d\'Android et envoie le flux PCM directement vers un DAC USB externe';
+
+  @override
+  String get androidUsbAudioTitle => 'Sortie audio USB';
+
+  @override
+  String get androidUsbAudioDescription =>
+      'Contourne le mixeur audio Android et envoie directement le PCM vers un DAC USB externe. Les autres applications seront coupées pendant l\'activation.';
+
+  @override
+  String get androidUsbExclusiveModeTitle => 'Mode exclusif USB';
+
+  @override
+  String get androidUsbExclusiveModeDescription =>
+      'Prend le contrôle exclusif du DAC USB connecté pour une sortie matérielle bit-perfect';
+
+  @override
+  String get androidUsbDeviceTitle => 'Périphérique audio USB';
+
+  @override
+  String get androidUsbNoDeviceDetected =>
+      'Aucun périphérique audio USB détecté. Connectez un DAC USB puis actualisez.';
+
+  @override
+  String get androidUsbRefreshDevices => 'Actualiser les périphériques';
+
+  @override
+  String get androidUsbExclusiveDetachedNotice =>
+      'Périphérique audio USB déconnecté. Sortie audio système rétablie.';
+
+  @override
+  String get androidUsbExclusiveBadgeTooltip =>
+      'Mode exclusif USB actif (appuyez pour ouvrir les paramètres audio)';
 }

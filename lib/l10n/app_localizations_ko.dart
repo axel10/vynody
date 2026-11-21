@@ -5900,4 +5900,43 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get spatialAudioNaturalEchoDescription =>
       '원음의 디테일을 유지하면서 은은하고 자연스러운 잔향 적용';
+
+  @override
+  String get proFeatureUsbAudioExclusiveTitle => 'USB DAC 독점 모드';
+
+  @override
+  String get proFeatureUsbAudioExclusiveDesc =>
+      'Android 시스템 오디오 리샘플링을 우회하여 외장 USB DAC로 원음 PCM을 직접 출력합니다';
+
+  @override
+  String get androidUsbAudioTitle => 'USB 오디오 출력';
+
+  @override
+  String get androidUsbAudioDescription =>
+      'Android 시스템 믹서를 우회하여 외장 USB DAC로 직접 출력합니다. 독점 모드가 활성화된 동안 다른 앱의 소리는 음소거됩니다.';
+
+  @override
+  String get androidUsbExclusiveModeTitle => 'USB 독점 모드';
+
+  @override
+  String get androidUsbExclusiveModeDescription =>
+      '연결된 USB DAC를 독점 제어하여 비트 퍼펙트 하드웨어 출력을 제공합니다';
+
+  @override
+  String get androidUsbDeviceTitle => 'USB 오디오 장치';
+
+  @override
+  String get androidUsbNoDeviceDetected =>
+      '연결된 USB 오디오 장치가 없습니다. USB DAC를 연결한 후 새로고침하세요.';
+
+  @override
+  String get androidUsbRefreshDevices => '장치 새로고침';
+
+  @override
+  String get androidUsbExclusiveDetachedNotice =>
+      'USB 오디오 장치 연결이 해제되어 시스템 오디오 출력으로 복원되었습니다.';
+
+  @override
+  String get androidUsbExclusiveBadgeTooltip =>
+      'USB 독점 모드가 활성화되었습니다 (탭하여 오디오 설정 열기)';
 }

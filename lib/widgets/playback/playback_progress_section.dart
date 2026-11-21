@@ -5,10 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/models/music_file.dart';
+import 'package:vynody/pages/settings_page.dart';
+import 'package:vynody/player/audio/android_usb_exclusive_controller.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/playback_utils.dart';
+import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
 import 'package:vynody/widgets/waveform_progress_bar.dart';
 import 'package:vynody/widgets/playback_ui_tuning.dart';
@@ -455,16 +458,84 @@ class PlaybackAudioInfoLabel extends ConsumerWidget {
     this.width,
   });
 
+  Widget _buildUsbExclusiveBadge(
+    BuildContext context,
+    AppLocalizations l10n,
+    double fontSize,
+  ) {
+    final badgeFontSize = (fontSize * 0.92).clamp(8.5, 10.5);
+    final badgeIconSize = (badgeFontSize + 1.5).clamp(10.0, 12.5);
+    const badgeBg = Color(0xD9261C0A);
+    const badgeBorder = Color(0xCCF59E0B);
+    const badgeFg = Color(0xFFFCD34D);
+
+    return AppTooltip(
+      message: l10n.androidUsbExclusiveBadgeTooltip,
+      child: GestureDetector(
+        key: const ValueKey<String>('playback_usb_exclusive_badge'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const SettingsPage(
+                initialSection: SettingsSection.audio,
+              ),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+          decoration: BoxDecoration(
+            color: badgeBg,
+            borderRadius: BorderRadius.circular(4.5),
+            border: Border.all(
+              color: badgeBorder,
+              width: 0.85,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.graphic_eq_rounded,
+                size: badgeIconSize,
+                color: badgeFg,
+              ),
+              const SizedBox(width: 2.5),
+              Text(
+                l10n.exclusiveModeTitle,
+                maxLines: 1,
+                overflow: TextOverflow.visible,
+                style: TextStyle(
+                  fontSize: badgeFontSize,
+                  fontWeight: FontWeight.w600,
+                  color: badgeFg,
+                  height: 1.05,
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final showAudioInfo = ref.watch(
       settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
     );
-    if (!showAudioInfo) {
+    final showUsbExclusiveBadge = ref.watch(
+      showAndroidUsbExclusiveBadgeProvider,
+    );
+    if (!showAudioInfo && !showUsbExclusiveBadge) {
       return const SizedBox.shrink();
     }
-    final details = ref.watch(currentAudioDetailsProvider);
-    final text = formatAudioSpec(details);
+
+    final details = showAudioInfo ? ref.watch(currentAudioDetailsProvider) : null;
+    final text = showAudioInfo ? formatAudioSpec(details) : '';
 
     final Alignment effectiveAlignment =
         (alignment as Alignment?) ?? Alignment.center;
@@ -481,23 +552,51 @@ class PlaybackAudioInfoLabel extends ConsumerWidget {
             10.0 * controlsScale,
           );
 
+    final l10n = AppLocalizations.of(context);
+    final Widget? badgeWidget = (showUsbExclusiveBadge && l10n != null)
+        ? FittedBox(
+            fit: BoxFit.scaleDown,
+            child: _buildUsbExclusiveBadge(context, l10n, fontSize),
+          )
+        : null;
+
+    Widget inner;
+    if (showAudioInfo && text.isNotEmpty) {
+      final specText = Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: Colors.white70,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.2,
+        ),
+      );
+      inner = badgeWidget != null
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                badgeWidget,
+                const SizedBox(width: 6),
+                Flexible(child: specText),
+              ],
+            )
+          : specText;
+    } else if (badgeWidget != null) {
+      inner = badgeWidget;
+    } else {
+      inner = const SizedBox.shrink();
+    }
+
     Widget content = SizedBox(
       height: PlaybackHeroCardUiTuning.audioInfoHeight * controlsScale,
       child: Align(
         alignment: effectiveAlignment,
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: horizontalPad),
-          child: Text(
-            text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: fontSize,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.2,
-            ),
-          ),
+          child: inner,
         ),
       ),
     );
