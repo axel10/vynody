@@ -1,21 +1,86 @@
+import 'dart:ffi' as ffi;
+import 'dart:io' show Platform;
 import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
 import 'package:flutter/services.dart';
+
+typedef _GetAsyncKeyStateNative = ffi.Int16 Function(ffi.Int32 vKey);
+typedef _GetAsyncKeyStateDart = int Function(int vKey);
 
 /// Utility class for checking desktop keyboard modifier keys (Shift, Ctrl, Cmd, Alt).
 class ModifierKeyUtils {
   const ModifierKeyUtils._();
 
-  /// Returns true if Shift key is currently pressed (used for range selection).
-  static bool get isRangeSelectPressed =>
-      HardwareKeyboard.instance.isShiftPressed;
+  static const int _vkShift = 0x10;
+  static const int _vkControl = 0x11;
+  static const int _vkMenu = 0x12;
 
-  /// Returns true if Control (Windows/Linux) or Meta/Command (macOS) key is currently pressed (used for discrete multi-selection).
-  static bool get isDiscreteSelectPressed =>
-      HardwareKeyboard.instance.isControlPressed ||
-      HardwareKeyboard.instance.isMetaPressed;
+  static final bool _isFlutterTest =
+      !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+
+  static bool _win32LookupAttempted = false;
+  static _GetAsyncKeyStateDart? _getAsyncKeyState;
+
+  /// Optional test hook to simulate Windows `GetAsyncKeyState` responses.
+  @visibleForTesting
+  static bool Function(int vkCode)? debugWindowsKeyStateOverride;
+
+  static bool? _queryWindowsKeyDown(int vkCode) {
+    final override = debugWindowsKeyStateOverride;
+    if (override != null) {
+      return defaultTargetPlatform == TargetPlatform.windows
+          ? override(vkCode)
+          : null;
+    }
+    if (kIsWeb ||
+        _isFlutterTest ||
+        !Platform.isWindows ||
+        defaultTargetPlatform != TargetPlatform.windows) {
+      return null;
+    }
+    if (!_win32LookupAttempted) {
+      _win32LookupAttempted = true;
+      try {
+        final user32 = ffi.DynamicLibrary.open('user32.dll');
+        _getAsyncKeyState = user32
+            .lookupFunction<_GetAsyncKeyStateNative, _GetAsyncKeyStateDart>(
+              'GetAsyncKeyState',
+            );
+      } catch (_) {
+        _getAsyncKeyState = null;
+      }
+    }
+    final fn = _getAsyncKeyState;
+    if (fn == null) return null;
+    return (fn(vkCode) & 0x8000) != 0;
+  }
+
+  /// Returns true if Shift key is currently pressed (used for range selection).
+  static bool get isRangeSelectPressed {
+    final winState = _queryWindowsKeyDown(_vkShift);
+    if (winState != null) return winState;
+    return HardwareKeyboard.instance.isShiftPressed;
+  }
+
+  /// Returns true if Control (Windows/Linux/macOS) or Meta/Command (macOS only)
+  /// key is currently pressed (used for discrete multi-selection).
+  static bool get isDiscreteSelectPressed {
+    final winState = _queryWindowsKeyDown(_vkControl);
+    if (winState != null) return winState;
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isControlPressed) return true;
+    return defaultTargetPlatform == TargetPlatform.macOS &&
+        keyboard.isMetaPressed;
+  }
 
   /// Returns true if Alt / Option key is currently pressed.
-  static bool get isAltPressed => HardwareKeyboard.instance.isAltPressed;
+  static bool get isAltPressed {
+    final winState = _queryWindowsKeyDown(_vkMenu);
+    if (winState != null) return winState;
+    return HardwareKeyboard.instance.isAltPressed;
+  }
 
   /// Returns true if either Shift or Ctrl/Cmd is pressed.
   static bool get hasModifierPressed =>

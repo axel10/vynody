@@ -3,10 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show HardwareKeyboard;
 import 'package:zoomable_sliver_grid/zoomable_sliver_grid.dart'
     hide kGridCrossAxisSpacing, kGridMainAxisSpacing, kGridHorizontalPadding;
 
+import '../utils/selection_utils.dart';
 import 'folder_nav_bar_scaffold.dart';
 
 /// 档位缩放的布局引擎、条目脚手架（`ZoomItemScaffold` / `ZoomItemCover`）、
@@ -70,12 +70,7 @@ String get zoomModifierKeyLabel =>
 ///
 /// macOS 上 `⌘` 与 `Ctrl` 都认（外接 Windows 键盘的习惯），其余平台只认 `Ctrl`。
 /// 判定集合是 [zoomModifierKeyLabel] 的超集：提示只写更顺手的那个键。
-bool get isZoomModifierPressed {
-  final keyboard = HardwareKeyboard.instance;
-  if (keyboard.isControlPressed) return true;
-  return defaultTargetPlatform == TargetPlatform.macOS &&
-      keyboard.isMetaPressed;
-}
+bool get isZoomModifierPressed => ModifierKeyUtils.isDiscreteSelectPressed;
 
 /// 「定位当前播放」要加在行偏移上的内容区上方高度：顶栏 + 标题横幅（+ 权限提示）。
 ///
