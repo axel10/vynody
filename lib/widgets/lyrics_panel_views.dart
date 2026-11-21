@@ -11,6 +11,7 @@ import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/models/music_lyric.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import '../l10n/app_localizations.dart';
+import 'lyrics_interlude_indicator.dart';
 import 'playback_ui_tuning.dart';
 
 class LyricsPanelEmptyState extends StatelessWidget {
@@ -123,6 +124,8 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
     required this.lyrics,
     required this.effectiveTranslationLanguage,
     required this.displayLines,
+    this.displayEntries,
+    this.timelineOffsetMs = 0,
     required this.lineHeights,
     required this.hasTimedLyrics,
     required this.activeIndex,
@@ -171,6 +174,8 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
   final String effectiveTranslationLanguage;
 
   final List<LyricLine> displayLines;
+  final List<LyricsDisplayEntry>? displayEntries;
+  final int timelineOffsetMs;
   final List<double> lineHeights;
   final bool hasTimedLyrics;
   final int activeIndex;
@@ -281,8 +286,19 @@ class _LyricsPanelTimedLyricsViewState
                       );
                     }
 
+                    final List<LyricsDisplayEntry> effectiveEntries =
+                        widget.displayEntries ??
+                        List<LyricsDisplayEntry>.generate(
+                          widget.displayLines.length,
+                          (i) => LyricsDisplayEntry.lyric(
+                            line: widget.displayLines[i],
+                            originalIndex: i,
+                          ),
+                          growable: false,
+                        );
+
                     // 预计算所有歌词行的 Y 轴位置，用于视口可见性判定，避免为屏幕外的行生成昂贵的离屏高斯模糊层
-                    final int lineCount = widget.displayLines.length;
+                    final int lineCount = effectiveEntries.length;
                     final List<double> lineHeights = widget.lineHeights;
                     final List<double> lineTops = List<double>.filled(
                       lineCount,
@@ -321,7 +337,7 @@ class _LyricsPanelTimedLyricsViewState
                         ),
                         child: ExcludeSemantics(
                           child: Column(
-                            children: List.generate(widget.displayLines.length, (
+                            children: List.generate(effectiveEntries.length, (
                               index,
                             ) {
                               final bool isFar =
@@ -341,15 +357,75 @@ class _LyricsPanelTimedLyricsViewState
                                 );
                               }
 
-                              final line = widget.displayLines[index];
-                              final translated =
-                                  widget.lyrics
-                                      ?.translatedLineAt(index, effectiveLang)
-                                      .trim() ??
-                                  '';
+                              final entry = effectiveEntries[index];
                               final isActive =
                                   widget.hasTimedLyrics &&
                                   index == widget.activeIndex;
+                              final basePadding =
+                                  PlaybackPageUiTuning.appleLyricsVerticalPadding;
+                              final verticalItemPadding =
+                                  basePadding * widget.lyricsFontScale;
+                              final double effectiveLeftPadding =
+                                  isApplePortrait
+                                  ? (widget.isSmallWin ? 16.0 : 0.0)
+                                  : 24.0;
+                              final double effectiveRightPadding = 24.0;
+
+                              if (entry.isInterlude) {
+                                final interludeContent = Padding(
+                                  padding: EdgeInsets.only(
+                                    top: verticalItemPadding,
+                                    bottom: verticalItemPadding,
+                                    left: effectiveLeftPadding,
+                                    right: effectiveRightPadding,
+                                  ),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: LyricsInterludeDotsWidget(
+                                      interlude: entry.interlude!,
+                                      isActive: isActive,
+                                      color: widget.textColor,
+                                      fontScale: widget.lyricsFontScale,
+                                      timelineOffsetMs: widget.timelineOffsetMs,
+                                    ),
+                                  ),
+                                );
+
+                                final bool isInStaggerRange =
+                                    !widget.isGenerating &&
+                                    widget.isFocusMode &&
+                                    index >= widget.firstVisibleIndex - 10 &&
+                                    index <= widget.firstVisibleIndex + 30;
+
+                                return KeyedSubtree(
+                                  key: ValueKey('lyric_active_$index'),
+                                  child: StaggeredAppleLyricsScrollWrapper(
+                                    index: index,
+                                    activeIndex: widget.activeIndex,
+                                    scrollDelta: widget.scrollDelta,
+                                    scrollTriggerTime: widget.scrollTriggerTime,
+                                    isEnteringFocusMode:
+                                        widget.isEnteringFocusMode,
+                                    firstVisibleIndex: widget.firstVisibleIndex,
+                                    isTransitioning: widget.isTransitioning,
+                                    enabled: isInStaggerRange,
+                                    child: RepaintBoundary(
+                                      child: interludeContent,
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              final line = entry.line!;
+                              final originalIndex = entry.originalIndex!;
+                              final translated =
+                                  widget.lyrics
+                                      ?.translatedLineAt(
+                                        originalIndex,
+                                        effectiveLang,
+                                      )
+                                      .trim() ??
+                                  '';
                               final isHovered = _hoveredIndex == index;
                               final timedLyricFontSize =
                                   16 * widget.lyricsFontScale;
@@ -362,10 +438,6 @@ class _LyricsPanelTimedLyricsViewState
                                           : PlaybackPageUiTuning
                                                 .appleLyricsTranslationFontSizeLandscape) *
                                   widget.lyricsFontScale;
-                              final basePadding =
-                                  PlaybackPageUiTuning.appleLyricsVerticalPadding;
-                              final verticalItemPadding =
-                                  basePadding * widget.lyricsFontScale;
                               final translatedSpacing =
                                   3 * widget.lyricsFontScale;
                               final fontToUse = widget.lyricsFontFamily.trim();
@@ -438,11 +510,6 @@ class _LyricsPanelTimedLyricsViewState
                                           TextLeadingDistribution.even,
                                     );
 
-                              final double effectiveLeftPadding =
-                                  isApplePortrait
-                                  ? (widget.isSmallWin ? 16.0 : 0.0)
-                                  : 24.0;
-                              final double effectiveRightPadding = 24.0;
                               // 面板宽度可能被压到 0（播放抽屉被挤压、转场中间态），
                               // 这里必须夹住，否则 SizedBox 会拿到负宽度触发
                               // 「BoxConstraints has a negative minimum width」。
@@ -503,7 +570,7 @@ class _LyricsPanelTimedLyricsViewState
                                           widget.showTranslation) ...[
                                         AppleLyricTranslationFadeIn(
                                           key: ValueKey(
-                                            'apple_trans_${index}_$effectiveLang',
+                                            'apple_trans_${originalIndex}_$effectiveLang',
                                           ),
                                           animate: widget.isTranslating ||
                                               widget.isTranslationAppearing,

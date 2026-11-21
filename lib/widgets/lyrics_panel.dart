@@ -35,6 +35,7 @@ import 'package:vynody/player/lyrics/sources/lyrics_source_preference.dart';
 import 'package:vynody/player/lyrics/timeline/lyrics_timeline.dart';
 import 'package:vynody/utils/lrc_utils.dart';
 import 'package:vynody/utils/language_code_utils.dart';
+import 'lyrics_interlude_indicator.dart';
 import 'lyrics_panel_views.dart';
 import 'playback_ui_tuning.dart';
 import 'app_context_menu.dart';
@@ -138,7 +139,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   bool? _lastBuiltIsLowMidEnd;
   bool? _lastBuiltIsBlurEnabled;
 
-  List<LyricLine>? _lastMeasuredLines;
+  List<LyricLine>? _lastEntriesSourceLines;
+  bool? _lastEntriesHasTimed;
+  List<LyricsDisplayEntry> _cachedDisplayEntries = const [];
+
+  List<LyricsDisplayEntry>? _lastMeasuredEntries;
   MusicLyric? _lastMeasuredLyrics;
   double? _lastMeasuredMaxWidth;
   double? _lastMeasuredFontScale;
@@ -171,6 +176,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   double? _lastBuiltBottomReserveDelta;
   bool? _lastBuiltShowTranslation;
   bool? _lastBuiltShowWordByWord;
+  int? _lastBuiltTimelineOffsetMs;
   int? _lastBuiltLayoutRevision;
   MusicLyric? _lastBuiltLyrics;
   String? _lastLoggedContentDigest;
@@ -234,9 +240,36 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         .toList(growable: false);
   }
 
+  List<LyricsDisplayEntry> _displayEntriesFor(
+    List<LyricLine> renderedLines, {
+    required bool hasTimedLyrics,
+  }) {
+    if (identical(_lastEntriesSourceLines, renderedLines) &&
+        _lastEntriesHasTimed == hasTimedLyrics) {
+      return _cachedDisplayEntries;
+    }
+    final entries = hasTimedLyrics
+        ? buildLyricsDisplayEntries(
+            renderedLines,
+            minDurationMs: kLyricsInterludeMinDurationMs,
+          )
+        : List<LyricsDisplayEntry>.generate(
+            renderedLines.length,
+            (i) => LyricsDisplayEntry.lyric(
+              line: renderedLines[i],
+              originalIndex: i,
+            ),
+            growable: false,
+          );
+    _lastEntriesSourceLines = renderedLines;
+    _lastEntriesHasTimed = hasTimedLyrics;
+    _cachedDisplayEntries = entries;
+    return entries;
+  }
+
   ({List<double> heights, List<double> itemCenters, List<double> anchorCenters})
   _measureLineMetrics({
-    required List<LyricLine> lines,
+    required List<LyricsDisplayEntry> entries,
     required MusicLyric? lyrics,
     required double maxWidth,
     required double lyricsFontScale,
@@ -252,7 +285,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final cjkFont = settings.lyricsCjkFontFamily;
     final showTranslation = settings.showLyricsTranslation;
 
-    if (listEquals(_lastMeasuredLines, lines) &&
+    if (listEquals(_lastMeasuredEntries, entries) &&
         _lastMeasuredLyrics == lyrics &&
         _lastMeasuredMaxWidth == maxWidth &&
         _lastMeasuredFontScale == lyricsFontScale &&
@@ -354,12 +387,27 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       translationLayoutMaxWidth = layoutMaxWidth - 12.0;
     }
 
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i];
+    for (int i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      if (entry.isInterlude) {
+        final contentHeight =
+            LyricsInterludeDotsWidget.containerHeightForFontScale(
+              lyricsFontScale,
+            );
+        final itemHeight = contentHeight + verticalItemPadding * 2;
+        heights.add(itemHeight);
+        itemCenters.add(currentTop + itemHeight / 2);
+        anchorCenters.add(currentTop + verticalItemPadding + contentHeight / 2);
+        currentTop += itemHeight;
+        continue;
+      }
+
+      final line = entry.line!;
+      final originalIndex = entry.originalIndex!;
       final translated =
           lyrics
               ?.translatedLineAt(
-                i,
+                originalIndex,
                 effectiveLang,
               )
               .trim() ??
@@ -400,7 +448,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       anchorCenters: anchorCenters,
     );
 
-    _lastMeasuredLines = lines;
+    _lastMeasuredEntries = entries;
     _lastMeasuredLyrics = lyrics;
     _lastMeasuredMaxWidth = maxWidth;
     _lastMeasuredFontScale = lyricsFontScale;
@@ -1279,22 +1327,28 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   void _scheduleScrollIfNeeded({
     bool force = false,
     bool animate = true,
-    List<LyricLine>? displayLines,
+    List<LyricsDisplayEntry>? displayEntries,
     required List<double> itemCenters,
   }) {
     final currentSong = ref.read(audioCurrentMusicProvider);
     final isGenerating = _taskStateForSongPath(currentSong?.path).isGenerationBusy;
-    final lines =
-        displayLines ??
-        _lyricsForDisplay()?.syncedLines ??
-        const [];
-    if (lines.isEmpty ||
-        !_hasTimedLyrics(lines) ||
+    final List<LyricsDisplayEntry> entries;
+    if (displayEntries != null) {
+      entries = displayEntries;
+    } else {
+      final rawLines = _lyricsForDisplay()?.syncedLines ?? const [];
+      entries = _displayEntriesFor(
+        rawLines,
+        hasTimedLyrics: _hasTimedLyrics(rawLines),
+      );
+    }
+    if (entries.isEmpty ||
+        !_hasTimedEntries(entries) ||
         (widget.isTransitioning && !force)) {
       return;
     }
 
-    final activeIndex = _activeLineIndex(lines, isGenerating: isGenerating);
+    final activeIndex = _activeLineIndex(entries, isGenerating: isGenerating);
     if (activeIndex < 0 || (!force && activeIndex == _lastActiveIndex)) return;
 
     bool shouldScroll = true;
@@ -1471,7 +1525,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   void _handleLyricsLayoutRevisionChanged({
     required int layoutRevision,
     required bool hasTimedLyrics,
-    required List<LyricLine> displayLines,
+    required List<LyricsDisplayEntry> displayEntries,
     required List<double> itemCenters,
     bool isGenerating = false,
     bool isTranslating = false,
@@ -1487,14 +1541,14 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       _scheduleScrollIfNeeded(
         force: false,
         animate: true,
-        displayLines: displayLines,
+        displayEntries: displayEntries,
         itemCenters: itemCenters,
       );
     } else {
       _scheduleScrollIfNeeded(
         force: true,
         animate: false,
-        displayLines: displayLines,
+        displayEntries: displayEntries,
         itemCenters: itemCenters,
       );
     }
@@ -1603,9 +1657,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     }
   }
 
-  void _handleLineTapped(int index, List<LyricLine> displayLines) {
-    if (index < 0 || index >= displayLines.length) return;
-    final line = displayLines[index];
+  void _handleLineTapped(int index, List<LyricsDisplayEntry> displayEntries) {
+    if (index < 0 || index >= displayEntries.length) return;
+    final entry = displayEntries[index];
+    if (entry.isInterlude) return;
+    final line = entry.line!;
     if (line.isTimed) {
       final targetPosition = _audioSeekPositionForLyricTimestamp(line.timestamp);
       unawaited(ref.read(audioServiceProvider).seek(targetPosition));
@@ -1616,15 +1672,19 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         _seekTargetTimestamp = targetPosition;
         _seekSetTime = DateTime.now();
       });
-      _scheduleScrollIfNeeded(force: true, itemCenters: _currentItemCenters);
+      _scheduleScrollIfNeeded(
+        force: true,
+        displayEntries: displayEntries,
+        itemCenters: _currentItemCenters,
+      );
     }
   }
 
   int _activeLineIndex(
-    List<LyricLine> displayLines, {
+    List<LyricsDisplayEntry> displayEntries, {
     bool isGenerating = false,
   }) {
-    if (displayLines.isEmpty || !_hasTimedLyrics(displayLines)) return -1;
+    if (displayEntries.isEmpty || !_hasTimedEntries(displayEntries)) return -1;
 
     final current = math.max(
       0,
@@ -1632,23 +1692,23 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     );
 
     if (isGenerating) {
-      final lastTimedLine = displayLines.lastWhere(
-        (l) => l.isTimed,
-        orElse: () => displayLines.last,
+      final lastTimedEntry = displayEntries.lastWhere(
+        (e) => e.isInterlude || (e.line?.isTimed ?? false),
+        orElse: () => displayEntries.last,
       );
-      if (lastTimedLine.timestamp.inMilliseconds < current) {
+      if (lastTimedEntry.timestampMs < current) {
         return -1;
       }
     }
 
     int calculateNormal() {
       int low = 0;
-      int high = displayLines.length - 1;
+      int high = displayEntries.length - 1;
       int answer = 0;
 
       while (low <= high) {
         final mid = (low + high) >> 1;
-        final midMs = displayLines[mid].timestamp.inMilliseconds;
+        final midMs = displayEntries[mid].timestampMs;
         if (midMs <= current) {
           answer = mid;
           low = mid + 1;
@@ -1685,6 +1745,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     }
 
     return normalIndex;
+  }
+
+  bool _hasTimedEntries(List<LyricsDisplayEntry> displayEntries) {
+    return displayEntries.any(
+      (entry) => entry.isInterlude || (entry.line?.isTimed ?? false),
+    );
   }
 
   bool _hasTimedLyrics(List<LyricLine> displayLines) {
@@ -1976,8 +2042,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           effectiveMaxFontScale,
         );
 
+        final displayEntries = _displayEntriesFor(
+          renderedLines,
+          hasTimedLyrics: hasTimedLyrics,
+        );
+
         final lineMetrics = _measureLineMetrics(
-          lines: renderedLines,
+          entries: displayEntries,
           lyrics: lyrics,
           maxWidth: constraints.maxWidth,
           lyricsFontScale: calculatedFontScale,
@@ -1991,7 +2062,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         _currentItemCenters = itemCenters;
 
         final activeIndex = hasTimedLyrics
-            ? _activeLineIndex(displayLines, isGenerating: isGenerating)
+            ? _activeLineIndex(displayEntries, isGenerating: isGenerating)
             : -1;
 
         // --- SCROLL JITTER MITIGATION ---
@@ -2055,7 +2126,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           if (layoutRevisionChanged) {
             if (kDebugMode) {
               _logLayoutMetrics(
-                displayLines: displayLines,
+                displayEntries: displayEntries,
                 lyrics: lyrics,
                 lineHeights: lineHeights,
                 itemCenters: itemCenters,
@@ -2067,7 +2138,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             _handleLyricsLayoutRevisionChanged(
               layoutRevision: layoutRevision,
               hasTimedLyrics: hasTimedLyrics,
-              displayLines: displayLines,
+              displayEntries: displayEntries,
               itemCenters: itemCenters,
               isGenerating: isGenerating,
               isTranslating: isTranslating,
@@ -2097,7 +2168,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             _scheduleScrollIfNeeded(
               force: forceScroll,
               animate: !transitionEnded && !songChanged && (!displayLinesChanged || isGenerating),
-              displayLines: displayLines,
+              displayEntries: displayEntries,
               itemCenters: itemCenters,
             );
           }
@@ -2148,6 +2219,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             widget.bottomReserveDelta != _lastBuiltBottomReserveDelta ||
             showLyricsTranslation != _lastBuiltShowTranslation ||
             showLyricsWordByWord != _lastBuiltShowWordByWord ||
+            _timelineOffsetMilliseconds != _lastBuiltTimelineOffsetMs ||
             isLyricsBlurEnabled != _lastBuiltIsBlurEnabled ||
             layoutRevision != _lastBuiltLayoutRevision ||
             lyrics != _lastBuiltLyrics;
@@ -2182,6 +2254,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _lastBuiltBottomReserveDelta = widget.bottomReserveDelta;
           _lastBuiltShowTranslation = showLyricsTranslation;
           _lastBuiltShowWordByWord = showLyricsWordByWord;
+          _lastBuiltTimelineOffsetMs = _timelineOffsetMilliseconds;
           _lastBuiltIsBlurEnabled = isLyricsBlurEnabled;
           _lastBuiltLayoutRevision = layoutRevision;
           _lastBuiltLyrics = lyrics;
@@ -2190,6 +2263,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             lyrics: lyrics,
             effectiveTranslationLanguage: effectiveTranslationLanguage,
             displayLines: renderedLines,
+            displayEntries: displayEntries,
+            timelineOffsetMs: _timelineOffsetMilliseconds,
             lineHeights: lineHeights,
             hasTimedLyrics: hasTimedLyrics,
             activeIndex: activeIndex,
@@ -2223,7 +2298,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             bottomReserveDelta: widget.bottomReserveDelta,
             isFocusMode: _isFocusMode,
             onLineTapped: (index) {
-              _handleLineTapped(index, renderedLines);
+              _handleLineTapped(index, displayEntries);
             },
             scrollDelta: _lastScrollDelta,
             scrollTriggerTime: _scrollTriggerTime,
@@ -2249,12 +2324,18 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             onPointerUp: (event) {
               _activePointers = math.max(0, _activePointers - 1);
               if (_activePointers == 0) {
-                _scheduleScrollIfNeeded(itemCenters: itemCenters);
+                _scheduleScrollIfNeeded(
+                  displayEntries: displayEntries,
+                  itemCenters: itemCenters,
+                );
               }
             },
             onPointerCancel: (event) {
               _activePointers = 0;
-              _scheduleScrollIfNeeded(itemCenters: itemCenters);
+              _scheduleScrollIfNeeded(
+                displayEntries: displayEntries,
+                itemCenters: itemCenters,
+              );
             },
             child: NotificationListener<ScrollNotification>(
               onNotification: (notification) {
@@ -2322,7 +2403,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   }
 
   void _logLayoutMetrics({
-    required List<LyricLine> displayLines,
+    required List<LyricsDisplayEntry> displayEntries,
     required MusicLyric? lyrics,
     required List<double> lineHeights,
     required List<double> itemCenters,
@@ -2331,37 +2412,32 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     required double viewportHeight,
   }) {
     if (!kDebugMode) return;
-    if (activeIndex < 0 || activeIndex >= displayLines.length) return;
+    if (activeIndex < 0 || activeIndex >= displayEntries.length) return;
 
     final start = math.max(0, activeIndex - 3);
-    final end = math.min(displayLines.length - 1, activeIndex + 3);
+    final end = math.min(displayEntries.length - 1, activeIndex + 3);
     final buffer = StringBuffer();
-    // final scrollOffsetStr = _scrollController.hasClients
-    //     ? _scrollController.offset.toStringAsFixed(1)
-    //     : 'not_attached';
-    // buffer.writeln(
-    //   '[LyricsPanel] metrics activeIndex=$activeIndex '
-    //   'viewport=${viewportHeight.toStringAsFixed(1)} '
-    //   'scrollOffset=$scrollOffsetStr',
-    // );
     for (var i = start; i <= end; i++) {
-      final translated =
-          lyrics
-              ?.translatedLineAt(
-                i,
-                ref
-                    .read(lyricsControllerProvider.notifier)
-                    .effectiveTranslationLanguageFor(lyrics),
-              )
-              .trim() ??
-          '';
+      final entry = displayEntries[i];
+      final translated = entry.originalIndex != null
+          ? (lyrics
+                  ?.translatedLineAt(
+                    entry.originalIndex!,
+                    ref
+                        .read(lyricsControllerProvider.notifier)
+                        .effectiveTranslationLanguageFor(lyrics),
+                  )
+                  .trim() ??
+              '')
+          : '';
       buffer.writeln(
         '  idx=$i '
         'h=${lineHeights[i].toStringAsFixed(1)} '
         'itemC=${itemCenters[i].toStringAsFixed(1)} '
         'anchorC=${anchorCenters[i].toStringAsFixed(1)} '
         'transLen=${translated.length} '
-        'textLen=${displayLines[i].text.length}',
+        'textLen=${entry.line?.text.length ?? 0}'
+        '${entry.isInterlude ? ' [interlude]' : ''}',
       );
     }
     debugPrint(buffer.toString().trimRight());
