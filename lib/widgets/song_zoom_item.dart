@@ -199,19 +199,14 @@ class SongZoomItem extends ConsumerWidget {
       }
     }
 
-    // 字体样式与平滑字号（稳态滚动锁定整数字号，避免触发文字引擎重建字形图集）
+    // 字体样式与平滑字号：
+    // 统一使用插件提供的锁定整数字号（render*FontSize），避免过渡期每帧改字号
+    // 触发底层文字引擎重建字形图集（CreateGlyphAtlas）；视觉上的连续字号缩放由
+    // ZoomItemScaffold 内的 ZoomScaledTextBox 在 GPU 矩阵层平滑完成。
     final isPortrait = metrics.isPortrait;
-    final isTransitioning =
-        (metrics.targetZoomScale - metrics.animatedZoomScale).abs() > 1e-4;
-    final titleSize = isTransitioning
-        ? metrics.animatedTitleFontSize
-        : metrics.animatedTitleFontSize.roundToDouble();
-    final subSize = isTransitioning
-        ? metrics.animatedSubtitleFontSize
-        : metrics.animatedSubtitleFontSize.roundToDouble();
-    final infoSize = isTransitioning
-        ? metrics.animatedInfoFontSize
-        : metrics.animatedInfoFontSize.roundToDouble();
+    final titleSize = metrics.renderTitleFontSize;
+    final subSize = metrics.renderSubtitleFontSize;
+    final infoSize = metrics.renderInfoFontSize;
 
     final titleColor = isMissing
         ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.55)
