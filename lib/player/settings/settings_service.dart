@@ -495,14 +495,14 @@ class SettingsService extends ChangeNotifier {
   static const String defaultGenerationPrimaryModelId =
       'gemini-3.1-flash-lite';
   static const String defaultGenerationFallbackModelId = '';
-  static const String defaultKaraokePrimaryModelId = 'gemini-3.5-flash-lite';
+  static const String defaultKaraokePrimaryModelId = 'gemini-4-hydrogen';
   static const String defaultKaraokeFallbackModelId = '';
   static const String defaultTranslationPrimaryModelId = 'gemma-4-31b-it';
   static const String defaultTranslationFallbackModelId = '';
   static const String defaultOpenRouterGenerationModelId =
       'google/gemini-3.1-flash-lite';
   static const String defaultOpenRouterKaraokeModelId =
-      'google/gemini-3.5-flash-lite';
+      'google/gemini-4-hydrogen';
   static const String defaultOpenRouterTranslationModelId =
       'google/gemini-3.1-flash-lite';
   static const String defaultDoubaoGenerationModelId =
@@ -4393,6 +4393,18 @@ abstract final class LyricsModelRecommendation {
       if (match != null) {
         final ver = double.tryParse(match.group(1) ?? '');
         return ver != null && ver >= 4.0;
+      }
+    }
+
+    if (baseId.startsWith('gemini-')) {
+      final match = RegExp(
+        r'^gemini-(\d+(?:\.\d+)?)(?:-|$)',
+      ).firstMatch(baseId);
+      if (match != null) {
+        final ver = double.tryParse(match.group(1) ?? '');
+        if (ver != null && ver >= 4.0) {
+          return true;
+        }
       }
     }
 

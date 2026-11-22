@@ -187,8 +187,8 @@ Future<bool> ensureLyricsModelRecommendation(
           : SettingsService.defaultOpenRouterGenerationModelId;
       final normalizedId = currentModel.modelId.trim().toLowerCase();
       if (isKaraoke) {
-        isRecommended = normalizedId == 'google/gemini-3.5-flash-lite' ||
-            normalizedId == 'gemini-3.5-flash-lite';
+        isRecommended = normalizedId == 'google/gemini-4-hydrogen' ||
+            normalizedId == 'gemini-4-hydrogen';
       } else {
         isRecommended = normalizedId == 'google/gemini-3.1-flash-lite' ||
             normalizedId == 'gemini-3.1-flash-lite';

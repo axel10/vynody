@@ -105,6 +105,11 @@ void main() {
       expect(SettingsService.defaultGenerationPrimaryModelId, 'gemini-3.1-flash-lite');
     });
 
+    test('default karaoke models are gemini-4-hydrogen', () {
+      expect(SettingsService.defaultKaraokePrimaryModelId, 'gemini-4-hydrogen');
+      expect(SettingsService.defaultOpenRouterKaraokeModelId, 'google/gemini-4-hydrogen');
+    });
+
     test('ignoreNonRecommendedLyricsModelWarning defaults to false and can be toggled', () {
       expect(settingsService.ignoreNonRecommendedLyricsModelWarning, false);
       settingsService.ignoreNonRecommendedLyricsModelWarning = true;

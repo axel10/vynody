@@ -36,6 +36,15 @@ void main() {
       expect(LyricsModelRecommendation.isGoogleRecommended('gemma-4.5-pro'), isTrue);
     });
 
+    test('gemini version >= 4.0 is recommended', () {
+      expect(LyricsModelRecommendation.isGoogleRecommended('gemini-4-hydrogen'), isTrue);
+      expect(LyricsModelRecommendation.isGoogleRecommended('gemini-4-pro'), isTrue);
+      expect(LyricsModelRecommendation.isGoogleRecommended('gemini-4.5-flash'), isTrue);
+      expect(LyricsModelRecommendation.isGoogleRecommended('gemini-5-pro'), isTrue);
+      expect(LyricsModelRecommendation.isGoogleRecommended('gemini-4-hydrogen-image'), isFalse);
+      expect(LyricsModelRecommendation.isGoogleRecommended('gemini-4-hydrogen-tts'), isFalse);
+    });
+
     test('gemma version < 4.0 or without matching version pattern is not recommended', () {
       expect(LyricsModelRecommendation.isGoogleRecommended('gemma-2-27b-it'), isFalse);
       expect(LyricsModelRecommendation.isGoogleRecommended('gemma-2b-it'), isFalse);
@@ -63,6 +72,12 @@ void main() {
       expect(LyricsModelRecommendation.isOpenRouterRecommended('google/gemini-3.1-flash-lite'), isTrue);
       expect(LyricsModelRecommendation.isOpenRouterRecommended('google/gemini-3.5-flash:free'), isTrue);
       expect(LyricsModelRecommendation.isOpenRouterRecommended('google/gemma-4-31b-it'), isTrue);
+      expect(LyricsModelRecommendation.isOpenRouterRecommended('google/gemini-4-hydrogen'), isTrue);
+      expect(LyricsModelRecommendation.isOpenRouterRecommended('~google/gemini-4-pro'), isTrue);
+      expect(LyricsModelRecommendation.isOpenRouterRecommended('google/gemini-4.5-flash:free'), isTrue);
+      expect(LyricsModelRecommendation.isOpenRouterRecommended('google/gemini-5-pro'), isTrue);
+      expect(LyricsModelRecommendation.isOpenRouterRecommended('google/gemini-4-hydrogen-image'), isFalse);
+      expect(LyricsModelRecommendation.isOpenRouterRecommended('google/gemini-4-hydrogen-tts'), isFalse);
       
       expect(LyricsModelRecommendation.isOpenRouterRecommended('google/gemini-1.5-flash'), isFalse);
       expect(LyricsModelRecommendation.isOpenRouterRecommended('google/gemini-1.5-flash-lite'), isFalse);
