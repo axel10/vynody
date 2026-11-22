@@ -6150,4 +6150,16 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get androidUsbExclusiveBadgeTooltip =>
       'USB Özel Modu etkin (ses ayarlarını açmak için dokunun)';
+
+  @override
+  String get androidUsbExclusiveEffectsDisabledBanner =>
+      'USB DAC özel modu (bit-perfect) etkin. Ses efektleri ve oynatma hızı devre dışı bırakıldı.';
+
+  @override
+  String get androidUsbExclusiveEffectsDisabledStatus =>
+      'USB DAC özel modunda kullanılamaz';
+
+  @override
+  String get androidUsbExclusiveFadeDisabledHint =>
+      'USB DAC özel modunda ses geçiş efektleri otomatik olarak devre dışı bırakılır';
 }

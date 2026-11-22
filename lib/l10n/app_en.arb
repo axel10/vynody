@@ -2634,5 +2634,8 @@
   "androidUsbNoDeviceDetected": "No USB audio device detected. Connect a USB DAC and refresh.",
   "androidUsbRefreshDevices": "Refresh devices",
   "androidUsbExclusiveDetachedNotice": "USB audio device disconnected. System audio output restored.",
-  "androidUsbExclusiveBadgeTooltip": "USB Exclusive Mode is active (tap to open audio settings)"
+  "androidUsbExclusiveBadgeTooltip": "USB Exclusive Mode is active (tap to open audio settings)",
+  "androidUsbExclusiveEffectsDisabledBanner": "USB DAC exclusive mode (bit-perfect) is active. Sound effects and playback speed are disabled.",
+  "androidUsbExclusiveEffectsDisabledStatus": "Unavailable in USB DAC exclusive mode",
+  "androidUsbExclusiveFadeDisabledHint": "Audio fade effects are automatically disabled in USB DAC exclusive mode"
 }

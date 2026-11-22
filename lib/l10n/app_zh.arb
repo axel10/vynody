@@ -4157,5 +4157,8 @@
   "androidUsbNoDeviceDetected": "未检测到 USB 音频设备，请连接解码耳放后刷新",
   "androidUsbRefreshDevices": "刷新设备",
   "androidUsbExclusiveDetachedNotice": "USB 音频设备已断开，已恢复系统音频输出",
-  "androidUsbExclusiveBadgeTooltip": "USB 独占模式已启用（点击进入音频设置）"
+  "androidUsbExclusiveBadgeTooltip": "USB 独占模式已启用（点击进入音频设置）",
+  "androidUsbExclusiveEffectsDisabledBanner": "当前处于 USB DAC 独占模式（源码直出），音效与倍速调节已停用",
+  "androidUsbExclusiveEffectsDisabledStatus": "USB DAC 独占模式下不可用",
+  "androidUsbExclusiveFadeDisabledHint": "USB DAC 独占模式下音频淡入淡出已自动停用"
 }

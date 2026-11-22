@@ -6198,4 +6198,16 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get androidUsbExclusiveBadgeTooltip =>
       'USB-Exklusivmodus aktiv (tippen für Audioeinstellungen)';
+
+  @override
+  String get androidUsbExclusiveEffectsDisabledBanner =>
+      'Der USB-DAC-Exklusivmodus (Bit-Perfect) ist aktiv. Soundeffekte und Wiedergabegeschwindigkeit sind deaktiviert.';
+
+  @override
+  String get androidUsbExclusiveEffectsDisabledStatus =>
+      'Im USB-DAC-Exklusivmodus nicht verfügbar';
+
+  @override
+  String get androidUsbExclusiveFadeDisabledHint =>
+      'Audio-Ein-/Ausblendeffekte sind im USB-DAC-Exklusivmodus automatisch deaktiviert';
 }

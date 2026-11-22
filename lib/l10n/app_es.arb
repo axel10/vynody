@@ -2243,5 +2243,8 @@
   "androidUsbNoDeviceDetected": "No se detectó ningún dispositivo de audio USB. Conecte un DAC USB y actualice.",
   "androidUsbRefreshDevices": "Actualizar dispositivos",
   "androidUsbExclusiveDetachedNotice": "Dispositivo de audio USB desconectado. Se restauró la salida del sistema.",
-  "androidUsbExclusiveBadgeTooltip": "Modo exclusivo USB activo (toca para abrir ajustes de audio)"
+  "androidUsbExclusiveBadgeTooltip": "Modo exclusivo USB activo (toca para abrir ajustes de audio)",
+  "androidUsbExclusiveEffectsDisabledBanner": "El modo exclusivo USB DAC (bit-perfect) está activo. Los efectos de sonido y la velocidad de reproducción están desactivados.",
+  "androidUsbExclusiveEffectsDisabledStatus": "No disponible en modo exclusivo USB DAC",
+  "androidUsbExclusiveFadeDisabledHint": "Los efectos de fundido de audio se desactivan automáticamente en el modo exclusivo USB DAC"
 }

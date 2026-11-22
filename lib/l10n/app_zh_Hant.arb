@@ -1958,5 +1958,8 @@
   "androidUsbNoDeviceDetected": "未偵測到 USB 音訊裝置，請連接解碼耳擴後重新整理",
   "androidUsbRefreshDevices": "重新整理裝置",
   "androidUsbExclusiveDetachedNotice": "USB 音訊裝置已斷開，已恢復系統音訊輸出",
-  "androidUsbExclusiveBadgeTooltip": "USB 獨佔模式已啟用（點擊進入音訊設定）"
+  "androidUsbExclusiveBadgeTooltip": "USB 獨佔模式已啟用（點擊進入音訊設定）",
+  "androidUsbExclusiveEffectsDisabledBanner": "目前處於 USB DAC 獨佔模式（源碼直出），音效與倍速調整已停用",
+  "androidUsbExclusiveEffectsDisabledStatus": "USB DAC 獨佔模式下無法使用",
+  "androidUsbExclusiveFadeDisabledHint": "USB DAC 獨佔模式下音訊淡入淡出已自動停用"
 }

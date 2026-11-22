@@ -2375,5 +2375,8 @@
   "androidUsbNoDeviceDetected": "USB ses cihazı algılanmadı. Bir USB DAC bağlayıp yenileyin.",
   "androidUsbRefreshDevices": "Cihazları yenile",
   "androidUsbExclusiveDetachedNotice": "USB ses cihazının bağlantısı kesildi. Sistem ses çıkışı geri yüklendi.",
-  "androidUsbExclusiveBadgeTooltip": "USB Özel Modu etkin (ses ayarlarını açmak için dokunun)"
+  "androidUsbExclusiveBadgeTooltip": "USB Özel Modu etkin (ses ayarlarını açmak için dokunun)",
+  "androidUsbExclusiveEffectsDisabledBanner": "USB DAC özel modu (bit-perfect) etkin. Ses efektleri ve oynatma hızı devre dışı bırakıldı.",
+  "androidUsbExclusiveEffectsDisabledStatus": "USB DAC özel modunda kullanılamaz",
+  "androidUsbExclusiveFadeDisabledHint": "USB DAC özel modunda ses geçiş efektleri otomatik olarak devre dışı bırakılır"
 }

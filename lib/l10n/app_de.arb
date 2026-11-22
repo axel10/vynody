@@ -2243,5 +2243,8 @@
   "androidUsbNoDeviceDetected": "Kein USB-Audiogerät erkannt. Verbinden Sie einen USB-DAC und aktualisieren Sie.",
   "androidUsbRefreshDevices": "Geräte aktualisieren",
   "androidUsbExclusiveDetachedNotice": "USB-Audiogerät getrennt. System-Audioausgabe wiederhergestellt.",
-  "androidUsbExclusiveBadgeTooltip": "USB-Exklusivmodus aktiv (tippen für Audioeinstellungen)"
+  "androidUsbExclusiveBadgeTooltip": "USB-Exklusivmodus aktiv (tippen für Audioeinstellungen)",
+  "androidUsbExclusiveEffectsDisabledBanner": "Der USB-DAC-Exklusivmodus (Bit-Perfect) ist aktiv. Soundeffekte und Wiedergabegeschwindigkeit sind deaktiviert.",
+  "androidUsbExclusiveEffectsDisabledStatus": "Im USB-DAC-Exklusivmodus nicht verfügbar",
+  "androidUsbExclusiveFadeDisabledHint": "Audio-Ein-/Ausblendeffekte sind im USB-DAC-Exklusivmodus automatisch deaktiviert"
 }

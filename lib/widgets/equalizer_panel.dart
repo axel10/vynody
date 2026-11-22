@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
+import 'package:vynody/player/audio/android_usb_exclusive_controller.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/audio/equalizer_presets.dart';
@@ -52,6 +53,11 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
 
     final settings = ref.watch(settingsServiceProvider);
     final bandCount = settings.equalizerBandCount;
+    final isUsbExclusive = ref.watch(
+      androidUsbExclusiveProvider.select(
+        (s) => s.isSupported && s.isExclusiveActive,
+      ),
+    );
 
     final audio = ref.read(audioServiceProvider);
     final snapshot = ref.watch(audioSnapshotProvider);
@@ -85,21 +91,25 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
         maxBandGain = g;
       }
     }
-    final bool hasClipping = config.enabled && maxEffectiveGain > 0.05;
+    final bool hasClipping =
+        !isUsbExclusive && config.enabled && maxEffectiveGain > 0.05;
 
     return AppAdaptiveSheet(
       sheetMaxWidth: 800,
       dialogMaxWidth: 760,
       landscapeMaxWidth: 1040,
       title: l10n.equalizer,
-      subtitle: config.enabled
-          ? l10n.equalizerEnabledStatus
-          : l10n.equalizerDisabledStatus,
+      subtitle: isUsbExclusive
+          ? l10n.androidUsbExclusiveEffectsDisabledStatus
+          : (config.enabled
+              ? l10n.equalizerEnabledStatus
+              : l10n.equalizerDisabledStatus),
       headerTrailing: Switch(
         value: config.enabled,
         activeThumbColor: accentColor,
         activeTrackColor: accentColor.withValues(alpha: 0.5),
-        onChanged: (val) => audio.setEqualizerEnabled(val),
+        onChanged:
+            isUsbExclusive ? null : (val) => audio.setEqualizerEnabled(val),
       ),
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(
@@ -110,59 +120,122 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 8),
-            _buildPresetBar(
-              audio,
-              config,
-              accentColor,
-              bandCount,
-              frequencies,
-              l10n,
+            if (isUsbExclusive) ...[
+              const SizedBox(height: 8),
+              _buildUsbExclusiveNoticeBanner(theme, isDark, l10n),
+              const SizedBox(height: 16),
+            ] else
+              const SizedBox(height: 8),
+            IgnorePointer(
+              ignoring: isUsbExclusive,
+              child: AnimatedOpacity(
+                opacity: isUsbExclusive ? 0.38 : 1.0,
+                duration: const Duration(milliseconds: 180),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildPresetBar(
+                      audio,
+                      config,
+                      accentColor,
+                      bandCount,
+                      frequencies,
+                      l10n,
+                    ),
+                    const SizedBox(height: 18),
+                    _buildEqSliders(
+                      audio,
+                      config,
+                      accentColor,
+                      bandCount,
+                      frequencies,
+                    ),
+                    const SizedBox(height: 28),
+                    _buildBottomControls(
+                      audio,
+                      config,
+                      accentColor,
+                      l10n,
+                      hasClipping: hasClipping,
+                      maxBandGain: maxBandGain,
+                    ),
+                    const SizedBox(height: 24),
+                    Divider(
+                      height: 1,
+                      color: isDark
+                          ? Colors.white10
+                          : theme.colorScheme.outlineVariant
+                              .withValues(alpha: 0.5),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildSpatialAudioControl(
+                      audio,
+                      spatialAudioMode,
+                      accentColor,
+                      l10n,
+                    ),
+                    const SizedBox(height: 20),
+                    Divider(
+                      height: 1,
+                      color: isDark
+                          ? Colors.white10
+                          : theme.colorScheme.outlineVariant
+                              .withValues(alpha: 0.5),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildSpeedControl(audio, playbackSpeed, accentColor, l10n),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 18),
-            _buildEqSliders(
-              audio,
-              config,
-              accentColor,
-              bandCount,
-              frequencies,
-            ),
-            const SizedBox(height: 28),
-            _buildBottomControls(
-              audio,
-              config,
-              accentColor,
-              l10n,
-              hasClipping: hasClipping,
-              maxBandGain: maxBandGain,
-            ),
-            const SizedBox(height: 24),
-            Divider(
-              height: 1,
-              color: isDark
-                  ? Colors.white10
-                  : theme.colorScheme.outlineVariant
-                      .withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 20),
-            _buildSpatialAudioControl(
-              audio,
-              spatialAudioMode,
-              accentColor,
-              l10n,
-            ),
-            const SizedBox(height: 20),
-            Divider(
-              height: 1,
-              color: isDark
-                  ? Colors.white10
-                  : theme.colorScheme.outlineVariant
-                      .withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 24),
-            _buildSpeedControl(audio, playbackSpeed, accentColor, l10n),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildUsbExclusiveNoticeBanner(
+    ThemeData theme,
+    bool isDark,
+    AppLocalizations l10n,
+  ) {
+    final colorScheme = theme.colorScheme;
+    final accent = isDark ? Colors.amber.shade300 : colorScheme.primary;
+    return Container(
+      key: const ValueKey<String>('equalizer_usb_exclusive_banner'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: isDark ? 0.14 : 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: accent.withValues(alpha: isDark ? 0.35 : 0.28),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.usb_rounded,
+            size: 20,
+            color: accent,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l10n.androidUsbExclusiveEffectsDisabledBanner,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                fontWeight: FontWeight.w500,
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.92)
+                    : colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

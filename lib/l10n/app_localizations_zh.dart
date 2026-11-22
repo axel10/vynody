@@ -5832,6 +5832,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get androidUsbExclusiveBadgeTooltip => 'USB 独占模式已启用（点击进入音频设置）';
+
+  @override
+  String get androidUsbExclusiveEffectsDisabledBanner =>
+      '当前处于 USB DAC 独占模式（源码直出），音效与倍速调节已停用';
+
+  @override
+  String get androidUsbExclusiveEffectsDisabledStatus => 'USB DAC 独占模式下不可用';
+
+  @override
+  String get androidUsbExclusiveFadeDisabledHint => 'USB DAC 独占模式下音频淡入淡出已自动停用';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11662,4 +11672,14 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get androidUsbExclusiveBadgeTooltip => 'USB 獨佔模式已啟用（點擊進入音訊設定）';
+
+  @override
+  String get androidUsbExclusiveEffectsDisabledBanner =>
+      '目前處於 USB DAC 獨佔模式（源碼直出），音效與倍速調整已停用';
+
+  @override
+  String get androidUsbExclusiveEffectsDisabledStatus => 'USB DAC 獨佔模式下無法使用';
+
+  @override
+  String get androidUsbExclusiveFadeDisabledHint => 'USB DAC 獨佔模式下音訊淡入淡出已自動停用';
 }

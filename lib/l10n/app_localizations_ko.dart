@@ -5939,4 +5939,16 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get androidUsbExclusiveBadgeTooltip =>
       'USB 독점 모드가 활성화되었습니다 (탭하여 오디오 설정 열기)';
+
+  @override
+  String get androidUsbExclusiveEffectsDisabledBanner =>
+      'USB DAC 독점 모드(비트 퍼펙트)가 활성화되어 음향 효과 및 재생 속도 조절이 비활성화되었습니다.';
+
+  @override
+  String get androidUsbExclusiveEffectsDisabledStatus =>
+      'USB DAC 독점 모드에서 사용할 수 없음';
+
+  @override
+  String get androidUsbExclusiveFadeDisabledHint =>
+      'USB DAC 독점 모드에서는 오디오 페이드 효과가 자동으로 비활성화됩니다';
 }

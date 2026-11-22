@@ -5934,4 +5934,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get androidUsbExclusiveBadgeTooltip =>
       'USB 排他モードが有効です（タップしてオーディオ設定を開く）';
+
+  @override
+  String get androidUsbExclusiveEffectsDisabledBanner =>
+      'USB DAC 排他モード（ビットパーフェクト）が有効なため、サウンドエフェクトと再生速度の調整は無効になっています。';
+
+  @override
+  String get androidUsbExclusiveEffectsDisabledStatus =>
+      'USB DAC 排他モードでは利用できません';
+
+  @override
+  String get androidUsbExclusiveFadeDisabledHint =>
+      'USB DAC 排他モードではオーディオのフェード効果が自動的に無効になります';
 }

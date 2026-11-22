@@ -629,6 +629,11 @@ class AudioSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final isUsbExclusive = ref.watch(
+      androidUsbExclusiveProvider.select(
+        (s) => s.isSupported && s.isExclusiveActive,
+      ),
+    );
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 100),
@@ -692,12 +697,19 @@ class AudioSection extends ConsumerWidget {
           icon: Icons.graphic_eq_rounded,
           children: [
             SwitchListTile(
+              key: const ValueKey<String>('settings_enable_fade_effect_switch'),
               title: Text(l10n.enableFadeEffect),
-              subtitle: Text(l10n.enableFadeEffectDescription),
+              subtitle: Text(
+                isUsbExclusive
+                    ? l10n.androidUsbExclusiveFadeDisabledHint
+                    : l10n.enableFadeEffectDescription,
+              ),
               value: settings.enableFadeEffect,
-              onChanged: (value) {
-                settings.enableFadeEffect = value;
-              },
+              onChanged: isUsbExclusive
+                  ? null
+                  : (value) {
+                      settings.enableFadeEffect = value;
+                    },
             ),
           ],
         ),

@@ -2342,5 +2342,8 @@
   "androidUsbNoDeviceDetected": "USB オーディオデバイスが検出されません。DAC を接続して更新してください。",
   "androidUsbRefreshDevices": "デバイスを更新",
   "androidUsbExclusiveDetachedNotice": "USB オーディオデバイスが切断されました。システム音声出力に戻しました。",
-  "androidUsbExclusiveBadgeTooltip": "USB 排他モードが有効です（タップしてオーディオ設定を開く）"
+  "androidUsbExclusiveBadgeTooltip": "USB 排他モードが有効です（タップしてオーディオ設定を開く）",
+  "androidUsbExclusiveEffectsDisabledBanner": "USB DAC 排他モード（ビットパーフェクト）が有効なため、サウンドエフェクトと再生速度の調整は無効になっています。",
+  "androidUsbExclusiveEffectsDisabledStatus": "USB DAC 排他モードでは利用できません",
+  "androidUsbExclusiveFadeDisabledHint": "USB DAC 排他モードではオーディオのフェード効果が自動的に無効になります"
 }

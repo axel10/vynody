@@ -10826,6 +10826,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'USB 独占模式已启用（点击进入音频设置）'**
   String get androidUsbExclusiveBadgeTooltip;
+
+  /// No description provided for @androidUsbExclusiveEffectsDisabledBanner.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前处于 USB DAC 独占模式（源码直出），音效与倍速调节已停用'**
+  String get androidUsbExclusiveEffectsDisabledBanner;
+
+  /// No description provided for @androidUsbExclusiveEffectsDisabledStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'USB DAC 独占模式下不可用'**
+  String get androidUsbExclusiveEffectsDisabledStatus;
+
+  /// No description provided for @androidUsbExclusiveFadeDisabledHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'USB DAC 独占模式下音频淡入淡出已自动停用'**
+  String get androidUsbExclusiveFadeDisabledHint;
 }
 
 class _AppLocalizationsDelegate
