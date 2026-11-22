@@ -13,6 +13,7 @@ import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.provider.Settings
 import android.util.Log
+import android.view.KeyEvent
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -26,10 +27,14 @@ class MainActivity : AudioServiceActivity() {
     private val MEDIA_OBSERVER_CHANNEL = "app.vynody.player/media_observer"
     private val BATTERY_CHANNEL = "app.vynody.player/battery"
     private val FILE_OPENER_CHANNEL = "vynody/file_opener"
+    private val VOLUME_KEY_CHANNEL = "app.vynody.player/volume_key"
 
     private var eventSink: EventChannel.EventSink? = null
     private var contentObserver: ContentObserver? = null
     private var fileOpenerChannel: MethodChannel? = null
+    private var volumeKeyChannel: MethodChannel? = null
+    @Volatile
+    private var interceptVolumeKeys: Boolean = false
     private val pendingFiles = mutableListOf<String>()
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -130,6 +135,32 @@ class MainActivity : AudioServiceActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        val volChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, VOLUME_KEY_CHANNEL)
+        volumeKeyChannel = volChannel
+        volChannel.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "setInterceptVolumeKeys" -> {
+                    interceptVolumeKeys = call.argument<Boolean>("enabled") ?: false
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (interceptVolumeKeys) {
+            val keyCode = event.keyCode
+            if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    val direction = if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) 1 else -1
+                    volumeKeyChannel?.invokeMethod("onVolumeKey", mapOf("direction" to direction))
+                }
+                return true
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     private fun registerMediaObserver() {

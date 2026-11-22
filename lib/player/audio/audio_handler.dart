@@ -2,9 +2,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:vynody/player/audio/audio_service.dart' as app; // To distinguish from package:audio_service
+import 'package:vynody/player/platform/android_integration_service.dart';
 
 class MyAudioHandler extends BaseAudioHandler with SeekHandler {
   final app.AudioService appAudio;
+  AndroidPlaybackInfo? _lastAndroidPlaybackInfo;
+
   MyAudioHandler(this.appAudio);
 
   String? _getOrCacheArtworkPath(String trackPath, Uint8List bytes) {
@@ -117,6 +120,52 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> seek(Duration position) => appAudio.seek(position);
+
+  void updateAndroidExclusiveVolume({
+    required bool exclusiveActive,
+    required double volumePercent,
+    required int maxSteps,
+  }) {
+    if (!exclusiveActive) {
+      if (_lastAndroidPlaybackInfo is RemoteAndroidPlaybackInfo) {
+        final local = LocalAndroidPlaybackInfo();
+        _lastAndroidPlaybackInfo = local;
+        androidPlaybackInfo.add(local);
+      }
+      return;
+    }
+
+    const mapper = AndroidExclusiveVolumeMapper();
+    final remote = RemoteAndroidPlaybackInfo(
+      volumeControlType: AndroidVolumeControlType.absolute,
+      maxVolume: maxSteps,
+      volume: mapper.volumePercentToIndex(volumePercent),
+    );
+    if (_lastAndroidPlaybackInfo != remote) {
+      _lastAndroidPlaybackInfo = remote;
+      androidPlaybackInfo.add(remote);
+    }
+  }
+
+  @override
+  Future<void> androidAdjustRemoteVolume(
+    AndroidVolumeDirection direction,
+  ) async {
+    final step = direction.index;
+    if (step == 0) return;
+    await appAudio.adjustAndroidExclusiveVolumeByStep(
+      step,
+      showVolumeHud: false,
+    );
+  }
+
+  @override
+  Future<void> androidSetRemoteVolume(int volumeIndex) async {
+    await appAudio.setAndroidExclusiveVolumeByIndex(
+      volumeIndex,
+      showVolumeHud: false,
+    );
+  }
 
   @override
   Future<void> stop() async {

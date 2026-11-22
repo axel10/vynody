@@ -1,17 +1,62 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:vynody/player/audio/audio_service.dart' as app; // To distinguish from package:audio_service
 import 'package:vynody/player/audio/audio_handler.dart';
 import 'package:vynody/models/music_file.dart';
 
+/// Maps Android physical volume key steps and MediaSession remote volume
+/// indices to the app's `0..100` percentage volume scale during USB exclusive
+/// playback.
+class AndroidExclusiveVolumeMapper {
+  /// Step size per physical volume key press (~1/15 of 100%, rounded to 7%).
+  static const double defaultStepPercent = 7.0;
+
+  /// Resolution exposed to Android's `VolumeProviderCompat` remote slider.
+  static const int remoteMaxVolume = 100;
+
+  final double stepPercent;
+
+  const AndroidExclusiveVolumeMapper({
+    double stepPercent = defaultStepPercent,
+  }) : stepPercent = stepPercent > 0 ? stepPercent : defaultStepPercent;
+
+  int get maxSteps => remoteMaxVolume;
+
+  double adjustVolumePercent(double currentVolumePercent, int direction) {
+    final clampedCurrent = currentVolumePercent.clamp(0.0, 100.0);
+    if (direction == 0) return clampedCurrent;
+    final sign = direction > 0 ? 1.0 : -1.0;
+    return (clampedCurrent + sign * stepPercent).clamp(0.0, 100.0);
+  }
+
+  int volumePercentToIndex(double volumePercent) {
+    return volumePercent.clamp(0.0, 100.0).round();
+  }
+
+  double volumeIndexToPercent(int volumeIndex) {
+    return volumeIndex.clamp(0, remoteMaxVolume).toDouble();
+  }
+}
+
 class AndroidIntegrationService {
+  static const MethodChannel _volumeKeyChannel = MethodChannel(
+    'app.vynody.player/volume_key',
+  );
+
   final app.AudioService audioService;
   late MyAudioHandler _handler;
   bool _initialized = false;
+  final AndroidExclusiveVolumeMapper _volumeMapper =
+      const AndroidExclusiveVolumeMapper();
+  bool _exclusiveActive = false;
+  bool? _lastInterceptEnabled;
+  double _lastExclusiveVolumePercent = 0.0;
   String? _lastMetadataKey;
   DateTime _lastTimelineForwardedAt = DateTime.fromMillisecondsSinceEpoch(0);
   Duration _lastTimelinePosition = Duration.zero;
@@ -19,12 +64,15 @@ class AndroidIntegrationService {
   bool _hasForwardedTimeline = false;
   DateTime _lastDebugLogAt = DateTime.fromMillisecondsSinceEpoch(0);
 
+  AndroidExclusiveVolumeMapper get volumeMapper => _volumeMapper;
+
   AndroidIntegrationService(this.audioService) {
     if (!Platform.isAndroid) return;
     _init();
   }
 
   Future<void> _init() async {
+    _volumeKeyChannel.setMethodCallHandler(_handleVolumeKeyCall);
     try {
       _handler = await AudioService.init(
         builder: () => MyAudioHandler(audioService),
@@ -50,6 +98,52 @@ class AndroidIntegrationService {
     }
   }
 
+  Future<dynamic> _handleVolumeKeyCall(MethodCall call) async {
+    if (call.method == 'onVolumeKey') {
+      final args = call.arguments;
+      final direction = args is Map ? args['direction'] as int? : null;
+      if (direction != null && direction != 0) {
+        await audioService.adjustAndroidExclusiveVolumeByStep(
+          direction,
+          showVolumeHud: true,
+        );
+      }
+    }
+    return null;
+  }
+
+  Future<void> _setInterceptVolumeKeys(bool enabled) async {
+    try {
+      await _volumeKeyChannel.invokeMethod<void>('setInterceptVolumeKeys', {
+        'enabled': enabled,
+      });
+    } catch (e) {
+      debugPrint('Failed to update Android volume key interception: $e');
+    }
+  }
+
+  void updateExclusiveVolumeState({
+    required bool exclusiveActive,
+    required double volumePercent,
+  }) {
+    if (!Platform.isAndroid) return;
+    _exclusiveActive = exclusiveActive;
+    _lastExclusiveVolumePercent = volumePercent;
+
+    if (_lastInterceptEnabled != exclusiveActive) {
+      _lastInterceptEnabled = exclusiveActive;
+      unawaited(_setInterceptVolumeKeys(exclusiveActive));
+    }
+
+    if (_initialized) {
+      _handler.updateAndroidExclusiveVolume(
+        exclusiveActive: exclusiveActive,
+        volumePercent: volumePercent,
+        maxSteps: _volumeMapper.maxSteps,
+      );
+    }
+  }
+
   Future<void> _ensureNotificationPermission() async {
     final status = await Permission.notification.status;
     if (status.isGranted) return;
@@ -67,6 +161,13 @@ class AndroidIntegrationService {
     // Sync current state if something is already playing
     updatePlaybackStatus(audioService.isPlaying);
     updateMetadata(null); // Will pull from audioService
+    if (_exclusiveActive) {
+      _handler.updateAndroidExclusiveVolume(
+        exclusiveActive: true,
+        volumePercent: _lastExclusiveVolumePercent,
+        maxSteps: _volumeMapper.maxSteps,
+      );
+    }
   }
 
   void updateMetadata(MusicFile? song) {

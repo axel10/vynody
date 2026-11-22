@@ -9,6 +9,7 @@ import 'package:vynody/pages/settings/sections/audio_section.dart';
 import 'package:vynody/pages/settings_page.dart';
 import 'package:vynody/player/audio/android_usb_exclusive_controller.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/platform/android_integration_service.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/widgets/playback/playback_progress_section.dart';
@@ -567,6 +568,39 @@ void main() {
         );
       },
     );
+  });
+
+  group('AndroidExclusiveVolumeMapper', () {
+    test('uses default 7% step and falls back when stepPercent <= 0', () {
+      const defaultMapper = AndroidExclusiveVolumeMapper();
+      expect(defaultMapper.stepPercent, 7.0);
+      expect(defaultMapper.maxSteps, 100);
+
+      const invalidMapper = AndroidExclusiveVolumeMapper(stepPercent: 0);
+      expect(invalidMapper.stepPercent, 7.0);
+    });
+
+    test('steps volume up and down by 7% and clamps to 0..100', () {
+      const mapper = AndroidExclusiveVolumeMapper();
+      expect(mapper.adjustVolumePercent(25.0, 1), 32.0);
+      expect(mapper.adjustVolumePercent(25.0, -1), 18.0);
+      expect(mapper.adjustVolumePercent(25.0, 0), 25.0);
+      expect(mapper.adjustVolumePercent(96.0, 1), 100.0);
+      expect(mapper.adjustVolumePercent(4.0, -1), 0.0);
+    });
+
+    test('maps between percentage and 0..100 remote volume index', () {
+      const mapper = AndroidExclusiveVolumeMapper();
+      expect(mapper.volumePercentToIndex(0.0), 0);
+      expect(mapper.volumePercentToIndex(100.0), 100);
+      expect(mapper.volumePercentToIndex(25.4), 25);
+      expect(mapper.volumePercentToIndex(25.6), 26);
+      expect(mapper.volumeIndexToPercent(0), 0.0);
+      expect(mapper.volumeIndexToPercent(100), 100.0);
+      expect(mapper.volumeIndexToPercent(42), 42.0);
+      expect(mapper.volumeIndexToPercent(-3), 0.0);
+      expect(mapper.volumeIndexToPercent(120), 100.0);
+    });
   });
 }
 

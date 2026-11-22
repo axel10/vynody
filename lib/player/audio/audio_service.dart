@@ -4222,6 +4222,10 @@ class AudioService extends Notifier<AudioSnapshot> {
     final prefs = settingsService.prefs;
     if (_usbExclusiveVolumeVault.isActive) {
       _usbExclusiveVolumeVault.recordExclusiveVolume(prefs, _volume);
+      _androidIntegration?.updateExclusiveVolumeState(
+        exclusiveActive: true,
+        volumePercent: _volume,
+      );
     } else {
       unawaited(prefs.setDouble(_volumeStorageKey, _volume));
       unawaited(prefs.setBool(_isMutedStorageKey, _isMuted));
@@ -4244,6 +4248,10 @@ class AudioService extends Notifier<AudioSnapshot> {
     _previousVolume = next.previousVolume;
     _showVolumeHudForLastVolumeChange = false;
     await _player.player.setVolume(_volume / 100.0);
+    _androidIntegration?.updateExclusiveVolumeState(
+      exclusiveActive: true,
+      volumePercent: _volume,
+    );
     notifyListeners();
   }
 
@@ -4256,7 +4264,35 @@ class AudioService extends Notifier<AudioSnapshot> {
     _previousVolume = restored.previousVolume;
     _showVolumeHudForLastVolumeChange = false;
     await _player.player.setVolume(_volume / 100.0);
+    _androidIntegration?.updateExclusiveVolumeState(
+      exclusiveActive: false,
+      volumePercent: _volume,
+    );
     notifyListeners();
+  }
+
+  Future<void> adjustAndroidExclusiveVolumeByStep(
+    int direction, {
+    bool showVolumeHud = true,
+  }) async {
+    if (!_usbExclusiveVolumeVault.isActive || direction == 0) return;
+    final mapper =
+        _androidIntegration?.volumeMapper ??
+        const AndroidExclusiveVolumeMapper();
+    final nextVolume = mapper.adjustVolumePercent(_volume, direction);
+    await setVolume(nextVolume, showVolumeHud: showVolumeHud);
+  }
+
+  Future<void> setAndroidExclusiveVolumeByIndex(
+    int volumeIndex, {
+    bool showVolumeHud = false,
+  }) async {
+    if (!_usbExclusiveVolumeVault.isActive) return;
+    final mapper =
+        _androidIntegration?.volumeMapper ??
+        const AndroidExclusiveVolumeMapper();
+    final nextVolume = mapper.volumeIndexToPercent(volumeIndex);
+    await setVolume(nextVolume, showVolumeHud: showVolumeHud);
   }
 
   Future<void> setPlaybackSpeed(double speed) async {
