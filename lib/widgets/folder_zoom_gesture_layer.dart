@@ -65,16 +65,40 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
     with TickerProviderStateMixin {
   late final FolderZoomPinchController _pinchController;
 
+  /// 捏合 / 吸附动画期间是否屏蔽无障碍语义。
+  ///
+  /// 捏合时每帧都在改条目尺寸，渲染树里的 `RenderTransform.transform` 一变就会
+  /// `markNeedsSemanticsUpdate`，而 `describeSemanticsConfiguration` 是在标脏那一刻
+  /// **同步**算的 —— 实测 Android 上一帧要为此多花 `4.6ms`（SEMANTICS 阶段占
+  /// `drawFrame` 的 22%），此时读屏也在跟着一屏条目上下翻，实际毫无意义。
+  ///
+  /// 用单独的 [ValueNotifier] 而不是直接 listen 控制器：捏合每帧都 notify，
+  /// 直接 rebuild 会多出无谓的 build；这里只在「屏蔽 / 恢复」翻转时才通知一次。
+  final ValueNotifier<bool> _zoomSemanticsBlocked = ValueNotifier<bool>(false);
+
   @override
   void initState() {
     super.initState();
-    _pinchController = FolderZoomPinchController(vsync: this);
+    _pinchController = FolderZoomPinchController(vsync: this)
+      ..addListener(_syncZoomSemanticsBlocked);
   }
 
   @override
   void dispose() {
-    _pinchController.dispose();
+    _pinchController
+      ..removeListener(_syncZoomSemanticsBlocked)
+      ..dispose();
+    _zoomSemanticsBlocked.dispose();
     super.dispose();
+  }
+
+  void _syncZoomSemanticsBlocked() {
+    // `isActive` 覆盖整个「手指按住」+「松手吸附/回弹动画」区间，
+    // 两段都在改尺寸，都要屏蔽。
+    final bool blocked = _pinchController.isActive;
+    if (_zoomSemanticsBlocked.value != blocked) {
+      _zoomSemanticsBlocked.value = blocked;
+    }
   }
 
   /// 当前滚动簇的方向（`1` 放大、`-1` 缩小，`0` 表示还没有簇）与上一笔事件时间戳。
@@ -290,37 +314,46 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
     }
     return FolderZoomPinchScope(
       notifier: _pinchController,
-      child: RawGestureDetector(
-        gestures: <Type, GestureRecognizerFactory>{
-          _FolderPinchGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<_FolderPinchGestureRecognizer>(
-                () => _FolderPinchGestureRecognizer(debugOwner: this),
-                (_FolderPinchGestureRecognizer instance) {
-                  // 此手势识别器的核心职责是在手势竞技场中「接管双指触摸」，
-                  // 避免 Scrollable 的单指/双指滑动识别器抢走手势导致列表滚动。
-                  // 具体精确跟手比例统一由下方的 Listener（_handleTouchMove）
-                  // 基于原始欧氏距离驱动，避免两路数据源同帧重复计算和数值微抖。
-                  instance.isZoomLocked = () => _isZoomLocked;
-                },
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _zoomSemanticsBlocked,
+        // child 是常量引用：屏蔽状态翻转时只重建 `ExcludeSemantics` 这一层，
+        // 下面的手势层与滚动区不会跟着 rebuild。
+        child: RawGestureDetector(
+          gestures: <Type, GestureRecognizerFactory>{
+            _FolderPinchGestureRecognizer:
+                GestureRecognizerFactoryWithHandlers<
+                    _FolderPinchGestureRecognizer>(
+                  () => _FolderPinchGestureRecognizer(debugOwner: this),
+                  (_FolderPinchGestureRecognizer instance) {
+                    // 此手势识别器的核心职责是在手势竞技场中「接管双指触摸」，
+                    // 避免 Scrollable 的单指/双指滑动识别器抢走手势导致列表滚动。
+                    // 具体精确跟手比例统一由下方的 Listener（_handleTouchMove）
+                    // 基于原始欧氏距离驱动，避免两路数据源同帧重复计算和数值微抖。
+                    instance.isZoomLocked = () => _isZoomLocked;
+                  },
+                ),
+          },
+          child: Stack(
+            children: [
+              widget.child,
+              Positioned.fill(
+                child: Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: _handleTouchDown,
+                  onPointerMove: _handleTouchMove,
+                  onPointerUp: _handleTouchUp,
+                  onPointerCancel: _handleTouchUp,
+                  onPointerSignal: _handlePointerSignal,
+                  onPointerPanZoomUpdate: _handlePanZoomUpdate,
+                  onPointerPanZoomEnd: _handlePanZoomEnd,
+                ),
               ),
-        },
-        child: Stack(
-          children: [
-            widget.child,
-            Positioned.fill(
-              child: Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: _handleTouchDown,
-                onPointerMove: _handleTouchMove,
-                onPointerUp: _handleTouchUp,
-                onPointerCancel: _handleTouchUp,
-                onPointerSignal: _handlePointerSignal,
-                onPointerPanZoomUpdate: _handlePanZoomUpdate,
-                onPointerPanZoomEnd: _handlePanZoomEnd,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
+        builder: (BuildContext context, bool blocked, Widget? child) {
+          return ExcludeSemantics(excluding: blocked, child: child!);
+        },
       ),
     );
   }

@@ -772,7 +772,7 @@ void main() {
     expect(capturedMetrics!.animatedListExtent, closeTo(104.0, 0.01));
   });
 
-  testWidgets('文字大小在手势缩放途中随动画进程平滑线性插值', (tester) async {
+  testWidgets('捏合跟手途中字号保持在起点档位，松手后落到目标档位', (tester) async {
     FolderZoomLayoutMetrics? capturedMetrics;
 
     await tester.pumpWidget(
@@ -832,8 +832,9 @@ void main() {
     );
     await tester.pump();
 
-    // 验证字号平滑线性过渡到 15.5 + (16.5 - 15.5) * 0.5 = 16.0
-    expect(capturedMetrics!.animatedTitleFontSize, closeTo(16.0, 0.01));
+    // 跟手阶段字号**冻在起点档位**：本档到下一档只差 1.0pt（< 2 个量化台阶），
+    // 插值肉眼看不出，却会让每一帧都重排文本 + 重建字形图集。
+    expect(capturedMetrics!.animatedTitleFontSize, closeTo(15.5, 0.01));
 
     // 松手结算完成换档
     await tester.sendEventToBinding(pointer.panZoomEnd());
