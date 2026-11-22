@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 3.4.0+1
+version: 3.5.0+1
 
 environment:
   sdk: ^3.11.1
@@ -105,7 +105,9 @@ dependencies:
   # 档位缩放（列表 ↔ 网格）的布局引擎、条目脚手架与手势层。
   # 本地 path 依赖：正在做捏合缩放的掉帧优化，改完验证再推回 git。
   zoomable_sliver_grid:
-    path: ./zoomable_sliver_grid
+    git:
+      url: https://github.com/axel10/zoomable_sliver_grid
+      ref: master
   windows_taskbar:
     git:
       url: https://github.com/axel10/windows_taskbar

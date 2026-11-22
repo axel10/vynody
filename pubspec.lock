@@ -1953,9 +1953,11 @@ packages:
   zoomable_sliver_grid:
     dependency: "direct main"
     description:
-      path: zoomable_sliver_grid
-      relative: true
-    source: path
+      path: "."
+      ref: master
+      resolved-ref: "81fdad46d5ce34ed5ee96c35683d4f1adaaac165"
+      url: "https://github.com/axel10/zoomable_sliver_grid"
+    source: git
     version: "0.0.4"
 sdks:
   dart: ">=3.13.0 <4.0.0"
