@@ -1064,7 +1064,7 @@ class _RemotePlaylistDetailContentState
                   isPortrait: isPortrait,
                   gridMorph: metrics.gridMorph,
                 );
-                final gridWidth = contentWidth - 2 * hPad;
+                final gridWidth = math.max(0.0, contentWidth - 2 * hPad);
 
                 return Align(
                   alignment: Alignment.topCenter,

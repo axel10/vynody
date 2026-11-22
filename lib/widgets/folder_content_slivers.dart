@@ -199,7 +199,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
           // ZoomReorderGeometry.from 把传入宽度直接当 contentWidth，
           // 必须扣掉外层 SliverPadding，否则卡片宽 32px、插入位判定错位；
           // 这样也正好与 delegate 的 usableWidth 对齐（originOffsetX 为 0）。
-          final contentWidth = width - hPad * 2;
+          final contentWidth = (width - hPad * 2).clamp(0.0, double.infinity);
 
           final systemFolder = scanner.systemMediaFolder ??
               MusicFolder(path: 'system', name: systemMediaTitle ?? '');

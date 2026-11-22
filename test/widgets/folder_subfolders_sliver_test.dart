@@ -68,6 +68,7 @@ void main() {
     bool isRoot = true,
     bool isSelectionMode = false,
     ZoomReorderController? reorderController,
+    double? crossAxisExtent,
   }) {
     return ProviderScope(
       overrides: [
@@ -87,6 +88,7 @@ void main() {
                 isRoot: isRoot,
                 isSelectionMode: isSelectionMode,
                 reorderController: reorderController,
+                crossAxisExtent: crossAxisExtent,
                 onNavigateTo: (_) {},
               ),
             ],
@@ -198,5 +200,45 @@ void main() {
 
     // 应该显示 25 首歌曲而非 0
     expect(find.text('25 首歌曲'), findsOneWidget);
+  });
+
+  testWidgets('crossAxisExtent 为 0 时不会向 ZoomReorderableSliverGrid 传入负宽度导致异常', (tester) async {
+    final scanner = _FakeScannerService();
+    final controller = ZoomReorderController();
+
+    await tester.pumpWidget(
+      buildTestWidget(
+        scanner: scanner,
+        folders: [folder1, folder2],
+        isRoot: true,
+        isSelectionMode: false,
+        reorderController: controller,
+        crossAxisExtent: 0.0,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final collapsedGrid = tester.widget<ZoomReorderableSliverGrid>(
+      find.byType(ZoomReorderableSliverGrid),
+    );
+    expect(collapsedGrid.width, greaterThanOrEqualTo(0.0));
+
+    // 恢复正常宽度后重建，不应触发 GlobalKey 冲突或布局异常
+    await tester.pumpWidget(
+      buildTestWidget(
+        scanner: scanner,
+        folders: [folder1, folder2],
+        isRoot: true,
+        isSelectionMode: false,
+        reorderController: controller,
+        crossAxisExtent: 400.0,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final expandedGrid = tester.widget<ZoomReorderableSliverGrid>(
+      find.byType(ZoomReorderableSliverGrid),
+    );
+    expect(expandedGrid.width, greaterThan(0.0));
   });
 }

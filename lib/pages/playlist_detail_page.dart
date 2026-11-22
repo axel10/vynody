@@ -334,7 +334,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
         isPortrait: isPortrait,
         gridMorph: metrics.gridMorph,
       );
-      final gridWidth = contentWidth - 2 * hPad;
+      final gridWidth = math.max(0.0, contentWidth - 2 * hPad);
 
       final selectedIndices = isSelectionMode
           ? <int>{

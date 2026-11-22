@@ -316,7 +316,7 @@ class RemoteServersSliver extends ConsumerWidget {
                   isPortrait: isPortrait,
                   gridMorph: 0.0,
                 );
-          final contentWidth = width - hPad * 2;
+          final contentWidth = (width - hPad * 2).clamp(0.0, double.infinity);
           final selectedIndices = <int>{
             for (var i = 0; i < servers.length; i++)
               if (selectedServerIds.contains(servers[i].id)) i,

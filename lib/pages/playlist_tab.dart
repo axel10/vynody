@@ -487,7 +487,8 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                                 }
                               : const <int>{};
 
-                          final contentWidth = width - 2 * hPad;
+                          final contentWidth =
+                              (width - 2 * hPad).clamp(0.0, double.infinity);
 
                           return SliverPadding(
                             padding: EdgeInsets.only(
