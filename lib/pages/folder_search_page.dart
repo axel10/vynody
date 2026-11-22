@@ -354,8 +354,6 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage>
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final size = MediaQuery.sizeOf(context);
-    final isPortrait =
-        MediaQuery.orientationOf(context) == Orientation.portrait;
     final isLandscape = ref.watch(isEffectiveLandscapeProvider(size));
     final double safeTop = getTitleBarTopPadding(
       context,
@@ -364,10 +362,7 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage>
     final double topPadding = widget.contentTopPadding ??
         (isLandscape ? (safeTop + 8.0) : safeTop);
     final double leftPadding = widget.contentLeftPadding ?? 0.0;
-    final horizontalPadding = folderContentHorizontalPadding(
-      isPortrait: isPortrait,
-      gridMorph: 0.0,
-    );
+    const horizontalPadding = kGridHorizontalPadding;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final settings = ref.watch(settingsServiceProvider);
@@ -500,11 +495,8 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage>
                                       width: crossAxisExtent,
                                       controller: _scrollController,
                                       builder: (context, metrics) {
-                                        final sectionHPad =
-                                            folderContentHorizontalPadding(
-                                          isPortrait: isPortrait,
-                                          gridMorph: metrics.gridMorph,
-                                        );
+                                        const sectionHPad =
+                                            kGridHorizontalPadding;
 
                                         return CustomScrollView(
                                           controller: _scrollController,
