@@ -48,6 +48,18 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        val requestedAbiFilters = (project.findProperty("abiFilters") as? String)
+            ?.split(",")
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            .orEmpty()
+        if (requestedAbiFilters.isNotEmpty()) {
+            ndk {
+                abiFilters.clear()
+                abiFilters.addAll(requestedAbiFilters)
+            }
+        }
     }
 
     signingConfigs {

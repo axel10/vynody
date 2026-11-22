@@ -1,3 +1,7 @@
+AntiFeatures:
+  NonFreeNet:
+    en-US: Optional online features such as Last.fm scrobbling and AI lyrics generation/translation connect to proprietary third-party APIs when explicitly configured by the user. Local music playback works completely offline.
+
 Categories:
   - Multimedia
 License: GPL-3.0-only
@@ -15,7 +19,7 @@ Repo: https://github.com/axel10/vynody.git
 Builds:
   - versionName: 3.4.0
     versionCode: 1
-    commit: 3.4.0
+    commit: 89e560243cc1cd1389f2a911e8bdc4a5cea832cc
     submodules: true
     sudo:
       - apt-get update

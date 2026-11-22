@@ -5,5 +5,8 @@ Vynody 是一款界面美观、功能丰富且资源占用极低的本地音乐�
 - 基于 Media3 (ExoPlayer) 与 FFmpeg 的广泛音频格式支持
 - 逐字歌词（卡拉 OK 动效）显示
 - 跨设备免服务器的歌词、歌单与音乐文件局域网同步
-- 支持 WebDAV 与 SMB 网络存储播放
+- 支持 WebDAV、SMB、Subsonic 与 Jellyfin 网络存储播放
 - 丰富的主题与高度自定义的进度条样式
+
+网络权限说明：
+本地音乐播放完全支持离线使用。网络权限与明文流量支持用于局域网设备发现（mDNS）及免服务器同步/远程控制、连接用户自建的远程媒体库（WebDAV、通过本地回环代理访问的 SMB、Subsonic、Jellyfin）与自定义流媒体地址，以及可选的在线歌词/元数据补全（LRCLIB、MusicBrainz、Cover Art Archive、AcoustID、TheAudioDB）、Last.fm 播放记录与用户自行配置的 AI 歌词服务。

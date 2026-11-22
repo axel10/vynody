@@ -5,5 +5,8 @@ Key Features:
 - Broad audio format support powered by Media3 (ExoPlayer) and FFmpeg
 - Karaoke-style word-by-word synced lyrics
 - Serverless cross-device LAN syncing for music tracks, playlists, and lyrics
-- WebDAV and SMB network storage playback support
+- WebDAV, SMB, Subsonic, and Jellyfin network storage playback support
 - Customizable themes and progress bar visual styles
+
+Network Usage:
+Local playback works completely offline. Network permissions and cleartext traffic are used for local LAN device discovery (mDNS) and peer-to-peer sync/remote control, connecting to user-configured self-hosted servers (WebDAV, SMB via a local loopback proxy, Subsonic, Jellyfin) and custom stream URLs, as well as optional online metadata/lyrics lookup (LRCLIB, MusicBrainz, Cover Art Archive, AcoustID, TheAudioDB), Last.fm scrobbling, and user-configured AI lyrics services.
