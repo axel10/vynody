@@ -187,4 +187,78 @@ void main() {
     expect(songTarget, kFolderZoomTierLargeList);
     expect(songIsGrid, isFalse);
   });
+
+  testWidgets('开启混合视图后展示设置按钮，点击弹出设置弹窗可分别配置目录与歌曲视图', (
+    tester,
+  ) async {
+    try {
+      await pumpCard(
+        tester,
+        TargetPlatform.macOS,
+        scope: LibraryZoomScope.folder,
+      );
+
+      // 未开启混合视图时不展示设置按钮
+      expect(find.byIcon(Icons.settings_outlined), findsNothing);
+
+      // 开启混合视图后展示设置按钮
+      await tester.tap(find.text('混合视图'));
+      await tester.pumpAndSettle();
+      expect(settings.folderHybridView, isTrue);
+      expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+
+      // 点击设置按钮弹出混合视图设置弹窗，且不会误触关闭混合视图
+      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await tester.pumpAndSettle();
+
+      expect(settings.folderHybridView, isTrue);
+      expect(find.text('混合视图设置'), findsOneWidget);
+      expect(find.text('目录条目视图'), findsOneWidget);
+      expect(find.text('歌曲条目视图'), findsOneWidget);
+
+      // 目录条目视图切换为「列表视图 · 紧凑」，歌曲条目视图切换为「网格视图 · 中」
+      final folderCompactTooltip = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byTooltip('列表视图 · 紧凑'),
+      );
+      final songMediumGridTooltip = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byTooltip('网格视图 · 中'),
+      );
+      await tester.tap(folderCompactTooltip.first);
+      await tester.pumpAndSettle();
+      await tester.tap(songMediumGridTooltip.last);
+      await tester.pumpAndSettle();
+
+      expect(
+        settings.folderHybridItemZoomScale,
+        kFolderZoomTierCompactList,
+      );
+      expect(
+        settings.effectiveFolderItemZoomScale,
+        kFolderZoomTierCompactList,
+      );
+      expect(
+        settings.folderHybridSongZoomScale,
+        kFolderZoomTierMediumGrid,
+      );
+      expect(
+        settings.effectiveFolderSongZoomScale,
+        kFolderZoomTierMediumGrid,
+      );
+
+      // 点击重置恢复默认值
+      await tester.tap(find.text('重置'));
+      await tester.pumpAndSettle();
+      expect(settings.folderHybridItemZoomScale, kFolderZoomTierLargeGrid);
+      expect(settings.folderHybridSongZoomScale, kFolderZoomTierStandardList);
+
+      // 点击完成关闭弹窗
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+      expect(find.text('混合视图设置'), findsNothing);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
 }

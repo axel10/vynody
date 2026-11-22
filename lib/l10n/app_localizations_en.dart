@@ -2950,6 +2950,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hybridView => 'Hybrid View';
 
   @override
+  String get hybridViewSettings => 'Hybrid View Settings';
+
+  @override
+  String get hybridViewFolderItemLabel => 'Folder Items';
+
+  @override
+  String get hybridViewSongItemLabel => 'Song Items';
+
+  @override
   String songsCountFormat(Object count) {
     return '$count songs';
   }

@@ -326,30 +326,11 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            for (final tierValue in allowedTiers) ...[
-                              if (_needsTierDividerBefore(
-                                  tierValue, allowedTiers))
-                                Container(
-                                  width: 1,
-                                  height: 18,
-                                  margin:
-                                      const EdgeInsets.symmetric(horizontal: 2),
-                                  color: theme.colorScheme.outlineVariant
-                                      .withValues(alpha: 0.5),
-                                ),
-                              _ZoomTierPresetButton(
-                                tier: getFolderZoomTier(tierValue),
-                                tooltip: _tierTooltip(l10n, tierValue),
-                                isSelected: !isHybrid &&
-                                    tier == getFolderZoomTier(tierValue),
-                                horizontalPadding: compactPresets ? 9 : 16,
-                                onTap: () => setScale(tierValue),
-                              ),
-                            ],
-                          ],
+                        _ZoomTierPresetRow(
+                          allowedTiers: allowedTiers,
+                          selectedTier: isHybrid ? null : tier,
+                          compactPresets: compactPresets,
+                          onSelect: setScale,
                         ),
                       ],
                     ),
@@ -367,6 +348,8 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
                     label: l10n.hybridView,
                     value: isHybrid,
                     onChanged: (val) => settings.setHybridViewFor(scope, val),
+                    settingsTooltip: l10n.hybridViewSettings,
+                    onOpenSettings: () => showHybridViewSettingsDialog(context),
                   ),
                 ],
                 if (!isHybrid) ...[
@@ -454,16 +437,61 @@ class _ZoomTierPresetButton extends StatelessWidget {
   }
 }
 
+class _ZoomTierPresetRow extends StatelessWidget {
+  const _ZoomTierPresetRow({
+    required this.allowedTiers,
+    required this.selectedTier,
+    required this.onSelect,
+    this.compactPresets = true,
+  });
+
+  final List<double> allowedTiers;
+  final FolderZoomTier? selectedTier;
+  final ValueChanged<double> onSelect;
+  final bool compactPresets;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        for (final tierValue in allowedTiers) ...[
+          if (_needsTierDividerBefore(tierValue, allowedTiers))
+            Container(
+              width: 1,
+              height: 18,
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          _ZoomTierPresetButton(
+            tier: getFolderZoomTier(tierValue),
+            tooltip: _tierTooltip(l10n, tierValue),
+            isSelected: selectedTier == getFolderZoomTier(tierValue),
+            horizontalPadding: compactPresets ? 9 : 16,
+            onTap: () => onSelect(tierValue),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _HybridViewToggleRow extends StatelessWidget {
   const _HybridViewToggleRow({
     required this.label,
     required this.value,
     required this.onChanged,
+    this.settingsTooltip,
+    this.onOpenSettings,
   });
 
   final String label;
   final bool value;
   final ValueChanged<bool> onChanged;
+  final String? settingsTooltip;
+  final VoidCallback? onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -494,6 +522,22 @@ class _HybridViewToggleRow extends StatelessWidget {
                 ),
               ),
             ),
+            if (value && onOpenSettings != null) ...[
+              IconButton(
+                tooltip: settingsTooltip,
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints(
+                  minWidth: 28,
+                  minHeight: 28,
+                ),
+                padding: EdgeInsets.zero,
+                iconSize: 16,
+                color: theme.colorScheme.primary,
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: onOpenSettings,
+              ),
+              const SizedBox(width: 4),
+            ],
             SizedBox(
               width: 20,
               height: 20,
@@ -507,6 +551,145 @@ class _HybridViewToggleRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 弹出目录页混合视图设置对话框：分别配置目录条目与歌曲条目的视图档位。
+Future<void> showHybridViewSettingsDialog(BuildContext context) {
+  return showDialog<void>(
+    context: context,
+    builder: (context) => const HybridViewSettingsDialog(),
+  );
+}
+
+/// 目录页混合视图设置对话框。
+class HybridViewSettingsDialog extends ConsumerWidget {
+  const HybridViewSettingsDialog({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final itemZoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.folderHybridItemZoomScale),
+    );
+    final songZoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.folderHybridSongZoomScale),
+    );
+    final settings = ref.read(settingsServiceProvider);
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(
+            Icons.view_quilt_rounded,
+            color: theme.colorScheme.primary,
+          ),
+          const SizedBox(width: 10),
+          Text(l10n.hybridViewSettings),
+        ],
+      ),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 340),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _HybridTierSection(
+              icon: Icons.folder_rounded,
+              label: l10n.hybridViewFolderItemLabel,
+              zoomScale: itemZoomScale,
+              onSelect: (value) => settings.folderHybridItemZoomScale = value,
+            ),
+            const SizedBox(height: 16),
+            _HybridTierSection(
+              icon: Icons.music_note_rounded,
+              label: l10n.hybridViewSongItemLabel,
+              zoomScale: songZoomScale,
+              onSelect: (value) => settings.folderHybridSongZoomScale = value,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            settings.folderHybridItemZoomScale = kFolderZoomTierLargeGrid;
+            settings.folderHybridSongZoomScale = kFolderZoomTierStandardList;
+          },
+          child: Text(l10n.reset),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.done),
+        ),
+      ],
+    );
+  }
+}
+
+class _HybridTierSection extends StatelessWidget {
+  const _HybridTierSection({
+    required this.icon,
+    required this.label,
+    required this.zoomScale,
+    required this.onSelect,
+  });
+
+  final IconData icon;
+  final String label;
+  final double zoomScale;
+  final ValueChanged<double> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final tier = getFolderZoomTier(zoomScale);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _tierTooltip(l10n, zoomScale),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _ZoomTierPresetRow(
+          allowedTiers: kFolderZoomTierValues,
+          selectedTier: tier,
+          onSelect: onSelect,
+        ),
+      ],
     );
   }
 }

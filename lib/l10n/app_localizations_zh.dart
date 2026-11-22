@@ -2810,6 +2810,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hybridView => '混合视图';
 
   @override
+  String get hybridViewSettings => '混合视图设置';
+
+  @override
+  String get hybridViewFolderItemLabel => '目录条目视图';
+
+  @override
+  String get hybridViewSongItemLabel => '歌曲条目视图';
+
+  @override
   String songsCountFormat(Object count) {
     return '$count 首歌曲';
   }
@@ -8648,6 +8657,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get hybridView => '混合檢視';
+
+  @override
+  String get hybridViewSettings => '混合檢視設定';
+
+  @override
+  String get hybridViewFolderItemLabel => '目錄項目檢視';
+
+  @override
+  String get hybridViewSongItemLabel => '歌曲項目檢視';
 
   @override
   String songsCountFormat(Object count) {

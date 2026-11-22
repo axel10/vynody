@@ -2956,6 +2956,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get hybridView => 'Karma Görünüm';
 
   @override
+  String get hybridViewSettings => 'Karma Görünüm Ayarları';
+
+  @override
+  String get hybridViewFolderItemLabel => 'Klasör Öğeleri';
+
+  @override
+  String get hybridViewSongItemLabel => 'Şarkı Öğeleri';
+
+  @override
   String songsCountFormat(Object count) {
     return '$count şarkı';
   }

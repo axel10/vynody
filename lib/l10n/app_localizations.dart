@@ -5409,6 +5409,24 @@ abstract class AppLocalizations {
   /// **'混合视图'**
   String get hybridView;
 
+  /// No description provided for @hybridViewSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'混合视图设置'**
+  String get hybridViewSettings;
+
+  /// No description provided for @hybridViewFolderItemLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'目录条目视图'**
+  String get hybridViewFolderItemLabel;
+
+  /// No description provided for @hybridViewSongItemLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌曲条目视图'**
+  String get hybridViewSongItemLabel;
+
   /// No description provided for @songsCountFormat.
   ///
   /// In zh, this message translates to:

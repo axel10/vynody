@@ -2858,6 +2858,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get hybridView => '하이브리드 보기';
 
   @override
+  String get hybridViewSettings => '하이브리드 보기 설정';
+
+  @override
+  String get hybridViewFolderItemLabel => '폴더 항목';
+
+  @override
+  String get hybridViewSongItemLabel => '노래 항목';
+
+  @override
   String songsCountFormat(Object count) {
     return '$count곡';
   }

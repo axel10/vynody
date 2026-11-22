@@ -1704,6 +1704,9 @@
     }
   },
   "hybridView": "混合视图",
+  "hybridViewSettings": "混合视图设置",
+  "hybridViewFolderItemLabel": "目录条目视图",
+  "hybridViewSongItemLabel": "歌曲条目视图",
   "songsCountFormat": "{count} 首歌曲",
   "searchInFolderAndSubfolders": "在当前目录及子目录下搜索...",
   "shuffle": "随机播放",

@@ -854,6 +854,10 @@ class SettingsService extends ChangeNotifier {
   static const String _keyFolderViewMode = 'folder_view_mode';
   static const String _keyFolderZoomScale = 'folder_zoom_scale';
   static const String _keyFolderHybridView = 'folder_hybrid_view';
+  static const String _keyFolderHybridItemZoomScale =
+      'folder_hybrid_item_zoom_scale';
+  static const String _keyFolderHybridSongZoomScale =
+      'folder_hybrid_song_zoom_scale';
 
   /// 目录页（含复用该记忆域的歌单页）的档位，默认落在最大档 `largeGrid`。
   ///
@@ -1107,6 +1111,28 @@ class SettingsService extends ChangeNotifier {
     defaultValue: false,
     prefs: _prefs,
     onChanged: notifyListeners,
+  );
+
+  late final _folderHybridItemZoomScaleProperty = SettingProperty<double>(
+    key: _keyFolderHybridItemZoomScale,
+    defaultValue: kFolderZoomTierLargeGrid,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) =>
+        snapFolderZoomScale(prefs.getDouble(key) ?? def),
+    customWrite: (prefs, key, val) =>
+        prefs.setDouble(key, snapFolderZoomScale(val)),
+  );
+
+  late final _folderHybridSongZoomScaleProperty = SettingProperty<double>(
+    key: _keyFolderHybridSongZoomScale,
+    defaultValue: kFolderZoomTierStandardList,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) =>
+        snapFolderZoomScale(prefs.getDouble(key) ?? def),
+    customWrite: (prefs, key, val) =>
+        prefs.setDouble(key, snapFolderZoomScale(val)),
   );
 
   late final _albumZoomScaleProperty = SettingProperty<double>(
@@ -3649,17 +3675,29 @@ class SettingsService extends ChangeNotifier {
   set folderZoomScale(double value) =>
       _folderZoomScaleProperty.value = snapFolderZoomScale(value);
 
-  /// 目录页是否开启混合视图（文件夹固定网格视图大，歌曲固定列表视图标准，且禁用手势/快捷键换挡）。
+  /// 目录页是否开启混合视图（文件夹与歌曲分别按各自配置档位渲染，且禁用手势/快捷键换挡）。
   bool get folderHybridView => _folderHybridViewProperty.value;
   set folderHybridView(bool value) => _folderHybridViewProperty.value = value;
 
+  /// 混合视图下目录条目（文件夹及云服务器卡片）的视图档位。
+  double get folderHybridItemZoomScale =>
+      _folderHybridItemZoomScaleProperty.value;
+  set folderHybridItemZoomScale(double value) =>
+      _folderHybridItemZoomScaleProperty.value = snapFolderZoomScale(value);
+
+  /// 混合视图下歌曲条目的视图档位。
+  double get folderHybridSongZoomScale =>
+      _folderHybridSongZoomScaleProperty.value;
+  set folderHybridSongZoomScale(double value) =>
+      _folderHybridSongZoomScaleProperty.value = snapFolderZoomScale(value);
+
   /// 目录页文件夹（及云服务器卡片）实际生效的视图档位。
   double get effectiveFolderItemZoomScale =>
-      folderHybridView ? kFolderZoomTierLargeGrid : folderZoomScale;
+      folderHybridView ? folderHybridItemZoomScale : folderZoomScale;
 
   /// 目录页歌曲实际生效的视图档位。
   double get effectiveFolderSongZoomScale =>
-      folderHybridView ? kFolderZoomTierStandardList : folderZoomScale;
+      folderHybridView ? folderHybridSongZoomScale : folderZoomScale;
 
   /// 指定记忆域当前是否处于混合视图（仅 [LibraryZoomScope.folder] 支持）。
   bool isHybridViewFor(LibraryZoomScope scope) =>

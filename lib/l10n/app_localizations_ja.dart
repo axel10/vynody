@@ -2855,6 +2855,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get hybridView => 'ハイブリッド表示';
 
   @override
+  String get hybridViewSettings => 'ハイブリッド表示設定';
+
+  @override
+  String get hybridViewFolderItemLabel => 'フォルダ項目';
+
+  @override
+  String get hybridViewSongItemLabel => '曲項目';
+
+  @override
   String songsCountFormat(Object count) {
     return '$count曲';
   }

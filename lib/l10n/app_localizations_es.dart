@@ -2982,6 +2982,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get hybridView => 'Vista híbrida';
 
   @override
+  String get hybridViewSettings => 'Ajustes de vista híbrida';
+
+  @override
+  String get hybridViewFolderItemLabel => 'Elementos de carpeta';
+
+  @override
+  String get hybridViewSongItemLabel => 'Elementos de canción';
+
+  @override
   String songsCountFormat(Object count) {
     return '$count canciones';
   }
