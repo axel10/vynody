@@ -168,3 +168,85 @@ class AdaptiveFolderZoomSectionHost extends StatelessWidget {
     );
   }
 }
+
+/// 结合混合视图自适应与 [ZoomableSliverGrid] 零重建管线的网格段组件。
+///
+/// - 非混合视图（本段 [zoomScale] 与外层基准档位一致）：直接复用外层
+///   [ZoomTransitionScope]，过渡动画与捏合期间仅在跨侧翻面/落定稳态时重建，
+///   其余中间帧保持业务条目 0 次 Widget rebuild。
+/// - 混合视图（本段 [zoomScale] 与外层基准档位不同）：独立挂载
+///   [FolderZoomSliverBuilder] 以隔离本段档位。
+class AdaptiveZoomableSliverGrid extends StatelessWidget {
+  const AdaptiveZoomableSliverGrid({
+    super.key,
+    required this.zoomScale,
+    required this.width,
+    required this.itemCount,
+    required this.itemBuilder,
+    this.section,
+    this.controller,
+    this.topPadding = 0.0,
+    this.bottomPadding = 0.0,
+    this.listMainAxisSpacing = kFolderListRowSpacing,
+    this.gridCrossAxisSpacing = kGridCrossAxisSpacing,
+    this.gridMainAxisSpacing = kGridMainAxisSpacing,
+  });
+
+  final double zoomScale;
+  final double width;
+  final int itemCount;
+  final Widget Function(
+    BuildContext context,
+    int index,
+    FolderZoomLayoutMetrics metrics,
+  ) itemBuilder;
+  final Object? section;
+  final ScrollController? controller;
+  final double topPadding;
+  final double bottomPadding;
+  final double listMainAxisSpacing;
+  final double gridCrossAxisSpacing;
+  final double gridMainAxisSpacing;
+
+  @override
+  Widget build(BuildContext context) {
+    if (itemCount <= 0) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+    final double effectiveZoom = snapFolderZoomScale(zoomScale);
+    final hostSteady = ZoomTransitionScope.maybeSteadyOf(context);
+    // 不订阅 FolderZoomPinchScope 的每帧通知，仅在判断混合视图时按需读取基准档位
+    final pinch = context
+        .getInheritedWidgetOfExactType<FolderZoomPinchScope>()
+        ?.notifier;
+    final double? hostBaseZoom = (pinch != null && pinch.isActive)
+        ? pinch.baseZoomScale
+        : hostSteady?.targetZoomScale;
+
+    final grid = ZoomableSliverGrid(
+      zoomScale: effectiveZoom,
+      width: width,
+      itemCount: itemCount,
+      itemBuilder: itemBuilder,
+      section: section,
+      controller: controller,
+      topPadding: topPadding,
+      bottomPadding: bottomPadding,
+      listMainAxisSpacing: listMainAxisSpacing,
+      gridCrossAxisSpacing: gridCrossAxisSpacing,
+      gridMainAxisSpacing: gridMainAxisSpacing,
+    );
+
+    if (hostSteady != null &&
+        hostBaseZoom != null &&
+        (hostBaseZoom - effectiveZoom).abs() < 1e-6) {
+      return grid;
+    }
+    return FolderZoomSliverBuilder(
+      zoomScale: effectiveZoom,
+      width: width,
+      controller: controller,
+      child: grid,
+    );
+  }
+}

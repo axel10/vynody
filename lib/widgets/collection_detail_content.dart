@@ -319,52 +319,37 @@ class _CollectionDetailContentState extends ConsumerState<CollectionDetailConten
     final audio = ref.read(audioServiceProvider);
 
     return [
-      FolderZoomSliverBuilder(
+      ZoomableSliverGrid(
         zoomScale: snapFolderZoomScale(albumZoomScale),
         width: contentWidth,
-        builder: (context, metrics) {
-          final hPad = folderContentHorizontalPadding(
-            isPortrait: true,
-            gridMorph: metrics.gridMorph,
-          );
-
-          return SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: hPad),
-            sliver: SliverGrid(
-              gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final album = albums[index];
-                  return DraggableAlbumItem(
-                    album: album,
-                    enabled: true,
-                    child: AlbumZoomItem(
-                      album: album,
-                      metrics: metrics,
-                      isSelected: false,
-                      isSelectionMode: false,
-                      enableHero: true,
-                      onTap: () => _openAlbumDetail(album),
-                      onSecondaryTapDown: (details) {
-                        showAlbumContextMenu(
-                          context: context,
-                          globalPosition: details.globalPosition,
-                          ref: ref,
-                          album: album,
-                        );
-                      },
-                      onPlay: () => audio.playPlaylist(
-                        album.songs,
-                        source: PlaybackSource(
-                          type: PlaybackSourceType.album,
-                          id: album.id,
-                          name: album.title,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-                childCount: albums.length,
+        itemCount: albums.length,
+        itemBuilder: (context, index, metrics) {
+          final album = albums[index];
+          return DraggableAlbumItem(
+            album: album,
+            enabled: true,
+            child: AlbumZoomItem(
+              album: album,
+              metrics: metrics,
+              isSelected: false,
+              isSelectionMode: false,
+              enableHero: true,
+              onTap: () => _openAlbumDetail(album),
+              onSecondaryTapDown: (details) {
+                showAlbumContextMenu(
+                  context: context,
+                  globalPosition: details.globalPosition,
+                  ref: ref,
+                  album: album,
+                );
+              },
+              onPlay: () => audio.playPlaylist(
+                album.songs,
+                source: PlaybackSource(
+                  type: PlaybackSourceType.album,
+                  id: album.id,
+                  name: album.title,
+                ),
               ),
             ),
           );

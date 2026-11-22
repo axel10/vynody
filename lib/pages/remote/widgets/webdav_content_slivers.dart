@@ -90,105 +90,81 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
     }
 
     final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
     final effectiveZoom = _effectiveZoomScale;
 
-    return AdaptiveFolderZoomSectionHost(
-      zoomScale: effectiveZoom,
-      width: width,
-      builder: (context, metrics) {
-        final hPad = folderContentHorizontalPadding(
-          isPortrait: isPortrait,
-          gridMorph: metrics.gridMorph,
-        );
+    // 包装层常量存在（覆盖永远为空也有），避免根 Widget 类型切换导致
+    // 整段网格 deactivate 重建。
+    return ValueListenableBuilder<Map<String, MusicFile>>(
+      valueListenable: folderCoverSongs ?? _kNoFolderCovers,
+      builder: (context, coverSongs, _) {
+        return AdaptiveZoomableSliverGrid(
+          zoomScale: effectiveZoom,
+          width: width,
+          section: section,
+          topPadding: 8,
+          bottomPadding: 8,
+          itemCount: folders.length,
+          itemBuilder: (context, index, metrics) {
+            final folder = folders[index];
+            final isSelected = selectedFolderPaths.contains(folder.path);
+            final isIndexed =
+                scanRootsNotifier.isFolderIndexed(server.id, folder.path);
+            final virtualUri =
+                RemoteMediaResolver.buildRemoteUri(server, folder.path);
 
-        Widget buildGrid(Map<String, MusicFile> coverSongs) {
-          return SliverPadding(
-            padding: EdgeInsets.only(
-              top: 8,
-              bottom: 8,
-              left: hPad,
-              right: hPad,
-            ),
-            sliver: SliverGrid(
-              gridDelegate: SliverAnimatedZoomGridDelegate(
-                metrics: metrics,
-                section: section,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final folder = folders[index];
-                  final isSelected = selectedFolderPaths.contains(folder.path);
-                  final isIndexed =
-                      scanRootsNotifier.isFolderIndexed(server.id, folder.path);
-                  final virtualUri =
-                      RemoteMediaResolver.buildRemoteUri(server, folder.path);
-
-                  return FolderZoomItem(
-                    key: ValueKey('webdav_folder_${folder.path}'),
-                    folder: MusicFolder(path: virtualUri, name: folder.name),
-                    metrics: metrics,
-                    section: section,
-                    // 代表封面补齐前保持「Folder」，补齐后换成封面。
-                    representativeSong: coverSongs[virtualUri],
-                    subtitle: 'Folder',
-                    enableHero: false,
-                    isSelected: isSelected,
-                    isSelectionMode: isSelectionMode,
-                    isIndexed: isIndexed,
-                    trailing: Builder(
-                      builder: (btnContext) {
-                        return IconButton(
-                          icon: const Icon(Icons.more_vert_rounded, size: 20),
-                          tooltip: 'More',
-                          onPressed: () {
-                            final box =
-                                btnContext.findRenderObject() as RenderBox?;
-                            final pos = box != null
-                                ? box.localToGlobal(
-                                    Offset(
-                                      box.size.width / 2,
-                                      box.size.height / 2,
-                                    ),
-                                  )
-                                : Offset.zero;
-                            openContextMenu(folder, pos);
-                          },
-                        );
-                      },
-                    ),
-                    onTap: onFolderTap != null
-                        ? () => onFolderTap?.call(folder, index)
-                        : (isSelectionMode
-                            ? () => onToggleFolderSelection?.call(folder.path)
-                            : () => onOpenFolder(folder)),
-                    onSecondaryTapDown: (details) {
-                      openContextMenu(folder, details.globalPosition);
+            return FolderZoomItem(
+              key: ValueKey('webdav_folder_${folder.path}'),
+              folder: MusicFolder(path: virtualUri, name: folder.name),
+              metrics: metrics,
+              index: index,
+              section: section,
+              // 代表封面补齐前保持「Folder」，补齐后换成封面。
+              representativeSong: coverSongs[virtualUri],
+              subtitle: 'Folder',
+              enableHero: false,
+              isSelected: isSelected,
+              isSelectionMode: isSelectionMode,
+              isIndexed: isIndexed,
+              trailing: Builder(
+                builder: (btnContext) {
+                  return IconButton(
+                    icon: const Icon(Icons.more_vert_rounded, size: 20),
+                    tooltip: 'More',
+                    onPressed: () {
+                      final box = btnContext.findRenderObject() as RenderBox?;
+                      final pos = box != null
+                          ? box.localToGlobal(
+                              Offset(
+                                box.size.width / 2,
+                                box.size.height / 2,
+                              ),
+                            )
+                          : Offset.zero;
+                      openContextMenu(folder, pos);
                     },
-                    onLongPress: onFolderLongPress != null
-                        ? () => onFolderLongPress?.call(folder, index)
-                        : () {
-                            if (!isSelectionMode) {
-                              onToggleSelectionMode?.call();
-                              onToggleFolderSelection?.call(folder.path);
-                            } else {
-                              onToggleFolderSelection?.call(folder.path);
-                            }
-                          },
                   );
                 },
-                childCount: folders.length,
               ),
-            ),
-          );
-        }
-
-        // 包装层常量存在（覆盖永远为空也有），避免根 Widget 类型切换导致
-        // 整段网格 deactivate 重建。
-        return ValueListenableBuilder<Map<String, MusicFile>>(
-          valueListenable: folderCoverSongs ?? _kNoFolderCovers,
-          builder: (context, coverSongs, _) => buildGrid(coverSongs),
+              onTap: onFolderTap != null
+                  ? () => onFolderTap?.call(folder, index)
+                  : (isSelectionMode
+                      ? () => onToggleFolderSelection?.call(folder.path)
+                      : () => onOpenFolder(folder)),
+              onSecondaryTapDown: (details) {
+                openContextMenu(folder, details.globalPosition);
+              },
+              onLongPress: onFolderLongPress != null
+                  ? () => onFolderLongPress?.call(folder, index)
+                  : () {
+                      if (!isSelectionMode) {
+                        onToggleSelectionMode?.call();
+                        onToggleFolderSelection?.call(folder.path);
+                      } else {
+                        onToggleFolderSelection?.call(folder.path);
+                      }
+                    },
+            );
+          },
         );
       },
     );
@@ -243,74 +219,52 @@ class WebDavSongsSliver extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
     final effectiveZoom = _effectiveZoomScale;
 
-    return AdaptiveFolderZoomSectionHost(
+    return AdaptiveZoomableSliverGrid(
       zoomScale: effectiveZoom,
       width: width,
-      builder: (context, metrics) {
-        final hPad = folderContentHorizontalPadding(
-          isPortrait: isPortrait,
-          gridMorph: metrics.gridMorph,
+      section: section,
+      topPadding: 8,
+      bottomPadding: 8,
+      itemCount: files.length,
+      itemBuilder: (context, index, metrics) {
+        final file = files[index];
+        final uri = RemoteMediaResolver.buildRemoteUri(server, file.path);
+        final isSelected = selectedSongPaths.contains(uri);
+
+        // 目录加载时已把非音频文件（封面图、.cue/.nfo/.txt、系统文件）
+        // 全部剔掉，走到这里的必然是音频。
+        final meta = metadataMap[uri] ??
+            ref.watch(
+              scannerServiceProvider.select(
+                (s) => s.metadataMap[uri],
+              ),
+            );
+        final musicFile = RemoteMediaResolver.buildMusicFile(
+          file,
+          server,
+          metadata: meta,
         );
+        final isCurrent = currentMusicPath == uri;
+        final isHighlighted = highlightedSongPath == uri;
 
-        return SliverPadding(
-          padding: EdgeInsets.only(
-            top: 8,
-            bottom: 8,
-            left: hPad,
-            right: hPad,
-          ),
-          sliver: SliverGrid(
-            gridDelegate: SliverAnimatedZoomGridDelegate(
-              metrics: metrics,
-              section: section,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final file = files[index];
-                final uri =
-                    RemoteMediaResolver.buildRemoteUri(server, file.path);
-                final isSelected = selectedSongPaths.contains(uri);
-
-                // 目录加载时已把非音频文件（封面图、.cue/.nfo/.txt、系统文件）
-                // 全部剔掉，走到这里的必然是音频。
-                final meta = metadataMap[uri] ??
-                    ref.watch(
-                      scannerServiceProvider.select(
-                        (s) => s.metadataMap[uri],
-                      ),
-                    );
-                final musicFile = RemoteMediaResolver.buildMusicFile(
-                  file,
-                  server,
-                  metadata: meta,
-                );
-                final isCurrent = currentMusicPath == uri;
-                final isHighlighted = highlightedSongPath == uri;
-
-                return SongZoomItem(
-                  key: ValueKey('webdav_song_$uri'),
-                  song: musicFile,
-                  metrics: metrics,
-                  section: section,
-                  isCurrent: isCurrent,
-                  isPlaying: isAudioPlaying,
-                  isSelected: isSelected,
-                  isSelectionMode: isSelectionMode,
-                  selectedPaths: selectedSongPaths,
-                  isHighlighted: isHighlighted,
-                  onTap: () => onSongTap(file, index),
-                  onLongPress: () => onSongLongPress?.call(file),
-                  onSecondaryTapDown: (details) =>
-                      onSongSecondaryTapDown?.call(file, details),
-                );
-              },
-              childCount: files.length,
-            ),
-          ),
+        return SongZoomItem(
+          key: ValueKey('webdav_song_$uri'),
+          song: musicFile,
+          metrics: metrics,
+          index: index,
+          section: section,
+          isCurrent: isCurrent,
+          isPlaying: isAudioPlaying,
+          isSelected: isSelected,
+          isSelectionMode: isSelectionMode,
+          selectedPaths: selectedSongPaths,
+          isHighlighted: isHighlighted,
+          onTap: () => onSongTap(file, index),
+          onLongPress: () => onSongLongPress?.call(file),
+          onSecondaryTapDown: (details) =>
+              onSongSecondaryTapDown?.call(file, details),
         );
       },
     );
