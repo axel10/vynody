@@ -260,5 +260,135 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'AdaptiveFolderZoomSectionHost 捏合进度跨过 0.5 时保持复用外层 metrics 与 pinning',
+      (tester) async {
+        const baseScale = kFolderZoomTierStandardList;
+        const sectionId = 'songs';
+        final pinch = FolderZoomPinchController(vsync: const TestVSync());
+        addTearDown(pinch.dispose);
+
+        FolderZoomLayoutMetrics? outerMetrics;
+        FolderZoomLayoutMetrics? innerMetrics;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 400,
+                height: 600,
+                child: FolderZoomPinchScope(
+                  notifier: pinch,
+                  child: FolderZoomSliverBuilder(
+                    zoomScale: baseScale,
+                    width: 400,
+                    builder: (context, metrics) {
+                      outerMetrics = metrics;
+                      return CustomScrollView(
+                        slivers: [
+                          AdaptiveFolderZoomSectionHost(
+                            zoomScale: baseScale,
+                            width: 400,
+                            builder: (context, sectionMetrics) {
+                              innerMetrics = sectionMetrics;
+                              return SliverGrid(
+                                gridDelegate: SliverAnimatedZoomGridDelegate(
+                                  metrics: sectionMetrics,
+                                  section: sectionId,
+                                ),
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) => SizedBox(
+                                    key: ValueKey<int>(index),
+                                    child: Text('Item $index'),
+                                  ),
+                                  childCount: 80,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // 模拟捏合放大（standardList -> largeList）：先推进到 progress = 0.3，
+        // 再跨过 0.5 推进到 progress = 0.65。
+        pinch.startPinch(baseScale);
+        pinch.updatePinch(scale: 1.3);
+        await tester.pump();
+
+        expect(pinch.progress, closeTo(0.3, 1e-6));
+        expect(find.byType(FolderZoomSliverBuilder), findsOneWidget);
+        expect(identical(innerMetrics, outerMetrics), isTrue);
+        final pinningBeforeHalf = innerMetrics?.pinningFor(sectionId);
+        expect(pinningBeforeHalf, isNotNull);
+
+        pinch.updatePinch(scale: 1.65);
+        await tester.pump();
+
+        expect(pinch.progress, closeTo(0.65, 1e-6));
+        expect(outerMetrics?.targetZoomScale, equals(pinch.targetZoomScale));
+        // 跨过 0.5 后不能半路创建新的内层 FolderZoomSliverBuilder，
+        // 必须继续复用外层 metrics 与冻结的单侧淡入淡出表。
+        expect(find.byType(FolderZoomSliverBuilder), findsOneWidget);
+        expect(identical(innerMetrics, outerMetrics), isTrue);
+        expect(innerMetrics?.pinningFor(sectionId), same(pinningBeforeHalf));
+      },
+    );
+
+    testWidgets(
+      'AdaptiveFolderZoomSectionHost 在混合视图档位不同时仍独立构建度量',
+      (tester) async {
+        FolderZoomLayoutMetrics? outerMetrics;
+        FolderZoomLayoutMetrics? innerMetrics;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 400,
+                height: 600,
+                child: FolderZoomSliverBuilder(
+                  zoomScale: kFolderZoomTierLargeGrid,
+                  width: 400,
+                  builder: (context, metrics) {
+                    outerMetrics = metrics;
+                    return CustomScrollView(
+                      slivers: [
+                        AdaptiveFolderZoomSectionHost(
+                          zoomScale: kFolderZoomTierStandardList,
+                          width: 400,
+                          builder: (context, sectionMetrics) {
+                            innerMetrics = sectionMetrics;
+                            return const SliverToBoxAdapter(
+                              child: SizedBox(height: 100),
+                            );
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(find.byType(FolderZoomSliverBuilder), findsNWidgets(2));
+        expect(identical(innerMetrics, outerMetrics), isFalse);
+        expect(
+          innerMetrics?.targetZoomScale,
+          equals(kFolderZoomTierStandardList),
+        );
+      },
+    );
   });
 }

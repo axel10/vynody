@@ -125,8 +125,19 @@ class AdaptiveFolderZoomSectionHost extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveZoom = snapFolderZoomScale(zoomScale);
     final hostMetrics = FolderZoomMetricsScope.maybeOf(context);
+    final pinch = FolderZoomPinchScope.maybeOf(context);
+    // 捏合手势进行中，外层 `FolderZoomSliverBuilder` 下发的 `targetZoomScale`
+    // 会在 `progress > 0.5` 时翻向目标档位，但此时尚未松手提交，本段传入的
+    // `zoomScale` 仍停留在起手档位。若直接拿 `hostMetrics.targetZoomScale`
+    // 比较，跨过 0.5 的瞬间会误判为「档位不一致」，导致半路挂载新的
+    // `FolderZoomSliverBuilder` 并丢失单侧条目的原地淡入淡出冻结表（pinning）。
+    // 因此捏合期间以外层的起手基准档位 `pinch.baseZoomScale` 作为比对口径。
+    final hostBaseZoom = (pinch != null && pinch.isActive)
+        ? pinch.baseZoomScale
+        : hostMetrics?.targetZoomScale;
     if (hostMetrics != null &&
-        (hostMetrics.targetZoomScale - effectiveZoom).abs() < 1e-6) {
+        hostBaseZoom != null &&
+        (hostBaseZoom - effectiveZoom).abs() < 1e-6) {
       return builder(context, hostMetrics);
     }
     return FolderZoomSliverBuilder(
