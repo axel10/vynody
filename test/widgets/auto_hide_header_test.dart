@@ -275,8 +275,8 @@ void main() {
           reason: '内层滚动通知不得穿透到外层 scope',
         );
 
-        // 外层自己的滚动仍然要生效
-        outerController.jumpTo(300);
+        // 外层自己的用户滚动仍然要生效（通过 pointerScroll 模拟滚轮，触发 UserScrollNotification）
+        outerController.position.pointerScroll(300);
         await tester.pumpAndSettle();
         expect(headerOffset('Outer Header'), const Offset(0, -1.0));
       } finally {
@@ -402,6 +402,74 @@ void main() {
         await tester.drag(find.byType(ListView), const Offset(0, 60));
         await tester.pumpAndSettle();
         // Should reveal
+        expect(tester.widget<AnimatedSlide>(animatedSlideFinder).offset, Offset.zero);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('Programmatic jumpTo (e.g. zoom compensation) does not toggle header', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      addTearDown(tester.view.resetPhysicalSize);
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: AutoHideHeaderScope(
+                enabled: true,
+                builder: (context, isVisible) {
+                  return Stack(
+                    children: [
+                      ListView.builder(
+                        controller: scrollController,
+                        itemCount: 100,
+                        itemBuilder: (context, index) => SizedBox(
+                          height: 50,
+                          child: Text('Item $index'),
+                        ),
+                      ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: 50,
+                        child: AutoHideHeader(
+                          isVisible: isVisible,
+                          child: const Text('Top Header'),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+
+        final animatedSlideFinder = find.byType(AnimatedSlide);
+        expect(tester.widget<AnimatedSlide>(animatedSlideFinder).offset, Offset.zero);
+
+        // 程序化向下 jumpTo（模拟缩放换档补偿）不应隐藏顶栏
+        scrollController.jumpTo(300);
+        await tester.pumpAndSettle();
+        expect(tester.widget<AnimatedSlide>(animatedSlideFinder).offset, Offset.zero);
+
+        // 用户主动向下拖动，顶栏正常收起
+        await tester.drag(find.byType(ListView), const Offset(0, -250));
+        await tester.pumpAndSettle();
+        expect(tester.widget<AnimatedSlide>(animatedSlideFinder).offset, const Offset(0, -1.0));
+
+        // 程序化向上 jumpTo（仍在列表中段）不应误展开顶栏
+        scrollController.jumpTo(200);
+        await tester.pumpAndSettle();
+        expect(tester.widget<AnimatedSlide>(animatedSlideFinder).offset, const Offset(0, -1.0));
+
+        // 程序化回到顶部（pixels <= 20）应恢复顶栏可见
+        scrollController.jumpTo(0);
+        await tester.pumpAndSettle();
         expect(tester.widget<AnimatedSlide>(animatedSlideFinder).offset, Offset.zero);
       } finally {
         debugDefaultTargetPlatformOverride = null;

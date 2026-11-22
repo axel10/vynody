@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
@@ -445,6 +446,13 @@ class FloatingDockScrollHelper {
   final int instanceNo;
   int _seq = 0;
 
+  /// 当前滚动是否由用户主动驱动（触屏/触控板拖拽、惯性滑动、鼠标滚轮）。
+  ///
+  /// 程序化调用 `position.jumpTo(...)`（例如缩放换档/捏合时的锚点补偿）以及
+  /// 内容高度变化触发的 `applyContentDimensions` 边界修正，其
+  /// `userScrollDirection` 均为 [ScrollDirection.idle]，不应驱动 Dock 位移。
+  bool _isUserScrolling = false;
+
   void _trace(String message) {
     if (!traceEnabled) return;
     _seq++;
@@ -457,6 +465,7 @@ class FloatingDockScrollHelper {
   void dispose() {}
 
   void reset(WidgetRef ref) {
+    _isUserScrolling = false;
     _trace('reset() 位移清零');
     if (ref.context.mounted) {
       ref.read(floatingDockScrollOffsetProvider.notifier).reset();
@@ -473,6 +482,12 @@ class FloatingDockScrollHelper {
       return false;
     }
 
+    // 必须在任何早退之前同步用户滚动状态，否则在顶部（pixels <= 0）收尾的
+    // UserScrollNotification(idle) 会被漏掉，导致状态残留。
+    if (notification is UserScrollNotification) {
+      _isUserScrolling = notification.direction != ScrollDirection.idle;
+    }
+
     // 设置里关闭「随滚动移出」时，悬浮栏始终常驻在原位
     if (!ref.read(settingsServiceProvider).enableFloatingDockScrollCollapse) {
       reset(ref);
@@ -483,13 +498,21 @@ class FloatingDockScrollHelper {
     final double pixels = metrics.pixels;
     final double maxScrollExtent = metrics.maxScrollExtent;
 
-    // 当列表回到顶部（pixels <= 0）时，强制复位至原位
-    if (pixels <= 0.0) {
+    // 当列表回到顶部（pixels <= 0）或内容缩到一屏内无法滚动（maxScrollExtent <= 0）时，
+    // 无条件复位至原位，避免程序化滚动或缩放后 Dock 停留在屏幕外无法召回。
+    if (pixels <= 0.0 || maxScrollExtent <= 0.0) {
       ref.read(floatingDockScrollOffsetProvider.notifier).reset();
       return false;
     }
 
     if (notification is ScrollUpdateNotification) {
+      // 仅响应用户主动滚动（或处于手势拖拽中），忽略缩放换档补偿 jumpTo / 高度变化修正。
+      final bool isUserDriven =
+          _isUserScrolling || notification.dragDetails != null;
+      if (!isUserDriven) {
+        return false;
+      }
+
       final dy = notification.scrollDelta ?? 0.0;
       if (dy != 0.0) {
         final currentOffset = ref.read(floatingDockScrollOffsetProvider);
@@ -501,10 +524,8 @@ class FloatingDockScrollHelper {
         // remaining 表示距列表最底部的剩余距离。
         // Dock 的位移不能超过 remaining，向下滚动越接近最底，Dock 越向上浮现展开；
         // 滚动到最底部时 remaining <= 0，Dock 正好完全处于原位 (newOffset = 0)。
-        if (maxScrollExtent > 0) {
-          final remaining = (maxScrollExtent - pixels).clamp(0.0, maxOffset);
-          newOffset = min(newOffset, remaining);
-        }
+        final remaining = (maxScrollExtent - pixels).clamp(0.0, maxOffset);
+        newOffset = min(newOffset, remaining);
 
         ref.read(floatingDockScrollOffsetProvider.notifier).setOffset(newOffset);
         _trace(
@@ -512,7 +533,7 @@ class FloatingDockScrollHelper {
         );
       }
     } else if (notification is ScrollEndNotification) {
-      if (maxScrollExtent > 0 && pixels >= maxScrollExtent) {
+      if (pixels >= maxScrollExtent) {
         ref.read(floatingDockScrollOffsetProvider.notifier).reset();
       }
     }

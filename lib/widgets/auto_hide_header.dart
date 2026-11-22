@@ -51,6 +51,7 @@ class _AutoHideHeaderScopeState extends State<AutoHideHeaderScope> {
   bool _isVisible = true;
   double _accumulatedDownScroll = 0.0;
   double _accumulatedUpScroll = 0.0;
+  bool _isUserScrolling = false;
   ScrollPosition? _lastActiveScrollPosition;
 
   bool get _effectiveEnabled =>
@@ -94,8 +95,17 @@ class _AutoHideHeaderScopeState extends State<AutoHideHeaderScope> {
     // 文件夹页的 root / detail 视图是同一套结构。
     if (!_ownsNotification(notification)) return false;
 
+    // Only respond to vertical scrolling, ignore horizontal lists/breadcrumbs
+    if (notification.metrics.axis != Axis.vertical) return false;
+
+    // 同步用户主动滚动状态（在任何早退之前更新，避免在顶部收尾时漏掉 idle 信号）。
+    // 程序化 jumpTo（如缩放换档补偿）或高度变化修正的 direction 为 idle，不触发顶栏收起/展开。
+    if (notification is UserScrollNotification) {
+      _isUserScrolling = notification.direction != ScrollDirection.idle;
+    }
+
     // 捕获最近活跃的垂直滚动位置，支持点击顶部栏标题统一回顶
-    if (notification.metrics.axis == Axis.vertical && notification.context != null) {
+    if (notification.context != null) {
       final scrollable = Scrollable.maybeOf(notification.context!);
       if (scrollable != null) {
         _lastActiveScrollPosition = scrollable.position;
@@ -110,13 +120,11 @@ class _AutoHideHeaderScopeState extends State<AutoHideHeaderScope> {
       }
       return false;
     }
-    // Only respond to vertical scrolling, ignore horizontal lists/breadcrumbs
-    if (notification.metrics.axis != Axis.vertical) return false;
 
     final pixels = notification.metrics.pixels;
 
-    // 接近顶部缓冲区时，展开顶部栏并清空所有累计距离
-    if (pixels <= 20) {
+    // 接近顶部缓冲区或内容已缩到一屏内无法滚动时，展开顶部栏并清空所有累计距离
+    if (pixels <= 20 || notification.metrics.maxScrollExtent <= 0) {
       _resetAccumulated();
       if (!_isVisible) {
         setState(() => _isVisible = true);
@@ -133,6 +141,9 @@ class _AutoHideHeaderScopeState extends State<AutoHideHeaderScope> {
           notification is ScrollEndNotification) {
         _accumulatedUpScroll = 0.0;
       } else if (notification is ScrollUpdateNotification) {
+        if (!_isUserScrolling && notification.dragDetails == null) {
+          return false;
+        }
         final dy = notification.scrollDelta ?? 0.0;
         if (dy > 0) {
           // 向下滚动：重置向上累计
@@ -153,6 +164,9 @@ class _AutoHideHeaderScopeState extends State<AutoHideHeaderScope> {
     _accumulatedUpScroll = 0.0;
 
     if (notification is ScrollUpdateNotification) {
+      if (!_isUserScrolling && notification.dragDetails == null) {
+        return false;
+      }
       final dy = notification.scrollDelta ?? 0.0;
       if (pixels > 40.0) {
         if (dy > 0) {

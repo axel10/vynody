@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -46,15 +47,15 @@ void main() {
     );
   }
 
-  void scrollTo(
+  void dispatchUserScroll(
     WidgetTester tester, {
-    required double pixels,
-    required double dy,
+    required ScrollDirection direction,
+    double pixels = 0,
     double maxScrollExtent = 2000,
     BuildContext? scrollableContext,
   }) {
     helper.handleScrollNotification(
-      ScrollUpdateNotification(
+      UserScrollNotification(
         metrics: FixedScrollMetrics(
           minScrollExtent: 0,
           maxScrollExtent: maxScrollExtent,
@@ -65,6 +66,44 @@ void main() {
         ),
         context: scrollableContext ??
             tester.element(find.byKey(const ValueKey('host'))),
+        direction: direction,
+      ),
+      ref,
+    );
+  }
+
+  void scrollTo(
+    WidgetTester tester, {
+    required double pixels,
+    required double dy,
+    double maxScrollExtent = 2000,
+    BuildContext? scrollableContext,
+    bool userDriven = true,
+  }) {
+    final metrics = FixedScrollMetrics(
+      minScrollExtent: 0,
+      maxScrollExtent: maxScrollExtent,
+      pixels: pixels,
+      viewportDimension: 800,
+      axisDirection: AxisDirection.down,
+      devicePixelRatio: 1.0,
+    );
+    final ctx =
+        scrollableContext ?? tester.element(find.byKey(const ValueKey('host')));
+    if (userDriven) {
+      helper.handleScrollNotification(
+        UserScrollNotification(
+          metrics: metrics,
+          context: ctx,
+          direction: dy >= 0 ? ScrollDirection.reverse : ScrollDirection.forward,
+        ),
+        ref,
+      );
+    }
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metrics,
+        context: ctx,
         scrollDelta: dy,
       ),
       ref,
@@ -199,6 +238,64 @@ void main() {
     helper.reset(ref);
 
     scrollTo(tester, pixels: 100, dy: 100);
+    expect(container.read(floatingDockScrollOffsetProvider), 0.0);
+  });
+
+  testWidgets('程序化滚动（如缩放换档 jumpTo 补偿）不驱动 Dock 上下跳动', (tester) async {
+    await pumpHost(tester);
+    helper.reset(ref);
+
+    // 1. 先由用户向下滚动 100px，然后结束滚动（idle）
+    scrollTo(tester, pixels: 300, dy: 100);
+    expect(container.read(floatingDockScrollOffsetProvider), 100.0);
+    dispatchUserScroll(tester, direction: ScrollDirection.idle, pixels: 300);
+
+    // 2. 模拟缩放换档期间每帧 position.jumpTo(...) 引发的正负交替 ScrollUpdateNotification
+    scrollTo(tester, pixels: 520, dy: 220, userDriven: false);
+    expect(container.read(floatingDockScrollOffsetProvider), 100.0);
+
+    scrollTo(tester, pixels: 380, dy: -140, userDriven: false);
+    expect(container.read(floatingDockScrollOffsetProvider), 100.0);
+
+    scrollTo(tester, pixels: 460, dy: 80, userDriven: false);
+    expect(container.read(floatingDockScrollOffsetProvider), 100.0);
+  });
+
+  testWidgets('在顶部收到 UserScrollNotification(idle) 后，后续程序化滚动仍被忽略', (tester) async {
+    await pumpHost(tester);
+    helper.reset(ref);
+
+    // 用户先滚下来再滚回顶部，并在 pixels == 0 时松手触发 idle
+    scrollTo(tester, pixels: 100, dy: 100);
+    scrollTo(tester, pixels: 0, dy: -100);
+    dispatchUserScroll(tester, direction: ScrollDirection.idle, pixels: 0);
+    expect(container.read(floatingDockScrollOffsetProvider), 0.0);
+
+    // 之后发生程序化 jumpTo，不应推动 Dock
+    scrollTo(tester, pixels: 180, dy: 180, userDriven: false);
+    expect(container.read(floatingDockScrollOffsetProvider), 0.0);
+  });
+
+  testWidgets('缩放后内容缩至一屏内（maxScrollExtent <= 0）时，已隐藏的 Dock 仍会复位回原位', (tester) async {
+    await pumpHost(tester);
+    helper.reset(ref);
+
+    // 先由用户向下滚动，Dock 移出
+    scrollTo(tester, pixels: 300, dy: 220);
+    expect(
+      container.read(floatingDockScrollOffsetProvider),
+      FloatingDockScrollHelper.maxScrollOffset,
+    );
+    dispatchUserScroll(tester, direction: ScrollDirection.idle, pixels: 300);
+
+    // 切换到小网格后整页缩到一屏内，maxScrollExtent 变为 0
+    scrollTo(
+      tester,
+      pixels: 10,
+      dy: -290,
+      maxScrollExtent: 0,
+      userDriven: false,
+    );
     expect(container.read(floatingDockScrollOffsetProvider), 0.0);
   });
 }
