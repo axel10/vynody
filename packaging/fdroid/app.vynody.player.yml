@@ -17,9 +17,9 @@ RepoType: git
 Repo: https://github.com/axel10/vynody.git
 
 Builds:
-  - versionName: 3.4.0
+  - versionName: 3.5.0
     versionCode: 1
-    commit: 89e560243cc1cd1389f2a911e8bdc4a5cea832cc
+    commit: 45f7ff95ab4434c428c1943a1f5e8262c77850de
     submodules: true
     sudo:
       - apt-get update
@@ -38,5 +38,5 @@ Builds:
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
-CurrentVersion: 3.4.0
+CurrentVersion: 3.5.0
 CurrentVersionCode: 1
