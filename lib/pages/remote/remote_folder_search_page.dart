@@ -462,15 +462,13 @@ class _RemoteFolderSearchPageState
                       : LayoutBuilder(
                           builder: (context, constraints) {
                             final crossAxisExtent = constraints.maxWidth;
+                            const sectionHPad = kGridHorizontalPadding;
                             return FolderZoomGestureLayer(
                               child: FolderZoomSliverBuilder(
                                 zoomScale: snapFolderZoomScale(zoomScale),
                                 width: crossAxisExtent,
                                 controller: _scrollController,
-                                builder: (context, metrics) {
-                                  const sectionHPad = kGridHorizontalPadding;
-
-                                  return CustomScrollView(
+                                child: CustomScrollView(
                                     controller: _scrollController,
                                     slivers: [
                                       const SliverPadding(
@@ -638,8 +636,7 @@ class _RemoteFolderSearchPageState
                                         ),
                                       ),
                                     ],
-                                  );
-                                },
+                                  ),
                               ),
                             );
                           },

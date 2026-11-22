@@ -377,7 +377,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         ? resolvedImagePath
         : null;
 
-    final double dpr = MediaQuery.of(context).devicePixelRatio;
+    final double dpr = MediaQuery.devicePixelRatioOf(context);
     final double adjustedSize = (widget.size * dpr).round() / dpr;
     final double layoutWidth = widget.width ?? adjustedSize;
     final double layoutHeight = widget.height ?? adjustedSize;
@@ -442,6 +442,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           cacheWidth: targetCacheWidth,
           cacheHeight: targetCacheHeight,
           gaplessPlayback: gaplessPlayback,
+          excludeFromSemantics: true,
           frameBuilder: _holdLastFrame,
           errorBuilder: (_, _, _) => _fallbackIcon(layoutWidth, layoutHeight, radius),
         ),
@@ -458,6 +459,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           cacheHeight: targetCacheHeight,
           gaplessPlayback: gaplessPlayback,
           filterQuality: FilterQuality.low,
+          excludeFromSemantics: true,
           frameBuilder: _holdLastFrame,
           errorBuilder: (_, _, _) {
             if (_artworkFilePath != null) {
@@ -487,6 +489,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           cacheHeight: targetCacheHeight,
           gaplessPlayback: gaplessPlayback,
           filterQuality: FilterQuality.low,
+          excludeFromSemantics: true,
           frameBuilder: _holdLastFrame,
           errorBuilder: (_, _, _) {
             if (_remoteArtworkUrl != null) {

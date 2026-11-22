@@ -1730,8 +1730,7 @@ class _RemoteFolderBrowserPageState
                           // `_positions.length == 2` → 断言炸在 sliver 布局里，整页空白。
                           // 不传时走渲染树里"按布局校验挑一个 viewport"的路径，
                           // 自带对齐校验、能容忍这种一帧的重叠。
-                          builder: (context, metrics) =>
-                              buildMainContent(constraints.maxWidth),
+                          child: buildMainContent(constraints.maxWidth),
                         ),
                       ),
                     );

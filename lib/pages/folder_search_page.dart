@@ -488,17 +488,14 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage>
                             : LayoutBuilder(
                                 builder: (context, constraints) {
                                   final crossAxisExtent = constraints.maxWidth;
+                                  const sectionHPad = kGridHorizontalPadding;
                                   return FolderZoomGestureLayer(
                                     zoomGesturesEnabled: !selectionActive,
                                     child: FolderZoomSliverBuilder(
                                       zoomScale: snapFolderZoomScale(zoomScale),
                                       width: crossAxisExtent,
                                       controller: _scrollController,
-                                      builder: (context, metrics) {
-                                        const sectionHPad =
-                                            kGridHorizontalPadding;
-
-                                        return CustomScrollView(
+                                      child: CustomScrollView(
                                           controller: _scrollController,
                                           slivers: [
                                             const SliverPadding(
@@ -768,8 +765,7 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage>
                                               ),
                                             ),
                                           ],
-                                        );
-                                      },
+                                        ),
                                     ),
                                   );
                                 },

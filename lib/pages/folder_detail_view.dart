@@ -390,17 +390,22 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         final double crossAxisExtent = constraints.maxWidth;
         // 缓存给「定位当前播放」用：它是命令式回调，拿不到这里的约束。
         _contentCrossAxisExtent = crossAxisExtent;
+        final double effectiveZoomScale = snapFolderZoomScale(
+          folder.subFolders.isEmpty && folder.files.isNotEmpty
+              ? settings.effectiveFolderSongZoomScale
+              : settings.effectiveFolderItemZoomScale,
+        );
+        final double bannerThumbnailSize = zoomItemThumbnailSizeForScale(
+          zoomScale: effectiveZoomScale,
+          width: crossAxisExtent,
+          isPortrait: isPortrait,
+        );
         return FolderZoomGestureLayer(
           child: FolderZoomSliverBuilder(
-            zoomScale: snapFolderZoomScale(
-              folder.subFolders.isEmpty && folder.files.isNotEmpty
-                  ? settings.effectiveFolderSongZoomScale
-                  : settings.effectiveFolderItemZoomScale,
-            ),
+            zoomScale: effectiveZoomScale,
             width: crossAxisExtent,
             controller: _localScrollController,
-            builder: (context, metrics) {
-              return RefreshIndicator(
+            child: RefreshIndicator(
                 edgeOffset: headerHeight,
                 onRefresh: _handleRefresh,
                 child: CustomScrollView(
@@ -428,7 +433,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   totalDuration: Duration(milliseconds: totalDurationMs),
                   representativeSong: representativeSong,
                   coverImagePath: representativeSong?.thumbnailPath ?? representativeCoverPath,
-                  thumbnailSize: zoomItemThumbnailSizeFor(metrics),
+                  thumbnailSize: bannerThumbnailSize,
                   topHeader: isPortrait
                       ? _buildBannerBreadcrumbs(
                           context,
@@ -644,8 +649,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         ),
       ],
       ),
-              );
-            },
+              ),
           ),
         );
       },

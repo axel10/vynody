@@ -349,16 +349,22 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     final rootList = LayoutBuilder(
       builder: (context, constraints) {
         final double crossAxisExtent = constraints.maxWidth;
+        final double effectiveZoomScale =
+            snapFolderZoomScale(settings.effectiveFolderItemZoomScale);
+        final double bannerThumbnailSize = zoomItemThumbnailSizeForScale(
+          zoomScale: effectiveZoomScale,
+          width: crossAxisExtent,
+          isPortrait: isPortrait,
+        );
         return FolderZoomGestureLayer(
           reorderActive: _reorderController.reorderActive,
           zoomGesturesEnabled:
               !isRootSelectionMode && !widget.isCloudServerSelectionMode,
           child: FolderZoomSliverBuilder(
-            zoomScale: snapFolderZoomScale(settings.effectiveFolderItemZoomScale),
+            zoomScale: effectiveZoomScale,
             width: crossAxisExtent,
             controller: _localScrollController,
-            builder: (context, metrics) {
-              return RefreshIndicator(
+            child: RefreshIndicator(
                 edgeOffset: headerHeight,
                 onRefresh: _handleRefresh,
                 child: CustomScrollView(
@@ -381,7 +387,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             totalDuration: Duration(milliseconds: totalDurationMs),
             representativeSong: representativeSong,
             coverImagePath: representativeSong?.thumbnailPath ?? (representativeSong != null ? scanner.metadataMap[representativeSong.path]?.thumbnailPath : null),
-            thumbnailSize: zoomItemThumbnailSizeFor(metrics),
+            thumbnailSize: bannerThumbnailSize,
             topHeader: isPortrait
                 ? _buildBannerBreadcrumbs(context, headerHeight)
                 : null,
@@ -523,8 +529,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         ],
       ],
       ),
-              );
-            },
+              ),
           ),
         );
       },

@@ -55,5 +55,29 @@ void main() {
       expect(size, 0.0);
       expect(thumbnailBucketSizeFor(size), 60.0);
     });
+
+    test('zoomItemThumbnailSizeForScale 与稳态 metrics 计算结果一致', () {
+      const width = 400.0;
+      for (final tier in FolderZoomTier.values) {
+        final fromScale = zoomItemThumbnailSizeForScale(
+          zoomScale: tier.zoomScale,
+          width: width,
+          isPortrait: true,
+        );
+        final crossAxisCount = FolderZoomPolicy.calculateCrossAxisCount(
+          width: width,
+          tier: tier,
+          isPortrait: true,
+        );
+        final cardWidth = FolderZoomPolicy.gridCardWidth(
+          contentWidth: width - kGridHorizontalPadding * 2,
+          crossAxisCount: crossAxisCount,
+        );
+        final fromMetrics = zoomItemThumbnailSizeFor(
+          _metrics(zoomScale: tier.zoomScale, cardWidth: cardWidth),
+        );
+        expect(fromScale, closeTo(fromMetrics, 1e-6));
+      }
+    });
   });
 }
