@@ -277,8 +277,10 @@ class SongZoomItem extends ConsumerWidget {
       index: index,
       section: section,
       cover: cover,
-      textColumnBuilder: (context, textWidth, textHeight) => _SongZoomContent(
+      textColumn: _SongZoomContent(
         metrics: metrics,
+        childIndex: index,
+        section: section,
         song: song,
         isCurrent: isCurrent,
         isPlaying: isPlaying,
@@ -293,11 +295,6 @@ class SongZoomItem extends ConsumerWidget {
         titleStyle: titleStyle,
         subtitleStyle: subtitleStyle,
         infoStyle: infoStyle,
-        titleSize: titleSize,
-        subSize: subSize,
-        infoSize: infoSize,
-        width: textWidth,
-        height: textHeight,
       ),
       isSelected: effectiveSelected,
       isSelectionMode: effectiveSelectionMode,
@@ -338,13 +335,58 @@ class SongZoomItem extends ConsumerWidget {
   }
 }
 
+FolderZoomLayoutMetrics _resolveLiveSongMetrics({
+  required FolderZoomLayoutMetrics fallback,
+  required ZoomTransitionListenable? listenable,
+  required int? childIndex,
+  required Object? section,
+}) {
+  final live = listenable?.metrics;
+  if (live == null) return fallback;
+  if (childIndex != null) {
+    return live
+        .resolveItemTransition(childIndex, section: section)
+        .effectiveMetrics;
+  }
+  // 无显式索引时（老调用点走 ZoomItemScaffold 的 LayoutBuilder 回退路径），
+  // 单侧条目已由 ZoomItemEffectiveMetrics 锁定为稳态端点度量，不可被全局 live 覆盖。
+  if (!fallback.isTransitioning && live.isTransitioning) {
+    return fallback;
+  }
+  return live;
+}
+
+/// 竖屏列表第三行音频信息在翻面阈值前的淡出系数（与插件 `_morphingInfoFade` 同口径）。
+double _songPortraitInfoFade(double gridMorph) {
+  if (gridMorph <= 0.001) return 1.0;
+  return (1.0 - gridMorph / kFolderZoomContentHandoffLower).clamp(0.0, 1.0);
+}
+
+/// 横屏列表附加列（专辑/音轨/格式/时长）先在 `g ∈ [0, 0.35]` 淡出至不可见，
+/// 随后 `g ∈ [0.35, 0.45]` 标题列平滑展开至全宽，避免文字重叠并在翻面帧无缝衔接网格态。
+const double _kLandscapeExtraFadeEnd = 0.35;
+
+double _songLandscapeExtraFade(double gridMorph) {
+  if (gridMorph <= 0.001) return 1.0;
+  return (1.0 - gridMorph / _kLandscapeExtraFadeEnd).clamp(0.0, 1.0);
+}
+
+double _songLandscapeTitleExpand(double gridMorph) {
+  if (gridMorph <= _kLandscapeExtraFadeEnd) return 0.0;
+  final span = kFolderZoomContentHandoffLower - _kLandscapeExtraFadeEnd;
+  if (span <= 0.0) return 1.0;
+  return ((gridMorph - _kLandscapeExtraFadeEnd) / span).clamp(0.0, 1.0);
+}
+
 /// Dynamic content layout for [SongZoomItem], adapting between:
-/// - Grid mode: 2~3 line caption below square cover.
+/// - Grid mode: 2-line caption below square cover.
 /// - Portrait List mode: Smooth morph between Compact 2-line flex layout and Standard 3-line layout.
 /// - Landscape List mode: Structured desktop multi-column table aligned to top headline baseline.
 class _SongZoomContent extends StatelessWidget {
   const _SongZoomContent({
     required this.metrics,
+    required this.childIndex,
+    required this.section,
     required this.song,
     required this.isCurrent,
     required this.isPlaying,
@@ -359,14 +401,11 @@ class _SongZoomContent extends StatelessWidget {
     required this.titleStyle,
     required this.subtitleStyle,
     required this.infoStyle,
-    required this.titleSize,
-    required this.subSize,
-    required this.infoSize,
-    this.width,
-    this.height,
   });
 
   final FolderZoomLayoutMetrics metrics;
+  final int? childIndex;
+  final Object? section;
   final MusicFile song;
   final bool isCurrent;
   final bool isPlaying;
@@ -381,240 +420,139 @@ class _SongZoomContent extends StatelessWidget {
   final TextStyle titleStyle;
   final TextStyle subtitleStyle;
   final TextStyle infoStyle;
-  final double titleSize;
-  final double subSize;
-  final double infoSize;
-  final double? width;
-  final double? height;
 
   @override
   Widget build(BuildContext context) {
-    if (width != null && height != null) {
-      return _buildContent(context, width!, height!);
-    }
-    return LayoutBuilder(
-      builder: (context, constraints) => _buildContent(
-        context,
-        constraints.maxWidth,
-        constraints.maxHeight,
-      ),
-    );
-  }
-
-  Widget _buildContent(BuildContext context, double W, double H) {
     final theme = Theme.of(context);
     final effectiveMetrics =
         ZoomItemEffectiveMetrics.maybeOf(context) ?? metrics;
+    final itemScope = (childIndex == null || section == null)
+        ? ZoomableSliverItemScope.maybeOf(context)
+        : null;
+    final int? resolvedIndex = childIndex ?? itemScope?.index;
+    final Object? resolvedSection = section ?? itemScope?.section;
+    final listenable = ZoomTransitionScope.maybeListenableOf(context);
     final isPortrait = effectiveMetrics.isPortrait;
-    final compactMorph = effectiveMetrics.compactMorph;
+
+    // 统一使用锁定渲染字号（render*FontSize），避免与外层 ZoomScaledTextBox 脱节或行高偏小。
+    final effTitleFontSize = effectiveMetrics.renderTitleFontSize;
+    final effSubFontSize = effectiveMetrics.renderSubtitleFontSize;
+    final effInfoFontSize = effectiveMetrics.renderInfoFontSize;
 
     final effTitleStyle = identical(effectiveMetrics, metrics)
         ? titleStyle
-        : titleStyle.copyWith(fontSize: effectiveMetrics.animatedTitleFontSize);
+        : titleStyle.copyWith(fontSize: effTitleFontSize);
     final effSubtitleStyle = identical(effectiveMetrics, metrics)
         ? subtitleStyle
-        : subtitleStyle.copyWith(
-            fontSize: effectiveMetrics.animatedSubtitleFontSize,
-          );
+        : subtitleStyle.copyWith(fontSize: effSubFontSize);
     final effInfoStyle = identical(effectiveMetrics, metrics)
         ? infoStyle
-        : infoStyle.copyWith(fontSize: effectiveMetrics.animatedInfoFontSize);
-    final effInfoSize = effectiveMetrics.animatedInfoFontSize;
+        : infoStyle.copyWith(fontSize: effInfoFontSize);
 
-    final titleLineHeight = effectiveMetrics.animatedTitleFontSize * 1.25;
-    final subLineHeight = effectiveMetrics.animatedSubtitleFontSize * 1.2;
-    final infoLineHeight = effectiveMetrics.animatedInfoFontSize * 1.2;
+    final textScaler = MediaQuery.textScalerOf(context);
+    final titleLineHeight = textScaler.scale(effTitleFontSize) * 1.25;
+    final subLineHeight = textScaler.scale(effSubFontSize) * 1.2;
+    final infoLineHeight = textScaler.scale(effInfoFontSize) * 1.2;
     const titleSubGap = 2.0;
     final titleSubHeight = titleLineHeight + titleSubGap + subLineHeight;
 
-    // 任意时刻只构建当前侧的一份。
-    //
-    // 屏外条目本来就由 sliver 懒构建挡掉了，真正白花的是视口与 cacheExtent
-    // 里那批：以前跨「网格 ↔ 列表」时两套布局同时存在、双层 Opacity 交叉
-    // 淡化，每个可见条目每帧要排两份文字、做两次 saveLayer，且整段跟手
-    // 手势期间一直持续。现在两套布局在交接点（metrics.contentIsGrid，按
-    // 滞回翻转）直接互换，`contentReveal` 在交接点附近压暗盖住突变。
-    final Widget content;
+    // 任意时刻只构建当前侧的一份，且不再用 contentReveal 把共同可见条目的整块文字压暗至透明：
+    // 列表与网格两侧均通过 ZoomTransitionListenable 在 RenderObject 布局阶段按实时 gridMorph
+    // 连续插值对齐方式，并在翻面阈值前提前淡出仅列表侧可见的附加信息，使翻面帧前后无缝衔接。
     if (effectiveMetrics.renderAsGrid) {
-      content = _buildGridCaption(theme, W, effTitleStyle, effSubtitleStyle);
-    } else if (isPortrait) {
-      content = _buildPortraitList(
+      return _buildGridCaption(
+        theme: theme,
+        effectiveMetrics: effectiveMetrics,
+        titleLineHeight: titleLineHeight,
+        subLineHeight: subLineHeight,
+        effTitleStyle: effTitleStyle,
+        effSubtitleStyle: effSubtitleStyle,
+        listenable: listenable,
+        resolvedIndex: resolvedIndex,
+        resolvedSection: resolvedSection,
+      );
+    }
+    if (isPortrait) {
+      return _buildPortraitList(
         context: context,
         theme: theme,
-        W: W,
-        H: H,
-        compactMorph: compactMorph,
+        effectiveMetrics: effectiveMetrics,
         titleLineHeight: titleLineHeight,
         subLineHeight: subLineHeight,
         infoLineHeight: infoLineHeight,
         effTitleStyle: effTitleStyle,
         effSubtitleStyle: effSubtitleStyle,
         effInfoStyle: effInfoStyle,
-      );
-    } else {
-      content = _buildLandscapeTable(
-        theme,
-        W,
-        H,
-        titleSubHeight,
-        titleLineHeight,
-        subLineHeight,
-        infoLineHeight,
-        effTitleStyle,
-        effSubtitleStyle,
-        effInfoStyle,
-        effInfoSize,
+        listenable: listenable,
+        resolvedIndex: resolvedIndex,
+        resolvedSection: resolvedSection,
       );
     }
-
-    final double reveal = effectiveMetrics.contentReveal;
-    // 只有交接点附近才 < 1；其余时间不套 Opacity，省掉整条的一层合成。
-    if (reveal >= 0.999) return content;
-    return Opacity(opacity: reveal, child: content);
+    return _buildLandscapeTable(
+      theme: theme,
+      effectiveMetrics: effectiveMetrics,
+      titleSubHeight: titleSubHeight,
+      titleLineHeight: titleLineHeight,
+      subLineHeight: subLineHeight,
+      effTitleStyle: effTitleStyle,
+      effSubtitleStyle: effSubtitleStyle,
+      effInfoStyle: effInfoStyle,
+      effInfoSize: effInfoFontSize,
+      listenable: listenable,
+      resolvedIndex: resolvedIndex,
+      resolvedSection: resolvedSection,
+    );
   }
 
-  /// Grid view caption below the square cover
-  Widget _buildGridCaption(
-    ThemeData theme,
-    double W,
-    TextStyle effTitleStyle,
-    TextStyle effSubtitleStyle,
-  ) {
-    return Column(
+  Widget _buildTitleLine({
+    required ThemeData theme,
+    required TextStyle style,
+    double eqSize = 16.0,
+    double eqGap = 6.0,
+  }) {
+    final titleText = Text(
+      song.displayName,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
+    if (!isCurrent || isMissing) {
+      return titleText;
+    }
+    return _SongTitleWithEqualizer(
+      equalizer: PlayingEqualizerIcon(
+        color: theme.colorScheme.primary,
+        size: eqSize,
+        isPlaying: isPlaying,
+      ),
+      eqSize: eqSize,
+      eqGap: eqGap,
+      title: titleText,
+    );
+  }
+
+  /// Grid view caption below the square cover, aligned continuously with list side via [gridMorph].
+  Widget _buildGridCaption({
+    required ThemeData theme,
+    required FolderZoomLayoutMetrics effectiveMetrics,
+    required double titleLineHeight,
+    required double subLineHeight,
+    required TextStyle effTitleStyle,
+    required TextStyle effSubtitleStyle,
+    required ZoomTransitionListenable? listenable,
+    required int? resolvedIndex,
+    required Object? resolvedSection,
+  }) {
+    final column = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            if (isCurrent && !isMissing && W >= 40.0) ...[
-              PlayingEqualizerIcon(
-                color: theme.colorScheme.primary,
-                size: 16,
-                isPlaying: isPlaying,
-              ),
-              const SizedBox(width: 6),
-            ],
-            Expanded(
-              child: Text(
-                song.displayName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: effTitleStyle,
-              ),
-            ),
-          ],
+        SizedBox(
+          height: titleLineHeight,
+          child: _buildTitleLine(theme: theme, style: effTitleStyle),
         ),
         const SizedBox(height: 2.0),
-        Text(
-          artistAlbumText,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: effSubtitleStyle,
-        ),
-      ],
-    );
-  }
-
-  /// Portrait list: Seamlessly translates and morphs between 2-line compact layout and 3-line standard layout
-  Widget _buildPortraitList({
-    required BuildContext context,
-    required ThemeData theme,
-    required double W,
-    required double H,
-    required double compactMorph,
-    required double titleLineHeight,
-    required double subLineHeight,
-    required double infoLineHeight,
-    required TextStyle effTitleStyle,
-    required TextStyle effSubtitleStyle,
-    required TextStyle effInfoStyle,
-  }) {
-    final showEqualizer = isCurrent && !isMissing;
-    final t = (1.0 - compactMorph).clamp(0.0, 1.0); // 0.0 = Compact, 1.0 = Standard
-
-    // 测量紧凑模式下音频信息的宽度（带 LRU 内存缓存，避免高频 build 时重复 layout）
-    final measuredInfoWidth = _measureInfoWidth(
-      durationFormatText,
-      effInfoStyle,
-      Directionality.of(context),
-    );
-    final compactInfoWidth =
-        math.min(measuredInfoWidth, math.max(0.0, W * 0.45));
-    final compactTitleWidth =
-        math.max(0.0, W - compactInfoWidth - 12.0);
-
-    // 1. 紧凑模式坐标（2行文本，音频信息右侧垂直居中）
-    const compactSubGap = 3.0;
-    final compactBlockHeight = titleLineHeight + compactSubGap + subLineHeight;
-    final compactTitleTop =
-        ((H - compactBlockHeight) / 2.0).clamp(0.0, H);
-    final compactInfoTop = ((H - infoLineHeight) / 2.0).clamp(0.0, H);
-    final compactInfoLeft = math.max(0.0, W - compactInfoWidth);
-
-    // 2. 标准模式坐标（3行文本，音频信息在第3行）
-    const standardGap = 2.0;
-    final standardBlockHeight =
-        titleLineHeight + standardGap + subLineHeight + standardGap + infoLineHeight;
-    final standardTitleTop =
-        ((H - standardBlockHeight) / 2.0).clamp(0.0, H);
-    final standardSubTop = standardTitleTop + titleLineHeight + standardGap;
-    final standardInfoTop = standardSubTop + subLineHeight + standardGap;
-
-    // 3. 动力学位移插值：
-    // y 轴先向下滑出第 2 行区域（yt 提前完成），x 轴沿第 3 行横向滑入左侧（xt 紧随其后），
-    // 保证过渡期间平滑位移且避免斜穿第 2 行副标题造成文字视觉重叠。
-    final yt = math.pow(t, 0.5).toDouble();
-    final xt = math.pow(t, 1.8).toDouble();
-
-    final titleTop = lerpDouble(compactTitleTop, standardTitleTop, t)!;
-    final titleWidth = lerpDouble(compactTitleWidth, W, yt)!;
-    final subGap = lerpDouble(compactSubGap, standardGap, t)!;
-    final subTop = titleTop + titleLineHeight + subGap;
-    final subWidth = titleWidth;
-
-    final infoTop = lerpDouble(compactInfoTop, standardInfoTop, yt)!;
-    final infoLeft = lerpDouble(compactInfoLeft, 0.0, xt)!;
-    final infoWidth = math.max(compactInfoWidth, W - infoLeft);
-
-    final eqSize = lerpDouble(15.0, 16.0, t)!;
-    final eqGap = lerpDouble(5.0, 6.0, t)!;
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        // 1. 标题行（歌名 + 播放均衡器）
-        Positioned(
-          left: 0.0,
-          top: titleTop,
-          width: titleWidth,
-          height: titleLineHeight,
-          child: Row(
-            children: [
-              if (showEqualizer && titleWidth >= 40.0) ...[
-                PlayingEqualizerIcon(
-                  color: theme.colorScheme.primary,
-                  size: eqSize,
-                  isPlaying: isPlaying,
-                ),
-                SizedBox(width: eqGap),
-              ],
-              Expanded(
-                child: Text(
-                  song.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: effTitleStyle,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // 2. 副标题行（艺术家与专辑）
-        Positioned(
-          left: 0.0,
-          top: subTop,
-          width: subWidth,
+        SizedBox(
           height: subLineHeight,
           child: Text(
             artistAlbumText,
@@ -623,154 +561,166 @@ class _SongZoomContent extends StatelessWidget {
             style: effSubtitleStyle,
           ),
         ),
+      ],
+    );
 
-        // 3. 音频信息行（音轨 | 时长 | 格式）：从右侧垂直居中连续平移到左下角第 3 行
-        Positioned(
-          left: infoLeft,
-          top: infoTop,
-          width: infoWidth,
-          height: infoLineHeight,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              durationFormatText,
-              style: effInfoStyle.copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+    return CustomSingleChildLayout(
+      delegate: _SongGridAlignLayoutDelegate(
+        metrics: effectiveMetrics,
+        listenable: listenable,
+        childIndex: resolvedIndex,
+        section: resolvedSection,
+      ),
+      child: column,
+    );
+  }
+
+  /// Portrait list: Seamlessly translates and morphs between 2-line compact layout and 3-line standard layout.
+  Widget _buildPortraitList({
+    required BuildContext context,
+    required ThemeData theme,
+    required FolderZoomLayoutMetrics effectiveMetrics,
+    required double titleLineHeight,
+    required double subLineHeight,
+    required double infoLineHeight,
+    required TextStyle effTitleStyle,
+    required TextStyle effSubtitleStyle,
+    required TextStyle effInfoStyle,
+    required ZoomTransitionListenable? listenable,
+    required int? resolvedIndex,
+    required Object? resolvedSection,
+  }) {
+    final t = (1.0 - effectiveMetrics.compactMorph).clamp(0.0, 1.0);
+    final bool needsCompactMeasure = t < 1.0 ||
+        (effectiveMetrics.startEndpointMetrics?.compactMorph ?? 0.0) > 0.0 ||
+        (effectiveMetrics.targetEndpointMetrics?.compactMorph ?? 0.0) > 0.0;
+
+    final double measuredInfoWidth = !needsCompactMeasure
+        ? 0.0
+        : _measureInfoWidth(
+            durationFormatText,
+            effInfoStyle,
+            Directionality.of(context),
+          );
+
+    final eqSize = lerpDouble(15.0, 16.0, t)!;
+    final eqGap = lerpDouble(5.0, 6.0, t)!;
+
+    final titleChild = _buildTitleLine(
+      theme: theme,
+      style: effTitleStyle,
+      eqSize: eqSize,
+      eqGap: eqGap,
+    );
+
+    final subtitleChild = Text(
+      artistAlbumText,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: effSubtitleStyle,
+    );
+
+    final rawInfoChild = Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        durationFormatText,
+        style: effInfoStyle.copyWith(
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+
+    final Widget infoChild;
+    if (listenable != null) {
+      infoChild = AnimatedBuilder(
+        animation: listenable,
+        child: rawInfoChild,
+        builder: (context, cachedChild) {
+          final active = _resolveLiveSongMetrics(
+            fallback: effectiveMetrics,
+            listenable: listenable,
+            childIndex: resolvedIndex,
+            section: resolvedSection,
+          );
+          final double opacity = _songPortraitInfoFade(active.gridMorph);
+          return Opacity(opacity: opacity, child: cachedChild);
+        },
+      );
+    } else {
+      final double opacity = _songPortraitInfoFade(effectiveMetrics.gridMorph);
+      infoChild = opacity >= 0.999
+          ? rawInfoChild
+          : Opacity(opacity: opacity, child: rawInfoChild);
+    }
+
+    return CustomMultiChildLayout(
+      delegate: _PortraitSongListLayoutDelegate(
+        metrics: effectiveMetrics,
+        titleLineHeight: titleLineHeight,
+        subLineHeight: subLineHeight,
+        infoLineHeight: infoLineHeight,
+        measuredInfoWidth: measuredInfoWidth,
+        listenable: listenable,
+        childIndex: resolvedIndex,
+        section: resolvedSection,
+      ),
+      children: [
+        LayoutId(id: _PortraitSongSlot.title, child: titleChild),
+        LayoutId(id: _PortraitSongSlot.subtitle, child: subtitleChild),
+        LayoutId(id: _PortraitSongSlot.info, child: infoChild),
       ],
     );
   }
 
-  /// Landscape desktop multi-column table: All primary information is aligned horizontally
-  Widget _buildLandscapeTable(
-    ThemeData theme,
-    double W,
-    double H,
-    double titleSubHeight,
-    double titleLineHeight,
-    double subLineHeight,
-    double infoLineHeight,
-    TextStyle effTitleStyle,
-    TextStyle effSubtitleStyle,
-    TextStyle effInfoStyle,
-    double effInfoSize,
-  ) {
-    const durationColWidth = 56.0;
-    const trackColWidth = 36.0;
-    const colGap = 16.0;
-
-    final showEqualizer = isCurrent && !isMissing;
-
+  /// Landscape desktop multi-column table: All primary information is aligned horizontally.
+  Widget _buildLandscapeTable({
+    required ThemeData theme,
+    required FolderZoomLayoutMetrics effectiveMetrics,
+    required double titleSubHeight,
+    required double titleLineHeight,
+    required double subLineHeight,
+    required TextStyle effTitleStyle,
+    required TextStyle effSubtitleStyle,
+    required TextStyle effInfoStyle,
+    required double effInfoSize,
+    required ZoomTransitionListenable? listenable,
+    required int? resolvedIndex,
+    required Object? resolvedSection,
+  }) {
     // 格式未知时整列不占位，否则会留下一个写着 UNKNOWN 的空胶囊。
     final hasFormat = formatStr != null;
-    final formatColWidth = hasFormat ? 60.0 : 0.0;
 
-    // 计算各列的横向位置
-    final rightEnd = W;
-    final durationLeft = rightEnd - durationColWidth;
-    final formatLeft =
-        durationLeft - (hasFormat ? colGap + formatColWidth : 0.0);
-    final trackLeft = formatLeft - colGap - trackColWidth;
-    final albumRight = trackLeft - colGap;
+    final titleChild = _buildTitleLine(theme: theme, style: effTitleStyle);
+    final artistChild = Text(
+      artist,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: effSubtitleStyle,
+    );
 
-    final middleAvailable = math.max(0.0, albumRight);
-    final double albumWidth;
-    final double titleArtistWidth;
-
-    if (middleAvailable > 320.0) {
-      albumWidth = (middleAvailable * 0.35).clamp(120.0, 320.0);
-      titleArtistWidth = math.max(0.0, middleAvailable - albumWidth - colGap);
-    } else if (middleAvailable > 180.0) {
-      albumWidth = (middleAvailable * 0.30).clamp(60.0, 120.0);
-      titleArtistWidth = math.max(0.0, middleAvailable - albumWidth - 8.0);
-    } else {
-      albumWidth = 0.0;
-      titleArtistWidth = middleAvailable;
-    }
-
-    final albumLeft = titleArtistWidth + colGap;
-
-    // 垂直对齐核心：首行基准线对齐（各列主要信息与首行歌名在同一水平线上）
-    final topBaseline = ((H - titleSubHeight) / 2.0).clamp(0.0, H);
-    final secondLineTop = topBaseline + titleLineHeight + 2.0;
-
-    return Stack(
-      clipBehavior: Clip.none,
+    final rawExtraColumns = CustomMultiChildLayout(
+      delegate: _LandscapeSongExtraColumnsDelegate(
+        hasFormat: hasFormat,
+        subLineHeight: subLineHeight,
+      ),
       children: [
-        // 1. 标题与艺术家列
-        if (titleArtistWidth > 0) ...[
-          // 首行：歌名（带播放图标）
-          Positioned(
-            left: 0.0,
-            top: topBaseline,
-            width: titleArtistWidth,
-            height: titleLineHeight,
-            child: Row(
-              children: [
-                if (showEqualizer && titleArtistWidth >= 40.0) ...[
-                  PlayingEqualizerIcon(
-                    color: theme.colorScheme.primary,
-                    size: 16,
-                    isPlaying: isPlaying,
-                  ),
-                  const SizedBox(width: 6),
-                ],
-                Expanded(
-                  child: Text(
-                    song.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: effTitleStyle,
-                  ),
-                ),
-              ],
+        LayoutId(
+          id: _LandscapeExtraSlot.album,
+          child: Text(
+            album,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: effSubtitleStyle.copyWith(
+              color: isMissing
+                  ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
+                  : theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          // 次行：艺术家
-          Positioned(
-            left: 0.0,
-            top: secondLineTop,
-            width: titleArtistWidth,
-            height: subLineHeight,
-            child: Text(
-              artist,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: effSubtitleStyle,
-            ),
-          ),
-        ],
-
-        // 2. 专辑列（垂直居中对齐）
-        if (albumWidth > 20.0)
-          Positioned(
-            left: albumLeft,
-            top: ((H - subLineHeight) / 2.0).clamp(0.0, H),
-            width: albumWidth,
-            height: subLineHeight,
-            child: Text(
-              album,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: effSubtitleStyle.copyWith(
-                color: isMissing
-                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-
-        // 3. 音轨号列（垂直居中对齐）
-        Positioned(
-          left: trackLeft,
-          top: 0,
-          bottom: 0,
-          width: trackColWidth,
+        ),
+        LayoutId(
+          id: _LandscapeExtraSlot.track,
           child: Center(
             child: trackStr != null
                 ? Text(
@@ -778,7 +728,8 @@ class _SongZoomContent extends StatelessWidget {
                     style: effInfoStyle.copyWith(
                       color: isCurrent
                           ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                          : theme.colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.7),
                       fontWeight: FontWeight.w500,
                     ),
                     maxLines: 1,
@@ -786,17 +737,13 @@ class _SongZoomContent extends StatelessWidget {
                 : const SizedBox.shrink(),
           ),
         ),
-
-        // 4. 格式列（徽章胶囊，垂直居中对齐）
         if (hasFormat)
-          Positioned(
-            left: formatLeft,
-            top: 0,
-            bottom: 0,
-            width: formatColWidth,
+          LayoutId(
+            id: _LandscapeExtraSlot.format,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(4),
@@ -814,13 +761,8 @@ class _SongZoomContent extends StatelessWidget {
               ),
             ),
           ),
-
-        // 5. 时长列（右对齐，垂直居中对齐）
-        Positioned(
-          left: durationLeft,
-          top: 0,
-          bottom: 0,
-          width: durationColWidth,
+        LayoutId(
+          id: _LandscapeExtraSlot.duration,
           child: Align(
             alignment: Alignment.centerRight,
             child: Text(
@@ -835,6 +777,502 @@ class _SongZoomContent extends StatelessWidget {
         ),
       ],
     );
+
+    final Widget extraColumnsChild;
+    if (listenable != null) {
+      extraColumnsChild = AnimatedBuilder(
+        animation: listenable,
+        child: rawExtraColumns,
+        builder: (context, cachedChild) {
+          final active = _resolveLiveSongMetrics(
+            fallback: effectiveMetrics,
+            listenable: listenable,
+            childIndex: resolvedIndex,
+            section: resolvedSection,
+          );
+          final double opacity = _songLandscapeExtraFade(active.gridMorph);
+          return Opacity(opacity: opacity, child: cachedChild);
+        },
+      );
+    } else {
+      final double opacity =
+          _songLandscapeExtraFade(effectiveMetrics.gridMorph);
+      extraColumnsChild = opacity >= 0.999
+          ? rawExtraColumns
+          : Opacity(opacity: opacity, child: rawExtraColumns);
+    }
+
+    return CustomMultiChildLayout(
+      delegate: _LandscapeSongTableLayoutDelegate(
+        metrics: effectiveMetrics,
+        hasFormat: hasFormat,
+        titleSubHeight: titleSubHeight,
+        titleLineHeight: titleLineHeight,
+        subLineHeight: subLineHeight,
+        listenable: listenable,
+        childIndex: resolvedIndex,
+        section: resolvedSection,
+      ),
+      children: [
+        LayoutId(id: _LandscapeSongSlot.title, child: titleChild),
+        LayoutId(id: _LandscapeSongSlot.artist, child: artistChild),
+        LayoutId(id: _LandscapeSongSlot.extraColumns, child: extraColumnsChild),
+      ],
+    );
+  }
+}
+
+enum _TitleEqSlot { equalizer, title }
+
+/// 标题行带播放均衡器：宽度不足 40dp 时在纯布局阶段收起均衡器，避免窄容器溢出，
+/// 同时免去内层 `LayoutBuilder` 重建。
+class _SongTitleWithEqualizer extends StatelessWidget {
+  const _SongTitleWithEqualizer({
+    required this.equalizer,
+    required this.eqSize,
+    required this.eqGap,
+    required this.title,
+  });
+
+  final Widget equalizer;
+  final double eqSize;
+  final double eqGap;
+  final Widget title;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomMultiChildLayout(
+      delegate: _SongTitleWithEqualizerDelegate(eqSize: eqSize, eqGap: eqGap),
+      children: [
+        LayoutId(
+          id: _TitleEqSlot.equalizer,
+          child: ClipRect(child: equalizer),
+        ),
+        LayoutId(id: _TitleEqSlot.title, child: title),
+      ],
+    );
+  }
+}
+
+class _SongTitleWithEqualizerDelegate extends MultiChildLayoutDelegate {
+  _SongTitleWithEqualizerDelegate({
+    required this.eqSize,
+    required this.eqGap,
+  });
+
+  final double eqSize;
+  final double eqGap;
+
+  @override
+  void performLayout(Size size) {
+    final bool showEq = size.width >= 40.0;
+    if (hasChild(_TitleEqSlot.equalizer)) {
+      if (showEq) {
+        layoutChild(
+          _TitleEqSlot.equalizer,
+          BoxConstraints.tightFor(width: eqSize, height: eqSize),
+        );
+        positionChild(
+          _TitleEqSlot.equalizer,
+          Offset(0.0, ((size.height - eqSize) / 2.0).clamp(0.0, size.height)),
+        );
+      } else {
+        layoutChild(
+          _TitleEqSlot.equalizer,
+          const BoxConstraints.tightFor(width: 0.0, height: 0.0),
+        );
+        positionChild(_TitleEqSlot.equalizer, Offset.zero);
+      }
+    }
+    if (hasChild(_TitleEqSlot.title)) {
+      final double textLeft = showEq ? (eqSize + eqGap) : 0.0;
+      final double textWidth = math.max(0.0, size.width - textLeft);
+      layoutChild(
+        _TitleEqSlot.title,
+        BoxConstraints.tightFor(width: textWidth, height: size.height),
+      );
+      positionChild(_TitleEqSlot.title, Offset(textLeft, 0.0));
+    }
+  }
+
+  @override
+  bool shouldRelayout(_SongTitleWithEqualizerDelegate oldDelegate) =>
+      oldDelegate.eqSize != eqSize || oldDelegate.eqGap != eqGap;
+}
+
+class _SongGridAlignLayoutDelegate extends SingleChildLayoutDelegate {
+  _SongGridAlignLayoutDelegate({
+    required this.metrics,
+    this.listenable,
+    this.childIndex,
+    this.section,
+  }) : super(relayout: listenable);
+
+  final FolderZoomLayoutMetrics metrics;
+  final ZoomTransitionListenable? listenable;
+  final int? childIndex;
+  final Object? section;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
+    return BoxConstraints(
+      minWidth: constraints.maxWidth,
+      maxWidth: constraints.maxWidth,
+      minHeight: 0.0,
+      maxHeight: double.infinity,
+    );
+  }
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    final active = _resolveLiveSongMetrics(
+      fallback: metrics,
+      listenable: listenable,
+      childIndex: childIndex,
+      section: section,
+    );
+    final double g = active.gridMorph.clamp(0.0, 1.0);
+    final double vAlign = lerpDouble(0.5, 0.0, g)!;
+    final double top =
+        ((size.height - childSize.height) * vAlign).clamp(0.0, size.height);
+    return Offset(0.0, top);
+  }
+
+  @override
+  bool shouldRelayout(_SongGridAlignLayoutDelegate oldDelegate) {
+    return !identical(oldDelegate.metrics, metrics) ||
+        oldDelegate.childIndex != childIndex ||
+        oldDelegate.section != section ||
+        !identical(oldDelegate.listenable, listenable);
+  }
+}
+
+enum _PortraitSongSlot { title, subtitle, info }
+
+class _PortraitSongListLayoutDelegate extends MultiChildLayoutDelegate {
+  _PortraitSongListLayoutDelegate({
+    required this.metrics,
+    required this.titleLineHeight,
+    required this.subLineHeight,
+    required this.infoLineHeight,
+    required this.measuredInfoWidth,
+    this.listenable,
+    this.childIndex,
+    this.section,
+  }) : super(relayout: listenable);
+
+  final FolderZoomLayoutMetrics metrics;
+  final double titleLineHeight;
+  final double subLineHeight;
+  final double infoLineHeight;
+  final double measuredInfoWidth;
+  final ZoomTransitionListenable? listenable;
+  final int? childIndex;
+  final Object? section;
+
+  @override
+  void performLayout(Size size) {
+    final active = _resolveLiveSongMetrics(
+      fallback: metrics,
+      listenable: listenable,
+      childIndex: childIndex,
+      section: section,
+    );
+    final double g = active.gridMorph.clamp(0.0, 1.0);
+    final double t = (1.0 - active.compactMorph).clamp(0.0, 1.0);
+    final double vAlign = lerpDouble(0.5, 0.0, g)!;
+
+    // 跨向网格侧时，第三行 info 在翻面阈值前平滑淡出并收起其高度权重，
+    // 使块高在翻面帧前后与网格侧 2 行块高严格衔接，消除垂直跳动。
+    final double infoFade = _songPortraitInfoFade(g);
+    final double infoWeight = infoFade * infoFade;
+
+    final double W = size.width;
+    final double H = size.height;
+
+    final double compactInfoWidth =
+        t >= 1.0 ? 0.0 : math.min(measuredInfoWidth, math.max(0.0, W * 0.45));
+    final double compactTitleWidth = math.max(0.0, W - compactInfoWidth - 12.0);
+
+    // 1. 紧凑模式坐标（2 行文本，音频信息右侧垂直居中）
+    const double compactSubGap = 3.0;
+    final double compactBlockHeight =
+        titleLineHeight + compactSubGap + subLineHeight;
+    final double compactTitleTop =
+        ((H - compactBlockHeight) * vAlign).clamp(0.0, H);
+    final double compactInfoTop = ((H - infoLineHeight) * vAlign).clamp(0.0, H);
+    final double compactInfoLeft = math.max(0.0, W - compactInfoWidth);
+
+    // 2. 标准模式坐标（3 行文本，音频信息在第 3 行）
+    const double standardGap = 2.0;
+    final double twoLineBlockHeight =
+        titleLineHeight + standardGap + subLineHeight;
+    final double standardBlockHeight =
+        twoLineBlockHeight + (standardGap + infoLineHeight) * infoWeight;
+    final double standardTitleTop =
+        ((H - standardBlockHeight) * vAlign).clamp(0.0, H);
+    final double standardSubTop =
+        standardTitleTop + titleLineHeight + standardGap;
+    final double standardInfoTop = standardSubTop + subLineHeight + standardGap;
+
+    // 3. 动力学位移插值：
+    // y 轴先向下滑出第 2 行区域（yt 提前完成），x 轴沿第 3 行横向滑入左侧（xt 紧随其后），
+    // 保证过渡期间平滑位移且避免斜穿第 2 行副标题造成文字视觉重叠。
+    final double yt = math.pow(t, 0.5).toDouble();
+    final double xt = math.pow(t, 1.8).toDouble();
+
+    final double titleTop = lerpDouble(compactTitleTop, standardTitleTop, t)!;
+    final double titleWidth = lerpDouble(compactTitleWidth, W, yt)!;
+    final double subGap = lerpDouble(compactSubGap, standardGap, t)!;
+    final double subTop = titleTop + titleLineHeight + subGap;
+    final double subWidth = titleWidth;
+
+    final double infoTop = lerpDouble(compactInfoTop, standardInfoTop, yt)!;
+    final double infoLeft = lerpDouble(compactInfoLeft, 0.0, xt)!;
+    final double infoWidth = math.max(compactInfoWidth, W - infoLeft);
+
+    if (hasChild(_PortraitSongSlot.title)) {
+      layoutChild(
+        _PortraitSongSlot.title,
+        BoxConstraints.tightFor(width: titleWidth, height: titleLineHeight),
+      );
+      positionChild(_PortraitSongSlot.title, Offset(0.0, titleTop));
+    }
+    if (hasChild(_PortraitSongSlot.subtitle)) {
+      layoutChild(
+        _PortraitSongSlot.subtitle,
+        BoxConstraints.tightFor(width: subWidth, height: subLineHeight),
+      );
+      positionChild(_PortraitSongSlot.subtitle, Offset(0.0, subTop));
+    }
+    if (hasChild(_PortraitSongSlot.info)) {
+      layoutChild(
+        _PortraitSongSlot.info,
+        BoxConstraints.tightFor(width: infoWidth, height: infoLineHeight),
+      );
+      positionChild(_PortraitSongSlot.info, Offset(infoLeft, infoTop));
+    }
+  }
+
+  @override
+  bool shouldRelayout(_PortraitSongListLayoutDelegate oldDelegate) {
+    return !identical(oldDelegate.metrics, metrics) ||
+        oldDelegate.titleLineHeight != titleLineHeight ||
+        oldDelegate.subLineHeight != subLineHeight ||
+        oldDelegate.infoLineHeight != infoLineHeight ||
+        oldDelegate.measuredInfoWidth != measuredInfoWidth ||
+        oldDelegate.childIndex != childIndex ||
+        oldDelegate.section != section ||
+        !identical(oldDelegate.listenable, listenable);
+  }
+}
+
+enum _LandscapeSongSlot { title, artist, extraColumns }
+
+enum _LandscapeExtraSlot { album, track, format, duration }
+
+({
+  double titleArtistWidth,
+  double albumLeft,
+  double albumWidth,
+  double trackLeft,
+  double formatLeft,
+  double durationLeft,
+}) _computeLandscapeColumns(double W, {required bool hasFormat}) {
+  const durationColWidth = 56.0;
+  const trackColWidth = 36.0;
+  const colGap = 16.0;
+  final formatColWidth = hasFormat ? 60.0 : 0.0;
+
+  final durationLeft = W - durationColWidth;
+  final formatLeft =
+      durationLeft - (hasFormat ? colGap + formatColWidth : 0.0);
+  final trackLeft = formatLeft - colGap - trackColWidth;
+  final albumRight = trackLeft - colGap;
+
+  final middleAvailable = math.max(0.0, albumRight);
+  final double albumWidth;
+  final double titleArtistWidth;
+
+  if (middleAvailable > 320.0) {
+    albumWidth = (middleAvailable * 0.35).clamp(120.0, 320.0);
+    titleArtistWidth = math.max(0.0, middleAvailable - albumWidth - colGap);
+  } else if (middleAvailable > 180.0) {
+    albumWidth = (middleAvailable * 0.30).clamp(60.0, 120.0);
+    titleArtistWidth = math.max(0.0, middleAvailable - albumWidth - 8.0);
+  } else {
+    albumWidth = 0.0;
+    titleArtistWidth = middleAvailable;
+  }
+
+  final albumLeft = titleArtistWidth + colGap;
+  return (
+    titleArtistWidth: titleArtistWidth,
+    albumLeft: albumLeft,
+    albumWidth: albumWidth,
+    trackLeft: trackLeft,
+    formatLeft: formatLeft,
+    durationLeft: durationLeft,
+  );
+}
+
+class _LandscapeSongTableLayoutDelegate extends MultiChildLayoutDelegate {
+  _LandscapeSongTableLayoutDelegate({
+    required this.metrics,
+    required this.hasFormat,
+    required this.titleSubHeight,
+    required this.titleLineHeight,
+    required this.subLineHeight,
+    this.listenable,
+    this.childIndex,
+    this.section,
+  }) : super(relayout: listenable);
+
+  final FolderZoomLayoutMetrics metrics;
+  final bool hasFormat;
+  final double titleSubHeight;
+  final double titleLineHeight;
+  final double subLineHeight;
+  final ZoomTransitionListenable? listenable;
+  final int? childIndex;
+  final Object? section;
+
+  @override
+  void performLayout(Size size) {
+    final active = _resolveLiveSongMetrics(
+      fallback: metrics,
+      listenable: listenable,
+      childIndex: childIndex,
+      section: section,
+    );
+    final double g = active.gridMorph.clamp(0.0, 1.0);
+    final double vAlign = lerpDouble(0.5, 0.0, g)!;
+    final double expandT = _songLandscapeTitleExpand(g);
+
+    final double W = size.width;
+    final double H = size.height;
+    final cols = _computeLandscapeColumns(W, hasFormat: hasFormat);
+    final double titleArtistWidth =
+        lerpDouble(cols.titleArtistWidth, W, expandT)!.clamp(0.0, W);
+
+    final double topBaseline = ((H - titleSubHeight) * vAlign).clamp(0.0, H);
+    final double secondLineTop = topBaseline + titleLineHeight + 2.0;
+
+    if (hasChild(_LandscapeSongSlot.title)) {
+      layoutChild(
+        _LandscapeSongSlot.title,
+        BoxConstraints.tightFor(
+          width: titleArtistWidth,
+          height: titleLineHeight,
+        ),
+      );
+      positionChild(_LandscapeSongSlot.title, Offset(0.0, topBaseline));
+    }
+    if (hasChild(_LandscapeSongSlot.artist)) {
+      layoutChild(
+        _LandscapeSongSlot.artist,
+        BoxConstraints.tightFor(
+          width: titleArtistWidth,
+          height: subLineHeight,
+        ),
+      );
+      positionChild(_LandscapeSongSlot.artist, Offset(0.0, secondLineTop));
+    }
+    if (hasChild(_LandscapeSongSlot.extraColumns)) {
+      layoutChild(
+        _LandscapeSongSlot.extraColumns,
+        BoxConstraints.tightFor(width: W, height: H),
+      );
+      positionChild(_LandscapeSongSlot.extraColumns, Offset.zero);
+    }
+  }
+
+  @override
+  bool shouldRelayout(_LandscapeSongTableLayoutDelegate oldDelegate) {
+    return !identical(oldDelegate.metrics, metrics) ||
+        oldDelegate.hasFormat != hasFormat ||
+        oldDelegate.titleSubHeight != titleSubHeight ||
+        oldDelegate.titleLineHeight != titleLineHeight ||
+        oldDelegate.subLineHeight != subLineHeight ||
+        oldDelegate.childIndex != childIndex ||
+        oldDelegate.section != section ||
+        !identical(oldDelegate.listenable, listenable);
+  }
+}
+
+class _LandscapeSongExtraColumnsDelegate extends MultiChildLayoutDelegate {
+  _LandscapeSongExtraColumnsDelegate({
+    required this.hasFormat,
+    required this.subLineHeight,
+  });
+
+  final bool hasFormat;
+  final double subLineHeight;
+
+  @override
+  void performLayout(Size size) {
+    const durationColWidth = 56.0;
+    const formatColWidth = 60.0;
+    const trackColWidth = 36.0;
+
+    final double W = size.width;
+    final double H = size.height;
+    final cols = _computeLandscapeColumns(W, hasFormat: hasFormat);
+
+    if (hasChild(_LandscapeExtraSlot.album)) {
+      if (cols.albumWidth > 20.0) {
+        layoutChild(
+          _LandscapeExtraSlot.album,
+          BoxConstraints.tightFor(
+            width: cols.albumWidth,
+            height: subLineHeight,
+          ),
+        );
+        positionChild(
+          _LandscapeExtraSlot.album,
+          Offset(cols.albumLeft, ((H - subLineHeight) / 2.0).clamp(0.0, H)),
+        );
+      } else {
+        layoutChild(
+          _LandscapeExtraSlot.album,
+          const BoxConstraints.tightFor(width: 0.0, height: 0.0),
+        );
+        positionChild(_LandscapeExtraSlot.album, Offset.zero);
+      }
+    }
+
+    if (hasChild(_LandscapeExtraSlot.track)) {
+      layoutChild(
+        _LandscapeExtraSlot.track,
+        BoxConstraints.tightFor(width: trackColWidth, height: H),
+      );
+      positionChild(_LandscapeExtraSlot.track, Offset(cols.trackLeft, 0.0));
+    }
+
+    if (hasChild(_LandscapeExtraSlot.format)) {
+      layoutChild(
+        _LandscapeExtraSlot.format,
+        BoxConstraints.tightFor(width: formatColWidth, height: H),
+      );
+      positionChild(_LandscapeExtraSlot.format, Offset(cols.formatLeft, 0.0));
+    }
+
+    if (hasChild(_LandscapeExtraSlot.duration)) {
+      layoutChild(
+        _LandscapeExtraSlot.duration,
+        BoxConstraints.tightFor(width: durationColWidth, height: H),
+      );
+      positionChild(
+        _LandscapeExtraSlot.duration,
+        Offset(cols.durationLeft, 0.0),
+      );
+    }
+  }
+
+  @override
+  bool shouldRelayout(_LandscapeSongExtraColumnsDelegate oldDelegate) {
+    return oldDelegate.hasFormat != hasFormat ||
+        oldDelegate.subLineHeight != subLineHeight;
   }
 }
 

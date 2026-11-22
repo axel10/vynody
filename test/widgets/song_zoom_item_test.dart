@@ -359,13 +359,18 @@ void main() {
     expect(find.text('Artist One - Special Album'), findsOneWidget);
     expect(find.text('FLAC'), findsNothing);
 
-    // 交接压暗只落在当前这一份上：单层 Opacity，不是两套各套一层。
-    expect(
-      find.byWidgetPredicate(
-        (widget) => widget is Opacity && (widget.opacity - 0.7).abs() < 1e-6,
-      ),
-      findsOneWidget,
-    );
+    // 不再用 contentReveal 把整块文字压暗，避免零重建缓存路径下翻面帧冻结为透明导致文字消失。
+    final ancestorOpacities = tester
+        .widgetList<Opacity>(
+          find.ancestor(
+            of: find.text('Song Title'),
+            matching: find.byType(Opacity),
+          ),
+        )
+        .toList();
+    for (final op in ancestorOpacities) {
+      expect(op.opacity, moreOrLessEquals(1.0, epsilon: 1e-3));
+    }
   });
 
   testWidgets('列表 ↔ 网格目标档位切换时 HoverableCard 结构恒定，Element 树不被推倒重建', (tester) async {
@@ -508,4 +513,157 @@ void main() {
     expect(pMid.dy, greaterThan(pCompact.dy));
     expect(pMid.dy, lessThan(pStandard.dy));
   });
+
+  testWidgets(
+    'ZoomableSliverGrid 下大列表 ↔ 小网格互切期间，共同可见曲目文字全程不消失且纵向位移单调平滑',
+    (tester) async {
+      final songs = List<MusicFile>.generate(
+        16,
+        (i) => MusicFile(
+          name: 'track_$i.flac',
+          path: '/music/track_$i.flac',
+          title: 'Song Track $i',
+          artist: 'Artist $i',
+          album: 'Album $i',
+          trackNumber: i + 1,
+          durationMillis: 210000,
+        ),
+      );
+
+      Future<void> verifyTransition({required Size viewportSize}) async {
+        tester.view.physicalSize = viewportSize;
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        double scale = kFolderZoomTierLargeList;
+        late StateSetter outerSetState;
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              settingsServiceProvider.overrideWith((ref) => SettingsService(prefs)),
+              audioServiceProvider.overrideWith((ref) => audioService),
+            ],
+            child: MaterialApp(
+              key: ValueKey('song-zoom-transition-$viewportSize'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(
+                body: StatefulBuilder(
+                  builder: (context, setState) {
+                    outerSetState = setState;
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        return FolderZoomSliverBuilder(
+                          zoomScale: scale,
+                          width: constraints.maxWidth,
+                          child: CustomScrollView(
+                            slivers: [
+                              AdaptiveZoomableSliverGrid(
+                                zoomScale: scale,
+                                width: constraints.maxWidth,
+                                itemCount: songs.length,
+                                itemBuilder: (context, index, metrics) =>
+                                    SongZoomItem(
+                                  key: ValueKey('song-item-$index'),
+                                  song: songs[index],
+                                  metrics: metrics,
+                                  index: index,
+                                  isCurrent: index == 0,
+                                  isPlaying: false,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // SongZoomItem 传入显式 index 时，内部不应包含任何 LayoutBuilder
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('song-item-0')),
+            matching: find.byType(LayoutBuilder),
+          ),
+          findsNothing,
+        );
+
+        Future<void> runAndAssert(double targetScale, String direction) async {
+          final item0 = find.byKey(const ValueKey('song-item-0'));
+          final title0 = find.text('Song Track 0');
+
+          final titleRelTops = <double>[];
+
+          void sample(int frame) {
+            expect(title0, findsOneWidget);
+
+            // 共同可见曲目的标题文字全程不应被任何祖先 Opacity 压暗或隐藏。
+            final ancestorOpacities = tester
+                .widgetList<Opacity>(
+                  find.ancestor(
+                    of: title0,
+                    matching: find.byType(Opacity),
+                  ),
+                )
+                .toList();
+            for (final op in ancestorOpacities) {
+              expect(
+                op.opacity,
+                moreOrLessEquals(1.0, epsilon: 1e-3),
+                reason:
+                    '$direction ($viewportSize) 第 $frame 帧共同可见曲目文字不应消失或变透明',
+              );
+            }
+
+            final double itemTop = tester.getRect(item0).top;
+            titleRelTops.add(tester.getRect(title0).top - itemTop);
+          }
+
+          sample(0);
+          outerSetState(() => scale = targetScale);
+          await tester.pump();
+          sample(1);
+          for (int f = 0; f < 18; f++) {
+            await tester.pump(const Duration(milliseconds: 16));
+            sample(f + 2);
+          }
+          await tester.pumpAndSettle();
+          sample(20);
+
+          final double net = titleRelTops.last - titleRelTops.first;
+          expect(net.abs(), greaterThan(10.0));
+          final bool movingDown = net > 0;
+          for (int i = 1; i < titleRelTops.length; i++) {
+            final double delta = titleRelTops[i] - titleRelTops[i - 1];
+            final bool reversed = movingDown ? delta < -1.5 : delta > 1.5;
+            expect(
+              reversed,
+              isFalse,
+              reason:
+                  '$direction ($viewportSize) 标题在第 $i 帧发生反向瞬移 '
+                  '${delta.toStringAsFixed(2)}px '
+                  '(${titleRelTops[i - 1].toStringAsFixed(1)} -> '
+                  '${titleRelTops[i].toStringAsFixed(1)})',
+            );
+          }
+        }
+
+        await runAndAssert(kFolderZoomTierSmallGrid, 'largeList -> smallGrid');
+        await runAndAssert(kFolderZoomTierLargeList, 'smallGrid -> largeList');
+      }
+
+      // 竖屏
+      await verifyTransition(viewportSize: const Size(400, 800));
+      // 横屏
+      await verifyTransition(viewportSize: const Size(1200, 800));
+    },
+  );
 }
