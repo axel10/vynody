@@ -57,7 +57,7 @@ double zoomItemThumbnailSizeFor(FolderZoomLayoutMetrics metrics) {
   return math.max(listCoverSize, metrics.targetCardWidth);
 }
 
-/// 按稳态目标档位与外层宽度直接计算缩略图解码尺寸（与 [zoomItemThumbnailSizeFor] 同源）。
+/// 按稳态目标档位与外层宽度直接计算缩略图解码尺寸（委托插件 [FolderZoomPolicy.thumbnailSizeForScale]）。
 ///
 /// 供 `FolderHeaderBanner` 等非缩放动画组件使用，避免仅仅为了传一个目标档位的
 /// 缩略图尺寸就把整棵 `CustomScrollView` 放进 `FolderZoomSliverBuilder.builder`
@@ -67,21 +67,13 @@ double zoomItemThumbnailSizeForScale({
   required double width,
   required bool isPortrait,
 }) {
-  final snapped = snapFolderZoomScale(zoomScale);
-  final listCoverSize = getFolderListCoverSize(snapped);
-  if (!isFolderZoomGrid(snapped)) return listCoverSize;
-  final tier = getFolderZoomTier(snapped);
-  final crossAxisCount = FolderZoomPolicy.calculateCrossAxisCount(
+  return FolderZoomPolicy.thumbnailSizeForScale(
+    zoomScale: zoomScale,
     width: width,
-    tier: tier,
     isPortrait: isPortrait,
+    horizontalPadding: kGridHorizontalPadding,
+    crossAxisSpacing: kGridCrossAxisSpacing,
   );
-  final contentWidth = math.max(1.0, width - kGridHorizontalPadding * 2);
-  final cardWidth = FolderZoomPolicy.gridCardWidth(
-    contentWidth: contentWidth,
-    crossAxisCount: crossAxisCount,
-  );
-  return math.max(listCoverSize, cardWidth);
 }
 
 /// 内容区上方「无权限访问」提示块的估算高度（`folder.path == 'system'` 且未授权时）。
