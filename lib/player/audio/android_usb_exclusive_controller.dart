@@ -2,8 +2,120 @@ import 'dart:async';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
+
+/// Isolated volume state & persistence helper for Android USB exclusive mode.
+///
+/// While exclusive mode is active, in-app volume changes are persisted to
+/// [storageKey] instead of the normal-mode volume key. Entering exclusive mode
+/// for the first time caps the volume at [defaultSafeInitialVolume] (without
+/// raising it if the user's current volume is already lower) to protect hearing;
+/// exiting restores the exact normal-mode volume state saved on entry.
+class UsbExclusiveVolumeVault {
+  static const String storageKey = 'android_usb_exclusive_volume';
+
+  /// Safe initial volume (in 0..100) applied on the very first USB exclusive
+  /// activation. Under the -60 dB .. 0 dB perceptual curve, 25% is -45 dB:
+  /// clearly audible while preventing accidental full-scale blasts.
+  static const double defaultSafeInitialVolume = 25.0;
+
+  bool _isActive = false;
+  double? _savedNormalVolume;
+  bool _savedNormalMuted = false;
+  double? _savedNormalPreviousVolume;
+
+  bool get isActive => _isActive;
+
+  ({double volume, bool isMuted, double previousVolume})? enter({
+    required SharedPreferences prefs,
+    required double currentNormalVolume,
+    required bool currentNormalMuted,
+    required double currentNormalPreviousVolume,
+  }) {
+    if (_isActive) return null;
+
+    _savedNormalVolume = currentNormalVolume.clamp(0.0, 100.0);
+    _savedNormalMuted = currentNormalMuted;
+    _savedNormalPreviousVolume = currentNormalPreviousVolume.clamp(0.0, 100.0);
+    _isActive = true;
+
+    final stored = prefs.getDouble(storageKey);
+    final double targetVolume;
+    if (stored != null && stored.isFinite) {
+      targetVolume = stored.clamp(0.0, 100.0);
+    } else {
+      final currentEffective =
+          currentNormalMuted ? 0.0 : currentNormalVolume.clamp(0.0, 100.0);
+      targetVolume = currentEffective < defaultSafeInitialVolume
+          ? currentEffective
+          : defaultSafeInitialVolume;
+      unawaited(prefs.setDouble(storageKey, targetVolume));
+    }
+
+    return (
+      volume: targetVolume,
+      isMuted: targetVolume == 0.0,
+      previousVolume:
+          targetVolume > 0.0 ? targetVolume : defaultSafeInitialVolume,
+    );
+  }
+
+  void recordExclusiveVolume(SharedPreferences prefs, double volume) {
+    if (!_isActive) return;
+    unawaited(prefs.setDouble(storageKey, volume.clamp(0.0, 100.0)));
+  }
+
+  ({double volume, bool isMuted, double previousVolume})? exit() {
+    if (!_isActive) return null;
+
+    final restoredVolume = (_savedNormalVolume ?? 100.0).clamp(0.0, 100.0);
+    final restoredMuted = _savedNormalMuted;
+    final restoredPrevious =
+        (_savedNormalPreviousVolume ?? restoredVolume).clamp(0.0, 100.0);
+
+    _isActive = false;
+    _savedNormalVolume = null;
+    _savedNormalMuted = false;
+    _savedNormalPreviousVolume = null;
+
+    return (
+      volume: restoredMuted ? 0.0 : restoredVolume,
+      isMuted: restoredMuted,
+      previousVolume: restoredPrevious,
+    );
+  }
+}
+
+/// Abstraction bridging [AndroidUsbExclusiveController] to the app's volume
+/// controller so exclusive volume isolation can be unit-tested independently.
+abstract class AndroidUsbExclusiveVolumeBridge {
+  Future<void> enterExclusiveVolume();
+  Future<void> exitExclusiveVolume();
+}
+
+class _DefaultAndroidUsbExclusiveVolumeBridge
+    implements AndroidUsbExclusiveVolumeBridge {
+  const _DefaultAndroidUsbExclusiveVolumeBridge(this._ref);
+
+  final Ref _ref;
+
+  @override
+  Future<void> enterExclusiveVolume() async {
+    await _ref.read(audioServiceProvider).enterAndroidUsbExclusiveVolume();
+  }
+
+  @override
+  Future<void> exitExclusiveVolume() async {
+    await _ref.read(audioServiceProvider).exitAndroidUsbExclusiveVolume();
+  }
+}
+
+final androidUsbExclusiveVolumeBridgeProvider =
+    Provider<AndroidUsbExclusiveVolumeBridge>(
+  (ref) => _DefaultAndroidUsbExclusiveVolumeBridge(ref),
+);
 
 /// Abstraction over [AndroidUsbExclusiveService] for dependency injection and testing.
 abstract class AndroidUsbExclusiveClient {
@@ -104,6 +216,9 @@ class AndroidUsbExclusiveController extends Notifier<AndroidUsbExclusiveState> {
   AndroidUsbExclusiveClient get _client =>
       ref.read(androidUsbExclusiveClientProvider);
 
+  AndroidUsbExclusiveVolumeBridge get _volumeBridge =>
+      ref.read(androidUsbExclusiveVolumeBridgeProvider);
+
   @override
   AndroidUsbExclusiveState build() {
     _disposed = false;
@@ -164,6 +279,11 @@ class AndroidUsbExclusiveController extends Notifier<AndroidUsbExclusiveState> {
           ? state.detachedNoticeTick + 1
           : state.detachedNoticeTick,
     );
+    if (wasExclusive && !nowExclusive) {
+      unawaited(_volumeBridge.exitExclusiveVolume());
+    } else if (!wasExclusive && nowExclusive) {
+      unawaited(_volumeBridge.enterExclusiveVolume());
+    }
     unawaited(_refreshDevicesOnly());
   }
 
@@ -203,11 +323,18 @@ class AndroidUsbExclusiveController extends Notifier<AndroidUsbExclusiveState> {
     try {
       final status = await _client.getStatus();
       if (_disposed) return;
+      final wasExclusive = state.isExclusiveActive;
+      final nowExclusive = status.exclusiveActive;
       state = state.copyWith(
         status: status,
         lastError: status.lastError,
         clearLastError: status.lastError == null,
       );
+      if (!wasExclusive && nowExclusive) {
+        unawaited(_volumeBridge.enterExclusiveVolume());
+      } else if (wasExclusive && !nowExclusive) {
+        unawaited(_volumeBridge.exitExclusiveVolume());
+      }
     } catch (_) {}
   }
 
@@ -242,15 +369,40 @@ class AndroidUsbExclusiveController extends Notifier<AndroidUsbExclusiveState> {
       );
     }
 
+    final wasExclusive = state.isExclusiveActive;
     final targetDevice = enabled ? (deviceName ?? state.selectedDeviceName) : null;
     state = state.copyWith(isBusy: true, clearLastError: true);
+
+    // Apply the isolated/safe exclusive volume BEFORE switching the native
+    // sink so the very first PCM frames sent to the USB DAC never blast at 100%.
+    var enteredVolumeForThisToggle = false;
+    if (enabled && !wasExclusive) {
+      await _volumeBridge.enterExclusiveVolume();
+      enteredVolumeForThisToggle = true;
+    }
 
     try {
       final result = await _client.setExclusiveMode(
         enabled: enabled,
         deviceName: targetDevice,
       );
-      if (_disposed) return result;
+      if (_disposed) {
+        if (enteredVolumeForThisToggle &&
+            (!result.ok || !result.status.exclusiveActive)) {
+          await _volumeBridge.exitExclusiveVolume();
+        }
+        return result;
+      }
+
+      if (enabled) {
+        if (enteredVolumeForThisToggle &&
+            (!result.ok || !result.status.exclusiveActive)) {
+          await _volumeBridge.exitExclusiveVolume();
+        }
+      } else if (!result.status.exclusiveActive) {
+        await _volumeBridge.exitExclusiveVolume();
+      }
+
       state = state.copyWith(
         isBusy: false,
         status: result.status,
@@ -260,6 +412,9 @@ class AndroidUsbExclusiveController extends Notifier<AndroidUsbExclusiveState> {
       await _refreshDevicesOnly();
       return result;
     } catch (e) {
+      if (enteredVolumeForThisToggle) {
+        await _volumeBridge.exitExclusiveVolume();
+      }
       if (!_disposed) {
         state = state.copyWith(isBusy: false, lastError: e.toString());
       }

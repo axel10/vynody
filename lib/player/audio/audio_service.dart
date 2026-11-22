@@ -42,6 +42,7 @@ import 'package:vynody/utils/memory_trace.dart';
 import 'package:vynody/player/lyrics/lyrics_controller.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_dependencies.dart';
+import 'package:vynody/player/audio/android_usb_exclusive_controller.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_session_manager.dart';
 import 'package:vynody/player/audio/queue_background_processor.dart';
@@ -70,6 +71,8 @@ class AudioService extends Notifier<AudioSnapshot> {
   double _volume = 100.0;
   double _previousVolume = 100.0;
   bool _isMuted = false;
+  final UsbExclusiveVolumeVault _usbExclusiveVolumeVault =
+      UsbExclusiveVolumeVault();
   final MetadataDatabase _db = MetadataDatabase();
   final Map<String, Uint8List> _artworkCache = {};
   static const int _maxAudioDetailsCacheSize = 100;
@@ -4217,9 +4220,42 @@ class AudioService extends Notifier<AudioSnapshot> {
     await _player.player.setVolume(_volume / 100.0);
 
     final prefs = settingsService.prefs;
-    unawaited(prefs.setDouble(_volumeStorageKey, _volume));
-    unawaited(prefs.setBool(_isMutedStorageKey, _isMuted));
+    if (_usbExclusiveVolumeVault.isActive) {
+      _usbExclusiveVolumeVault.recordExclusiveVolume(prefs, _volume);
+    } else {
+      unawaited(prefs.setDouble(_volumeStorageKey, _volume));
+      unawaited(prefs.setBool(_isMutedStorageKey, _isMuted));
+    }
 
+    notifyListeners();
+  }
+
+  Future<void> enterAndroidUsbExclusiveVolume() async {
+    final next = _usbExclusiveVolumeVault.enter(
+      prefs: settingsService.prefs,
+      currentNormalVolume: _volume,
+      currentNormalMuted: _isMuted,
+      currentNormalPreviousVolume: _previousVolume,
+    );
+    if (next == null) return;
+
+    _volume = next.volume;
+    _isMuted = next.isMuted;
+    _previousVolume = next.previousVolume;
+    _showVolumeHudForLastVolumeChange = false;
+    await _player.player.setVolume(_volume / 100.0);
+    notifyListeners();
+  }
+
+  Future<void> exitAndroidUsbExclusiveVolume() async {
+    final restored = _usbExclusiveVolumeVault.exit();
+    if (restored == null) return;
+
+    _volume = restored.volume;
+    _isMuted = restored.isMuted;
+    _previousVolume = restored.previousVolume;
+    _showVolumeHudForLastVolumeChange = false;
+    await _player.player.setVolume(_volume / 100.0);
     notifyListeners();
   }
 
@@ -4233,15 +4269,22 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> toggleMute() async {
     final prefs = settingsService.prefs;
+    final inUsbExclusive = _usbExclusiveVolumeVault.isActive;
     if (_isMuted) {
       _isMuted = false;
-      unawaited(prefs.setBool(_isMutedStorageKey, false));
+      if (!inUsbExclusive) {
+        unawaited(prefs.setBool(_isMutedStorageKey, false));
+      }
       await setVolume(_previousVolume);
     } else {
       _previousVolume = _volume;
-      unawaited(prefs.setDouble(_previousVolumeStorageKey, _previousVolume));
+      if (!inUsbExclusive) {
+        unawaited(prefs.setDouble(_previousVolumeStorageKey, _previousVolume));
+      }
       _isMuted = true;
-      unawaited(prefs.setBool(_isMutedStorageKey, true));
+      if (!inUsbExclusive) {
+        unawaited(prefs.setBool(_isMutedStorageKey, true));
+      }
       await setVolume(0);
     }
   }

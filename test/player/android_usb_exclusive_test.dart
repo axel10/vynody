@@ -13,10 +13,30 @@ import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/widgets/playback/playback_progress_section.dart';
 
+class _FakeAndroidUsbExclusiveVolumeBridge
+    implements AndroidUsbExclusiveVolumeBridge {
+  final List<String> events = <String>[];
+  int enterCalls = 0;
+  int exitCalls = 0;
+
+  @override
+  Future<void> enterExclusiveVolume() async {
+    enterCalls++;
+    events.add('enterVolume');
+  }
+
+  @override
+  Future<void> exitExclusiveVolume() async {
+    exitCalls++;
+    events.add('exitVolume');
+  }
+}
+
 class _FakeAndroidUsbExclusiveClient implements AndroidUsbExclusiveClient {
   _FakeAndroidUsbExclusiveClient({
     this.devices = const <UsbAudioDeviceInfo>[],
     this.status = UsbExclusiveStatus.empty,
+    this.eventLog,
   });
 
   @override
@@ -24,6 +44,7 @@ class _FakeAndroidUsbExclusiveClient implements AndroidUsbExclusiveClient {
 
   List<UsbAudioDeviceInfo> devices;
   UsbExclusiveStatus status;
+  final List<String>? eventLog;
   bool shouldFailToggle = false;
   String? toggleError;
   int setExclusiveCalls = 0;
@@ -54,6 +75,7 @@ class _FakeAndroidUsbExclusiveClient implements AndroidUsbExclusiveClient {
     required bool enabled,
     String? deviceName,
   }) async {
+    eventLog?.add('nativeSetExclusive:$enabled');
     setExclusiveCalls++;
     lastRequestedEnabled = enabled;
     lastRequestedDeviceName = deviceName;
@@ -124,17 +146,110 @@ const _sampleAudioDetails = AudioDetails(
 );
 
 void main() {
+  group('UsbExclusiveVolumeVault', () {
+    test('caps first-time exclusive volume to safe initial value without mutating normal key',
+        () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'player_volume': 100.0,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final vault = UsbExclusiveVolumeVault();
+
+      final entered = vault.enter(
+        prefs: prefs,
+        currentNormalVolume: 100.0,
+        currentNormalMuted: false,
+        currentNormalPreviousVolume: 100.0,
+      );
+      expect(entered, isNotNull);
+      expect(entered!.volume, UsbExclusiveVolumeVault.defaultSafeInitialVolume);
+      expect(entered.isMuted, isFalse);
+      expect(vault.isActive, isTrue);
+      expect(
+        prefs.getDouble(UsbExclusiveVolumeVault.storageKey),
+        UsbExclusiveVolumeVault.defaultSafeInitialVolume,
+      );
+      expect(prefs.getDouble('player_volume'), 100.0);
+
+      // User adjusts volume while in exclusive mode, then exits.
+      vault.recordExclusiveVolume(prefs, 42.0);
+      expect(prefs.getDouble(UsbExclusiveVolumeVault.storageKey), 42.0);
+      expect(prefs.getDouble('player_volume'), 100.0);
+
+      final restored = vault.exit();
+      expect(restored, isNotNull);
+      expect(restored!.volume, 100.0);
+      expect(restored.isMuted, isFalse);
+      expect(vault.isActive, isFalse);
+
+      // Re-entering restores remembered exclusive volume (42%), not 25%.
+      final reentered = vault.enter(
+        prefs: prefs,
+        currentNormalVolume: 85.0,
+        currentNormalMuted: false,
+        currentNormalPreviousVolume: 85.0,
+      );
+      expect(reentered, isNotNull);
+      expect(reentered!.volume, 42.0);
+
+      final restoredAgain = vault.exit();
+      expect(restoredAgain!.volume, 85.0);
+    });
+
+    test('does not raise volume on first entry if current volume is already below safe cap',
+        () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final prefs = await SharedPreferences.getInstance();
+      final vault = UsbExclusiveVolumeVault();
+
+      final entered = vault.enter(
+        prefs: prefs,
+        currentNormalVolume: 12.0,
+        currentNormalMuted: false,
+        currentNormalPreviousVolume: 12.0,
+      );
+      expect(entered!.volume, 12.0);
+      expect(prefs.getDouble(UsbExclusiveVolumeVault.storageKey), 12.0);
+    });
+
+    test('preserves muted normal-mode state across exclusive session', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        UsbExclusiveVolumeVault.storageKey: 30.0,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final vault = UsbExclusiveVolumeVault();
+
+      final entered = vault.enter(
+        prefs: prefs,
+        currentNormalVolume: 0.0,
+        currentNormalMuted: true,
+        currentNormalPreviousVolume: 75.0,
+      );
+      expect(entered!.volume, 30.0);
+      expect(entered.isMuted, isFalse);
+
+      final restored = vault.exit();
+      expect(restored!.volume, 0.0);
+      expect(restored.isMuted, isTrue);
+      expect(restored.previousVolume, 75.0);
+    });
+  });
+
   group('AndroidUsbExclusiveController', () {
     test('discovers devices, toggles exclusive mode, and handles detach events',
         () async {
+      final volumeBridge = _FakeAndroidUsbExclusiveVolumeBridge();
       final fakeClient = _FakeAndroidUsbExclusiveClient(
         devices: const [_sampleDevice],
+        eventLog: volumeBridge.events,
       );
       addTearDown(fakeClient.close);
 
       final container = ProviderContainer(
         overrides: [
           androidUsbExclusiveClientProvider.overrideWithValue(fakeClient),
+          androidUsbExclusiveVolumeBridgeProvider
+              .overrideWithValue(volumeBridge),
           isProUnlockedProvider.overrideWithValue(true),
           audioCurrentMusicProvider.overrideWithValue(null),
         ],
@@ -155,6 +270,11 @@ void main() {
       expect(res.ok, isTrue);
       expect(fakeClient.lastRequestedEnabled, isTrue);
       expect(fakeClient.lastRequestedDeviceName, _sampleDevice.deviceName);
+      // Volume must switch BEFORE native exclusive activation to prevent blasts.
+      expect(
+        volumeBridge.events,
+        equals(['enterVolume', 'nativeSetExclusive:true']),
+      );
 
       final active = container.read(androidUsbExclusiveProvider);
       expect(active.isExclusiveActive, isTrue);
@@ -174,11 +294,15 @@ void main() {
       expect(detached.isExclusiveActive, isFalse);
       expect(detached.detachedNoticeTick, 1);
       expect(detached.devices, isEmpty);
+      expect(volumeBridge.exitCalls, 1);
     });
 
-    test('records error when USB permission is denied', () async {
+    test('records error and rolls back volume when USB permission is denied',
+        () async {
+      final volumeBridge = _FakeAndroidUsbExclusiveVolumeBridge();
       final fakeClient = _FakeAndroidUsbExclusiveClient(
         devices: const [_sampleDevice],
+        eventLog: volumeBridge.events,
       )
         ..shouldFailToggle = true
         ..toggleError = 'USB permission denied by user';
@@ -187,6 +311,8 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           androidUsbExclusiveClientProvider.overrideWithValue(fakeClient),
+          androidUsbExclusiveVolumeBridgeProvider
+              .overrideWithValue(volumeBridge),
           isProUnlockedProvider.overrideWithValue(true),
           audioCurrentMusicProvider.overrideWithValue(null),
         ],
@@ -204,6 +330,48 @@ void main() {
       final state = container.read(androidUsbExclusiveProvider);
       expect(state.isExclusiveActive, isFalse);
       expect(state.lastError, 'USB permission denied by user');
+      expect(
+        volumeBridge.events,
+        equals(['enterVolume', 'nativeSetExclusive:true', 'exitVolume']),
+      );
+    });
+
+    test('restores normal volume when user manually disables exclusive mode',
+        () async {
+      final volumeBridge = _FakeAndroidUsbExclusiveVolumeBridge();
+      final fakeClient = _FakeAndroidUsbExclusiveClient(
+        devices: const [_sampleDevice],
+        eventLog: volumeBridge.events,
+      );
+      addTearDown(fakeClient.close);
+
+      final container = ProviderContainer(
+        overrides: [
+          androidUsbExclusiveClientProvider.overrideWithValue(fakeClient),
+          androidUsbExclusiveVolumeBridgeProvider
+              .overrideWithValue(volumeBridge),
+          isProUnlockedProvider.overrideWithValue(true),
+          audioCurrentMusicProvider.overrideWithValue(null),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(androidUsbExclusiveProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      final notifier = container.read(androidUsbExclusiveProvider.notifier);
+      await notifier.setExclusiveMode(true);
+      await notifier.setExclusiveMode(false);
+
+      expect(
+        volumeBridge.events,
+        equals([
+          'enterVolume',
+          'nativeSetExclusive:true',
+          'nativeSetExclusive:false',
+          'exitVolume',
+        ]),
+      );
     });
   });
 
@@ -217,6 +385,9 @@ void main() {
       return ProviderScope(
         overrides: [
           androidUsbExclusiveClientProvider.overrideWithValue(client),
+          androidUsbExclusiveVolumeBridgeProvider.overrideWithValue(
+            _FakeAndroidUsbExclusiveVolumeBridge(),
+          ),
           isProUnlockedProvider.overrideWithValue(isProUnlocked),
           audioCurrentMusicProvider.overrideWithValue(null),
           settingsServiceProvider.overrideWith((ref) => settings),
@@ -366,6 +537,9 @@ void main() {
           ProviderScope(
             overrides: [
               androidUsbExclusiveClientProvider.overrideWithValue(client),
+              androidUsbExclusiveVolumeBridgeProvider.overrideWithValue(
+                _FakeAndroidUsbExclusiveVolumeBridge(),
+              ),
               isProUnlockedProvider.overrideWithValue(true),
               audioCurrentMusicProvider.overrideWithValue(null),
               settingsServiceProvider.overrideWith((ref) => settings),
