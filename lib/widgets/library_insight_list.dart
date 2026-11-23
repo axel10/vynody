@@ -64,7 +64,8 @@ class LibraryInsightList extends ConsumerStatefulWidget {
     this.hideTrailingOnPhone = false,
     this.songTrailing,
     this.albumTrailing,
-    this.songTrailingWidth = 140.0,
+    this.songTrailingWidth = 96.0,
+    this.albumTrailingWidth = 96.0,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
     this.showBackButton = true,
@@ -117,11 +118,14 @@ class LibraryInsightList extends ConsumerStatefulWidget {
   final Widget Function(BuildContext, LibraryInsightSongEntry)? songTrailing;
   final Widget Function(BuildContext, TimeMachineAlbumEntry)? albumTrailing;
 
-  /// 单曲行尾为 [songTrailing] 预留的宽度，默认 140.0（播放次数 / 日期两行文案）。
+  /// 单曲行尾为 [songTrailing] 预留的宽度，默认 96.0（播放次数 / 日期两行文案）。
   ///
   /// 行尾内容窄（例如只是「★ 4」这种评级）时必须同步调小，否则预留宽度与实际
   /// 内容之间的差额会变成文本列与行尾之间的一块空白。
   final double songTrailingWidth;
+
+  /// 专辑行尾为 [albumTrailing] 预留的宽度，默认 96.0。
+  final double albumTrailingWidth;
 
   final double contentTopPadding;
   final double contentLeftPadding;
@@ -992,7 +996,7 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                       subtitleText: subtitleText,
                       titlePrefix: titlePrefix,
                       trailing: trailing,
-                      trailingWidth: trailing != null ? 140.0 : null,
+                      trailingWidth: trailing != null ? widget.albumTrailingWidth : null,
                       onTap: () {
                         handleItemTap(
                           index: index,
