@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/player/pro/app_channel.dart';
 import 'settings_section.dart';
 
 class SettingSearchItem {
@@ -290,13 +291,14 @@ final List<SettingSearchItem> settingsSearchRegistry = [
   ),
 
   // --- 歌词设置 (Lyrics) ---
-  SettingSearchItem(
-    id: 'lyrics.translation_language',
-    section: SettingsSection.lyrics,
-    icon: Icons.translate_rounded,
-    title: (l10n) => l10n.lyricsTranslationTargetLanguageLabel,
-    description: (l10n) => l10n.lyricsTranslationTargetLanguageDescription,
-  ),
+  if (AppFeatures.enableAi)
+    SettingSearchItem(
+      id: 'lyrics.translation_language',
+      section: SettingsSection.lyrics,
+      icon: Icons.translate_rounded,
+      title: (l10n) => l10n.lyricsTranslationTargetLanguageLabel,
+      description: (l10n) => l10n.lyricsTranslationTargetLanguageDescription,
+    ),
   SettingSearchItem(
     id: 'lyrics.save_method',
     section: SettingsSection.lyrics,
@@ -332,42 +334,44 @@ final List<SettingSearchItem> settingsSearchRegistry = [
     title: (l10n) => l10n.exportLyricsLabel,
     description: (l10n) => l10n.exportLyricsDescription,
   ),
-  SettingSearchItem(
-    id: 'lyrics.google_ai_key',
-    section: SettingsSection.lyrics,
-    icon: Icons.psychology_outlined,
-    title: (l10n) => l10n.googleAiStudioApiKey,
-  ),
-  SettingSearchItem(
-    id: 'lyrics.openrouter_key',
-    section: SettingsSection.lyrics,
-    icon: Icons.smart_toy_outlined,
-    title: (l10n) => l10n.openRouterApiKey,
-  ),
-  SettingSearchItem(
-    id: 'lyrics.doubao_key',
-    section: SettingsSection.lyrics,
-    icon: Icons.chat_bubble_outline_rounded,
-    title: (l10n) => l10n.doubaoApiKey,
-  ),
-  SettingSearchItem(
-    id: 'lyrics.deepseek_key',
-    section: SettingsSection.lyrics,
-    icon: Icons.auto_awesome_rounded,
-    title: (l10n) => l10n.deepseekApiKey,
-  ),
-  SettingSearchItem(
-    id: 'lyrics.custom_provider',
-    section: SettingsSection.lyrics,
-    icon: Icons.api_rounded,
-    title: (l10n) => l10n.customApiProvider,
-  ),
-  SettingSearchItem(
-    id: 'lyrics.models',
-    section: SettingsSection.lyrics,
-    icon: Icons.model_training_rounded,
-    title: (l10n) => l10n.geminiModelsSectionTitle,
-  ),
+  if (AppFeatures.enableAi) ...[
+    SettingSearchItem(
+      id: 'lyrics.google_ai_key',
+      section: SettingsSection.lyrics,
+      icon: Icons.psychology_outlined,
+      title: (l10n) => l10n.googleAiStudioApiKey,
+    ),
+    SettingSearchItem(
+      id: 'lyrics.openrouter_key',
+      section: SettingsSection.lyrics,
+      icon: Icons.smart_toy_outlined,
+      title: (l10n) => l10n.openRouterApiKey,
+    ),
+    SettingSearchItem(
+      id: 'lyrics.doubao_key',
+      section: SettingsSection.lyrics,
+      icon: Icons.chat_bubble_outline_rounded,
+      title: (l10n) => l10n.doubaoApiKey,
+    ),
+    SettingSearchItem(
+      id: 'lyrics.deepseek_key',
+      section: SettingsSection.lyrics,
+      icon: Icons.auto_awesome_rounded,
+      title: (l10n) => l10n.deepseekApiKey,
+    ),
+    SettingSearchItem(
+      id: 'lyrics.custom_provider',
+      section: SettingsSection.lyrics,
+      icon: Icons.api_rounded,
+      title: (l10n) => l10n.customApiProvider,
+    ),
+    SettingSearchItem(
+      id: 'lyrics.models',
+      section: SettingsSection.lyrics,
+      icon: Icons.model_training_rounded,
+      title: (l10n) => l10n.geminiModelsSectionTitle,
+    ),
+  ],
 
   // --- 声学指纹 (AcoustID) ---
   SettingSearchItem(

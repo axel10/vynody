@@ -9,6 +9,7 @@ import 'package:vynody/player/audio/android_usb_exclusive_controller.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_song_task_state.dart';
+import 'package:vynody/player/pro/app_channel.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/widgets/animated_play_pause_button.dart';
@@ -550,26 +551,32 @@ class PlaybackControls extends ConsumerWidget {
       mainAxisSize: MainAxisSize.max,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        buildLyricsTopButton(
-          icon: Icons.translate_rounded,
-          isActive: showLyricsTranslation,
-          isLoading: isTranslating,
-          hasData: hasTranslation,
-          tooltip: hasTranslation
-              ? (showLyricsTranslation ? l10n.disableLyricsTranslation : l10n.enableLyricsTranslation)
-              : l10n.generateLyricsTranslation,
-          onTap: () => handleLyricsTranslationTap(context, ref, currentMusic, l10n),
-        ),
-        buildLyricsTopButton(
-          icon: Icons.mic_external_on_rounded,
-          isActive: showLyricsWordByWord,
-          isLoading: isGeneratingKaraoke,
-          hasData: hasWordByWord,
-          tooltip: hasWordByWord
-              ? (showLyricsWordByWord ? l10n.disableWordByWordLyrics : l10n.enableWordByWordLyrics)
-              : l10n.generateWordByWordLyrics,
-          onTap: () => handleLyricsWordByWordTap(context, ref, currentMusic, l10n),
-        ),
+        if (hasTranslation || AppFeatures.enableAi)
+          buildLyricsTopButton(
+            icon: Icons.translate_rounded,
+            isActive: showLyricsTranslation,
+            isLoading: isTranslating,
+            hasData: hasTranslation,
+            tooltip: hasTranslation
+                ? (showLyricsTranslation ? l10n.disableLyricsTranslation : l10n.enableLyricsTranslation)
+                : l10n.generateLyricsTranslation,
+            onTap: () => handleLyricsTranslationTap(context, ref, currentMusic, l10n),
+          )
+        else
+          const SizedBox.shrink(),
+        if (hasWordByWord || AppFeatures.enableAi)
+          buildLyricsTopButton(
+            icon: Icons.mic_external_on_rounded,
+            isActive: showLyricsWordByWord,
+            isLoading: isGeneratingKaraoke,
+            hasData: hasWordByWord,
+            tooltip: hasWordByWord
+                ? (showLyricsWordByWord ? l10n.disableWordByWordLyrics : l10n.enableWordByWordLyrics)
+                : l10n.generateWordByWordLyrics,
+            onTap: () => handleLyricsWordByWordTap(context, ref, currentMusic, l10n),
+          )
+        else
+          const SizedBox.shrink(),
       ],
     );
 

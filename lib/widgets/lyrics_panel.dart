@@ -41,12 +41,13 @@ import 'playback_ui_tuning.dart';
 import 'app_context_menu.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/pro/app_channel.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 
 bool shouldShowGenerateLyricsButton({required bool hasCurrentSong}) {
-  return hasCurrentSong;
+  return AppFeatures.enableAi && hasCurrentSong;
 }
 
 double? calculateLyricTopOffsetFromPanelTop({
@@ -626,7 +627,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           icon: Icons.history_rounded,
           context: context,
         ),
-        if (lyricsState.hasLyrics)
+        if (AppFeatures.enableAi && lyricsState.hasLyrics)
           buildContextMenuItem<String>(
             value: 'generate',
             enabled: hasCurrentSong && !taskState.isGenerationBusy,
@@ -634,7 +635,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             icon: Icons.auto_awesome_rounded,
             context: context,
           ),
-        if (lyricsState.hasLyrics)
+        if (AppFeatures.enableAi && lyricsState.hasLyrics)
           buildContextMenuItem<String>(
             value: 'generate_timeline',
             enabled: hasCurrentSong && !taskState.isGenerationBusy,
@@ -642,7 +643,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             icon: Icons.timer_rounded,
             context: context,
           ),
-        if (lyricsState.hasLyrics && _hasTimedLyrics(displayLines))
+        if (AppFeatures.enableAi &&
+            lyricsState.hasLyrics &&
+            _hasTimedLyrics(displayLines))
           buildContextMenuItem<String>(
             value: 'convert_to_karaoke',
             enabled: hasCurrentSong && !taskState.isGenerationBusy,
@@ -672,7 +675,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             icon: Icons.filter_center_focus_rounded,
             context: context,
           ),
-        if (!requeryOnly)
+        if (AppFeatures.enableAi && !requeryOnly)
           buildContextMenuItem<String>(
             value: 'translate',
             enabled: hasCurrentSong && !taskState.isTranslationBusy,
@@ -680,7 +683,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             icon: Icons.translate_rounded,
             context: context,
           ),
-        if (!requeryOnly)
+        if (!requeryOnly && (AppFeatures.enableAi || hasTranslation))
           buildContextMenuItem<String>(
             value: 'select_translation_language',
             enabled: hasCurrentSong &&
@@ -829,10 +832,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               ),
           ],
         ),
-        if (lyricsState.hasLyrics || (!requeryOnly && hasTranslation))
+        if ((AppFeatures.enableAi && lyricsState.hasLyrics) ||
+            (!requeryOnly && (AppFeatures.enableAi || hasTranslation)))
           LyricsOptionGroup(
             items: [
-              if (lyricsState.hasLyrics) ...[
+              if (AppFeatures.enableAi && lyricsState.hasLyrics) ...[
                 LyricsOptionItem(
                   value: 'generate',
                   enabled: hasCurrentSong && !taskState.isGenerationBusy,
@@ -853,14 +857,14 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                     icon: Icons.mic_external_on_rounded,
                   ),
               ],
-              if (!requeryOnly)
+              if (AppFeatures.enableAi && !requeryOnly)
                 LyricsOptionItem(
                   value: 'translate',
                   enabled: hasCurrentSong && !taskState.isTranslationBusy,
                   label: l10n.translateLyrics,
                   icon: Icons.translate_rounded,
                 ),
-              if (!requeryOnly)
+              if (!requeryOnly && (AppFeatures.enableAi || hasTranslation))
                 LyricsOptionItem(
                   value: 'select_translation_language',
                   enabled: hasCurrentSong &&
@@ -2615,13 +2619,15 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                       translation.languageCode,
                     ),
                   ),
-                if (translations.isNotEmpty) const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.language_rounded),
-                  title: Text(l10n.translateToOtherLanguage),
-                  onTap: () =>
-                      Navigator.pop(dialogContext, translateOtherValue),
-                ),
+                if (AppFeatures.enableAi) ...[
+                  if (translations.isNotEmpty) const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.language_rounded),
+                    title: Text(l10n.translateToOtherLanguage),
+                    onTap: () =>
+                        Navigator.pop(dialogContext, translateOtherValue),
+                  ),
+                ],
                 if (explicitSelection.isNotEmpty)
                   ListTile(
                     leading: const Icon(Icons.settings_suggest_rounded),

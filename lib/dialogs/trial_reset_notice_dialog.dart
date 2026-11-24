@@ -25,11 +25,12 @@ class TrialResetNoticeDialog extends ConsumerWidget {
     final primaryColor = theme.colorScheme.primary;
 
     final keyFeatures = [
-      (
-        icon: Icons.auto_awesome_rounded,
-        title: l10n.proFeatureAiLyricsTitle,
-        desc: l10n.proFeatureAiLyricsDesc,
-      ),
+      if (AppFeatures.enableAi)
+        (
+          icon: Icons.auto_awesome_rounded,
+          title: l10n.proFeatureAiLyricsTitle,
+          desc: l10n.proFeatureAiLyricsDesc,
+        ),
       (
         icon: Icons.equalizer_rounded,
         title: l10n.proFeatureEqualizerTitle,

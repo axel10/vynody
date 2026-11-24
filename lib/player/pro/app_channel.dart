@@ -54,6 +54,20 @@ class AppChannel {
   static bool get isStoreRelease => current == AppDistributionChannel.store;
 }
 
+/// Compile-time feature flags configured via `--dart-define`.
+class AppFeatures {
+  AppFeatures._();
+
+  /// Whether AI-powered features (lyrics generation, karaoke conversion,
+  /// timeline alignment, and lyric translation) are enabled in this build.
+  ///
+  /// Defaults to `true`. Xcode archive builds inject `ENABLE_AI=false`.
+  static const bool enableAi = bool.fromEnvironment(
+    'ENABLE_AI',
+    defaultValue: true,
+  );
+}
+
 /// Global configuration for Pro tier and trial periods.
 class ProConfig {
   ProConfig._();

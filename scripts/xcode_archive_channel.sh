@@ -23,12 +23,15 @@ extract_env() {
 }
 
 # 1. If building iOS target or performing an archive/install on any Apple platform, default to store channel
-is_store_target=0
-if [ "$PLATFORM_NAME" = "iphoneos" ] || [ "$PLATFORM_NAME" = "iphonesimulator" ]; then
-  is_store_target=1
-elif [ "$ACTION" = "archive" ] || [ "$ACTION" = "install" ]; then
-  is_store_target=1
+is_archive_build=0
+if [ "$ACTION" = "archive" ] || [ "$ACTION" = "install" ]; then
+  is_archive_build=1
 elif [ -n "$TARGET_BUILD_DIR" ] && [ "${TARGET_BUILD_DIR#*ArchiveIntermediates}" != "$TARGET_BUILD_DIR" ]; then
+  is_archive_build=1
+fi
+
+is_store_target=$is_archive_build
+if [ "$PLATFORM_NAME" = "iphoneos" ] || [ "$PLATFORM_NAME" = "iphonesimulator" ]; then
   is_store_target=1
 fi
 
@@ -58,6 +61,36 @@ if [ "$is_store_target" -eq 1 ]; then
       export DART_DEFINES="$STORE_DEF"
     fi
     echo "[Vynody Build] iOS/Archive build detected ($ACTION / $PLATFORM_NAME). Defaulting distribution channel to CHANNEL=store."
+  fi
+fi
+
+# 1b. Disable AI features for Xcode archive/install builds unless explicitly configured
+if [ "$is_archive_build" -eq 1 ]; then
+  is_ai_flag_set=0
+  if [ -n "$DART_DEFINES" ]; then
+    OLD_IFS="$IFS"
+    IFS=","
+    for def in $DART_DEFINES; do
+      decoded=$(echo "$def" | base64 -D 2>/dev/null || echo "$def" | base64 -d 2>/dev/null)
+      case "$decoded" in
+        ENABLE_AI=*)
+          is_ai_flag_set=1
+          echo "[Vynody Build] ENABLE_AI explicitly configured ($decoded), keeping as is."
+          break
+          ;;
+      esac
+    done
+    IFS="$OLD_IFS"
+  fi
+
+  if [ "$is_ai_flag_set" -eq 0 ]; then
+    AI_DEF=$(printf "ENABLE_AI=false" | base64 | tr -d '\r\n')
+    if [ -n "$DART_DEFINES" ]; then
+      export DART_DEFINES="$DART_DEFINES,$AI_DEF"
+    else
+      export DART_DEFINES="$AI_DEF"
+    fi
+    echo "[Vynody Build] Xcode archive build detected ($ACTION / $PLATFORM_NAME). Disabling AI features via ENABLE_AI=false."
   fi
 fi
 

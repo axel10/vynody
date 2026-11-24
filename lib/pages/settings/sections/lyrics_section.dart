@@ -8,6 +8,7 @@ import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
 import 'package:vynody/player/lyrics/lyrics_import_export_service.dart';
+import 'package:vynody/player/pro/app_channel.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/file_selector_helper.dart';
 import 'package:vynody/utils/language_code_utils.dart';
@@ -919,7 +920,8 @@ class LyricsSection extends ConsumerWidget {
       children: [
         SettingsSectionHeader(
           title: l10n.lyricsSectionTitle,
-          description: l10n.lyricsSectionDescription,
+          description:
+              AppFeatures.enableAi ? l10n.lyricsSectionDescription : null,
         ),
         if (!kIsWeb && (Platform.isWindows || Platform.isMacOS))
           _buildDesktopLyricsGroup(context, settings),
@@ -927,7 +929,8 @@ class LyricsSection extends ConsumerWidget {
           title: l10n.lyricsSectionTitle,
           icon: Icons.tune_rounded,
           children: [
-            _buildLyricsTranslationLanguageSection(context, settings),
+            if (AppFeatures.enableAi)
+              _buildLyricsTranslationLanguageSection(context, settings),
             _buildLyricsSaveMethodSection(context, settings),
             _buildLyricsFontSection(context, settings),
             _buildLyricsTimelineMaxHistorySection(context, settings),
@@ -940,8 +943,9 @@ class LyricsSection extends ConsumerWidget {
             _buildLyricsImportExportSection(context, settings),
           ],
         ),
-        SettingsGroupCard(
-          title: l10n.platformApiKeysSectionTitle,
+        if (AppFeatures.enableAi) ...[
+          SettingsGroupCard(
+            title: l10n.platformApiKeysSectionTitle,
           icon: Icons.key_rounded,
           children: [
             ListTile(
@@ -1156,6 +1160,7 @@ class LyricsSection extends ConsumerWidget {
               ),
           ],
         ),
+        ],
       ],
     );
   }

@@ -20,6 +20,7 @@ import 'package:vynody/player/lyrics/lyrics_generation_result.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_service.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:vynody/player/lyrics/timeline/lyrics_timeline.dart';
+import 'package:vynody/player/pro/app_channel.dart';
 
 typedef _LyricsGenerationInvoker =
     Future<LyricsGenerationResult> Function(
@@ -554,6 +555,9 @@ class LyricsGenerationCoordinator {
   }
 
   Future<String?> generateLyricsForCurrentSong() async {
+    if (!AppFeatures.enableAi) {
+      return null;
+    }
     if (!_context.isProUnlocked()) {
       return _l10n().proTrialExpired;
     }
@@ -578,6 +582,9 @@ class LyricsGenerationCoordinator {
   }
 
   Future<String?> generateTimelineForCurrentSong() async {
+    if (!AppFeatures.enableAi) {
+      return null;
+    }
     if (!_context.isProUnlocked()) {
       return _l10n().proTrialExpired;
     }
@@ -680,6 +687,9 @@ class LyricsGenerationCoordinator {
   }
 
   Future<String?> convertToKaraokeLyricsForCurrentSong() async {
+    if (!AppFeatures.enableAi) {
+      return null;
+    }
     if (!_context.isProUnlocked()) {
       return _l10n().proTrialExpired;
     }
@@ -715,6 +725,9 @@ class LyricsGenerationCoordinator {
   }
 
   Future<String?> regenerateLyricsForCurrentSong() async {
+    if (!AppFeatures.enableAi) {
+      return null;
+    }
     if (!_context.isProUnlocked()) {
       return _l10n().proTrialExpired;
     }

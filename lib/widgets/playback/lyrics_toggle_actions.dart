@@ -6,6 +6,7 @@ import 'package:vynody/dialogs/lyrics_model_recommendation_dialog.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
+import 'package:vynody/player/pro/app_channel.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
@@ -41,6 +42,11 @@ Future<void> handleLyricsTranslationTap(
     final nextState = !settings.showLyricsTranslation;
     settings.showLyricsTranslation = nextState;
     showToast(nextState ? l10n.lyricsTranslationEnabled : l10n.lyricsTranslationDisabled);
+    return;
+  }
+
+  if (!AppFeatures.enableAi) {
+    showToast(l10n.noLyricsAvailableForTranslation);
     return;
   }
 
@@ -114,6 +120,10 @@ Future<void> handleLyricsWordByWordTap(
           ? l10n.wordByWordLyricsEnabled
           : l10n.wordByWordLyricsDisabled,
     );
+    return;
+  }
+
+  if (!AppFeatures.enableAi) {
     return;
   }
 

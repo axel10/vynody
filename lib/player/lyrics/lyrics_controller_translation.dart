@@ -14,6 +14,7 @@ import 'package:vynody/player/lyrics/lyrics_controller_context.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_utils.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_display_state.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
+import 'package:vynody/player/pro/app_channel.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 
 class _LyricsTranslationRequest {
@@ -44,6 +45,9 @@ class LyricsTranslationCoordinator {
     String? targetLanguageCode,
     bool force = false,
   }) async {
+    if (!AppFeatures.enableAi) {
+      return null;
+    }
     final song = _context.currentMusic();
     debugPrint(
       '[LyricsTranslation] translateLyricsForCurrentSong invoked -> '

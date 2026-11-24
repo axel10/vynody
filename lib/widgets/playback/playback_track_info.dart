@@ -7,6 +7,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
+import 'package:vynody/player/pro/app_channel.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/widgets/app_context_menu.dart';
@@ -653,32 +654,34 @@ class PlaybackTrackInfo extends ConsumerWidget {
                     }
                   },
                   itemBuilder: (context) => [
-                    buildContextMenuItem<String>(
-                      value: 'translation',
-                      label: hasTranslation
-                          ? (showLyricsTranslation
-                                ? l10n.disableLyricsTranslation
-                                : l10n.enableLyricsTranslation)
-                          : l10n.generateLyricsTranslation,
-                      icon: Icons.translate_rounded,
-                      context: context,
-                      iconColor: showLyricsTranslation
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                    ),
-                    buildContextMenuItem<String>(
-                      value: 'word_by_word',
-                      label: hasWordByWord
-                          ? (showLyricsWordByWord
-                                ? l10n.disableWordByWordLyrics
-                                : l10n.enableWordByWordLyrics)
-                          : l10n.generateWordByWordLyrics,
-                      icon: Icons.mic_external_on_rounded,
-                      context: context,
-                      iconColor: showLyricsWordByWord
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                    ),
+                    if (hasTranslation || AppFeatures.enableAi)
+                      buildContextMenuItem<String>(
+                        value: 'translation',
+                        label: hasTranslation
+                            ? (showLyricsTranslation
+                                  ? l10n.disableLyricsTranslation
+                                  : l10n.enableLyricsTranslation)
+                            : l10n.generateLyricsTranslation,
+                        icon: Icons.translate_rounded,
+                        context: context,
+                        iconColor: showLyricsTranslation
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                    if (hasWordByWord || AppFeatures.enableAi)
+                      buildContextMenuItem<String>(
+                        value: 'word_by_word',
+                        label: hasWordByWord
+                            ? (showLyricsWordByWord
+                                  ? l10n.disableWordByWordLyrics
+                                  : l10n.enableWordByWordLyrics)
+                            : l10n.generateWordByWordLyrics,
+                        icon: Icons.mic_external_on_rounded,
+                        context: context,
+                        iconColor: showLyricsWordByWord
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
                     buildContextMenuItem<String>(
                       value: 'favorite',
                       label: isFavorite
