@@ -13,6 +13,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/utils/app_log.dart' as app_log;
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:path_provider/path_provider.dart';
@@ -683,6 +684,20 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     String? firstFailureReason;
     bool hasOccupiedError = false;
 
+    Map<String, String?>? batchWritePermissions;
+    if (Platform.isAndroid && widget.effectiveSongs.length > 1) {
+      final batchTargets = <({String filePath, String? fallbackMediaUri})>[
+        for (final song in widget.effectiveSongs)
+          if (!RemoteMediaResolver.isRemoteUri(song.path) &&
+              isMetadataWritable(song.path))
+            (filePath: song.path, fallbackMediaUri: song.mediaUri),
+      ];
+      if (batchTargets.length > 1) {
+        batchWritePermissions =
+            await MetadataHelper.requestBatchWritePermissions(batchTargets);
+      }
+    }
+
     for (final song in widget.effectiveSongs) {
       final songIsRemote = RemoteMediaResolver.isRemoteUri(song.path);
       if (songIsRemote) continue;
@@ -705,7 +720,25 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
 
       // 只管「能写就写」：写不进去由 saveSelectedSongMetadata 降级，
       // 这里不需要再分出一个「只保存到 App」的入口。
-      final canWriteThisFile = isMetadataWritable(song.path);
+      final isFormatSupported = isMetadataWritable(song.path);
+      var canWriteThisFile = isFormatSupported;
+      var effectiveMediaUri = song.mediaUri;
+      if (canWriteThisFile &&
+          batchWritePermissions != null &&
+          batchWritePermissions.isNotEmpty) {
+        final grantedUri = batchWritePermissions[song.path] ??
+            (song.mediaUri != null
+                ? batchWritePermissions[song.mediaUri!]
+                : null);
+        if (grantedUri != null) {
+          effectiveMediaUri = grantedUri;
+        } else if (batchWritePermissions.containsKey(song.path) &&
+            (song.mediaUri == null ||
+                batchWritePermissions.containsKey(song.mediaUri!))) {
+          // 批量授权弹窗已被用户拒绝或无写权限，直接降级保存到 App，避免逐首弹窗。
+          canWriteThisFile = false;
+        }
+      }
 
       final result = await MetadataHelper.saveSelectedSongMetadata(
         filePath: song.path,
@@ -723,7 +756,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
         existingMetadata: null,
         writeToFile: canWriteThisFile,
         fallbackToAppOnWriteFailure: true,
-        fallbackMediaUri: song.mediaUri,
+        fallbackMediaUri: effectiveMediaUri,
       );
 
       if (result != null) {
@@ -737,10 +770,18 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
         } else {
           appOnlyCount++;
           if (fallback == TagWriteFallback.none) {
-            fallback = canWriteThisFile
-                ? result.fallback
+            fallback = isFormatSupported
+                ? (canWriteThisFile
+                      ? result.fallback
+                      : TagWriteFallback.writeFailed)
                 : TagWriteFallback.unsupportedFormat;
           }
+          app_log.AppLog.log(
+            '[SongTagEdit] appOnly fallback for ${song.path}: '
+            'isFormatSupported=$isFormatSupported canWrite=$canWriteThisFile '
+            'resultFallback=${result.fallback} lastError=${MetadataHelper.lastWriteError}',
+            mirrorToConsole: true,
+          );
         }
       } else {
         final reason = MetadataHelper.lastWriteError;

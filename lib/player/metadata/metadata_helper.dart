@@ -307,6 +307,41 @@ class MetadataHelper {
     return value.trim();
   }
 
+  /// Requests Android write permissions for a batch of songs in a single
+  /// system prompt (`MediaStore.createWriteRequest`) before saving tags.
+  ///
+  /// Returns a map from each requested path/URI to the granted writable
+  /// path/URI (or `null` if denied/unavailable). Returns an empty map on
+  /// non-Android platforms or when TagLib is unsupported.
+  static Future<Map<String, String?>> requestBatchWritePermissions(
+    List<({String filePath, String? fallbackMediaUri})> targets,
+  ) async {
+    if (!Platform.isAndroid ||
+        !taglib.TagLibFile.isSupported ||
+        targets.isEmpty) {
+      return const <String, String?>{};
+    }
+    final uris = <String>{
+      for (final target in targets) ...[
+        if (target.filePath.trim().isNotEmpty) target.filePath.trim(),
+        if (target.fallbackMediaUri != null &&
+            target.fallbackMediaUri!.trim().isNotEmpty)
+          target.fallbackMediaUri!.trim(),
+      ],
+    }.toList(growable: false);
+    if (uris.isEmpty) return const <String, String?>{};
+    final result = await taglib.TagLibFile.requestWritePermissions(uris);
+    final grantedCount = result.values.where((v) => v != null).length;
+    final nullCount = result.values.where((v) => v == null).length;
+    app_log.AppLog.log(
+      '[MetadataHelper] requestBatchWritePermissions targets=${targets.length} '
+      'uris=${uris.length} resultEntries=${result.length} '
+      'granted=$grantedCount null=$nullCount lastError=${taglib.TagLibFile.lastError}',
+      mirrorToConsole: true,
+    );
+    return result;
+  }
+
   static Future<bool> _writeSelectionMetadataToFile({
     required String filePath,
     required SongMetadata metadata,
