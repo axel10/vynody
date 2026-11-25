@@ -57,6 +57,7 @@ import '../utils/layout_constants.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import '../widgets/right_queue_panel.dart';
 import '../widgets/sidebar_resize_handle.dart';
+import '../widgets/settled_view_insets_builder.dart';
 import 'package:vynody/utils/deleted_song_snack.dart';
 import 'package:vynody/utils/corrupted_song_snack.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
@@ -1459,7 +1460,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final bool showCustomTitleBar =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-    final Size size = MediaQuery.of(context).size;
+    final Size size = MediaQuery.sizeOf(context);
     final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
       size,
       isWaveformEnabled: ref.watch(isEffectiveWaveformEnabledProvider),
@@ -1489,7 +1490,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     final bool useSidebar = isLandscape;
     final bool isSidebarHidden = isCoverFlowImmersive;
     final bool hideImmersiveTabBar = isSidebarHidden;
-    final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     final double railWidth = (useSidebar && !isSidebarHidden)
         ? ref.watch(sidebarRailWidthProvider(size.width))
@@ -1629,20 +1629,24 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                   ),
 
                 if (useSidebar)
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOutCubic,
-                    bottom:
-                        (currentMusic != null &&
-                            !hideMiniPlayerForSelection &&
-                            !hideMiniPlayerForCoverFlow &&
-                            !isKeyboardVisible)
-                        ? (20.0 +
-                              MediaQuery.of(context).padding.bottom +
-                              selectionBottomInset)
-                        : -120.0,
-                    left: railWidth + extraLeft,
-                    right: rightDrawerWidth,
+                  KeyboardVisibilityBuilder(
+                    builder: (context, isKeyboardVisible, child) =>
+                        AnimatedPositioned(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      bottom:
+                          (currentMusic != null &&
+                              !hideMiniPlayerForSelection &&
+                              !hideMiniPlayerForCoverFlow &&
+                              !isKeyboardVisible)
+                          ? (20.0 +
+                                MediaQuery.paddingOf(context).bottom +
+                                selectionBottomInset)
+                          : -120.0,
+                      left: railWidth + extraLeft,
+                      right: rightDrawerWidth,
+                      child: child!,
+                    ),
                     child: Center(
                       child: currentMusic != null
                           ? Builder(
@@ -1651,7 +1655,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                       audioServiceProvider,
                                     );
                                     final availableWidth =
-                                        MediaQuery.of(context).size.width -
+                                        MediaQuery.sizeOf(context).width -
                                         railWidth -
                                         extraLeft -
                                         rightDrawerWidth;
@@ -1746,8 +1750,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                         isPlayback: false,
                         isHidden:
                             isDrawerActive ||
-                            hideMiniPlayerForSelection ||
-                            isKeyboardVisible,
+                            hideMiniPlayerForSelection,
                         hideMiniPlayer:
                             hideMiniPlayerForSelection,
                         rightDrawerWidth: rightDrawerWidth,

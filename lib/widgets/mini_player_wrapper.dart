@@ -43,7 +43,7 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
 
     final bool isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-    final Size size = MediaQuery.of(context).size;
+    final Size size = MediaQuery.sizeOf(context);
     final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
       size,
       isWaveformEnabled: ref.watch(isEffectiveWaveformEnabledProvider),
@@ -59,7 +59,6 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
 
     final selectionScope = ref.watch(librarySelectionScopeProvider);
     final librarySelectionActive = selectionScope != LibrarySelectionScope.none;
-    final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     if (useSidebar) {
       return widget.child;
@@ -96,8 +95,8 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
         await navigateToMainTab(context, index: index);
       },
       isPlayback: false,
-      isHidden: librarySelectionActive || isKeyboardVisible,
-      hideMiniPlayer: librarySelectionActive || isKeyboardVisible,
+      isHidden: librarySelectionActive,
+      hideMiniPlayer: librarySelectionActive,
     );
 
     return Stack(

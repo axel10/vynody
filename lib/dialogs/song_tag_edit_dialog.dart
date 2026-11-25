@@ -8,6 +8,7 @@ import '../utils/file_selector_helper.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/blur_constants.dart';
 import '../widgets/app_bottom_sheet.dart';
+import '../widgets/settled_view_insets_builder.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
@@ -827,7 +828,6 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
         widget.effectiveSongs.any((s) => RemoteMediaResolver.isRemoteUri(s.path));
     final canWriteToSourceFile = !hasRemote &&
         widget.effectiveSongs.any((s) => isMetadataWritable(s.path));
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -848,13 +848,12 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       landscapeMaxWidth: 980,
       expandHeight: true,
       dialogHeight: 700,
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: EdgeInsets.zero,
+      child: Stack(
         children: [
-          Expanded(
+          Positioned.fill(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 92),
               children: [
                 Center(
                           child: GestureDetector(
@@ -1152,27 +1151,42 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                             height: 1.4,
                           ),
                         ),
+                        SettledViewInsetsBuilder(
+                          builder: (context, bottomInset, _) => SizedBox(
+                            height: bottomInset,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        FilledButton(
-                          onPressed: _isSaving || hasRemote ? null : _save,
-                          child: _isSaving
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(l10n.save),
-                        ),
-                      ],
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: SettledViewInsetsBuilder(
+                      builder: (context, bottomInset, child) => Container(
+                        color: AppBlur.dialogSurface(context),
+                        padding: EdgeInsets.fromLTRB(20, 8, 20, 18 + bottomInset),
+                        child: child,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FilledButton(
+                            onPressed: _isSaving || hasRemote ? null : _save,
+                            child: _isSaving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(l10n.save),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

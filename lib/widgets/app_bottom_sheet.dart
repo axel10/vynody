@@ -246,10 +246,10 @@ class AppAdaptiveSheetScope extends InheritedWidget {
     final route = ModalRoute.of(context);
     // 当处于统一自适应路由 AppAdaptiveModalRoute 时，始终依据当前窗口/屏幕尺寸即时动态计算
     if (route is AppAdaptiveModalRoute) {
-      final media = MediaQuery.maybeOf(context);
-      if (media != null) {
-        final width = media.size.width;
-        final height = media.size.height;
+      final size = MediaQuery.maybeSizeOf(context);
+      if (size != null) {
+        final width = size.width;
+        final height = size.height;
         final isLandscape = width > height;
         if (checkOrientation && !isLandscape && width < 900) {
           return false;
@@ -264,11 +264,11 @@ class AppAdaptiveSheetScope extends InheritedWidget {
     if (route is ModalBottomSheetRoute) return false;
     if (route is DialogRoute) return true;
 
-    final media = MediaQuery.maybeOf(context);
-    if (media == null) return false;
+    final size = MediaQuery.maybeSizeOf(context);
+    if (size == null) return false;
 
-    final width = media.size.width;
-    final height = media.size.height;
+    final width = size.width;
+    final height = size.height;
     final isLandscape = width > height;
 
     if (checkOrientation && !isLandscape && width < 900) {
@@ -616,7 +616,8 @@ class _AppAdaptiveSheetState extends State<AppAdaptiveSheet>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final media = MediaQuery.of(context);
+    final mediaSize = MediaQuery.sizeOf(context);
+    final mediaPadding = MediaQuery.paddingOf(context);
 
     final isDialog = widget.asDialog ??
         AppAdaptiveSheetScope.isDialogMode(
@@ -630,22 +631,22 @@ class _AppAdaptiveSheetState extends State<AppAdaptiveSheet>
       _animController.stop();
     }
 
-    final isLandscape = media.orientation == Orientation.landscape;
+    final isLandscape = MediaQuery.orientationOf(context) == Orientation.landscape;
 
     final effectiveMaxWidth = isDialog
-        ? math.min(widget.dialogMaxWidth, math.max(0.0, media.size.width - 48.0))
+        ? math.min(widget.dialogMaxWidth, math.max(0.0, mediaSize.width - 48.0))
         : math.min(
             isLandscape ? widget.landscapeMaxWidth : widget.sheetMaxWidth,
-            media.size.width,
+            mediaSize.width,
           );
     // 在底部抽屉模式下，顶部保留适度的空白点击区域（状态栏高度 + 舒适的背景点击间隙），方便用户点击背景遮罩退出
     final topDismissPadding =
-        isDialog ? 0.0 : math.max(media.padding.top + 36.0, 48.0);
+        isDialog ? 0.0 : math.max(mediaPadding.top + 36.0, 48.0);
     final effectiveMaxHeight = isDialog
-        ? media.size.height * widget.maxHeightFactor
+        ? mediaSize.height * widget.maxHeightFactor
         : math.min(
-            media.size.height * widget.maxHeightFactor,
-            math.max(200.0, media.size.height - topDismissPadding),
+            mediaSize.height * widget.maxHeightFactor,
+            math.max(200.0, mediaSize.height - topDismissPadding),
           );
 
     // 解析目标高度

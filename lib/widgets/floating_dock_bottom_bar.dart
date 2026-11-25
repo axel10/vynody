@@ -14,6 +14,7 @@ import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
+import 'package:vynody/widgets/settled_view_insets_builder.dart';
 
 // ---------------------------------------------------------------------------
 // 折叠形变的几何基准
@@ -110,18 +111,18 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
-    final isKeyboardVisible = viewInsetsBottom > 0;
-    final isEffectivelyHidden = widget.isHidden || isKeyboardVisible;
+    return KeyboardVisibilityBuilder(
+      builder: (context, isKeyboardVisible, _) {
+        final isEffectivelyHidden = widget.isHidden || isKeyboardVisible;
 
-    // 当有正在播放的歌曲且不在全屏播放页且未被多选屏蔽且未隐藏时，展开 Mini 播放器
-    final showMini =
-        currentMusic != null &&
-        !widget.isPlayback &&
-        !widget.hideMiniPlayer &&
-        !isEffectivelyHidden;
+        // 当有正在播放的歌曲且不在全屏播放页且未被多选屏蔽且未隐藏时，展开 Mini 播放器
+        final showMini =
+            currentMusic != null &&
+            !widget.isPlayback &&
+            !widget.hideMiniPlayer &&
+            !isEffectivelyHidden;
 
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
     final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
     final isTablet =
         MediaQuery.sizeOf(context).shortestSide >=
@@ -211,7 +212,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
       left: 16.0,
       right: totalRightOffset,
       bottom: isEffectivelyHidden
-          ? -(200.0 + bottomPadding + viewInsetsBottom)
+          ? -(200.0 + bottomPadding + 600.0)
           : totalBottomOffset,
       child: Transform.translate(
         offset: Offset(0.0, scrollOffset),
@@ -413,7 +414,9 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
       ),
     ),
   );
-}
+      },
+    );
+  }
 
   /// 一体化平滑形变 Mini 播放器顶栏：
   /// - 展开态 (collapseProgress = 0.0)：标准两行展开 Mini 播放器，最左侧无 Tab 图标，显示上一首按钮；
