@@ -240,6 +240,26 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(AboutSection), findsOneWidget);
+    expect(find.textContaining('闽ICP备2026047128号-1A'), findsNothing);
+  });
+
+  testWidgets('AboutSection displays ICP record number on Apple Store builds', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: AboutSection(isAppleStoreOverride: true),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('ICP备案号：闽ICP备2026047128号-1A'), findsOneWidget);
   });
 
   test('AppShortcutAction.toggleWasapiExclusive metadata and defaults', () {

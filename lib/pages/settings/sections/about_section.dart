@@ -15,7 +15,10 @@ import '../widgets/settings_section_header.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 
 class AboutSection extends StatefulWidget {
-  const AboutSection({super.key});
+  const AboutSection({super.key, @visibleForTesting this.isAppleStoreOverride});
+
+  @visibleForTesting
+  final bool? isAppleStoreOverride;
 
   @override
   State<AboutSection> createState() => _AboutSectionState();
@@ -30,6 +33,17 @@ class _AboutSectionState extends State<AboutSection> {
     'APP_STORE_ID',
     defaultValue: '6799339894',
   );
+
+  static const String _icpRecordNumber = String.fromEnvironment(
+    'ICP_RECORD_NO',
+    defaultValue: '闽ICP备2026047128号-1A',
+  );
+
+  static final Uri _miitBeianUri = Uri.parse('https://beian.miit.gov.cn/');
+
+  bool get _isAppleStore =>
+      widget.isAppleStoreOverride ??
+      (Platform.isIOS || (Platform.isMacOS && AppChannel.isStoreRelease));
 
   @override
   void initState() {
@@ -69,9 +83,7 @@ class _AboutSectionState extends State<AboutSection> {
   }
 
   Future<void> _checkForUpdates() async {
-    final bool isAppleStore =
-        Platform.isIOS || (Platform.isMacOS && AppChannel.isStoreRelease);
-    if (isAppleStore) {
+    if (_isAppleStore) {
       final storeUri = Uri.parse('https://apps.apple.com/app/id$_appStoreId');
       try {
         if (await canLaunchUrl(storeUri)) {
@@ -475,6 +487,36 @@ class _AboutSectionState extends State<AboutSection> {
                       ),
                     ],
                   ),
+                  if (_isAppleStore && _icpRecordNumber.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: () async {
+                        try {
+                          if (await canLaunchUrl(_miitBeianUri)) {
+                            await launchUrl(
+                              _miitBeianUri,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          }
+                        } catch (e) {
+                          debugPrint('Failed to open MIIT ICP portal: $e');
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(4),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text(
+                          'ICP备案号：$_icpRecordNumber',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white54
+                                : Colors.black54,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
