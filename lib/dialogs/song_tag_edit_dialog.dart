@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../utils/artwork_export_helper.dart';
 import '../utils/file_selector_helper.dart';
 
 import '../l10n/app_localizations.dart';
@@ -400,65 +401,36 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
   Future<void> _exportArtwork() async {
     final l10n = AppLocalizations.of(context)!;
     try {
-      Uint8List? bytes = _artworkBytes;
-      if ((bytes == null || bytes.isEmpty) &&
-          _artworkPath != null &&
-          _artworkPath!.isNotEmpty) {
-        final file = File(_artworkPath!);
-        if (await file.exists()) {
-          bytes = await file.readAsBytes();
-        }
-      }
+      final bytes = await ArtworkExportHelper.resolveCoverBytes(
+        bytes: _artworkBytes,
+        filePath: _artworkPath,
+      );
 
       if (bytes == null || bytes.isEmpty) {
         showToast(l10n.exportArtworkFailed);
         return;
       }
 
-      String ext = 'jpg';
-      if (bytes.length >= 8) {
-        if (bytes[0] == 0x89 &&
-            bytes[1] == 0x50 &&
-            bytes[2] == 0x4E &&
-            bytes[3] == 0x47) {
-          ext = 'png';
-        } else if (bytes[0] == 0x52 &&
-            bytes[1] == 0x49 &&
-            bytes[2] == 0x46 &&
-            bytes[3] == 0x46) {
-          ext = 'webp';
-        } else if (bytes[0] == 0xFF && bytes[1] == 0xD8) {
-          ext = 'jpg';
-        }
-      }
-
-      String defaultBaseName = 'cover';
+      String? title;
+      String? artist;
       if (widget.effectiveSongs.isNotEmpty) {
         final song = widget.effectiveSongs.first;
-        final title = _titleController.text.trim().isNotEmpty &&
+        title = _titleController.text.trim().isNotEmpty &&
                 _titleController.text.trim() != keepTagPlaceholder
             ? _titleController.text.trim()
             : (song.title?.trim().isNotEmpty == true
                 ? song.title!.trim()
                 : song.displayName);
-        final artist = _artistController.text.trim().isNotEmpty &&
+        artist = _artistController.text.trim().isNotEmpty &&
                 _artistController.text.trim() != keepTagPlaceholder
             ? _artistController.text.trim()
             : (song.artist?.trim() ?? '');
-        if (artist.isNotEmpty && title.isNotEmpty) {
-          defaultBaseName = '$artist - $title - Cover';
-        } else if (title.isNotEmpty) {
-          defaultBaseName = '$title - Cover';
-        }
       }
-      defaultBaseName =
-          defaultBaseName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
 
-      final savedPath = await FileSelectorHelper.saveFile(
-        suggestedName: '$defaultBaseName.$ext',
-        label: 'Images',
-        extensions: [ext],
+      final savedPath = await ArtworkExportHelper.exportCoverBytes(
         bytes: bytes,
+        artist: artist,
+        title: title,
       );
 
       if (savedPath != null && mounted) {

@@ -7,6 +7,7 @@ import 'package:pasteboard/pasteboard.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
+import 'package:vynody/utils/artwork_export_helper.dart';
 import 'package:vynody/widgets/cover_carousel.dart';
 import 'package:vynody/widgets/app_context_menu.dart';
 import '../../l10n/app_localizations.dart';
@@ -59,6 +60,13 @@ class PlaybackAlbumArt extends ConsumerWidget {
           icon: Icons.image_outlined,
           context: context,
         ),
+        buildContextMenuItem<String>(
+          value: 'export_cover',
+          enabled: hasCover,
+          label: l10n.exportArtwork,
+          icon: Icons.file_download_outlined,
+          context: context,
+        ),
       ],
     );
 
@@ -66,8 +74,12 @@ class PlaybackAlbumArt extends ConsumerWidget {
 
     if (selected == 'copy_cover') {
       try {
-        if (bytes != null && bytes.isNotEmpty) {
-          await Pasteboard.writeImage(bytes);
+        final resolvedBytes = await ArtworkExportHelper.resolveCoverBytes(
+          bytes: bytes,
+          filePath: path,
+        );
+        if (resolvedBytes != null) {
+          await Pasteboard.writeImage(resolvedBytes);
           if (context.mounted) {
             AppSnackBar.show(
               context,
@@ -75,19 +87,12 @@ class PlaybackAlbumArt extends ConsumerWidget {
               SnackBar(content: Text(l10n.copyCoverSuccess)),
             );
           }
-        } else if (path != null) {
-          final file = File(path);
-          if (file.existsSync()) {
-            final fileBytes = await file.readAsBytes();
-            await Pasteboard.writeImage(fileBytes);
-            if (context.mounted) {
-              AppSnackBar.show(
-                context,
-                ref,
-                SnackBar(content: Text(l10n.copyCoverSuccess)),
-              );
-            }
-          }
+        } else if (context.mounted) {
+          AppSnackBar.show(
+            context,
+            ref,
+            SnackBar(content: Text(l10n.copyCoverFailed)),
+          );
         }
       } catch (e) {
         debugPrint('Failed to copy cover to clipboard: $e');
@@ -96,6 +101,48 @@ class PlaybackAlbumArt extends ConsumerWidget {
             context,
             ref,
             SnackBar(content: Text(l10n.copyCoverFailed)),
+          );
+        }
+      }
+    } else if (selected == 'export_cover') {
+      try {
+        final resolvedBytes = await ArtworkExportHelper.resolveCoverBytes(
+          bytes: bytes,
+          filePath: path,
+        );
+        if (resolvedBytes == null) {
+          if (context.mounted) {
+            AppSnackBar.show(
+              context,
+              ref,
+              SnackBar(content: Text(l10n.exportArtworkFailed)),
+            );
+          }
+          return;
+        }
+        final title = currentMusic.title?.trim().isNotEmpty == true
+            ? currentMusic.title!.trim()
+            : currentMusic.displayName;
+        final artist = currentMusic.artist?.trim();
+        final savedPath = await ArtworkExportHelper.exportCoverBytes(
+          bytes: resolvedBytes,
+          artist: artist,
+          title: title,
+        );
+        if (savedPath != null && context.mounted) {
+          AppSnackBar.show(
+            context,
+            ref,
+            SnackBar(content: Text(l10n.exportArtworkSuccess)),
+          );
+        }
+      } catch (e) {
+        debugPrint('Failed to export cover to file: $e');
+        if (context.mounted) {
+          AppSnackBar.show(
+            context,
+            ref,
+            SnackBar(content: Text(l10n.exportArtworkFailed)),
           );
         }
       }
