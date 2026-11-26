@@ -2928,6 +2928,20 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       if (dbSong != null) {
         _metadataStore.cacheMetadata(dbSong);
       }
+      debugPrint(
+        '[ScannerDiag] _upsertIncrementalSongPath cache miss loaded from DB: '
+        'path=$normalizedPath found=${dbSong != null} '
+        'sourceFlags=${dbSong?.sourceFlags} duration=${dbSong?.duration}',
+      );
+    } else {
+      final cached = _metadataStore.getMetadata(normalizedPath);
+      debugPrint(
+        '[ScannerDiag] _upsertIncrementalSongPath done: '
+        'path=$normalizedPath full=${classification.pathsFor(ScanFileStage.full).length} '
+        'unchanged=${classification.pathsFor(ScanFileStage.unchanged).length} '
+        'inCache=${cached != null} sourceFlags=${cached?.sourceFlags} '
+        'duration=${cached?.duration}',
+      );
     }
 
     return _metadataStore.getMetadata(normalizedPath) ??
@@ -3451,6 +3465,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   ) async {
     final metadataByLookupKey = <String, SongMetadata>{};
     var count = 0;
+    var missedCount = 0;
+    final missedSamples = <String>[];
     for (final path in discoveredPaths) {
       count++;
       if (count % 5000 == 0) {
@@ -3464,10 +3480,20 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           _metadataStore.getMetadata(normalizedPath) ??
           _metadataStore.getMetadata(path);
       if (metadata == null) {
+        missedCount++;
+        if (missedSamples.length < 3) {
+          missedSamples.add(normalizedPath);
+        }
         continue;
       }
       metadataByLookupKey[_pathLookupKey(normalizedPath)] = metadata;
     }
+
+    debugPrint(
+      '[ScannerDiag] _rebuildScannedRootFolderFromMetadata root=$rootPath '
+      'input=$count matched=${metadataByLookupKey.length} missed=$missedCount '
+      'missedSamples=$missedSamples',
+    );
 
     if (metadataByLookupKey.isEmpty) {
       _scannedRootFolders.removeWhere(
@@ -3496,19 +3522,49 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       resolveSettings: _resolveSortSettingsForFolder,
     );
     _upsertScannedRootFolder(rootFolder);
+    debugPrint(
+      '[ScannerDiag] _rebuildScannedRootFolderFromMetadata built root=$rootPath '
+      'songCount=${rootFolder.songCount} subFolders=${rootFolder.subFolders.length} '
+      'directFiles=${rootFolder.files.length}',
+    );
   }
 
   void _rebuildScannedRootFolderFromCache(String rootPath) {
-    final songs = _metadataStore.metadataMap.values.where(
-      (song) =>
-          _songMatchesSource(
-            song,
-            SongSourceFlags.rootScan,
-            includeLegacy: true,
-          ) &&
-          _shouldKeepSongMetadata(song) &&
-          _pathContains(rootPath, song.path),
+    var inPathCount = 0;
+    var sourceMismatchCount = 0;
+    var durationFilteredCount = 0;
+    final sourceMismatchSamples = <String>[];
+    final songs = <SongMetadata>[];
+
+    for (final song in _metadataStore.metadataMap.values) {
+      if (!_pathContains(rootPath, song.path)) continue;
+      inPathCount++;
+      if (!_songMatchesSource(
+        song,
+        SongSourceFlags.rootScan,
+        includeLegacy: true,
+      )) {
+        sourceMismatchCount++;
+        if (sourceMismatchSamples.length < 3) {
+          sourceMismatchSamples.add('${song.path}(flags=${song.sourceFlags})');
+        }
+        continue;
+      }
+      if (!_shouldKeepSongMetadata(song)) {
+        durationFilteredCount++;
+        continue;
+      }
+      songs.add(song);
+    }
+
+    debugPrint(
+      '[ScannerDiag] _rebuildScannedRootFolderFromCache root=$rootPath '
+      'mapSize=${_metadataStore.metadataMap.length} inPath=$inPathCount '
+      'kept=${songs.length} sourceMismatch=$sourceMismatchCount '
+      'durationFiltered=$durationFilteredCount '
+      'mismatchSamples=$sourceMismatchSamples',
     );
+
     final rootFolder = _buildCachedFolderTree(
       songs: songs,
       rootPath: rootPath,
@@ -3525,6 +3581,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       resolveSettings: _resolveSortSettingsForFolder,
     );
     _upsertScannedRootFolder(rootFolder);
+    debugPrint(
+      '[ScannerDiag] _rebuildScannedRootFolderFromCache built root=$rootPath '
+      'songCount=${rootFolder.songCount} subFolders=${rootFolder.subFolders.length} '
+      'directFiles=${rootFolder.files.length}',
+    );
   }
 
   Future<void> _refreshAffectedRootsFromCache(Iterable<String> affectedRoots) async {
@@ -3645,6 +3706,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       );
       if (!_isScanTokenCurrent(scanToken) ||
           !_isScanRootStillActive(rootPath)) {
+        debugPrint(
+          '[ScannerDiag] _processDiscoveredPaths aborted before stage 3.1: '
+          'root=$rootPath scanToken=$scanToken '
+          'tokenCurrent=${_isScanTokenCurrent(scanToken)} '
+          'rootActive=${_isScanRootStillActive(rootPath)}',
+        );
         return;
       }
       final keptFullPaths = preprocessResult.keptPaths;
@@ -3654,6 +3721,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         ...keptFullPaths,
         ...imageOnlyPaths,
       ];
+      debugPrint(
+        '[ScannerDiag] _processDiscoveredPaths stage 3.1 root=$rootPath '
+        'unchanged=${unchangedPaths.length} keptFull=${keptFullPaths.length} '
+        'imageOnly=${imageOnlyPaths.length} visible=${visiblePaths.length}',
+      );
 
       _currentScanStage = 'stage 3.1: mark root scan token ($rootPath)';
       await _timeScanStep('stage 3.1 mark root scan token batch', () async {

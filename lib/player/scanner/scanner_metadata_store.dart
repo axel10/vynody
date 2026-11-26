@@ -399,6 +399,13 @@ class ScannerMetadataStore {
     });
 
     if (_metadataMap.length != beforeLength) {
+      final removedCount = beforeLength - _metadataMap.length;
+      if (removedCount > 5) {
+        debugPrint(
+          '[ScannerDiag] _removeMetadataForPaths removed=$removedCount '
+          'remaining=${_metadataMap.length} updateVisibleTrees=$updateVisibleTrees',
+        );
+      }
       _onMetadataMutated();
       _onAlbumMetadataMutated();
     }
