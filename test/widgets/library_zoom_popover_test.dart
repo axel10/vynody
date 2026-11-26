@@ -261,4 +261,57 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     }
   });
+
+  testWidgets('锚点位于视口上方或底部之外时，视图面板仍钳制在可视范围内', (tester) async {
+    Future<void> pumpAndTriggerAt(Offset anchorOffset) async {
+      late BuildContext anchorCtx;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: anchorOffset.dx,
+                    top: anchorOffset.dy,
+                    child: Builder(
+                      builder: (ctx) {
+                        anchorCtx = ctx;
+                        return const SizedBox(width: 32, height: 32);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      // ignore: unawaited_futures
+      showLibraryZoomPopover(anchorCtx, scope: LibraryZoomScope.folder);
+      await tester.pumpAndSettle();
+    }
+
+    // 1. 锚点已滚出顶部视口上方（dy = -120）
+    await pumpAndTriggerAt(const Offset(350, -120));
+    var cardRect = tester.getRect(find.byType(LibraryZoomPopoverCard));
+    expect(cardRect.top, greaterThanOrEqualTo(8.0));
+    expect(cardRect.bottom, lessThanOrEqualTo(600.0));
+
+    // 关闭弹窗
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    // 2. 锚点高度过大或位于视口底部之外（dy = 590）
+    await pumpAndTriggerAt(const Offset(350, 590));
+    cardRect = tester.getRect(find.byType(LibraryZoomPopoverCard));
+    expect(cardRect.top, greaterThanOrEqualTo(8.0));
+    expect(cardRect.bottom, lessThanOrEqualTo(600.0));
+  });
 }

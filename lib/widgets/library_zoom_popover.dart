@@ -116,7 +116,8 @@ Future<void> showLibraryZoomPopover(
   final overlay =
       Overlay.maybeOf(anchorContext)?.context.findRenderObject() as RenderBox?;
 
-  double topOffset = MediaQuery.paddingOf(anchorContext).top + 56.0;
+  final mediaPadding = MediaQuery.paddingOf(anchorContext);
+  double topOffset = mediaPadding.top + 56.0;
   double rightOffset = 16.0;
 
   if (renderBox != null && overlay != null && renderBox.hasSize) {
@@ -126,6 +127,14 @@ Future<void> showLibraryZoomPopover(
         overlay.size.width - (globalPos.dx + renderBox.size.width);
     rightOffset = calculatedRight.clamp(12.0, overlay.size.width - 280.0);
   }
+
+  // 确保弹窗始终落在可视区域内，避免锚点滚动出屏或贴近底部时面板被裁切。
+  final minTop = mediaPadding.top + 8.0;
+  final maxTop = overlay != null
+      ? (overlay.size.height - mediaPadding.bottom - 260.0)
+          .clamp(minTop, double.infinity)
+      : minTop + 400.0;
+  topOffset = topOffset.clamp(minTop, maxTop);
 
   await showGeneralDialog<void>(
     context: anchorContext,

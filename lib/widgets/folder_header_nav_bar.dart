@@ -217,25 +217,26 @@ class FolderHeaderNavBar extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           FolderScanSpinner(style: style),
-          FolderNavActionMenu<String>(
-            style: style,
-            onSelected: (value) {
-              if (value == 'play_all') {
-                onPlayAll?.call();
-              } else if (value == 'shuffle_play') {
-                onShufflePlay?.call();
-              } else if (value == 'search') {
-                onSearch?.call();
-              } else if (value == 'locate') {
-                _handleLocate(ref, context);
-              } else if (value == 'refresh') {
-                onRefresh?.call();
-              } else if (value == 'sort') {
-                onSortPressed?.call();
-              } else if (value == 'view_mode') {
-                showFolderZoomPopover(context);
-              }
-            },
+          Builder(
+            builder: (menuContext) => FolderNavActionMenu<String>(
+              style: style,
+              onSelected: (value) {
+                if (value == 'play_all') {
+                  onPlayAll?.call();
+                } else if (value == 'shuffle_play') {
+                  onShufflePlay?.call();
+                } else if (value == 'search') {
+                  onSearch?.call();
+                } else if (value == 'locate') {
+                  _handleLocate(ref, context);
+                } else if (value == 'refresh') {
+                  onRefresh?.call();
+                } else if (value == 'sort') {
+                  onSortPressed?.call();
+                } else if (value == 'view_mode') {
+                  showFolderZoomPopover(menuContext);
+                }
+              },
             itemBuilder: (context) => [
               if (showQuickActions && hasAnyQuickAction) ...[
                 if (onPlayAll != null)
@@ -369,6 +370,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
           ),
         ],
       );

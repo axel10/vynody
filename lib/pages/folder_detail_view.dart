@@ -717,14 +717,15 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   onBack: widget.onGoBack,
                   backTooltip: l10n.goBack,
                   contentMaxWidth: folderPageMaxWidth,
-                  trailingAction: PopupMenuButton<String>(
-                    tooltip: l10n.more,
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      color: theme.colorScheme.onSurface,
-                      size: 20,
-                    ),
+                  trailingAction: Builder(
+                    builder: (menuContext) => PopupMenuButton<String>(
+                      tooltip: l10n.more,
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        Icons.more_vert_rounded,
+                        color: theme.colorScheme.onSurface,
+                        size: 20,
+                      ),
                       onSelected: (val) {
                         switch (val) {
                           case 'locate':
@@ -737,7 +738,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                             _showSortDialog(context, scanner);
                             break;
                           case 'view_mode':
-                            showFolderZoomPopover(context);
+                            showFolderZoomPopover(menuContext);
                             break;
                         }
                       },
@@ -827,6 +828,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                         ),
                       ],
                     ),
+                  ),
                   ),
               Positioned(
                 left: 0,
@@ -1043,7 +1045,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         mainAxisSize: MainAxisSize.min,
         children: [
           FolderScanSpinner(style: style),
-          FolderNavActionMenu<String>(
+          Builder(
+            builder: (menuContext) => FolderNavActionMenu<String>(
                   style: style,
                   onSelected: (value) {
                     if (value == 'search') {
@@ -1055,7 +1058,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     } else if (value == 'sort') {
                       _showSortDialog(context, scanner);
                     } else if (value == 'view_mode') {
-                      showFolderZoomPopover(context);
+                      showFolderZoomPopover(menuContext);
                     }
                   },
                   itemBuilder: (context) => [
@@ -1136,6 +1139,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                       ),
                     ),
                   ],
+                ),
                 ),
         ],
       ),

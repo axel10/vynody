@@ -571,14 +571,15 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                 isSelectionMode: isRootSelectionMode,
                 showBack: false,
                 contentMaxWidth: folderPageMaxWidth,
-                trailingAction: PopupMenuButton<String>(
-                  tooltip: l10n.more,
-                  padding: EdgeInsets.zero,
-                  icon: Icon(
-                    Icons.more_vert_rounded,
-                    color: theme.colorScheme.onSurface,
-                    size: 20,
-                  ),
+                trailingAction: Builder(
+                  builder: (menuContext) => PopupMenuButton<String>(
+                    tooltip: l10n.more,
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: theme.colorScheme.onSurface,
+                      size: 20,
+                    ),
                     onSelected: (val) {
                       switch (val) {
                         case 'locate':
@@ -588,7 +589,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                           _handleRefresh();
                           break;
                         case 'view_mode':
-                          showFolderZoomPopover(context);
+                          showFolderZoomPopover(menuContext);
                           break;
                       }
                     },
@@ -636,6 +637,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                       ),
                     ],
                   ),
+                ),
                 ),
             Positioned(
               left: 0,
@@ -760,8 +762,9 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         mainAxisSize: MainAxisSize.min,
         children: [
           FolderScanSpinner(style: style),
-          FolderNavActionMenu<String>(
-            style: style,
+          Builder(
+            builder: (menuContext) => FolderNavActionMenu<String>(
+              style: style,
             onSelected: (value) {
               if (value == 'search') {
                 _handleSearchAction();
@@ -770,7 +773,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               } else if (value == 'refresh') {
                 _handleRefresh();
               } else if (value == 'view_mode') {
-                showFolderZoomPopover(context);
+                showFolderZoomPopover(menuContext);
               }
             },
             itemBuilder: (context) => [
@@ -826,6 +829,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                 ),
               ),
             ],
+          ),
           ),
         ],
       ),

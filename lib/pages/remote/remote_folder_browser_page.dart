@@ -1756,14 +1756,15 @@ class _RemoteFolderBrowserPageState
                 onBack: _handleGoBack,
                 backTooltip: l10n.goBack,
                 contentMaxWidth: folderPageMaxWidth,
-                trailingAction: PopupMenuButton<String>(
-                  tooltip: l10n.more,
-                  padding: EdgeInsets.zero,
-                  icon: Icon(
-                    Icons.more_vert_rounded,
-                    color: theme.colorScheme.onSurface,
-                    size: 20,
-                  ),
+                trailingAction: Builder(
+                  builder: (menuContext) => PopupMenuButton<String>(
+                    tooltip: l10n.more,
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: theme.colorScheme.onSurface,
+                      size: 20,
+                    ),
                     onSelected: (val) {
                       switch (val) {
                         case 'locate':
@@ -1773,7 +1774,7 @@ class _RemoteFolderBrowserPageState
                           _showSortDialog(context);
                           break;
                         case 'view_mode':
-                          showFolderZoomPopover(context);
+                          showFolderZoomPopover(menuContext);
                           break;
                         case 'refresh':
                           _loadDirectory(_currentPath, forceRefresh: true);
@@ -1852,6 +1853,7 @@ class _RemoteFolderBrowserPageState
                       ),
                     ],
                   ),
+                ),
                 ),
             Positioned(
               left: 0,
@@ -2238,27 +2240,28 @@ class _RemoteFolderBrowserPageState
         mainAxisSize: MainAxisSize.min,
         children: [
           FolderScanSpinner(style: style),
-          FolderNavActionMenu<String>(
-            style: style,
-            onSelected: (value) {
-              if (value == 'search') {
-                _openSearchPage();
-              } else if (value == 'locate') {
-                _locateCurrentSong();
-              } else if (value == 'sort') {
-                _showSortDialog(context);
-              } else if (value == 'view_mode') {
-                showFolderZoomPopover(context);
-              } else if (value == 'refresh') {
-                _loadDirectory(_currentPath, forceRefresh: true);
-              } else if (value == 'downloads') {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) => const RemoteDownloadManagerPage(),
-                  ),
-                );
-              }
-            },
+          Builder(
+            builder: (menuContext) => FolderNavActionMenu<String>(
+              style: style,
+              onSelected: (value) {
+                if (value == 'search') {
+                  _openSearchPage();
+                } else if (value == 'locate') {
+                  _locateCurrentSong();
+                } else if (value == 'sort') {
+                  _showSortDialog(context);
+                } else if (value == 'view_mode') {
+                  showFolderZoomPopover(menuContext);
+                } else if (value == 'refresh') {
+                  _loadDirectory(_currentPath, forceRefresh: true);
+                } else if (value == 'downloads') {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(
+                      builder: (_) => const RemoteDownloadManagerPage(),
+                    ),
+                  );
+                }
+              },
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: 'search',
@@ -2336,6 +2339,7 @@ class _RemoteFolderBrowserPageState
                 ),
               ),
             ],
+          ),
           ),
         ],
       );
