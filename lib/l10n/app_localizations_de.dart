@@ -6219,4 +6219,30 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get androidUsbExclusiveFadeDisabledHint =>
       'Audio-Ein-/Ausblendeffekte sind im USB-DAC-Exklusivmodus automatisch deaktiviert';
+
+  @override
+  String get applyCoverToDirectorySongs =>
+      'Cover auf alle Titel im selben Ordner anwenden';
+
+  @override
+  String applyCoverToDirectoryEligibleHint(Object album, Object count) {
+    return '$count Titel in diesem Ordner teilen \"$album\"; nur das Cover wird aktualisiert';
+  }
+
+  @override
+  String get applyCoverToDirectoryExternalHint =>
+      'Für extern geöffnete oder nicht in der Bibliothek enthaltene Titel nicht verfügbar';
+
+  @override
+  String get applyCoverToDirectorySingleTrackHint =>
+      'Keine weiteren Titel im selben Ordner';
+
+  @override
+  String get applyCoverToDirectoryAlbumMismatchHint =>
+      'Deaktiviert, da Titel in diesem Ordner unterschiedliche oder leere Albumnamen haben';
+
+  @override
+  String tagCompletionSuccessWithDirectoryCover(Object count) {
+    return 'Tags vervollständigt und gespeichert; Cover auf $count Titel im Ordner angewendet';
+  }
 }

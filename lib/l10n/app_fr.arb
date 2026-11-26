@@ -2249,5 +2249,11 @@
   "androidUsbExclusiveBadgeTooltip": "Mode exclusif USB actif (appuyez pour ouvrir les paramètres audio)",
   "androidUsbExclusiveEffectsDisabledBanner": "Le mode exclusif USB DAC (bit-perfect) est actif. Les effets sonores et la vitesse de lecture sont désactivés.",
   "androidUsbExclusiveEffectsDisabledStatus": "Indisponible en mode exclusif USB DAC",
-  "androidUsbExclusiveFadeDisabledHint": "Les effets de fondu audio sont automatiquement désactivés en mode exclusif USB DAC"
+  "androidUsbExclusiveFadeDisabledHint": "Les effets de fondu audio sont automatiquement désactivés en mode exclusif USB DAC",
+  "applyCoverToDirectorySongs": "Appliquer la pochette à tous les titres du même dossier",
+  "applyCoverToDirectoryEligibleHint": "{count} pistes de ce dossier partagent « {album} » ; seule la pochette sera mise à jour",
+  "applyCoverToDirectoryExternalHint": "Indisponible pour les titres ouverts externement ou hors bibliothèque",
+  "applyCoverToDirectorySingleTrackHint": "Aucune autre piste dans le même dossier",
+  "applyCoverToDirectoryAlbumMismatchHint": "Désactivé car les titres de ce dossier ont des noms d'album différents ou vides",
+  "tagCompletionSuccessWithDirectoryCover": "Étiquettes complétées et enregistrées ; pochette appliquée à {count} pistes du dossier"
 }

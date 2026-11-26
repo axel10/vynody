@@ -2640,5 +2640,11 @@
   "androidUsbExclusiveBadgeTooltip": "USB Exclusive Mode is active (tap to open audio settings)",
   "androidUsbExclusiveEffectsDisabledBanner": "USB DAC exclusive mode (bit-perfect) is active. Sound effects and playback speed are disabled.",
   "androidUsbExclusiveEffectsDisabledStatus": "Unavailable in USB DAC exclusive mode",
-  "androidUsbExclusiveFadeDisabledHint": "Audio fade effects are automatically disabled in USB DAC exclusive mode"
+  "androidUsbExclusiveFadeDisabledHint": "Audio fade effects are automatically disabled in USB DAC exclusive mode",
+  "applyCoverToDirectorySongs": "Apply cover to all songs in the same folder",
+  "applyCoverToDirectoryEligibleHint": "{count} tracks in this folder share \"{album}\"; only the cover will be updated",
+  "applyCoverToDirectoryExternalHint": "Not available for externally opened or non-library tracks",
+  "applyCoverToDirectorySingleTrackHint": "No other tracks in the same folder",
+  "applyCoverToDirectoryAlbumMismatchHint": "Disabled because tracks in this folder have differing or empty album names",
+  "tagCompletionSuccessWithDirectoryCover": "Tags completed and saved; cover applied to {count} tracks in folder"
 }

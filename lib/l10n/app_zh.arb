@@ -4163,5 +4163,11 @@
   "androidUsbExclusiveBadgeTooltip": "USB 独占模式已启用（点击进入音频设置）",
   "androidUsbExclusiveEffectsDisabledBanner": "当前处于 USB DAC 独占模式（源码直出），音效与倍速调节已停用",
   "androidUsbExclusiveEffectsDisabledStatus": "USB DAC 独占模式下不可用",
-  "androidUsbExclusiveFadeDisabledHint": "USB DAC 独占模式下音频淡入淡出已自动停用"
+  "androidUsbExclusiveFadeDisabledHint": "USB DAC 独占模式下音频淡入淡出已自动停用",
+  "applyCoverToDirectorySongs": "将封面应用到同目录下的所有歌曲",
+  "applyCoverToDirectoryEligibleHint": "同目录共 {count} 首歌曲均属于《{album}》，将仅同步封面",
+  "applyCoverToDirectoryExternalHint": "外部打开或未纳入曲库的歌曲不支持同步封面到同目录",
+  "applyCoverToDirectorySingleTrackHint": "当前目录下暂无其他歌曲",
+  "applyCoverToDirectoryAlbumMismatchHint": "同目录下歌曲的专辑名称不一致或存在空缺，已禁用",
+  "tagCompletionSuccessWithDirectoryCover": "标签已补全并保存，封面已同步应用至同目录 {count} 首歌曲"
 }

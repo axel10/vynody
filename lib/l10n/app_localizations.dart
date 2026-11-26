@@ -10862,6 +10862,42 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'USB DAC 独占模式下音频淡入淡出已自动停用'**
   String get androidUsbExclusiveFadeDisabledHint;
+
+  /// No description provided for @applyCoverToDirectorySongs.
+  ///
+  /// In zh, this message translates to:
+  /// **'将封面应用到同目录下的所有歌曲'**
+  String get applyCoverToDirectorySongs;
+
+  /// No description provided for @applyCoverToDirectoryEligibleHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'同目录共 {count} 首歌曲均属于《{album}》，将仅同步封面'**
+  String applyCoverToDirectoryEligibleHint(Object album, Object count);
+
+  /// No description provided for @applyCoverToDirectoryExternalHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'外部打开或未纳入曲库的歌曲不支持同步封面到同目录'**
+  String get applyCoverToDirectoryExternalHint;
+
+  /// No description provided for @applyCoverToDirectorySingleTrackHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前目录下暂无其他歌曲'**
+  String get applyCoverToDirectorySingleTrackHint;
+
+  /// No description provided for @applyCoverToDirectoryAlbumMismatchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'同目录下歌曲的专辑名称不一致或存在空缺，已禁用'**
+  String get applyCoverToDirectoryAlbumMismatchHint;
+
+  /// No description provided for @tagCompletionSuccessWithDirectoryCover.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签已补全并保存，封面已同步应用至同目录 {count} 首歌曲'**
+  String tagCompletionSuccessWithDirectoryCover(Object count);
 }
 
 class _AppLocalizationsDelegate

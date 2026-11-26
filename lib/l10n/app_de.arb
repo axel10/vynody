@@ -2249,5 +2249,11 @@
   "androidUsbExclusiveBadgeTooltip": "USB-Exklusivmodus aktiv (tippen für Audioeinstellungen)",
   "androidUsbExclusiveEffectsDisabledBanner": "Der USB-DAC-Exklusivmodus (Bit-Perfect) ist aktiv. Soundeffekte und Wiedergabegeschwindigkeit sind deaktiviert.",
   "androidUsbExclusiveEffectsDisabledStatus": "Im USB-DAC-Exklusivmodus nicht verfügbar",
-  "androidUsbExclusiveFadeDisabledHint": "Audio-Ein-/Ausblendeffekte sind im USB-DAC-Exklusivmodus automatisch deaktiviert"
+  "androidUsbExclusiveFadeDisabledHint": "Audio-Ein-/Ausblendeffekte sind im USB-DAC-Exklusivmodus automatisch deaktiviert",
+  "applyCoverToDirectorySongs": "Cover auf alle Titel im selben Ordner anwenden",
+  "applyCoverToDirectoryEligibleHint": "{count} Titel in diesem Ordner teilen \"{album}\"; nur das Cover wird aktualisiert",
+  "applyCoverToDirectoryExternalHint": "Für extern geöffnete oder nicht in der Bibliothek enthaltene Titel nicht verfügbar",
+  "applyCoverToDirectorySingleTrackHint": "Keine weiteren Titel im selben Ordner",
+  "applyCoverToDirectoryAlbumMismatchHint": "Deaktiviert, da Titel in diesem Ordner unterschiedliche oder leere Albumnamen haben",
+  "tagCompletionSuccessWithDirectoryCover": "Tags vervollständigt und gespeichert; Cover auf {count} Titel im Ordner angewendet"
 }

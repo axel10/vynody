@@ -15,7 +15,6 @@ import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/settings/settings_service.dart';
-import 'package:vynody/player/metadata/musicbrainz_tag_completion_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import '../widgets/playback_hero_card.dart';
@@ -644,7 +643,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context)!;
     final popped =
-        await showAppModalBottomSheet<(MusicBrainzTagSelectionResult, bool)>(
+        await showAppModalBottomSheet<SongTagCompletionPopResult>(
           context: context,
           useRootNavigator: true,
           builder: (context) => SongTagCompletionSheet(
@@ -657,19 +656,42 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
         );
 
     if (popped == null || !context.mounted) return;
-    final result = popped.$1;
-    final savedToSourceFile = popped.$2;
+    final result = popped.selection;
+    final savedToSourceFile = popped.savedToSourceFile;
+    final updatedSiblings = popped.updatedDirectorySiblings;
 
+    if (updatedSiblings.isNotEmpty) {
+      final scanner = ref.read(scannerServiceProvider);
+      final playlistService = ref.read(playlistServiceProvider);
+      for (final sibling in updatedSiblings) {
+        scanner.updateMetadataForPath(
+          sibling,
+          artworkBytes: result.artworkBytes,
+        );
+        await playlistService.updateSongMetadataByPath(
+          sibling,
+          artworkBytes: result.artworkBytes,
+        );
+      }
+    }
+
+    final successMessage = updatedSiblings.isNotEmpty
+        ? l10n.tagCompletionSuccessWithDirectoryCover(
+            updatedSiblings.length + 1,
+          )
+        : (savedToSourceFile
+              ? l10n.songTagsSavedToSourceFileAndApp
+              : (result.artworkBytes != null
+                    ? l10n.tagCompletionSuccessWithCover
+                    : l10n.tagCompletionSuccess));
+
+    if (!context.mounted) return;
     await _applySongMetadataResult(
       messenger,
       audio: audio,
       metadata: result.metadata,
       artworkBytes: result.artworkBytes,
-      successMessage: savedToSourceFile
-          ? l10n.songTagsSavedToSourceFileAndApp
-          : (result.artworkBytes != null
-                ? l10n.tagCompletionSuccessWithCover
-                : l10n.tagCompletionSuccess),
+      successMessage: successMessage,
     );
   }
 

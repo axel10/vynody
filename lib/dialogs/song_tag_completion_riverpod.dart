@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
@@ -9,6 +11,8 @@ import 'package:vynody/player/metadata/musicbrainz_tag_completion_service.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_service_providers.dart';
 import 'package:vynody/utils/localized_text.dart';
+
+export 'package:vynody/dialogs/directory_cover_scope.dart';
 
 AppLocalizations _l10n() => currentAppL10n;
 
@@ -269,6 +273,97 @@ class SongTagCompletionController extends ChangeNotifier {
       errorMessage = _l10n().saveFailed;
       _emit();
       return null;
+    }
+  }
+
+  /// Applies only the cover (and derived artwork paths/palette) from
+  /// [sourceMetadata] + [artworkBytes] to [siblingSongs] in the same folder,
+  /// preserving all other metadata fields on each sibling track.
+  Future<List<SongMetadata>> applyCoverToSiblingSongs({
+    required List<SongMetadata> siblingSongs,
+    required SongMetadata sourceMetadata,
+    required Uint8List artworkBytes,
+    required bool writeToFile,
+  }) async {
+    if (_disposed || siblingSongs.isEmpty || artworkBytes.isEmpty) {
+      return const [];
+    }
+
+    isApplying = true;
+    _emit();
+
+    try {
+      Map<String, String?>? batchWritePermissions;
+      if (writeToFile && Platform.isAndroid) {
+        final batchTargets = <({String filePath, String? fallbackMediaUri})>[
+          for (final sibling in siblingSongs)
+            if (!RemoteMediaResolver.isRemoteUri(sibling.path) &&
+                isMetadataWritable(sibling.path))
+              (filePath: sibling.path, fallbackMediaUri: null),
+        ];
+        if (batchTargets.isNotEmpty) {
+          batchWritePermissions =
+              await MetadataHelper.requestBatchWritePermissions(batchTargets);
+        }
+      }
+
+      final updatedSiblings = <SongMetadata>[];
+      for (final sibling in siblingSongs) {
+        if (_disposed) break;
+        final isWritable = writeToFile && isMetadataWritable(sibling.path);
+        var canWriteThisFile = isWritable;
+        String? effectiveMediaUri;
+
+        if (canWriteThisFile &&
+            batchWritePermissions != null &&
+            batchWritePermissions.isNotEmpty) {
+          final grantedUri = batchWritePermissions[sibling.path];
+          if (grantedUri != null) {
+            effectiveMediaUri = grantedUri;
+          } else if (batchWritePermissions.containsKey(sibling.path)) {
+            canWriteThisFile = false;
+          }
+        }
+
+        final saved = await MetadataHelper.saveSelectedSongMetadata(
+          filePath: sibling.path,
+          title: sibling.title,
+          artist: sibling.artist,
+          album: sibling.album,
+          albumArtist: sibling.albumArtist,
+          duration: sibling.duration,
+          trackNumber: sibling.trackNumber,
+          genres: sibling.genres,
+          year: sibling.year,
+          artworkBytes: artworkBytes,
+          artworkPath: sourceMetadata.artworkPath,
+          thumbnailPath: sourceMetadata.thumbnailPath,
+          artworkWidth: sourceMetadata.artworkWidth,
+          artworkHeight: sourceMetadata.artworkHeight,
+          artworkThemeColors: sourceMetadata.themeColorsBlob,
+          existingMetadata: sibling,
+          writeToFile: canWriteThisFile,
+          fallbackToAppOnWriteFailure: true,
+          fallbackMediaUri: effectiveMediaUri,
+        );
+
+        if (saved != null) {
+          updatedSiblings.add(saved.metadata);
+        }
+      }
+
+      if (!_disposed) {
+        isApplying = false;
+        _emit();
+      }
+      return updatedSiblings;
+    } catch (e) {
+      debugPrint('Failed to apply cover to sibling songs: $e');
+      if (!_disposed) {
+        isApplying = false;
+        _emit();
+      }
+      return const [];
     }
   }
 }

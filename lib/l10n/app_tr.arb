@@ -2381,5 +2381,11 @@
   "androidUsbExclusiveBadgeTooltip": "USB Özel Modu etkin (ses ayarlarını açmak için dokunun)",
   "androidUsbExclusiveEffectsDisabledBanner": "USB DAC özel modu (bit-perfect) etkin. Ses efektleri ve oynatma hızı devre dışı bırakıldı.",
   "androidUsbExclusiveEffectsDisabledStatus": "USB DAC özel modunda kullanılamaz",
-  "androidUsbExclusiveFadeDisabledHint": "USB DAC özel modunda ses geçiş efektleri otomatik olarak devre dışı bırakılır"
+  "androidUsbExclusiveFadeDisabledHint": "USB DAC özel modunda ses geçiş efektleri otomatik olarak devre dışı bırakılır",
+  "applyCoverToDirectorySongs": "Kapağı aynı klasördeki tüm şarkılara uygula",
+  "applyCoverToDirectoryEligibleHint": "Bu klasördeki {count} parça \"{album}\" albümünü paylaşıyor; yalnızca kapak güncellenecek",
+  "applyCoverToDirectoryExternalHint": "Harici olarak açılan veya kitaplık dışı parçalar için kullanılamaz",
+  "applyCoverToDirectorySingleTrackHint": "Aynı klasörde başka parça yok",
+  "applyCoverToDirectoryAlbumMismatchHint": "Bu klasördeki parçaların albüm adları farklı veya boş olduğu için devre dışı",
+  "tagCompletionSuccessWithDirectoryCover": "Etiketler tamamlandı ve kaydedildi; kapak klasördeki {count} parçaya uygulandı"
 }

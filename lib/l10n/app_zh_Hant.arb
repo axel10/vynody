@@ -1964,5 +1964,11 @@
   "androidUsbExclusiveBadgeTooltip": "USB 獨佔模式已啟用（點擊進入音訊設定）",
   "androidUsbExclusiveEffectsDisabledBanner": "目前處於 USB DAC 獨佔模式（源碼直出），音效與倍速調整已停用",
   "androidUsbExclusiveEffectsDisabledStatus": "USB DAC 獨佔模式下無法使用",
-  "androidUsbExclusiveFadeDisabledHint": "USB DAC 獨佔模式下音訊淡入淡出已自動停用"
+  "androidUsbExclusiveFadeDisabledHint": "USB DAC 獨佔模式下音訊淡入淡出已自動停用",
+  "applyCoverToDirectorySongs": "將封面套用至同目錄下的所有歌曲",
+  "applyCoverToDirectoryEligibleHint": "同目錄共 {count} 首歌曲均屬於《{album}》，將僅同步封面",
+  "applyCoverToDirectoryExternalHint": "外部開啟或未納入曲庫的歌曲不支援同步封面至同目錄",
+  "applyCoverToDirectorySingleTrackHint": "目前目錄下暫無其他歌曲",
+  "applyCoverToDirectoryAlbumMismatchHint": "同目錄下歌曲的專輯名稱不一致或存在空缺，已停用",
+  "tagCompletionSuccessWithDirectoryCover": "標籤已補全並儲存，封面已同步套用至同目錄 {count} 首歌曲"
 }

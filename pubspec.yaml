@@ -272,7 +272,7 @@ msix_config:
   publisher_display_name: "Vynody Studio" 
   identity_name: VynodyStudio.Vynody
   publisher: "CN=B7B226EF-AAE5-43BA-8F9E-880DB742EFD0"
-  msix_version: 3.4.0.0
+  msix_version: 3.5.2.0
   store: true
   logo_path: assets/images/icon-windows-and-linux.png
   output_name: Vynody

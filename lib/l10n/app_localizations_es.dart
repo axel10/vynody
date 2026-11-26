@@ -6233,4 +6233,30 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get androidUsbExclusiveFadeDisabledHint =>
       'Los efectos de fundido de audio se desactivan automáticamente en el modo exclusivo USB DAC';
+
+  @override
+  String get applyCoverToDirectorySongs =>
+      'Aplicar carátula a todas las canciones de la misma carpeta';
+
+  @override
+  String applyCoverToDirectoryEligibleHint(Object album, Object count) {
+    return '$count pistas en esta carpeta comparten \"$album\"; solo se actualizará la carátula';
+  }
+
+  @override
+  String get applyCoverToDirectoryExternalHint =>
+      'No disponible para pistas abiertas externamente o fuera de la biblioteca';
+
+  @override
+  String get applyCoverToDirectorySingleTrackHint =>
+      'No hay otras pistas en la misma carpeta';
+
+  @override
+  String get applyCoverToDirectoryAlbumMismatchHint =>
+      'Deshabilitado porque las pistas de esta carpeta tienen nombres de álbum distintos o vacíos';
+
+  @override
+  String tagCompletionSuccessWithDirectoryCover(Object count) {
+    return 'Etiquetas completadas y guardadas; carátula aplicada a $count pistas de la carpeta';
+  }
 }

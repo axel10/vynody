@@ -6145,4 +6145,30 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get androidUsbExclusiveFadeDisabledHint =>
       'Audio fade effects are automatically disabled in USB DAC exclusive mode';
+
+  @override
+  String get applyCoverToDirectorySongs =>
+      'Apply cover to all songs in the same folder';
+
+  @override
+  String applyCoverToDirectoryEligibleHint(Object album, Object count) {
+    return '$count tracks in this folder share \"$album\"; only the cover will be updated';
+  }
+
+  @override
+  String get applyCoverToDirectoryExternalHint =>
+      'Not available for externally opened or non-library tracks';
+
+  @override
+  String get applyCoverToDirectorySingleTrackHint =>
+      'No other tracks in the same folder';
+
+  @override
+  String get applyCoverToDirectoryAlbumMismatchHint =>
+      'Disabled because tracks in this folder have differing or empty album names';
+
+  @override
+  String tagCompletionSuccessWithDirectoryCover(Object count) {
+    return 'Tags completed and saved; cover applied to $count tracks in folder';
+  }
 }

@@ -5851,6 +5851,29 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get androidUsbExclusiveFadeDisabledHint => 'USB DAC 独占模式下音频淡入淡出已自动停用';
+
+  @override
+  String get applyCoverToDirectorySongs => '将封面应用到同目录下的所有歌曲';
+
+  @override
+  String applyCoverToDirectoryEligibleHint(Object album, Object count) {
+    return '同目录共 $count 首歌曲均属于《$album》，将仅同步封面';
+  }
+
+  @override
+  String get applyCoverToDirectoryExternalHint => '外部打开或未纳入曲库的歌曲不支持同步封面到同目录';
+
+  @override
+  String get applyCoverToDirectorySingleTrackHint => '当前目录下暂无其他歌曲';
+
+  @override
+  String get applyCoverToDirectoryAlbumMismatchHint =>
+      '同目录下歌曲的专辑名称不一致或存在空缺，已禁用';
+
+  @override
+  String tagCompletionSuccessWithDirectoryCover(Object count) {
+    return '标签已补全并保存，封面已同步应用至同目录 $count 首歌曲';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11700,4 +11723,27 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get androidUsbExclusiveFadeDisabledHint => 'USB DAC 獨佔模式下音訊淡入淡出已自動停用';
+
+  @override
+  String get applyCoverToDirectorySongs => '將封面套用至同目錄下的所有歌曲';
+
+  @override
+  String applyCoverToDirectoryEligibleHint(Object album, Object count) {
+    return '同目錄共 $count 首歌曲均屬於《$album》，將僅同步封面';
+  }
+
+  @override
+  String get applyCoverToDirectoryExternalHint => '外部開啟或未納入曲庫的歌曲不支援同步封面至同目錄';
+
+  @override
+  String get applyCoverToDirectorySingleTrackHint => '目前目錄下暫無其他歌曲';
+
+  @override
+  String get applyCoverToDirectoryAlbumMismatchHint =>
+      '同目錄下歌曲的專輯名稱不一致或存在空缺，已停用';
+
+  @override
+  String tagCompletionSuccessWithDirectoryCover(Object count) {
+    return '標籤已補全並儲存，封面已同步套用至同目錄 $count 首歌曲';
+  }
 }

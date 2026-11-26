@@ -6171,4 +6171,30 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get androidUsbExclusiveFadeDisabledHint =>
       'USB DAC özel modunda ses geçiş efektleri otomatik olarak devre dışı bırakılır';
+
+  @override
+  String get applyCoverToDirectorySongs =>
+      'Kapağı aynı klasördeki tüm şarkılara uygula';
+
+  @override
+  String applyCoverToDirectoryEligibleHint(Object album, Object count) {
+    return 'Bu klasördeki $count parça \"$album\" albümünü paylaşıyor; yalnızca kapak güncellenecek';
+  }
+
+  @override
+  String get applyCoverToDirectoryExternalHint =>
+      'Harici olarak açılan veya kitaplık dışı parçalar için kullanılamaz';
+
+  @override
+  String get applyCoverToDirectorySingleTrackHint =>
+      'Aynı klasörde başka parça yok';
+
+  @override
+  String get applyCoverToDirectoryAlbumMismatchHint =>
+      'Bu klasördeki parçaların albüm adları farklı veya boş olduğu için devre dışı';
+
+  @override
+  String tagCompletionSuccessWithDirectoryCover(Object count) {
+    return 'Etiketler tamamlandı ve kaydedildi; kapak klasördeki $count parçaya uygulandı';
+  }
 }

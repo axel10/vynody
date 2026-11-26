@@ -5955,4 +5955,27 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get androidUsbExclusiveFadeDisabledHint =>
       'USB DAC 排他モードではオーディオのフェード効果が自動的に無効になります';
+
+  @override
+  String get applyCoverToDirectorySongs => '同じフォルダ内のすべての曲にカバーを適用';
+
+  @override
+  String applyCoverToDirectoryEligibleHint(Object album, Object count) {
+    return 'このフォルダ内の $count 曲が「$album」で一致しています。カバーのみ更新されます';
+  }
+
+  @override
+  String get applyCoverToDirectoryExternalHint => '外部から開いた曲やライブラリ外の曲では利用できません';
+
+  @override
+  String get applyCoverToDirectorySingleTrackHint => '同じフォルダ内に他の曲がありません';
+
+  @override
+  String get applyCoverToDirectoryAlbumMismatchHint =>
+      '同じフォルダ内の曲のアルバム名が一致しないか空のため無効です';
+
+  @override
+  String tagCompletionSuccessWithDirectoryCover(Object count) {
+    return 'タグを補完して保存し、同じフォルダ内の $count 曲にカバーを適用しました';
+  }
 }

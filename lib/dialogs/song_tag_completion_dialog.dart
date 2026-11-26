@@ -21,6 +21,18 @@ import '../widgets/app_bottom_sheet.dart';
 
 enum _SummaryCondition { title, artist, album, duration }
 
+class SongTagCompletionPopResult {
+  const SongTagCompletionPopResult({
+    required this.selection,
+    required this.savedToSourceFile,
+    this.updatedDirectorySiblings = const [],
+  });
+
+  final MusicBrainzTagSelectionResult selection;
+  final bool savedToSourceFile;
+  final List<SongMetadata> updatedDirectorySiblings;
+}
+
 class SongTagCompletionSheet extends ConsumerStatefulWidget {
   const SongTagCompletionSheet({
     super.key,
@@ -59,6 +71,9 @@ class _SongTagCompletionSheetState
       <_SummaryCondition>{};
   final Map<_SummaryCondition, String> _editedSummaryConditionTexts =
       <_SummaryCondition, String>{};
+  bool _applyCoverToDirectory = false;
+  DirectoryCoverScope? _directoryCoverScope;
+  bool _hasEvaluatedDirectoryScope = false;
 
   @override
   void initState() {
@@ -68,6 +83,21 @@ class _SongTagCompletionSheetState
     );
     _musicBrainzSearchController.addListener(_onMusicBrainzSearchChanged);
     _loadInitialData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasEvaluatedDirectoryScope) {
+      _hasEvaluatedDirectoryScope = true;
+      final l10n = AppLocalizations.of(context);
+      final metadataMap = ref.read(scannerServiceProvider).metadataMap;
+      _directoryCoverScope = evaluateDirectoryCoverScope(
+        songPath: widget.songPath,
+        metadataMap: metadataMap,
+        unknownAlbumLabel: l10n?.unknownAlbum,
+      );
+    }
   }
 
   @override
@@ -412,7 +442,18 @@ class _SongTagCompletionSheetState
       );
       return;
     }
-    Navigator.of(context).pop((result, shouldSaveToSource));
+    final updatedSiblings = await _maybeApplyCoverToDirectorySiblings(
+      result: result,
+      shouldSaveToSource: shouldSaveToSource,
+    );
+    if (!mounted) return;
+    Navigator.of(context).pop(
+      SongTagCompletionPopResult(
+        selection: result,
+        savedToSourceFile: shouldSaveToSource,
+        updatedDirectorySiblings: updatedSiblings,
+      ),
+    );
   }
 
   Future<void> _applyAcoustIDReleaseGroup(
@@ -492,7 +533,128 @@ class _SongTagCompletionSheetState
       );
       return;
     }
-    Navigator.of(context).pop((result, shouldSaveToSource));
+    final updatedSiblings = await _maybeApplyCoverToDirectorySiblings(
+      result: result,
+      shouldSaveToSource: shouldSaveToSource,
+    );
+    if (!mounted) return;
+    Navigator.of(context).pop(
+      SongTagCompletionPopResult(
+        selection: result,
+        savedToSourceFile: shouldSaveToSource,
+        updatedDirectorySiblings: updatedSiblings,
+      ),
+    );
+  }
+
+  Future<List<SongMetadata>> _maybeApplyCoverToDirectorySiblings({
+    required MusicBrainzTagSelectionResult result,
+    required bool shouldSaveToSource,
+  }) async {
+    final scope = _directoryCoverScope;
+    final artworkBytes = result.artworkBytes;
+    if (!_applyCoverToDirectory ||
+        scope == null ||
+        !scope.isEligible ||
+        artworkBytes == null ||
+        artworkBytes.isEmpty) {
+      return const [];
+    }
+    return _controller.applyCoverToSiblingSongs(
+      siblingSongs: scope.siblingSongs,
+      sourceMetadata: result.metadata,
+      artworkBytes: artworkBytes,
+      writeToFile: shouldSaveToSource,
+    );
+  }
+
+  Widget _buildDirectoryCoverOption(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    final scope = _directoryCoverScope;
+    if (scope == null || !scope.isEligible) {
+      return const SizedBox.shrink();
+    }
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final subtitle = l10n.applyCoverToDirectoryEligibleHint(
+      scope.albumName ?? '',
+      scope.siblingSongs.length + 1,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            setState(() {
+              _applyCoverToDirectory = !_applyCoverToDirectory;
+            });
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.035),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.08),
+              ),
+            ),
+            child: Row(
+              children: [
+                Checkbox(
+                  value: _applyCoverToDirectory,
+                  onChanged: (value) {
+                    setState(() {
+                      _applyCoverToDirectory = value ?? false;
+                    });
+                  },
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.applyCoverToDirectorySongs,
+                        style: TextStyle(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.9)
+                              : theme.colorScheme.onSurface,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.6)
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontSize: 11.5,
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildSearchField(
@@ -1012,6 +1174,7 @@ class _SongTagCompletionSheetState
                 const SizedBox(height: 10),
               ],
               _buildSummary(context, l10n, controller),
+              _buildDirectoryCoverOption(context, l10n),
               const SizedBox(height: 14),
               Expanded(child: _buildBody(context, l10n, controller)),
             ],

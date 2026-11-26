@@ -6234,4 +6234,30 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get androidUsbExclusiveFadeDisabledHint =>
       'Les effets de fondu audio sont automatiquement désactivés en mode exclusif USB DAC';
+
+  @override
+  String get applyCoverToDirectorySongs =>
+      'Appliquer la pochette à tous les titres du même dossier';
+
+  @override
+  String applyCoverToDirectoryEligibleHint(Object album, Object count) {
+    return '$count pistes de ce dossier partagent « $album » ; seule la pochette sera mise à jour';
+  }
+
+  @override
+  String get applyCoverToDirectoryExternalHint =>
+      'Indisponible pour les titres ouverts externement ou hors bibliothèque';
+
+  @override
+  String get applyCoverToDirectorySingleTrackHint =>
+      'Aucune autre piste dans le même dossier';
+
+  @override
+  String get applyCoverToDirectoryAlbumMismatchHint =>
+      'Désactivé car les titres de ce dossier ont des noms d\'album différents ou vides';
+
+  @override
+  String tagCompletionSuccessWithDirectoryCover(Object count) {
+    return 'Étiquettes complétées et enregistrées ; pochette appliquée à $count pistes du dossier';
+  }
 }

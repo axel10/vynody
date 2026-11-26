@@ -5960,4 +5960,28 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get androidUsbExclusiveFadeDisabledHint =>
       'USB DAC 독점 모드에서는 오디오 페이드 효과가 자동으로 비활성화됩니다';
+
+  @override
+  String get applyCoverToDirectorySongs => '같은 폴더의 모든 곡에 커버 적용';
+
+  @override
+  String applyCoverToDirectoryEligibleHint(Object album, Object count) {
+    return '이 폴더의 $count곡이 \"$album\" 앨범으로 일치하며 커버만 업데이트됩니다';
+  }
+
+  @override
+  String get applyCoverToDirectoryExternalHint =>
+      '외부에서 열었거나 라이브러리에 없는 곡에는 사용할 수 없습니다';
+
+  @override
+  String get applyCoverToDirectorySingleTrackHint => '같은 폴더에 다른 곡이 없습니다';
+
+  @override
+  String get applyCoverToDirectoryAlbumMismatchHint =>
+      '같은 폴더의 곡들의 앨범 이름이 다르거나 비어 있어 비활성화되었습니다';
+
+  @override
+  String tagCompletionSuccessWithDirectoryCover(Object count) {
+    return '태그가 완성되어 저장되었으며 폴더 내 $count곡에 커버를 적용했습니다';
+  }
 }
