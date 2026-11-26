@@ -3713,12 +3713,6 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           (lastKnownSandbox != null ? p.basename(lastKnownSandbox) : null);
       final currentUuid = p.basename(currentSandbox);
 
-      final currentSandboxNoPrivate =
-          currentSandbox.replaceFirst(RegExp(r'^/private'), '');
-      final currentSandboxWithPrivate = currentSandboxNoPrivate.startsWith('/')
-          ? '/private$currentSandboxNoPrivate'
-          : '/private/$currentSandboxNoPrivate';
-
       final normalizedOldPrefixes = <String>{};
 
       if (lastKnownUuid == null) {
@@ -3785,234 +3779,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         '[PathMigration] Healing sandbox UUID paths on iOS/macOS. Old: $normalizedOldPrefixes -> Current: $currentSandbox',
       );
 
-      final pairs = <(String, String)>[];
-      for (final oldPrefix in normalizedOldPrefixes) {
-        final oldPrefixNoPrivate =
-            oldPrefix.replaceFirst(RegExp(r'^/private'), '');
-        final oldPrefixWithPrivate = oldPrefixNoPrivate.startsWith('/')
-            ? '/private$oldPrefixNoPrivate'
-            : '/private/$oldPrefixNoPrivate';
-        pairs.add((oldPrefixWithPrivate, currentSandboxWithPrivate));
-        pairs.add((oldPrefixNoPrivate, currentSandboxNoPrivate));
-      }
-
-      // 1. Update SQLite tables in a single transaction using indexed prefix matching
-      healStage = 'updating sqlite database tables';
-      await transaction(() async {
-        for (final pair in pairs) {
-          final oldPrefix = pair.$1;
-          final newPrefix = pair.$2;
-          final oldLike = '$oldPrefix%';
-
-          // A. songs: UPDATE OR IGNORE handles unique path collisions instantly in O(log N)
-          await customStatement(
-            'UPDATE OR IGNORE songs SET '
-            'path = REPLACE(path, ?, ?), '
-            'artworkPath = CASE WHEN artworkPath LIKE ? THEN REPLACE(artworkPath, ?, ?) ELSE artworkPath END, '
-            'thumbnailPath = CASE WHEN thumbnailPath LIKE ? THEN REPLACE(thumbnailPath, ?, ?) ELSE thumbnailPath END '
-            'WHERE path LIKE ?',
-            <Object>[
-              oldPrefix, newPrefix,
-              oldLike, oldPrefix, newPrefix,
-              oldLike, oldPrefix, newPrefix,
-              oldLike,
-            ],
-          );
-          // Delete old songs that collided with existing songs in current sandbox
-          await customStatement('DELETE FROM songs WHERE path LIKE ?', <Object>[oldLike]);
-          // Catch any standalone artworkPath or thumbnailPath pointing to oldPrefix
-          await customStatement('UPDATE songs SET artworkPath = REPLACE(artworkPath, ?, ?) WHERE artworkPath LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
-          await customStatement('UPDATE songs SET thumbnailPath = REPLACE(thumbnailPath, ?, ?) WHERE thumbnailPath LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
-
-          // B. song_play_history
-          await customStatement('UPDATE song_play_history SET songPath = REPLACE(songPath, ?, ?) WHERE songPath LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
-
-          // C. song_ratings
-          await customStatement('UPDATE OR IGNORE song_ratings SET songPath = REPLACE(songPath, ?, ?) WHERE songPath LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
-          await customStatement('DELETE FROM song_ratings WHERE songPath LIKE ?', <Object>[oldLike]);
-
-          // D. lyrics_cache
-          await customStatement('UPDATE OR IGNORE lyrics_cache SET cacheKey = REPLACE(cacheKey, ?, ?) WHERE cacheKey LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
-          await customStatement('DELETE FROM lyrics_cache WHERE cacheKey LIKE ?', <Object>[oldLike]);
-
-          // E. lyrics_translation_cache
-          await customStatement('UPDATE OR IGNORE lyrics_translation_cache SET cacheKey = REPLACE(cacheKey, ?, ?) WHERE cacheKey LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
-          await customStatement('DELETE FROM lyrics_translation_cache WHERE cacheKey LIKE ?', <Object>[oldLike]);
-
-          // F. artist_image_cache
-          await customStatement('UPDATE artist_image_cache SET imagePath = REPLACE(imagePath, ?, ?) WHERE imagePath LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
-
-          // G. folder_entries
-          await customStatement(
-            'UPDATE OR IGNORE folder_entries SET '
-            'folderPath = REPLACE(folderPath, ?, ?), '
-            'rootPath = REPLACE(rootPath, ?, ?), '
-            'coverSongPath = REPLACE(coverSongPath, ?, ?), '
-            'coverThumbnailPath = REPLACE(coverThumbnailPath, ?, ?), '
-            'coverArtworkPath = REPLACE(coverArtworkPath, ?, ?) '
-            'WHERE folderPath LIKE ? OR rootPath LIKE ? OR coverSongPath LIKE ? '
-            'OR coverThumbnailPath LIKE ? OR coverArtworkPath LIKE ?',
-            <Object>[
-              oldPrefix, newPrefix,
-              oldPrefix, newPrefix,
-              oldPrefix, newPrefix,
-              oldPrefix, newPrefix,
-              oldPrefix, newPrefix,
-              oldLike, oldLike, oldLike, oldLike, oldLike,
-            ],
-          );
-          await customStatement(
-            'DELETE FROM folder_entries WHERE folderPath LIKE ?',
-            <Object>[oldLike],
-          );
-
-          // H. song_roots
-          await customStatement('UPDATE OR IGNORE song_roots SET song_path = REPLACE(song_path, ?, ?), root_path = REPLACE(root_path, ?, ?) WHERE song_path LIKE ? OR root_path LIKE ?', <Object>[oldPrefix, newPrefix, oldPrefix, newPrefix, oldLike, oldLike]);
-          await customStatement('DELETE FROM song_roots WHERE song_path LIKE ? OR root_path LIKE ?', <Object>[oldLike, oldLike]);
-        }
-      });
-
-      // 2. Migrate playlists.json across all old prefixes in a single pass
-      try {
-        healStage = 'migrating playlists.json';
-        final playlistsFile = File(
-          p.join(
-            currentSandbox,
-            'Library',
-            'Application Support',
-            'playlists.json',
-          ),
-        );
-        String? playlistsJson;
-        if (await playlistsFile.exists()) {
-          playlistsJson = await playlistsFile.readAsString();
-        } else {
-          playlistsJson = prefs.getString('playlists');
-        }
-        if (playlistsJson != null && playlistsJson.trim().isNotEmpty) {
-          final List<dynamic> jsonList = jsonDecode(playlistsJson);
-          bool changed = false;
-          for (final playlist in jsonList) {
-            if (playlist is Map<String, dynamic>) {
-              final songs = playlist['songs'];
-              if (songs is List) {
-                for (final song in songs) {
-                  if (song is Map<String, dynamic>) {
-                    for (final oldPrefix in normalizedOldPrefixes) {
-                      final path = song['path'];
-                      if (path is String && path.contains(oldPrefix)) {
-                        song['path'] = path.replaceAll(oldPrefix, currentSandbox);
-                        changed = true;
-                      }
-                      final thumbnailPath = song['thumbnailPath'];
-                      if (thumbnailPath is String && thumbnailPath.contains(oldPrefix)) {
-                        song['thumbnailPath'] = thumbnailPath.replaceAll(oldPrefix, currentSandbox);
-                        changed = true;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-          if (changed || !await playlistsFile.exists()) {
-            final parent = playlistsFile.parent;
-            if (!parent.existsSync()) {
-              await parent.create(recursive: true);
-            }
-            final tmpFile = File('${playlistsFile.path}.tmp');
-            await tmpFile.writeAsString(jsonEncode(jsonList), flush: true);
-            if (await playlistsFile.exists()) {
-              await playlistsFile.delete();
-            }
-            await tmpFile.rename(playlistsFile.path);
-            debugPrint('[PathMigration] Migrated playlists file.');
-          }
-          if (prefs.containsKey('playlists')) {
-            await prefs.remove('playlists');
-          }
-        }
-      } catch (e) {
-        debugPrint('[PathMigration] Failed to migrate playlists: $e');
-      }
-
-      // 3. Migrate playback_session.json across all old prefixes in a single pass
-      try {
-        healStage = 'migrating playback_session.json';
-        final sessionFile = File(
-          p.join(
-            currentSandbox,
-            'Library',
-            'Application Support',
-            'playback_session.json',
-          ),
-        );
-        String? rawSession;
-        if (await sessionFile.exists()) {
-          rawSession = await sessionFile.readAsString();
-        } else {
-          rawSession = prefs.getString('playback_session_v1');
-        }
-        if (rawSession != null && rawSession.trim().isNotEmpty) {
-          final decoded = jsonDecode(rawSession);
-          if (decoded is Map<String, dynamic>) {
-            bool changed = false;
-            final queue = decoded['queue'];
-            if (queue is List) {
-              for (final song in queue) {
-                if (song is Map<String, dynamic>) {
-                  for (final oldPrefix in normalizedOldPrefixes) {
-                    final path = song['path'];
-                    if (path is String && path.contains(oldPrefix)) {
-                      song['path'] = path.replaceAll(oldPrefix, currentSandbox);
-                      changed = true;
-                    }
-                    final thumbnailPath = song['thumbnailPath'];
-                    if (thumbnailPath is String && thumbnailPath.contains(oldPrefix)) {
-                      song['thumbnailPath'] = thumbnailPath.replaceAll(oldPrefix, currentSandbox);
-                      changed = true;
-                    }
-                  }
-                }
-              }
-            }
-            if (changed || !await sessionFile.exists()) {
-              final parent = sessionFile.parent;
-              if (!parent.existsSync()) {
-                await parent.create(recursive: true);
-              }
-              final tmpFile = File('${sessionFile.path}.tmp');
-              await tmpFile.writeAsString(jsonEncode(decoded), flush: true);
-              if (await sessionFile.exists()) {
-                await sessionFile.delete();
-              }
-              await tmpFile.rename(sessionFile.path);
-              debugPrint('[PathMigration] Migrated playback_session file.');
-            }
-            if (prefs.containsKey('playback_session_v1')) {
-              await prefs.remove('playback_session_v1');
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint('[PathMigration] Failed to migrate playback_session: $e');
-      }
-
-      // 4. Update root_paths in SharedPreferences
-      try {
-        healStage = 'migrating root_paths in SharedPreferences';
-        final rootPaths = prefs.getStringList('root_paths');
-        if (rootPaths != null) {
-          final updatedRootPaths = rootPaths.map((p) {
-            return ScannerPathUtils.resolveIosSandboxPath(p);
-          }).toList();
-          final normalized = ScannerPathUtils.normalizeDeclaredRootPaths(updatedRootPaths);
-          await prefs.setStringList('root_paths', normalized);
-          ScannerPathUtils.setExternalRoots(normalized);
-        }
-      } catch (e) {
-        debugPrint('[PathMigration] Failed to migrate root_paths: $e');
-      }
+      final prefixReplacements = <String, String>{
+        for (final oldPrefix in normalizedOldPrefixes) oldPrefix: currentSandbox,
+      };
+      healStage = 'migrating prefix replacements';
+      await migrateIosPathPrefixes(prefixReplacements);
 
       // Always save the current sandbox path and UUID on success
       await prefs.setString('last_vynody_sandbox_uuid', currentUuid);
@@ -4027,6 +3798,285 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       healTimer.cancel();
       healStopwatch.stop();
       debugPrint('[PathMigration] Path healing finished in ${healStopwatch.elapsedMilliseconds}ms.');
+    }
+  }
+
+  /// Migrates persisted database rows, playlists, playback session, and
+  /// `root_paths` on iOS/macOS when directory prefixes change (e.g. own sandbox
+  /// UUID rotation or external app container UUID rotation after app update).
+  Future<void> migrateIosPathPrefixes(
+    Map<String, String> prefixReplacements,
+  ) async {
+    if ((!Platform.isIOS && !Platform.isMacOS) || prefixReplacements.isEmpty) {
+      return;
+    }
+
+    final docDir = await getApplicationDocumentsDirectory();
+    final currentSandbox = p.dirname(docDir.path);
+    final prefs = await SharedPreferences.getInstance();
+
+    final pairs = <(String, String)>[];
+    final seenPairs = <String>{};
+    for (final entry in prefixReplacements.entries) {
+      final oldRaw = entry.key;
+      final newRaw = entry.value;
+      if (oldRaw.isEmpty || newRaw.isEmpty || oldRaw == newRaw) continue;
+
+      final oldNoPrivate = oldRaw.replaceFirst(RegExp(r'^/private'), '');
+      final oldWithPrivate = oldNoPrivate.startsWith('/')
+          ? '/private$oldNoPrivate'
+          : '/private/$oldNoPrivate';
+      final newNoPrivate = newRaw.replaceFirst(RegExp(r'^/private'), '');
+      final newWithPrivate = newNoPrivate.startsWith('/')
+          ? '/private$newNoPrivate'
+          : '/private/$newNoPrivate';
+
+      void addPair(String o, String n) {
+        if (o == n) return;
+        final key = '$o\u0000$n';
+        if (seenPairs.add(key)) {
+          pairs.add((o, n));
+        }
+      }
+
+      addPair(oldWithPrivate, newWithPrivate);
+      addPair(oldNoPrivate, newNoPrivate);
+    }
+
+    if (pairs.isEmpty) return;
+
+    // 1. Update SQLite tables in a single transaction using indexed prefix matching
+    await transaction(() async {
+      for (final pair in pairs) {
+        final oldPrefix = pair.$1;
+        final newPrefix = pair.$2;
+        final oldLike = '$oldPrefix%';
+
+        // A. songs: UPDATE OR IGNORE handles unique path collisions instantly in O(log N)
+        await customStatement(
+          'UPDATE OR IGNORE songs SET '
+          'path = REPLACE(path, ?, ?), '
+          'artworkPath = CASE WHEN artworkPath LIKE ? THEN REPLACE(artworkPath, ?, ?) ELSE artworkPath END, '
+          'thumbnailPath = CASE WHEN thumbnailPath LIKE ? THEN REPLACE(thumbnailPath, ?, ?) ELSE thumbnailPath END '
+          'WHERE path LIKE ?',
+          <Object>[
+            oldPrefix, newPrefix,
+            oldLike, oldPrefix, newPrefix,
+            oldLike, oldPrefix, newPrefix,
+            oldLike,
+          ],
+        );
+        // Delete old songs that collided with existing songs in target path
+        await customStatement('DELETE FROM songs WHERE path LIKE ?', <Object>[oldLike]);
+        // Catch any standalone artworkPath or thumbnailPath pointing to oldPrefix
+        await customStatement('UPDATE songs SET artworkPath = REPLACE(artworkPath, ?, ?) WHERE artworkPath LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
+        await customStatement('UPDATE songs SET thumbnailPath = REPLACE(thumbnailPath, ?, ?) WHERE thumbnailPath LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
+
+        // B. song_play_history
+        await customStatement('UPDATE song_play_history SET songPath = REPLACE(songPath, ?, ?) WHERE songPath LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
+
+        // C. song_ratings
+        await customStatement('UPDATE OR IGNORE song_ratings SET songPath = REPLACE(songPath, ?, ?) WHERE songPath LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
+        await customStatement('DELETE FROM song_ratings WHERE songPath LIKE ?', <Object>[oldLike]);
+
+        // D. lyrics_cache
+        await customStatement('UPDATE OR IGNORE lyrics_cache SET cacheKey = REPLACE(cacheKey, ?, ?) WHERE cacheKey LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
+        await customStatement('DELETE FROM lyrics_cache WHERE cacheKey LIKE ?', <Object>[oldLike]);
+
+        // E. lyrics_translation_cache
+        await customStatement('UPDATE OR IGNORE lyrics_translation_cache SET cacheKey = REPLACE(cacheKey, ?, ?) WHERE cacheKey LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
+        await customStatement('DELETE FROM lyrics_translation_cache WHERE cacheKey LIKE ?', <Object>[oldLike]);
+
+        // F. artist_image_cache
+        await customStatement('UPDATE artist_image_cache SET imagePath = REPLACE(imagePath, ?, ?) WHERE imagePath LIKE ?', <Object>[oldPrefix, newPrefix, oldLike]);
+
+        // G. folder_entries
+        await customStatement(
+          'UPDATE OR IGNORE folder_entries SET '
+          'folderPath = REPLACE(folderPath, ?, ?), '
+          'rootPath = REPLACE(rootPath, ?, ?), '
+          'coverSongPath = REPLACE(coverSongPath, ?, ?), '
+          'coverThumbnailPath = REPLACE(coverThumbnailPath, ?, ?), '
+          'coverArtworkPath = REPLACE(coverArtworkPath, ?, ?) '
+          'WHERE folderPath LIKE ? OR rootPath LIKE ? OR coverSongPath LIKE ? '
+          'OR coverThumbnailPath LIKE ? OR coverArtworkPath LIKE ?',
+          <Object>[
+            oldPrefix, newPrefix,
+            oldPrefix, newPrefix,
+            oldPrefix, newPrefix,
+            oldPrefix, newPrefix,
+            oldPrefix, newPrefix,
+            oldLike, oldLike, oldLike, oldLike, oldLike,
+          ],
+        );
+        await customStatement(
+          'DELETE FROM folder_entries WHERE folderPath LIKE ?',
+          <Object>[oldLike],
+        );
+
+        // H. song_roots
+        await customStatement('UPDATE OR IGNORE song_roots SET song_path = REPLACE(song_path, ?, ?), root_path = REPLACE(root_path, ?, ?) WHERE song_path LIKE ? OR root_path LIKE ?', <Object>[oldPrefix, newPrefix, oldPrefix, newPrefix, oldLike, oldLike]);
+        await customStatement('DELETE FROM song_roots WHERE song_path LIKE ? OR root_path LIKE ?', <Object>[oldLike, oldLike]);
+      }
+    });
+
+    String? replacePrefix(String value) {
+      for (final pair in pairs) {
+        if (value.startsWith(pair.$1)) {
+          return '${pair.$2}${value.substring(pair.$1.length)}';
+        }
+      }
+      return null;
+    }
+
+    // 2. Migrate playlists.json across all prefixes in a single pass
+    try {
+      final playlistsFile = File(
+        p.join(
+          currentSandbox,
+          'Library',
+          'Application Support',
+          'playlists.json',
+        ),
+      );
+      String? playlistsJson;
+      if (await playlistsFile.exists()) {
+        playlistsJson = await playlistsFile.readAsString();
+      } else {
+        playlistsJson = prefs.getString('playlists');
+      }
+      if (playlistsJson != null && playlistsJson.trim().isNotEmpty) {
+        final List<dynamic> jsonList = jsonDecode(playlistsJson);
+        bool changed = false;
+        for (final playlist in jsonList) {
+          if (playlist is Map<String, dynamic>) {
+            final songs = playlist['songs'];
+            if (songs is List) {
+              for (final song in songs) {
+                if (song is Map<String, dynamic>) {
+                  final path = song['path'];
+                  if (path is String) {
+                    final nextPath = replacePrefix(path);
+                    if (nextPath != null) {
+                      song['path'] = nextPath;
+                      changed = true;
+                    }
+                  }
+                  final thumbnailPath = song['thumbnailPath'];
+                  if (thumbnailPath is String) {
+                    final nextThumb = replacePrefix(thumbnailPath);
+                    if (nextThumb != null) {
+                      song['thumbnailPath'] = nextThumb;
+                      changed = true;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (changed || !await playlistsFile.exists()) {
+          final parent = playlistsFile.parent;
+          if (!parent.existsSync()) {
+            await parent.create(recursive: true);
+          }
+          final tmpFile = File('${playlistsFile.path}.tmp');
+          await tmpFile.writeAsString(jsonEncode(jsonList), flush: true);
+          if (await playlistsFile.exists()) {
+            await playlistsFile.delete();
+          }
+          await tmpFile.rename(playlistsFile.path);
+          debugPrint('[PathMigration] Migrated playlists file.');
+        }
+        if (prefs.containsKey('playlists')) {
+          await prefs.remove('playlists');
+        }
+      }
+    } catch (e) {
+      debugPrint('[PathMigration] Failed to migrate playlists: $e');
+    }
+
+    // 3. Migrate playback_session.json across all prefixes in a single pass
+    try {
+      final sessionFile = File(
+        p.join(
+          currentSandbox,
+          'Library',
+          'Application Support',
+          'playback_session.json',
+        ),
+      );
+      String? rawSession;
+      if (await sessionFile.exists()) {
+        rawSession = await sessionFile.readAsString();
+      } else {
+        rawSession = prefs.getString('playback_session_v1');
+      }
+      if (rawSession != null && rawSession.trim().isNotEmpty) {
+        final decoded = jsonDecode(rawSession);
+        if (decoded is Map<String, dynamic>) {
+          bool changed = false;
+          final queue = decoded['queue'];
+          if (queue is List) {
+            for (final song in queue) {
+              if (song is Map<String, dynamic>) {
+                final path = song['path'];
+                if (path is String) {
+                  final nextPath = replacePrefix(path);
+                  if (nextPath != null) {
+                    song['path'] = nextPath;
+                    changed = true;
+                  }
+                }
+                final thumbnailPath = song['thumbnailPath'];
+                if (thumbnailPath is String) {
+                  final nextThumb = replacePrefix(thumbnailPath);
+                  if (nextThumb != null) {
+                    song['thumbnailPath'] = nextThumb;
+                    changed = true;
+                  }
+                }
+              }
+            }
+          }
+          if (changed || !await sessionFile.exists()) {
+            final parent = sessionFile.parent;
+            if (!parent.existsSync()) {
+              await parent.create(recursive: true);
+            }
+            final tmpFile = File('${sessionFile.path}.tmp');
+            await tmpFile.writeAsString(jsonEncode(decoded), flush: true);
+            if (await sessionFile.exists()) {
+              await sessionFile.delete();
+            }
+            await tmpFile.rename(sessionFile.path);
+            debugPrint('[PathMigration] Migrated playback_session file.');
+          }
+          if (prefs.containsKey('playback_session_v1')) {
+            await prefs.remove('playback_session_v1');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[PathMigration] Failed to migrate playback_session: $e');
+    }
+
+    // 4. Update root_paths in SharedPreferences
+    try {
+      final rootPaths = prefs.getStringList('root_paths');
+      if (rootPaths != null) {
+        final updatedRootPaths = rootPaths.map((root) {
+          final replaced = replacePrefix(root);
+          if (replaced != null) return replaced;
+          return ScannerPathUtils.resolveIosSandboxPath(root);
+        }).toList();
+        final normalized =
+            ScannerPathUtils.normalizeDeclaredRootPaths(updatedRootPaths);
+        await prefs.setStringList('root_paths', normalized);
+        ScannerPathUtils.setExternalRoots(normalized);
+      }
+    } catch (e) {
+      debugPrint('[PathMigration] Failed to migrate root_paths: $e');
     }
   }
 }

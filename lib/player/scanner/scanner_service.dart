@@ -1763,6 +1763,68 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Resolves external Apple security-scoped bookmarks for configured roots and
+  /// migrates any root whose container path changed (e.g. external app update).
+  Future<void> _healExternalBookmarkRootPaths() async {
+    if (!Platform.isIOS && !Platform.isMacOS) return;
+    final controller = _playerController;
+    if (controller == null) return;
+
+    final currentRoots = _roots.rootPaths;
+    if (currentRoots.isEmpty) return;
+
+    final replacements = <String, String>{};
+    final updatedRoots = <String>[];
+
+    for (final rootPath in currentRoots) {
+      final normalizedRoot = _normalizePath(rootPath);
+      if (normalizedRoot.isEmpty) continue;
+      if (ScannerPathUtils.isSandboxInternalPath(normalizedRoot)) {
+        updatedRoots.add(normalizedRoot);
+        continue;
+      }
+
+      String? resolved;
+      try {
+        resolved = await controller.resolveBookmarkPath(path: normalizedRoot);
+      } catch (e) {
+        debugPrint(
+          '[PathMigration] resolveBookmarkPath failed for $normalizedRoot: $e',
+        );
+      }
+
+      if (resolved != null && resolved.trim().isNotEmpty) {
+        final normalizedResolved = _normalizePath(resolved);
+        if (normalizedResolved.isNotEmpty &&
+            normalizedResolved != normalizedRoot) {
+          debugPrint(
+            '[PathMigration] External bookmark root migrated: $normalizedRoot -> $normalizedResolved',
+          );
+          replacements[normalizedRoot] = normalizedResolved;
+          updatedRoots.add(normalizedResolved);
+          continue;
+        }
+      }
+      updatedRoots.add(normalizedRoot);
+    }
+
+    if (replacements.isEmpty) return;
+
+    await MetadataDatabase().migrateIosPathPrefixes(replacements);
+    _roots.updateRootPathsInMemory(updatedRoots);
+    await _roots.saveRootPaths();
+    await _roots.refreshRootWatchers();
+    for (final entry in replacements.entries) {
+      _rootAvailability.remove(_pathLookupKey(entry.key));
+      _rootAvailability[_pathLookupKey(entry.value)] = _isRootPathAvailable(
+        entry.value,
+      );
+    }
+    _rebuildDisplayedRootFolders();
+    _syncNavigationStateToLatestTree();
+    notifyListeners();
+  }
+
   /// Probes whether [path] can actually be listed.
   ///
   /// iOS hands back a security-scoped URL for folders picked in Files; when the
@@ -3872,6 +3934,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         _currentScanStage = 'stage 0.5: healIosSandboxPaths';
         debugPrint('[ScannerService] Starting healIosSandboxPaths...');
         await MetadataDatabase().healIosSandboxPaths();
+        await _healExternalBookmarkRootPaths();
         debugPrint('[ScannerService] Finished healIosSandboxPaths.');
       }
 

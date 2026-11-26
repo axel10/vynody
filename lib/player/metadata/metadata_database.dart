@@ -899,6 +899,10 @@ class MetadataDatabase {
 
   Future<void> healIosSandboxPaths() => _db.healIosSandboxPaths();
 
+  Future<void> migrateIosPathPrefixes(
+    Map<String, String> prefixReplacements,
+  ) => _db.migrateIosPathPrefixes(prefixReplacements);
+
   Future<void> migrateLinuxRootPath(String oldRoot, String newRoot) async {
     if (oldRoot == newRoot) return;
     debugPrint('[PathMigration] Linux root path change detected.');
