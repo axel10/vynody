@@ -268,6 +268,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   }
 
   void _expandPlayback({bool animated = true}) {
+    _dockScrollHelper.reset(ref);
     if (_isPlaybackDrawerOpen && _playbackDrawerAnimController.value == 1.0) {
       return;
     }

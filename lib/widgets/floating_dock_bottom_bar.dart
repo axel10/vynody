@@ -149,7 +149,9 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     final collapsePrepProgress = ref.watch(
       floatingDockCollapseProgressProvider,
     );
-    final scrollOffset = ref.watch(floatingDockScrollOffsetProvider);
+    final scrollOffset = widget.isPlayback
+        ? 0.0
+        : ref.watch(floatingDockScrollOffsetProvider);
     _traceDockState(isCollapsedState, showMini, collapsePrepProgress);
     final double prepScale = isCollapsed
         ? 1.0

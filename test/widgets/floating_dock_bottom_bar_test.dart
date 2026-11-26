@@ -633,5 +633,76 @@ void main() {
 
     expect(selectedIndex, equals(kMainTabPlayback));
   });
+
+  testWidgets(
+      'Playback FloatingDockBottomBar ignores scroll offset and keeps tabs tappable',
+      (tester) async {
+    tester.view.physicalSize = const Size(393, 852);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    int? selectedIndex;
+    final container = ProviderContainer(
+      overrides: [
+        settingsServiceProvider.overrideWith((ref) => settings),
+        audioServiceProvider.overrideWith((ref) => _MockAudioService()),
+        audioCurrentMusicProvider.overrideWith((ref) => null),
+        audioIsPlayingProvider.overrideWith((ref) => false),
+        audioIsBufferingProvider.overrideWith((ref) => false),
+        audioProgressProvider.overrideWith((ref) => 0.0),
+        audioPositionProvider.overrideWith((ref) => Duration.zero),
+        audioDurationProvider.overrideWith((ref) => Duration.zero),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    // 模拟底层列表页向下滚动导致 Dock 滑出屏幕
+    container
+        .read(floatingDockScrollOffsetProvider.notifier)
+        .setOffset(FloatingDockScrollHelper.maxScrollOffset);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.android),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(393, 852),
+              padding: EdgeInsets.only(bottom: 24.0),
+            ),
+            child: Stack(
+              children: [
+                FloatingDockBottomBar(
+                  currentIndex: kMainTabFolders,
+                  onDestinationSelected: (index) {
+                    selectedIndex = index;
+                  },
+                  isPlayback: true,
+                  isHidden: false,
+                  hideMiniPlayer: true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 确认按钮留在屏幕可视区域内，且没有被 IgnorePointer 屏蔽
+    final settingsIcon = find.byIcon(Icons.settings_outlined);
+    expect(settingsIcon, findsOneWidget);
+    final rect = tester.getRect(settingsIcon);
+    expect(rect.bottom, lessThanOrEqualTo(852.0));
+
+    await tester.tap(settingsIcon);
+    await tester.pumpAndSettle();
+    expect(selectedIndex, equals(kMainTabSettings));
+  });
 }
 
