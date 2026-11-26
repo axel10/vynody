@@ -85,7 +85,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
   void _openSection(SettingsSection section) {
     if (section == SettingsSection.home) return;
     final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+        MediaQuery.orientationOf(context) == Orientation.landscape;
     if (isLandscape) {
       setState(() {
         _currentSection = section;
@@ -590,7 +590,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildRootScaffold(BuildContext context, SettingsService settings) {
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final isLandscape = MediaQuery.orientationOf(context) == Orientation.landscape;
     final l10n = AppLocalizations.of(context)!;
 
     if (isLandscape) {
@@ -644,7 +644,7 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
     final content = wrapSettingsWithWindowFrame(context, scaffold);
 
     final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+        MediaQuery.orientationOf(context) == Orientation.landscape;
     final canPop = isLandscape || _searchQuery.isEmpty;
 
     return PopScope(

@@ -728,7 +728,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
 
   @override
   Widget build(BuildContext context) {
-    final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    final double devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     final coverImage = _buildCoverImage();
     final bool showRating =
         (widget.displaySize == null || widget.displaySize! >= 180) &&

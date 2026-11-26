@@ -902,7 +902,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     _visitedTabs.add(_currentIndex);
     // 窗口足够宽时左侧导航栏展开为图标 + 文字，否则收回为纯图标（支持拖拽调节与折叠）
     final double railWidth = useSidebar
-        ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width))
+        ? ref.watch(sidebarRailWidthProvider(MediaQuery.sizeOf(context).width))
         : 0.0;
     final double leftPadding = railWidth;
 
@@ -2607,7 +2607,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
                   ],
                 ),
               ),
-              if (MediaQuery.of(context).size.width >=
+              if (MediaQuery.sizeOf(context).width >=
                   kSidebarRailExtendedMinWindowWidth)
                 Positioned(
                   right: 0,

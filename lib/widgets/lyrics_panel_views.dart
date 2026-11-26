@@ -229,7 +229,7 @@ class _LyricsPanelTimedLyricsViewState
   Widget build(BuildContext context) {
     final effectiveLang = widget.effectiveTranslationLanguage;
     final isPortrait =
-        (MediaQuery.of(context).orientation == Orientation.portrait) ||
+        (MediaQuery.orientationOf(context) == Orientation.portrait) ||
         widget.isSmallWin;
     const isLeftAligned = true;
     final isApplePortrait = isPortrait;
@@ -936,7 +936,7 @@ class _LyricsFadeShaderMask extends StatelessWidget {
     final topFadeEnd = (topFadeHeight / height).clamp(0.0, 1.0);
 
     final isPortrait =
-        (MediaQuery.of(context).orientation == Orientation.portrait) ||
+        (MediaQuery.orientationOf(context) == Orientation.portrait) ||
         isSmallWin;
 
     final double bottomFadeEndHeight;

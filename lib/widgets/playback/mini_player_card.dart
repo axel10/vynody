@@ -47,9 +47,9 @@ class MiniPlayerCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final windowWidth = MediaQuery.of(context).size.width;
+    final windowWidth = MediaQuery.sizeOf(context).width;
     final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+        MediaQuery.orientationOf(context) == Orientation.landscape;
     final showVolume = windowWidth >= 568.0 || isLandscape;
     final double infoMaxWidth =
         isLandscape || windowWidth >= 568.0 ? (windowWidth >= 800 ? 380.0 : 320.0) : 220.0;

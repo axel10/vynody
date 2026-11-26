@@ -284,7 +284,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
   ) {
     final p = lerpDouble(pN, pL, tLyrics) ?? pN;
     final l = lerpDouble(lN, lL, tLyrics) ?? lN;
-    final dpr = MediaQuery.of(context).devicePixelRatio;
+    final dpr = MediaQuery.devicePixelRatioOf(context);
     final raw = lerpDouble(p, l, tLand) ?? p;
     return (raw * dpr).round() / dpr;
   }
@@ -369,7 +369,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
     const animCurve = Curves.fastOutSlowIn;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery.sizeOf(context);
     final settings = ref.watch(settingsServiceProvider);
 
     final bool isLowMidEnd = ref.watch(isLowMidEndDeviceProvider);

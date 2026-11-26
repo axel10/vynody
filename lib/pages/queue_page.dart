@@ -126,7 +126,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
             getFolderListTileExtent(queueZoomScale) + 4.0;
         final double viewportHeight = _scrollController.position.viewportDimension;
         final isPortrait =
-            MediaQuery.of(context).orientation == Orientation.portrait;
+            MediaQuery.orientationOf(context) == Orientation.portrait;
         final double safeTopPadding =
             getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
         final double headerHeight = isPortrait ? (safeTopPadding + 70.0) : 0.0;
@@ -300,7 +300,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
         : queue;
     _queueReorderController.syncLength(displayQueue.length);
     final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
+        MediaQuery.orientationOf(context) == Orientation.portrait;
     final headerHorizontalPadding = isPortrait ? 20.0 : 32.0;
     final headerIconColor =
         theme.colorScheme.onSurface.withValues(alpha: 0.85);
@@ -611,7 +611,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(
                                     horizontal:
-                                        MediaQuery.of(context).orientation ==
+                                        MediaQuery.orientationOf(context) ==
                                             Orientation.portrait
                                         ? 8
                                         : 16,

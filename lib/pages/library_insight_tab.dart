@@ -65,7 +65,7 @@ class LibraryInsightTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
+        MediaQuery.orientationOf(context) == Orientation.portrait;
     final filterState = ref.watch(filter);
     final filterNotifier = ref.read(filter.notifier);
 

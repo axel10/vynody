@@ -212,7 +212,7 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
         final theme = Theme.of(context);
         final isDark = theme.brightness == Brightness.dark;
         final isPortrait =
-            MediaQuery.of(context).orientation == Orientation.portrait;
+            MediaQuery.orientationOf(context) == Orientation.portrait;
         final progress = _animation.value;
 
         final targetSurface = theme.colorScheme.surface;

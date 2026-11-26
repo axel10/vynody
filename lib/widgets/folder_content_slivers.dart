@@ -179,7 +179,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
     final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
     final paddingBottom = bottomPadding ?? (isRoot ? 160.0 : 0.0);
     final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
+        MediaQuery.orientationOf(context) == Orientation.portrait;
     final effectiveZoom = _effectiveZoomScale;
 
     // 根目录视图（无论多选还是普通浏览）：只要持有可重排控制器，列表档与网格档

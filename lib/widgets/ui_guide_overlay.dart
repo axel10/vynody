@@ -127,7 +127,7 @@ class _UiGuideOverlayState extends State<UiGuideOverlay>
         // Indicator pulse badge near target
         if (step.indicatorAlignment == Alignment.topCenter)
           Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
+            top: MediaQuery.paddingOf(context).top + 16,
             left: 0,
             right: 0,
             child: Center(
@@ -136,7 +136,7 @@ class _UiGuideOverlayState extends State<UiGuideOverlay>
           )
         else if (step.indicatorAlignment == Alignment.bottomCenter)
           Positioned(
-            bottom: MediaQuery.of(context).padding.bottom + 65,
+            bottom: MediaQuery.paddingOf(context).bottom + 65,
             left: 0,
             right: 0,
             child: Center(

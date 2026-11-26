@@ -206,7 +206,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+            final isLandscape = MediaQuery.orientationOf(context) == Orientation.landscape;
             final isWide = libraryToolbarIsWide(
               isLandscape: isLandscape,
               maxWidth: constraints.maxWidth,

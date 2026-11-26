@@ -93,8 +93,8 @@ class _AlbumGridCardState extends State<AlbumGridCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-    final isWide = MediaQuery.of(context).size.width >= 780;
+    final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
+    final isWide = MediaQuery.sizeOf(context).width >= 780;
     final btnSize = isWide ? 40.0 : 36.0;
     final iconSize = isWide ? 24.0 : 22.0;
     final btnOffset = isWide ? 10.0 : 8.0;

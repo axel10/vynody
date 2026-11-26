@@ -159,7 +159,7 @@ class RemoteServersSectionHeaderSliver extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
 
     return SliverToBoxAdapter(
       child: Padding(
@@ -297,7 +297,7 @@ class RemoteServersSliver extends ConsumerWidget {
 
     final isProUnlocked = ref.watch(isProUnlockedProvider);
     final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
     final effectiveZoom = _effectiveZoomScale;
 
     return AdaptiveFolderZoomSectionHost(
@@ -820,7 +820,7 @@ class RemoteServerGridCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
     final isSubsonic = server.type == RemoteServerType.subsonic;
     final isJellyfin = server.type == RemoteServerType.jellyfin;
     final isSmb = server.type == RemoteServerType.smb;
@@ -1012,7 +1012,7 @@ class RemoteServerListTile extends StatelessWidget {
     final isSubsonic = server.type == RemoteServerType.subsonic;
     final isJellyfin = server.type == RemoteServerType.jellyfin;
     final isSmb = server.type == RemoteServerType.smb;
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
 
     final gradientColors = isSubsonic
         ? const [Color(0xFFFF5E3A), Color(0xFFFF2A68)]

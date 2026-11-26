@@ -303,7 +303,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final isSmallWin = PlaybackPageUiTuning.isSmallWindowModeActive(
       isSmallWindowMode: ref.read(settingsServiceProvider).isSmallWindowMode,
     );
-    final isPortrait = (MediaQuery.of(context).orientation == Orientation.portrait) || isSmallWin;
+    final isPortrait = (MediaQuery.orientationOf(context) == Orientation.portrait) || isSmallWin;
     final timedLyricFontSize = 16 * lyricsFontScale;
     final plainLyricFontSize = 18 * lyricsFontScale;
     final translationFontSize = (isPortrait
@@ -1414,10 +1414,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       if (kDebugMode) {
         final currentOffset = _scrollController.offset;
         final viewportHeight = _scrollController.position.viewportDimension;
-        final bottomPadding = MediaQuery.of(context).padding.bottom;
+        final bottomPadding = MediaQuery.paddingOf(context).bottom;
         final bottomSpacers =
             widget.bottomSpacerHeight + widget.bottomTabBarHeight + bottomPadding;
-        final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+        final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
         final fadeAsymmetryShift = isPortrait ? 15.0 : 0.0;
         final visibleCenter = (viewportHeight - bottomSpacers) / 2 - fadeAsymmetryShift;
         final targetCenter =
@@ -1573,12 +1573,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (!viewportHeight.isFinite || viewportHeight <= 0) return;
 
     final maxExtent = _scrollController.position.maxScrollExtent;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
     final bottomSpacers = widget.bottomSpacerHeight + widget.bottomTabBarHeight + bottomPadding;
     final isSmallWin = PlaybackPageUiTuning.isSmallWindowModeActive(
       isSmallWindowMode: ref.read(settingsServiceProvider).isSmallWindowMode,
     );
-    final isPortrait = (MediaQuery.of(context).orientation == Orientation.portrait) || isSmallWin;
+    final isPortrait = (MediaQuery.orientationOf(context) == Orientation.portrait) || isSmallWin;
     // 考虑上下渐变区域不对称带来的视觉中心偏移 (15.0) 以及安全区域遮挡
     final fadeAsymmetryShift = isPortrait ? 15.0 : 0.0;
     // 计算可见区域的中心（避开底部遮挡/渐变区/安全区）
@@ -1966,7 +1966,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final double screenWidth = MediaQuery.sizeOf(context).width;
-        final isPortrait = (MediaQuery.of(context).orientation == Orientation.portrait) || isSmallWin;
+        final isPortrait = (MediaQuery.orientationOf(context) == Orientation.portrait) || isSmallWin;
         final double panelWidth = constraints.maxWidth;
 
         // 面板被压得过窄（窗口很窄时右侧队列抽屉展开、转场中间态等）：直接不绘制。

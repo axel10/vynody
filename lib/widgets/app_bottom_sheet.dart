@@ -140,13 +140,13 @@ class AppBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final media = MediaQuery.of(context);
+    final mediaSize = MediaQuery.sizeOf(context);
 
     // 判断是否处于横屏模式（横屏或大屏桌面端通常宽度大于高度）
-    final isLandscape = media.orientation == Orientation.landscape;
+    final isLandscape = MediaQuery.orientationOf(context) == Orientation.landscape;
     final targetMaxWidth = isLandscape ? landscapeMaxWidth : maxWidth;
-    final effectiveMaxWidth = math.min(targetMaxWidth, media.size.width);
-    final effectiveMaxHeight = media.size.height * maxHeightFactor;
+    final effectiveMaxWidth = math.min(targetMaxWidth, mediaSize.width);
+    final effectiveMaxHeight = mediaSize.height * maxHeightFactor;
 
     final defaultBgColor = AppBlur.dialogSurface(context);
     final defaultBorderColor = isDark

@@ -370,7 +370,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
     final zoomScale = settings.folderZoomScale;
 
     final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
+        MediaQuery.orientationOf(context) == Orientation.portrait;
 
     final playlists = _filterAndSortPlaylists(playlistService.playlists);
 

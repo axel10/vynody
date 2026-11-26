@@ -113,7 +113,7 @@ class PlaybackControls extends ConsumerWidget {
     final isScrollingWaveform =
         progressBarStyle == ProgressBarStyle.scrollingWaveform;
 
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery.sizeOf(context);
     final settings = ref.read(settingsServiceProvider);
     final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
       size,

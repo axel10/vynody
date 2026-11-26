@@ -371,7 +371,7 @@ class MiniPlayerUiTuning {
 
   /// 获取悬浮 Dock 栏自身相对于屏幕底部的定位间距 (与 FloatingDockBottomBar 保持严格一致)
   static double getDockSafeBottom(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
     final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
     final isTablet = MediaQuery.sizeOf(context).shortestSide >=
         AppOrientationManager.tabletShortestSideBreakpoint;
@@ -412,9 +412,9 @@ class MiniPlayerUiTuning {
     double selectionPanelHeight = 0.0,
     bool hasDockBottomBar = true,
   }) {
-    final safeAreaBottom = MediaQuery.of(context).padding.bottom;
+    final safeAreaBottom = MediaQuery.paddingOf(context).bottom;
     final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+        MediaQuery.orientationOf(context) == Orientation.landscape;
 
     if (isSelectionMode) {
       // 多选模式下 Mini 播放器会被隐藏，底部预留多选工具栏高度与安全间距
@@ -487,15 +487,14 @@ class PlaybackArtworkTuning {
     bool isLowMidEnd = false,
     bool? isDesktop,
   }) {
-    final mq = MediaQuery.of(context);
-    final double dpr = mq.devicePixelRatio;
+    final double dpr = MediaQuery.devicePixelRatioOf(context);
     final bool desktop = isDesktop ??
         (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
 
     if (desktop) {
       // 桌面端高分屏适配（4K / 2K / Retina）
       final double targetLogical =
-          logicalSize ?? estimateCoverLogicalSize(mq.size);
+          logicalSize ?? estimateCoverLogicalSize(MediaQuery.sizeOf(context));
       final double rawSize = targetLogical * dpr;
       final int bucket = (rawSize / bucketStep).ceil() * bucketStep.toInt();
       return bucket.clamp(minCacheWidthDesktop, maxCacheWidthDesktop);
@@ -504,7 +503,7 @@ class PlaybackArtworkTuning {
         return maxCacheWidthLowEnd;
       }
       final double targetLogical =
-          logicalSize ?? estimateCoverLogicalSize(mq.size);
+          logicalSize ?? estimateCoverLogicalSize(MediaQuery.sizeOf(context));
       final double rawSize = targetLogical * dpr;
       final int bucket = (rawSize / bucketStep).ceil() * bucketStep.toInt();
       return bucket.clamp(minCacheWidthMobile, maxCacheWidthMobile);

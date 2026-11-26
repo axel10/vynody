@@ -302,7 +302,7 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
     final hasLocalFile = _resolvedPath != null && _resolvedPath!.isNotEmpty;
     final hasImage = hasRawImage || hasLocalFile;
     final coverFile = hasLocalFile ? File(_resolvedPath!) : null;
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final isLandscape = MediaQuery.orientationOf(context) == Orientation.landscape;
     final isWideOrSquare =
         hasImage &&
         (_aspectRatio == null ||
@@ -954,7 +954,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
     final isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
     final desktopTitleBarHeight = isDesktop ? 28.0 : 0.0;
     final hasTopHeader = topHeader != null;
-    final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1529,10 +1529,10 @@ class _BannerSearchIconButton extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final scope = _FolderBannerActionScope.of(context);
-    final isLandscape = scope?.isLandscape ?? (MediaQuery.of(context).orientation == Orientation.landscape);
+    final isLandscape = scope?.isLandscape ?? (MediaQuery.orientationOf(context) == Orientation.landscape);
     final hasImage = scope?.hasImage ?? false;
     final isCompactPortrait = scope?.isCompactPortrait ?? false;
-    final isLargeScreen = MediaQuery.of(context).size.width >= 1000;
+    final isLargeScreen = MediaQuery.sizeOf(context).width >= 1000;
     final buttonHeight = isLargeScreen ? 38.0 : 32.0;
     final buttonWidth = isCompactPortrait ? 48.0 : buttonHeight;
     final iconSize = isCompactPortrait ? 20.0 : (isLargeScreen ? 18.0 : 16.0);
@@ -1606,9 +1606,9 @@ class FolderPlayActionButtons extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final screenWidth = MediaQuery.of(context).size.width;
+    final screenWidth = MediaQuery.sizeOf(context).width;
     final scope = _FolderBannerActionScope.of(context);
-    final isLandscape = scope?.isLandscape ?? (MediaQuery.of(context).orientation == Orientation.landscape);
+    final isLandscape = scope?.isLandscape ?? (MediaQuery.orientationOf(context) == Orientation.landscape);
     final hasImage = scope?.hasImage ?? false;
     final isCompactPortrait = scope?.isCompactPortrait ?? false;
 

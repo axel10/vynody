@@ -1190,7 +1190,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       onPointerHover: (event) => _handleInteraction(throttled: true),
       child: Builder(
         builder: (context) {
-          final size = MediaQuery.of(context).size;
+          final size = MediaQuery.sizeOf(context);
           // 这里原来是 OrientationBuilder，而它内部就是 LayoutBuilder：
           // 布局构建器会把整棵页面子树的重建推迟到 layout 阶段，任何页面级
           // setState 都要在布局期再全量重建一遍，是拖动卡顿的放大器。
@@ -1226,7 +1226,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
               audio.applyVisualizerSettings(orientation: orientation);
             });
           }
-          final bottomPadding = MediaQuery.of(context).padding.bottom;
+          final bottomPadding = MediaQuery.paddingOf(context).bottom;
 
           final shouldReserveBottomNavSpace = false;
 
@@ -1859,7 +1859,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
               );
             },
           );
-          final size = MediaQuery.of(context).size;
+          final size = MediaQuery.sizeOf(context);
           final bool isSmallWinValue =
               forceSmallWin ??
               PlaybackPageUiTuning.isSmallWindow(
@@ -2001,7 +2001,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     final String finalSuffix =
         keySuffix ??
         (forceSmallWin == null ? 'auto' : (forceSmallWin ? 'small' : 'normal'));
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery.sizeOf(context);
     final bool isSmallWinValue =
         forceSmallWin ??
         PlaybackPageUiTuning.isSmallWindow(
@@ -2549,7 +2549,7 @@ class _TipOverlayState extends State<_TipOverlay> with SingleTickerProviderState
           return const SizedBox.shrink();
         }
         
-        final size = MediaQuery.of(context).size;
+        final size = MediaQuery.sizeOf(context);
         final double screenWidth = size.width;
         final double screenHeight = size.height;
         

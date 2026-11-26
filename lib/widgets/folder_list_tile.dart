@@ -153,7 +153,7 @@ class FolderListTile extends StatelessWidget {
             hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 16,
+                horizontal: MediaQuery.orientationOf(context) == Orientation.portrait ? 12 : 16,
                 vertical: 8,
               ),
               child: Row(

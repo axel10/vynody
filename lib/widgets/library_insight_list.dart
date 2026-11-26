@@ -330,7 +330,7 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
     return LayoutBuilder(
       builder: (context, constraints) {
         final isPortrait =
-            MediaQuery.of(context).orientation == Orientation.portrait;
+            MediaQuery.orientationOf(context) == Orientation.portrait;
         final availableWidth = constraints.maxWidth - widget.contentLeftPadding;
         final contentWidth = math.min(availableWidth, kFolderPageMaxWidth);
 

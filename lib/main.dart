@@ -756,20 +756,22 @@ class _MyAppState extends ConsumerState<MyApp>
         builder: (context, child) {
           final theme = Theme.of(context);
           final isDark = theme.brightness == Brightness.dark;
-          final mediaQuery = MediaQuery.of(context);
+          final size = MediaQuery.sizeOf(context);
+          final padding = MediaQuery.paddingOf(context);
           final isLandscape =
-              mediaQuery.orientation == Orientation.landscape ||
-              mediaQuery.size.width > mediaQuery.size.height;
+              MediaQuery.orientationOf(context) == Orientation.landscape ||
+              size.width > size.height;
           final toastPosition = isLandscape
               ? const ToastPosition(align: Alignment.topRight, offset: 24.0)
               : ToastPosition(
                   align: Alignment.topCenter,
-                  offset: (mediaQuery.padding.top + 16.0).clamp(44.0, 80.0),
+                  offset: (padding.top + 16.0).clamp(44.0, 80.0),
                 );
 
           Widget content = child ?? const SizedBox.shrink();
 
           if (scale != 1.0) {
+            final mediaQuery = MediaQuery.of(context);
             final scaledSize = mediaQuery.size / scale;
             content = MediaQuery(
               data: mediaQuery.copyWith(

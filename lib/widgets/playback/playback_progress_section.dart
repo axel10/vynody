@@ -265,7 +265,7 @@ class PlaybackProgressSection extends ConsumerWidget {
               if (isWaveformEnabled) {
                 return Builder(
                   builder: (context) {
-                    final size = MediaQuery.of(context).size;
+                    final size = MediaQuery.sizeOf(context);
                     final settings = ref.watch(settingsServiceProvider);
                     final isMinimized = ref.watch(isWindowMinimizedProvider);
                     final bool isSmallWindow =
@@ -664,7 +664,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
       children: [
         Builder(
           builder: (context) {
-            final size = MediaQuery.of(context).size;
+            final size = MediaQuery.sizeOf(context);
             final settings = ref.watch(settingsServiceProvider);
             final isMinimized = ref.watch(isWindowMinimizedProvider);
             final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(

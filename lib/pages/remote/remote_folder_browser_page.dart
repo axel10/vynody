@@ -1269,7 +1269,7 @@ class _RemoteFolderBrowserPageState
 
       double fileOffset = folderContentTopOffset(
         context: context,
-        isPortrait: MediaQuery.of(context).orientation == Orientation.portrait,
+        isPortrait: MediaQuery.orientationOf(context) == Orientation.portrait,
         bannerKey: _bannerMeasureKey,
       );
       if (matchedFolders.isNotEmpty) {
@@ -1307,7 +1307,7 @@ class _RemoteFolderBrowserPageState
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
+        MediaQuery.orientationOf(context) == Orientation.portrait;
     final double headerHeight = FolderNavBarScaffold.getBarHeight(context);
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
       context,

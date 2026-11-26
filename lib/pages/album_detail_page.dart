@@ -86,7 +86,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
       if (mounted) {
         final mediaSize = MediaQuery.sizeOf(context);
         final isPortrait =
-            MediaQuery.of(context).orientation == Orientation.portrait;
+            MediaQuery.orientationOf(context) == Orientation.portrait;
         final bool isShortLandscape = !isPortrait && (mediaSize.height < 500);
         final double leftColWidth =
             (mediaSize.width * 0.36).clamp(240.0, 310.0);
@@ -524,8 +524,8 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                     height: isSelectionMode
                         ? 220.0
                         : (currentMusic != null
-                            ? (140.0 + MediaQuery.of(context).padding.bottom)
-                            : (32.0 + MediaQuery.of(context).padding.bottom)),
+                            ? (140.0 + MediaQuery.paddingOf(context).bottom)
+                            : (32.0 + MediaQuery.paddingOf(context).bottom)),
                   ),
                 ),
               ],
@@ -666,7 +666,7 @@ class _AlbumSongItem extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
+        MediaQuery.orientationOf(context) == Orientation.portrait;
     final durationLabel = _formatDuration(song.durationMillis);
     final trackLabel = '${index + 1}'.padLeft(2, '0');
     final isTileSelected = isSelectionMode ? isSelected : isCurrent;

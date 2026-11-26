@@ -290,7 +290,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     );
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
-    final isLargeScreen = MediaQuery.of(context).size.width >= 1000;
+    final isLargeScreen = MediaQuery.sizeOf(context).width >= 1000;
     final selectionLabel = l10n.selectedFolders(widget.selectedRootPaths.length);
     final hasPlayingMusic = currentMusic != null;
     final rootListBottomPadding = MiniPlayerUiTuning.getListBottomPadding(
@@ -343,7 +343,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         remoteServers.isNotEmpty ? 16.0 : rootListBottomPadding;
     final double remoteServersBottomPadding = rootListBottomPadding;
 
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
     final double headerHeight = FolderNavBarScaffold.getBarHeight(context);
 
     final rootList = LayoutBuilder(

@@ -769,8 +769,8 @@ class _SharingPageState extends ConsumerState<SharingPage>
     final settings = ref.watch(settingsServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
     final double bottomOffset = (currentMusic != null
             ? (isLandscape ? 96.0 : 160.0)
             : (isLandscape ? 24.0 : 96.0)) +

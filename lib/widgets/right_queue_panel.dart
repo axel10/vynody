@@ -573,7 +573,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                   onDragUpdate: (details) {
                     final delta = details.primaryDelta ?? 0.0;
                     final current = ref.read(rightQueueDrawerWidthProvider);
-                    final windowWidth = MediaQuery.of(context).size.width;
+                    final windowWidth = MediaQuery.sizeOf(context).width;
                     final maxAllowed = (windowWidth * 0.45).clamp(
                       kMinRightQueueDrawerWidth,
                       kMaxRightQueueDrawerWidth,

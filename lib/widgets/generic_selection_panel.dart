@@ -89,7 +89,7 @@ class _GenericSelectionPanelState extends State<GenericSelectionPanel> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+        MediaQuery.orientationOf(context) == Orientation.landscape;
     final isTablet = MediaQuery.sizeOf(context).shortestSide >=
         AppOrientationManager.tabletShortestSideBreakpoint;
     final isDesktop = defaultTargetPlatform == TargetPlatform.windows ||
@@ -99,7 +99,7 @@ class _GenericSelectionPanelState extends State<GenericSelectionPanel> {
     final isPhonePortrait = !isLandscape && !isTablet && !isDesktop;
     final double maxPanelWidth = isPhonePortrait ? 372.0 : 620.0;
 
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
     final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
 
     final double safeBottom;

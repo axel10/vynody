@@ -251,7 +251,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     // 内容区上方的固定部分（顶栏 + 横幅 + 权限提示）用实测高度，不再写 48/190/200。
     double fileOffset = folderContentTopOffset(
       context: context,
-      isPortrait: MediaQuery.of(context).orientation == Orientation.portrait,
+      isPortrait: MediaQuery.orientationOf(context) == Orientation.portrait,
       bannerKey: _bannerMeasureKey,
       hasPermissionWarning: showPermissionWarning,
     );
@@ -338,7 +338,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     final activeHighlightedSongPath =
         widget.highlightedSongPath ?? ref.watch(songHighlightProvider);
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = MediaQuery.orientationOf(context) == Orientation.portrait;
     final theme = Theme.of(context);
     // 订阅结构版本而不是整个 ScannerService：列表内缩略图逐张生成时
     // 只会刷新各自 SongThumbnail，不再触发整页重建。
