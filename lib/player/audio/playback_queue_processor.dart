@@ -69,6 +69,12 @@ class PlaybackQueueProcessor {
     }
   }
 
+  bool _isSongAccessible(MusicFile song, bool isRemote) {
+    if (song.isMissing || song.path.isEmpty) return false;
+    if (isRemote || MetadataHelper.isPlatformMediaUri(song.path)) return true;
+    return File(song.path).existsSync();
+  }
+
   /// Checks if a song already has all required background data (waveform, colors).
   Future<bool> isSongReady(String path) async {
     final existing = await db.getSongMetadata(path);
@@ -245,9 +251,7 @@ class PlaybackQueueProcessor {
         }
 
         final isRemote = RemoteMediaResolver.isRemoteUri(song.path);
-        if (song.isMissing ||
-            song.path.isEmpty ||
-            (!isRemote && !File(song.path).existsSync())) {
+        if (!_isSongAccessible(song, isRemote)) {
           continue;
         }
 
@@ -327,9 +331,7 @@ class PlaybackQueueProcessor {
     if (_disposed || myId != _currentProcessId) return;
 
     final isRemote = RemoteMediaResolver.isRemoteUri(song.path);
-    if (song.isMissing ||
-        song.path.isEmpty ||
-        (!isRemote && !File(song.path).existsSync())) {
+    if (!_isSongAccessible(song, isRemote)) {
       return;
     }
 
@@ -500,9 +502,7 @@ class PlaybackQueueProcessor {
 
     try {
       final isRemote = RemoteMediaResolver.isRemoteUri(song.path);
-      if (song.isMissing ||
-          song.path.isEmpty ||
-          (!isRemote && !File(song.path).existsSync())) {
+      if (!_isSongAccessible(song, isRemote)) {
         return;
       }
 
@@ -588,7 +588,7 @@ class PlaybackQueueProcessor {
         // We need a metadata object (either from DB or a quick scan) to get the artwork path
         SongMetadata? m = existing;
         if (m == null || (isRemote && (m.artist == 'Unknown Artist' || m.thumbnailPath == null))) {
-          if (!isRemote) {
+          if (!isRemote && !MetadataHelper.isPlatformMediaUri(song.path)) {
             final result = await MetadataHelper.processMetadata(
               song.path,
               generateThumbnail: true,

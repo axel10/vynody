@@ -1589,6 +1589,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       if (song.isMissing ||
           song.path.isEmpty ||
           (!RemoteMediaResolver.isRemoteUri(song.path) &&
+              !MetadataHelper.isPlatformMediaUri(song.path) &&
               !File(song.path).existsSync())) {
         return;
       }
@@ -2640,7 +2641,8 @@ class AudioService extends Notifier<AudioSnapshot> {
       return;
     }
     final isRemote = RemoteMediaResolver.isRemoteUri(path);
-    if (!isRemote && !File(path).existsSync()) {
+    final isPlatformMedia = MetadataHelper.isPlatformMediaUri(path);
+    if (!isRemote && !isPlatformMedia && !File(path).existsSync()) {
       if (notify) {
         notifyListeners();
       }

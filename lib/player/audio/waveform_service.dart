@@ -76,7 +76,9 @@ class WaveformService {
       }
     }
 
-    if (songMetadata == null && !isRemote) {
+    if (songMetadata == null &&
+        !isRemote &&
+        !MetadataHelper.isPlatformMediaUri(path)) {
       final playbackMetadata = await MetadataHelper.loadMetadataForPlayback(
         path,
         generateThumbnail: false,
@@ -178,7 +180,9 @@ class WaveformService {
       }
     }
 
-    if (songMetadata == null && !isRemote) {
+    if (songMetadata == null &&
+        !isRemote &&
+        !MetadataHelper.isPlatformMediaUri(path)) {
       onPhaseChanged?.call('loading_metadata_for_playback');
       final playbackMetadata = await MetadataHelper.loadMetadataForPlayback(
         path,

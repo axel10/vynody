@@ -249,6 +249,10 @@ class MetadataHelper {
     }
   }
 
+  /// 判断是否为非磁盘文件路径的系统媒体库 URI（如 iOS `ipod-library://`、Android `content://`）。
+  static bool isPlatformMediaUri(String path) =>
+      path.startsWith('ipod-library://') || path.startsWith('content://');
+
   /// 将音频路径转换为底层最适合读取的路径。
   /// 若处于 Android 平台且无媒体库权限，自动通过已持久化的 SAF 映射转换为 content:// URI，
   /// 避免底层 C++ 盲目使用 fopen 尝试打开物理路径而触发 fileRef is null 报错及回退。
