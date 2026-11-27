@@ -2276,5 +2276,22 @@
   "loadingRemoteLibrary": "Remote-Mediathek wird geladen...",
   "noIndexedRemoteFolders": "Keine indizierten Remote-Ordner",
   "noIndexedRemoteFoldersDesc": "Klicken Sie im SMB-/WebDAV-Browser mit der rechten Maustaste oder wählen Sie mehrere Ordner aus, um sie zur Mediathek hinzuzufügen.",
-  "miniMode": "Mini-Modus"
+  "miniMode": "Mini-Modus",
+  "errorLoadingServers": "Fehler beim Laden der Server: {error}",
+  "userLabel": "Benutzer: {username}",
+  "anonymousUser": "Anonym",
+  "transcodeBitrateRaw": "Original (Keine Transkodierung)",
+  "transcodeBitrate320": "320 kbps (Hohe Qualität)",
+  "transcodeBitrate192": "192 kbps (Standard)",
+  "transcodeBitrate128": "128 kbps (Niedrige Bandbreite)",
+  "songsFoundCount": "Gefundene Titel: {count}",
+  "autoDetectedPath": "Automatisch erkannter Pfad: {path}",
+  "directoryNotSelected": "Nicht ausgewählt",
+  "errorWithDetails": "Fehler: {error}",
+  "renamePlaylistFailed": "Umbenennen der Wiedergabeliste fehlgeschlagen",
+  "emptyParen": "(Leer)",
+  "lyricsLinesCount": "{count} Zeilen",
+  "timelineOffsetMs": "Versatz: {offset}ms",
+  "smbConnectedNoShares": "Verbindung hergestellt, aber keine freigegebenen Ordner gefunden.",
+  "smbConnectedFoundShares": "Verbindung erfolgreich! {count} freigegebene(r) Ordner gefunden."
 }

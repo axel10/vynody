@@ -2408,5 +2408,22 @@
   "loadingRemoteLibrary": "Uzak Kitaplık Yükleniyor...",
   "noIndexedRemoteFolders": "Dizinlenmiş uzak klasör yok",
   "noIndexedRemoteFoldersDesc": "Medya kitaplığına eklemek için SMB / WebDAV tarayıcısında klasörlere sağ tıklayın veya çoklu seçim yapın.",
-  "miniMode": "Mini Mod"
+  "miniMode": "Mini Mod",
+  "errorLoadingServers": "Sunucular yüklenirken hata: {error}",
+  "userLabel": "Kullanıcı: {username}",
+  "anonymousUser": "Anonim",
+  "transcodeBitrateRaw": "Ham (Kod Dönüştürmesiz)",
+  "transcodeBitrate320": "320 kbps (Yüksek Kalite)",
+  "transcodeBitrate192": "192 kbps (Standart)",
+  "transcodeBitrate128": "128 kbps (Düşük Bant Genişliği)",
+  "songsFoundCount": "Bulunan şarkı: {count}",
+  "autoDetectedPath": "Otomatik algılanan yol: {path}",
+  "directoryNotSelected": "Seçilmedi",
+  "errorWithDetails": "Hata: {error}",
+  "renamePlaylistFailed": "Çalma listesi yeniden adlandırılamadı",
+  "emptyParen": "(Boş)",
+  "lyricsLinesCount": "{count} satır",
+  "timelineOffsetMs": "Ofset: {offset}ms",
+  "smbConnectedNoShares": "Bağlantı başarılı ancak paylaşılan klasör bulunamadı.",
+  "smbConnectedFoundShares": "Bağlantı başarılı! {count} paylaşılan klasör bulundu."
 }

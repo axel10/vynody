@@ -6266,4 +6266,72 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get miniMode => 'Mini Mod';
+
+  @override
+  String errorLoadingServers(String error) {
+    return 'Sunucular yüklenirken hata: $error';
+  }
+
+  @override
+  String userLabel(String username) {
+    return 'Kullanıcı: $username';
+  }
+
+  @override
+  String get anonymousUser => 'Anonim';
+
+  @override
+  String get transcodeBitrateRaw => 'Ham (Kod Dönüştürmesiz)';
+
+  @override
+  String get transcodeBitrate320 => '320 kbps (Yüksek Kalite)';
+
+  @override
+  String get transcodeBitrate192 => '192 kbps (Standart)';
+
+  @override
+  String get transcodeBitrate128 => '128 kbps (Düşük Bant Genişliği)';
+
+  @override
+  String songsFoundCount(int count) {
+    return 'Bulunan şarkı: $count';
+  }
+
+  @override
+  String autoDetectedPath(String path) {
+    return 'Otomatik algılanan yol: $path';
+  }
+
+  @override
+  String get directoryNotSelected => 'Seçilmedi';
+
+  @override
+  String errorWithDetails(String error) {
+    return 'Hata: $error';
+  }
+
+  @override
+  String get renamePlaylistFailed => 'Çalma listesi yeniden adlandırılamadı';
+
+  @override
+  String get emptyParen => '(Boş)';
+
+  @override
+  String lyricsLinesCount(int count) {
+    return '$count satır';
+  }
+
+  @override
+  String timelineOffsetMs(String offset) {
+    return 'Ofset: ${offset}ms';
+  }
+
+  @override
+  String get smbConnectedNoShares =>
+      'Bağlantı başarılı ancak paylaşılan klasör bulunamadı.';
+
+  @override
+  String smbConnectedFoundShares(int count) {
+    return 'Bağlantı başarılı! $count paylaşılan klasör bulundu.';
+  }
 }

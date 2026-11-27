@@ -6049,4 +6049,71 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get miniMode => '미니 모드';
+
+  @override
+  String errorLoadingServers(String error) {
+    return '서버를 불러오는 중 오류 발생: $error';
+  }
+
+  @override
+  String userLabel(String username) {
+    return '사용자: $username';
+  }
+
+  @override
+  String get anonymousUser => '익명';
+
+  @override
+  String get transcodeBitrateRaw => '원본 (트랜스코딩 안 함)';
+
+  @override
+  String get transcodeBitrate320 => '320 kbps (고음질)';
+
+  @override
+  String get transcodeBitrate192 => '192 kbps (표준)';
+
+  @override
+  String get transcodeBitrate128 => '128 kbps (저대역폭)';
+
+  @override
+  String songsFoundCount(int count) {
+    return '발견된 곡: $count';
+  }
+
+  @override
+  String autoDetectedPath(String path) {
+    return '자동 감지된 경로: $path';
+  }
+
+  @override
+  String get directoryNotSelected => '선택되지 않음';
+
+  @override
+  String errorWithDetails(String error) {
+    return '오류: $error';
+  }
+
+  @override
+  String get renamePlaylistFailed => '재생목록 이름 변경 실패';
+
+  @override
+  String get emptyParen => '(비어 있음)';
+
+  @override
+  String lyricsLinesCount(int count) {
+    return '$count줄';
+  }
+
+  @override
+  String timelineOffsetMs(String offset) {
+    return '오프셋: ${offset}ms';
+  }
+
+  @override
+  String get smbConnectedNoShares => '연결에 성공했지만 공유 폴더를 찾을 수 없습니다.';
+
+  @override
+  String smbConnectedFoundShares(int count) {
+    return '연결 성공! $count개의 공유 폴더를 찾았습니다.';
+  }
 }

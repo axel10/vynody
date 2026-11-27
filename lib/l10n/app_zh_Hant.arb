@@ -1991,5 +1991,22 @@
   "loadingRemoteLibrary": "正在載入遠端媒體庫...",
   "noIndexedRemoteFolders": "暫無已索引的遠端目錄",
   "noIndexedRemoteFoldersDesc": "可在 SMB / WebDAV 瀏覽介面中右鍵或多選資料夾加入媒體庫",
-  "miniMode": "迷你模式"
+  "miniMode": "迷你模式",
+  "errorLoadingServers": "載入伺服器失敗: {error}",
+  "userLabel": "使用者: {username}",
+  "anonymousUser": "匿名",
+  "transcodeBitrateRaw": "原始音質 (不轉碼)",
+  "transcodeBitrate320": "320 kbps (高音質)",
+  "transcodeBitrate192": "192 kbps (標準)",
+  "transcodeBitrate128": "128 kbps (低頻寬)",
+  "songsFoundCount": "已發現 {count} 首歌曲",
+  "autoDetectedPath": "自動偵測路徑: {path}",
+  "directoryNotSelected": "未選擇",
+  "errorWithDetails": "錯誤: {error}",
+  "renamePlaylistFailed": "重新命名播放清單失敗",
+  "emptyParen": "(空)",
+  "lyricsLinesCount": "{count} 行",
+  "timelineOffsetMs": "偏移: {offset}ms",
+  "smbConnectedNoShares": "連線成功，但未找到共用資料夾。",
+  "smbConnectedFoundShares": "連線成功！找到 {count} 個共用資料夾。"
 }

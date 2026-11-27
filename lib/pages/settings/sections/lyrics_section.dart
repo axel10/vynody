@@ -508,7 +508,7 @@ class LyricsSection extends ConsumerWidget {
                               ),
                               const Divider(),
                               Text(
-                                existingPreview.isEmpty ? '(Empty)' : existingPreview,
+                                existingPreview.isEmpty ? l10n.emptyParen : existingPreview,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   fontFamily: 'monospace',
                                 ),
@@ -544,7 +544,7 @@ class LyricsSection extends ConsumerWidget {
                               ),
                               const Divider(),
                               Text(
-                                importedPreview.isEmpty ? '(Empty)' : importedPreview,
+                                importedPreview.isEmpty ? l10n.emptyParen : importedPreview,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   fontFamily: 'monospace',
                                 ),

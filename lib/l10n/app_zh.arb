@@ -4193,5 +4193,78 @@
   "loadingRemoteLibrary": "正在载入远程媒体库...",
   "noIndexedRemoteFolders": "暂无已索引的远程目录",
   "noIndexedRemoteFoldersDesc": "可在 SMB / WebDAV 浏览界面中右键或多选文件夹加入媒体库",
-  "miniMode": "迷你模式"
+  "miniMode": "迷你模式",
+  "errorLoadingServers": "加载服务器失败: {error}",
+  "@errorLoadingServers": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "userLabel": "用户: {username}",
+  "@userLabel": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "anonymousUser": "匿名",
+  "transcodeBitrateRaw": "原始音质 (不转码)",
+  "transcodeBitrate320": "320 kbps (高音质)",
+  "transcodeBitrate192": "192 kbps (标准)",
+  "transcodeBitrate128": "128 kbps (低带宽)",
+  "songsFoundCount": "已发现 {count} 首歌曲",
+  "@songsFoundCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "autoDetectedPath": "自动检测路径: {path}",
+  "@autoDetectedPath": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "directoryNotSelected": "未选择",
+  "errorWithDetails": "错误: {error}",
+  "@errorWithDetails": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "renamePlaylistFailed": "重命名歌单失败",
+  "emptyParen": "(空)",
+  "lyricsLinesCount": "{count} 行",
+  "@lyricsLinesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timelineOffsetMs": "偏移: {offset}ms",
+  "@timelineOffsetMs": {
+    "placeholders": {
+      "offset": {
+        "type": "String"
+      }
+    }
+  },
+  "smbConnectedNoShares": "连接成功，但未找到共享文件夹。",
+  "smbConnectedFoundShares": "连接成功！发现 {count} 个共享文件夹。",
+  "@smbConnectedFoundShares": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

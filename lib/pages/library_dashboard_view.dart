@@ -1011,6 +1011,7 @@ class _SongCardState extends State<_SongCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final size = widget.width;
     final btnSize = widget.isWide ? 40.0 : 36.0;
     final iconSize = widget.isWide ? 24.0 : 22.0;
@@ -1068,7 +1069,7 @@ class _SongCardState extends State<_SongCard> {
               ),
               const SizedBox(height: 2),
               Text(
-                widget.song.artist ?? 'Unknown Artist',
+                widget.song.artist ?? l10n.unknownArtist,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(

@@ -6314,4 +6314,73 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get miniMode => 'Mini-Modus';
+
+  @override
+  String errorLoadingServers(String error) {
+    return 'Fehler beim Laden der Server: $error';
+  }
+
+  @override
+  String userLabel(String username) {
+    return 'Benutzer: $username';
+  }
+
+  @override
+  String get anonymousUser => 'Anonym';
+
+  @override
+  String get transcodeBitrateRaw => 'Original (Keine Transkodierung)';
+
+  @override
+  String get transcodeBitrate320 => '320 kbps (Hohe Qualität)';
+
+  @override
+  String get transcodeBitrate192 => '192 kbps (Standard)';
+
+  @override
+  String get transcodeBitrate128 => '128 kbps (Niedrige Bandbreite)';
+
+  @override
+  String songsFoundCount(int count) {
+    return 'Gefundene Titel: $count';
+  }
+
+  @override
+  String autoDetectedPath(String path) {
+    return 'Automatisch erkannter Pfad: $path';
+  }
+
+  @override
+  String get directoryNotSelected => 'Nicht ausgewählt';
+
+  @override
+  String errorWithDetails(String error) {
+    return 'Fehler: $error';
+  }
+
+  @override
+  String get renamePlaylistFailed =>
+      'Umbenennen der Wiedergabeliste fehlgeschlagen';
+
+  @override
+  String get emptyParen => '(Leer)';
+
+  @override
+  String lyricsLinesCount(int count) {
+    return '$count Zeilen';
+  }
+
+  @override
+  String timelineOffsetMs(String offset) {
+    return 'Versatz: ${offset}ms';
+  }
+
+  @override
+  String get smbConnectedNoShares =>
+      'Verbindung hergestellt, aber keine freigegebenen Ordner gefunden.';
+
+  @override
+  String smbConnectedFoundShares(int count) {
+    return 'Verbindung erfolgreich! $count freigegebene(r) Ordner gefunden.';
+  }
 }

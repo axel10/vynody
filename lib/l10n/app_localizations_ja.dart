@@ -6043,4 +6043,71 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get miniMode => 'ミニモード';
+
+  @override
+  String errorLoadingServers(String error) {
+    return 'サーバーの読み込みに失敗しました: $error';
+  }
+
+  @override
+  String userLabel(String username) {
+    return 'ユーザー: $username';
+  }
+
+  @override
+  String get anonymousUser => '匿名';
+
+  @override
+  String get transcodeBitrateRaw => 'オリジナル (変換なし)';
+
+  @override
+  String get transcodeBitrate320 => '320 kbps (高音質)';
+
+  @override
+  String get transcodeBitrate192 => '192 kbps (標準)';
+
+  @override
+  String get transcodeBitrate128 => '128 kbps (低帯域幅)';
+
+  @override
+  String songsFoundCount(int count) {
+    return '見つかった曲: $count';
+  }
+
+  @override
+  String autoDetectedPath(String path) {
+    return '自動検出されたパス: $path';
+  }
+
+  @override
+  String get directoryNotSelected => '未選択';
+
+  @override
+  String errorWithDetails(String error) {
+    return 'エラー: $error';
+  }
+
+  @override
+  String get renamePlaylistFailed => 'プレイリスト名の変更に失敗しました';
+
+  @override
+  String get emptyParen => '(空)';
+
+  @override
+  String lyricsLinesCount(int count) {
+    return '$count 行';
+  }
+
+  @override
+  String timelineOffsetMs(String offset) {
+    return 'オフセット: ${offset}ms';
+  }
+
+  @override
+  String get smbConnectedNoShares => '接続に成功しましたが、共有フォルダーが見つかりませんでした。';
+
+  @override
+  String smbConnectedFoundShares(int count) {
+    return '接続に成功しました！$count 個の共有フォルダーが見つかりました。';
+  }
 }

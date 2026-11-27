@@ -406,7 +406,7 @@ class _RemoteLibraryPlaylistsViewState
                   AppSnackBar.show(
                     context,
                     ref,
-                    SnackBar(content: Text('${l10n.renamePlaylist}: failed')),
+                    SnackBar(content: Text(l10n.renamePlaylistFailed)),
                   );
                 }
               }

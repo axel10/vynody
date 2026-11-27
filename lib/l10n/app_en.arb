@@ -2667,5 +2667,22 @@
   "loadingRemoteLibrary": "Loading Remote Library...",
   "noIndexedRemoteFolders": "No indexed remote folders",
   "noIndexedRemoteFoldersDesc": "Right-click or multi-select folders in SMB / WebDAV browser to add them to the media library.",
-  "miniMode": "Mini Mode"
+  "miniMode": "Mini Mode",
+  "errorLoadingServers": "Error loading servers: {error}",
+  "userLabel": "User: {username}",
+  "anonymousUser": "Anonymous",
+  "transcodeBitrateRaw": "Raw (No Transcoding)",
+  "transcodeBitrate320": "320 kbps (High Quality)",
+  "transcodeBitrate192": "192 kbps (Standard)",
+  "transcodeBitrate128": "128 kbps (Low Bandwidth)",
+  "songsFoundCount": "Songs found: {count}",
+  "autoDetectedPath": "Auto-detected path: {path}",
+  "directoryNotSelected": "Not selected",
+  "errorWithDetails": "Error: {error}",
+  "renamePlaylistFailed": "Failed to rename playlist",
+  "emptyParen": "(Empty)",
+  "lyricsLinesCount": "{count} lines",
+  "timelineOffsetMs": "Offset: {offset}ms",
+  "smbConnectedNoShares": "Connected successfully, but no shared folders were found.",
+  "smbConnectedFoundShares": "Successfully connected! Found {count} shared folder(s)."
 }

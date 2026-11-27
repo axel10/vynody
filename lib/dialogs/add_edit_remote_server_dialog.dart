@@ -561,32 +561,32 @@ class _AddEditRemoteServerDialogState
                               prefixIcon: const Icon(Icons.graphic_eq_rounded),
                               border: const OutlineInputBorder(),
                             ),
-                            items: const [
+                            items: [
                               DropdownMenuItem(
                                 value: null,
                                 child: Text(
-                                  'Raw (No Transcoding)',
+                                  l10n.transcodeBitrateRaw,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               DropdownMenuItem(
                                 value: 320,
                                 child: Text(
-                                  '320 kbps (High Quality)',
+                                  l10n.transcodeBitrate320,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               DropdownMenuItem(
                                 value: 192,
                                 child: Text(
-                                  '192 kbps (Standard)',
+                                  l10n.transcodeBitrate192,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               DropdownMenuItem(
                                 value: 128,
                                 child: Text(
-                                  '128 kbps (Low Bandwidth)',
+                                  l10n.transcodeBitrate128,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -668,13 +668,13 @@ class _AddEditRemoteServerDialogState
                                     ),
                                     if (_testResult!.songCount != null)
                                       Text(
-                                        'Songs found: ${_testResult!.songCount}',
+                                        l10n.songsFoundCount(_testResult!.songCount!),
                                         style: const TextStyle(fontSize: 12),
                                       ),
                                     if (_testResult!.isSuccess &&
                                         _testResult!.detectedCustomPath != null)
                                       Text(
-                                        'Auto-detected path: ${_testResult!.detectedCustomPath}',
+                                        l10n.autoDetectedPath(_testResult!.detectedCustomPath!),
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w500,

@@ -6237,4 +6237,72 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get miniMode => 'Mini Mode';
+
+  @override
+  String errorLoadingServers(String error) {
+    return 'Error loading servers: $error';
+  }
+
+  @override
+  String userLabel(String username) {
+    return 'User: $username';
+  }
+
+  @override
+  String get anonymousUser => 'Anonymous';
+
+  @override
+  String get transcodeBitrateRaw => 'Raw (No Transcoding)';
+
+  @override
+  String get transcodeBitrate320 => '320 kbps (High Quality)';
+
+  @override
+  String get transcodeBitrate192 => '192 kbps (Standard)';
+
+  @override
+  String get transcodeBitrate128 => '128 kbps (Low Bandwidth)';
+
+  @override
+  String songsFoundCount(int count) {
+    return 'Songs found: $count';
+  }
+
+  @override
+  String autoDetectedPath(String path) {
+    return 'Auto-detected path: $path';
+  }
+
+  @override
+  String get directoryNotSelected => 'Not selected';
+
+  @override
+  String errorWithDetails(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get renamePlaylistFailed => 'Failed to rename playlist';
+
+  @override
+  String get emptyParen => '(Empty)';
+
+  @override
+  String lyricsLinesCount(int count) {
+    return '$count lines';
+  }
+
+  @override
+  String timelineOffsetMs(String offset) {
+    return 'Offset: ${offset}ms';
+  }
+
+  @override
+  String get smbConnectedNoShares =>
+      'Connected successfully, but no shared folders were found.';
+
+  @override
+  String smbConnectedFoundShares(int count) {
+    return 'Successfully connected! Found $count shared folder(s).';
+  }
 }

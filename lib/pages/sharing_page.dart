@@ -1829,7 +1829,7 @@ class _SharingPageState extends ConsumerState<SharingPage>
 
     return serversAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => Center(child: Text('Error loading servers: $err')),
+      error: (err, _) => Center(child: Text(l10n.errorLoadingServers('$err'))),
       data: (servers) {
         if (servers.isEmpty) {
           return Center(
@@ -2082,14 +2082,14 @@ class _SharingPageState extends ConsumerState<SharingPage>
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Cancel'),
+                              child: Text(l10n.cancel),
                             ),
                             FilledButton(
                               onPressed: () => Navigator.pop(ctx, true),
                               style: FilledButton.styleFrom(
                                 backgroundColor: Colors.red,
                               ),
-                              child: const Text('Delete'),
+                              child: Text(l10n.delete),
                             ),
                           ],
                         ),
@@ -2114,11 +2114,11 @@ class _SharingPageState extends ConsumerState<SharingPage>
                     ),
                     PopupMenuItem(
                       value: 'delete',
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.delete_outline, color: Colors.red, size: 18),
-                          SizedBox(width: 10),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
+                          const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                          const SizedBox(width: 10),
+                          Text(l10n.delete, style: const TextStyle(color: Colors.red)),
                         ],
                       ),
                     ),
@@ -2133,7 +2133,11 @@ class _SharingPageState extends ConsumerState<SharingPage>
               builder: (context, constraints) {
                 final isNarrow = constraints.maxWidth < 380;
                 final userText = Text(
-                  'User: ${server.username.isNotEmpty ? server.username : "Anonymous"}',
+                  l10n.userLabel(
+                    server.username.isNotEmpty
+                        ? server.username
+                        : l10n.anonymousUser,
+                  ),
                   style: TextStyle(
                     fontSize: 12,
                     color: theme.colorScheme.onSurfaceVariant,
@@ -2152,7 +2156,14 @@ class _SharingPageState extends ConsumerState<SharingPage>
                         .read(remoteServersProvider.notifier)
                         .testConnection(server, pwd ?? '');
                     if (res.isSuccess) {
-                      showToast('✅ ${res.message}');
+                      final msg = res.availableShares != null
+                          ? (res.availableShares!.isEmpty
+                              ? l10n.smbConnectedNoShares
+                              : l10n.smbConnectedFoundShares(
+                                  res.availableShares!.length,
+                                ))
+                          : l10n.connectionSuccess;
+                      showToast('✅ $msg');
                     } else {
                       showToast('❌ ${res.message}');
                     }

@@ -6327,4 +6327,72 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get miniMode => 'Modo mini';
+
+  @override
+  String errorLoadingServers(String error) {
+    return 'Error al cargar los servidores: $error';
+  }
+
+  @override
+  String userLabel(String username) {
+    return 'Usuario: $username';
+  }
+
+  @override
+  String get anonymousUser => 'Anónimo';
+
+  @override
+  String get transcodeBitrateRaw => 'Original (Sin transcodificación)';
+
+  @override
+  String get transcodeBitrate320 => '320 kbps (Alta calidad)';
+
+  @override
+  String get transcodeBitrate192 => '192 kbps (Estándar)';
+
+  @override
+  String get transcodeBitrate128 => '128 kbps (Bajo ancho de banda)';
+
+  @override
+  String songsFoundCount(int count) {
+    return 'Canciones encontradas: $count';
+  }
+
+  @override
+  String autoDetectedPath(String path) {
+    return 'Ruta detectada automáticamente: $path';
+  }
+
+  @override
+  String get directoryNotSelected => 'No seleccionado';
+
+  @override
+  String errorWithDetails(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get renamePlaylistFailed => 'No se pudo cambiar el nombre de la lista';
+
+  @override
+  String get emptyParen => '(Vacío)';
+
+  @override
+  String lyricsLinesCount(int count) {
+    return '$count líneas';
+  }
+
+  @override
+  String timelineOffsetMs(String offset) {
+    return 'Desfase: ${offset}ms';
+  }
+
+  @override
+  String get smbConnectedNoShares =>
+      'Conexión exitosa, pero no se encontraron carpetas compartidas.';
+
+  @override
+  String smbConnectedFoundShares(int count) {
+    return '¡Conexión exitosa! Se encontraron $count carpeta(s) compartida(s).';
+  }
 }

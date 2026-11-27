@@ -1482,7 +1482,7 @@ class _RemoteFolderBrowserPageState
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Error: $_error',
+                        l10n.errorWithDetails('$_error'),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),

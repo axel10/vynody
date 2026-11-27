@@ -5937,6 +5937,73 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get miniMode => '迷你模式';
+
+  @override
+  String errorLoadingServers(String error) {
+    return '加载服务器失败: $error';
+  }
+
+  @override
+  String userLabel(String username) {
+    return '用户: $username';
+  }
+
+  @override
+  String get anonymousUser => '匿名';
+
+  @override
+  String get transcodeBitrateRaw => '原始音质 (不转码)';
+
+  @override
+  String get transcodeBitrate320 => '320 kbps (高音质)';
+
+  @override
+  String get transcodeBitrate192 => '192 kbps (标准)';
+
+  @override
+  String get transcodeBitrate128 => '128 kbps (低带宽)';
+
+  @override
+  String songsFoundCount(int count) {
+    return '已发现 $count 首歌曲';
+  }
+
+  @override
+  String autoDetectedPath(String path) {
+    return '自动检测路径: $path';
+  }
+
+  @override
+  String get directoryNotSelected => '未选择';
+
+  @override
+  String errorWithDetails(String error) {
+    return '错误: $error';
+  }
+
+  @override
+  String get renamePlaylistFailed => '重命名歌单失败';
+
+  @override
+  String get emptyParen => '(空)';
+
+  @override
+  String lyricsLinesCount(int count) {
+    return '$count 行';
+  }
+
+  @override
+  String timelineOffsetMs(String offset) {
+    return '偏移: ${offset}ms';
+  }
+
+  @override
+  String get smbConnectedNoShares => '连接成功，但未找到共享文件夹。';
+
+  @override
+  String smbConnectedFoundShares(int count) {
+    return '连接成功！发现 $count 个共享文件夹。';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11872,4 +11939,71 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get miniMode => '迷你模式';
+
+  @override
+  String errorLoadingServers(String error) {
+    return '載入伺服器失敗: $error';
+  }
+
+  @override
+  String userLabel(String username) {
+    return '使用者: $username';
+  }
+
+  @override
+  String get anonymousUser => '匿名';
+
+  @override
+  String get transcodeBitrateRaw => '原始音質 (不轉碼)';
+
+  @override
+  String get transcodeBitrate320 => '320 kbps (高音質)';
+
+  @override
+  String get transcodeBitrate192 => '192 kbps (標準)';
+
+  @override
+  String get transcodeBitrate128 => '128 kbps (低頻寬)';
+
+  @override
+  String songsFoundCount(int count) {
+    return '已發現 $count 首歌曲';
+  }
+
+  @override
+  String autoDetectedPath(String path) {
+    return '自動偵測路徑: $path';
+  }
+
+  @override
+  String get directoryNotSelected => '未選擇';
+
+  @override
+  String errorWithDetails(String error) {
+    return '錯誤: $error';
+  }
+
+  @override
+  String get renamePlaylistFailed => '重新命名播放清單失敗';
+
+  @override
+  String get emptyParen => '(空)';
+
+  @override
+  String lyricsLinesCount(int count) {
+    return '$count 行';
+  }
+
+  @override
+  String timelineOffsetMs(String offset) {
+    return '偏移: ${offset}ms';
+  }
+
+  @override
+  String get smbConnectedNoShares => '連線成功，但未找到共用資料夾。';
+
+  @override
+  String smbConnectedFoundShares(int count) {
+    return '連線成功！找到 $count 個共用資料夾。';
+  }
 }

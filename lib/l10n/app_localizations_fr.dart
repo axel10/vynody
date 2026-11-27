@@ -6331,4 +6331,73 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get miniMode => 'Mode mini';
+
+  @override
+  String errorLoadingServers(String error) {
+    return 'Erreur lors du chargement des serveurs : $error';
+  }
+
+  @override
+  String userLabel(String username) {
+    return 'Utilisateur : $username';
+  }
+
+  @override
+  String get anonymousUser => 'Anonyme';
+
+  @override
+  String get transcodeBitrateRaw => 'Brut (Sans transcodage)';
+
+  @override
+  String get transcodeBitrate320 => '320 kbps (Haute qualité)';
+
+  @override
+  String get transcodeBitrate192 => '192 kbps (Standard)';
+
+  @override
+  String get transcodeBitrate128 => '128 kbps (Faible bande passante)';
+
+  @override
+  String songsFoundCount(int count) {
+    return 'Titres trouvés : $count';
+  }
+
+  @override
+  String autoDetectedPath(String path) {
+    return 'Chemin détecté automatiquement : $path';
+  }
+
+  @override
+  String get directoryNotSelected => 'Non sélectionné';
+
+  @override
+  String errorWithDetails(String error) {
+    return 'Erreur : $error';
+  }
+
+  @override
+  String get renamePlaylistFailed =>
+      'Échec du renommage de la liste de lecture';
+
+  @override
+  String get emptyParen => '(Vide)';
+
+  @override
+  String lyricsLinesCount(int count) {
+    return '$count lignes';
+  }
+
+  @override
+  String timelineOffsetMs(String offset) {
+    return 'Décalage : ${offset}ms';
+  }
+
+  @override
+  String get smbConnectedNoShares =>
+      'Connexion réussie, mais aucun dossier partagé trouvé.';
+
+  @override
+  String smbConnectedFoundShares(int count) {
+    return 'Connexion réussie ! $count dossier(s) partagé(s) trouvé(s).';
+  }
 }

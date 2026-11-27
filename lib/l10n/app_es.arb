@@ -2276,5 +2276,22 @@
   "loadingRemoteLibrary": "Cargando biblioteca remota...",
   "noIndexedRemoteFolders": "No hay carpetas remotas indexadas",
   "noIndexedRemoteFoldersDesc": "Haz clic derecho o selecciona varios directorios en el explorador SMB / WebDAV para añadirlos a la biblioteca.",
-  "miniMode": "Modo mini"
+  "miniMode": "Modo mini",
+  "errorLoadingServers": "Error al cargar los servidores: {error}",
+  "userLabel": "Usuario: {username}",
+  "anonymousUser": "Anónimo",
+  "transcodeBitrateRaw": "Original (Sin transcodificación)",
+  "transcodeBitrate320": "320 kbps (Alta calidad)",
+  "transcodeBitrate192": "192 kbps (Estándar)",
+  "transcodeBitrate128": "128 kbps (Bajo ancho de banda)",
+  "songsFoundCount": "Canciones encontradas: {count}",
+  "autoDetectedPath": "Ruta detectada automáticamente: {path}",
+  "directoryNotSelected": "No seleccionado",
+  "errorWithDetails": "Error: {error}",
+  "renamePlaylistFailed": "No se pudo cambiar el nombre de la lista",
+  "emptyParen": "(Vacío)",
+  "lyricsLinesCount": "{count} líneas",
+  "timelineOffsetMs": "Desfase: {offset}ms",
+  "smbConnectedNoShares": "Conexión exitosa, pero no se encontraron carpetas compartidas.",
+  "smbConnectedFoundShares": "¡Conexión exitosa! Se encontraron {count} carpeta(s) compartida(s)."
 }

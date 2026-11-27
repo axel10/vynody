@@ -11024,6 +11024,108 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'迷你模式'**
   String get miniMode;
+
+  /// No description provided for @errorLoadingServers.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载服务器失败: {error}'**
+  String errorLoadingServers(String error);
+
+  /// No description provided for @userLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'用户: {username}'**
+  String userLabel(String username);
+
+  /// No description provided for @anonymousUser.
+  ///
+  /// In zh, this message translates to:
+  /// **'匿名'**
+  String get anonymousUser;
+
+  /// No description provided for @transcodeBitrateRaw.
+  ///
+  /// In zh, this message translates to:
+  /// **'原始音质 (不转码)'**
+  String get transcodeBitrateRaw;
+
+  /// No description provided for @transcodeBitrate320.
+  ///
+  /// In zh, this message translates to:
+  /// **'320 kbps (高音质)'**
+  String get transcodeBitrate320;
+
+  /// No description provided for @transcodeBitrate192.
+  ///
+  /// In zh, this message translates to:
+  /// **'192 kbps (标准)'**
+  String get transcodeBitrate192;
+
+  /// No description provided for @transcodeBitrate128.
+  ///
+  /// In zh, this message translates to:
+  /// **'128 kbps (低带宽)'**
+  String get transcodeBitrate128;
+
+  /// No description provided for @songsFoundCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已发现 {count} 首歌曲'**
+  String songsFoundCount(int count);
+
+  /// No description provided for @autoDetectedPath.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动检测路径: {path}'**
+  String autoDetectedPath(String path);
+
+  /// No description provided for @directoryNotSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'未选择'**
+  String get directoryNotSelected;
+
+  /// No description provided for @errorWithDetails.
+  ///
+  /// In zh, this message translates to:
+  /// **'错误: {error}'**
+  String errorWithDetails(String error);
+
+  /// No description provided for @renamePlaylistFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'重命名歌单失败'**
+  String get renamePlaylistFailed;
+
+  /// No description provided for @emptyParen.
+  ///
+  /// In zh, this message translates to:
+  /// **'(空)'**
+  String get emptyParen;
+
+  /// No description provided for @lyricsLinesCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 行'**
+  String lyricsLinesCount(int count);
+
+  /// No description provided for @timelineOffsetMs.
+  ///
+  /// In zh, this message translates to:
+  /// **'偏移: {offset}ms'**
+  String timelineOffsetMs(String offset);
+
+  /// No description provided for @smbConnectedNoShares.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接成功，但未找到共享文件夹。'**
+  String get smbConnectedNoShares;
+
+  /// No description provided for @smbConnectedFoundShares.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接成功！发现 {count} 个共享文件夹。'**
+  String smbConnectedFoundShares(int count);
 }
 
 class _AppLocalizationsDelegate

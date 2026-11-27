@@ -1012,7 +1012,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         ),
         const SizedBox(height: 10),
         SelectableText(
-          outputDirectory ?? 'Not selected',
+          outputDirectory ?? l10n.directoryNotSelected,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 6),

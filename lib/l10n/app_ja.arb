@@ -2375,5 +2375,22 @@
   "loadingRemoteLibrary": "リモートライブラリを読み込み中...",
   "noIndexedRemoteFolders": "インデックス済みのリモートフォルダはありません",
   "noIndexedRemoteFoldersDesc": "SMB / WebDAV ブラウザでフォルダを右クリックまたは複数選択してライブラリに追加できます。",
-  "miniMode": "ミニモード"
+  "miniMode": "ミニモード",
+  "errorLoadingServers": "サーバーの読み込みに失敗しました: {error}",
+  "userLabel": "ユーザー: {username}",
+  "anonymousUser": "匿名",
+  "transcodeBitrateRaw": "オリジナル (変換なし)",
+  "transcodeBitrate320": "320 kbps (高音質)",
+  "transcodeBitrate192": "192 kbps (標準)",
+  "transcodeBitrate128": "128 kbps (低帯域幅)",
+  "songsFoundCount": "見つかった曲: {count}",
+  "autoDetectedPath": "自動検出されたパス: {path}",
+  "directoryNotSelected": "未選択",
+  "errorWithDetails": "エラー: {error}",
+  "renamePlaylistFailed": "プレイリスト名の変更に失敗しました",
+  "emptyParen": "(空)",
+  "lyricsLinesCount": "{count} 行",
+  "timelineOffsetMs": "オフセット: {offset}ms",
+  "smbConnectedNoShares": "接続に成功しましたが、共有フォルダーが見つかりませんでした。",
+  "smbConnectedFoundShares": "接続に成功しました！{count} 個の共有フォルダーが見つかりました。"
 }

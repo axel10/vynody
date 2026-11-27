@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
@@ -129,7 +130,7 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
                 builder: (btnContext) {
                   return IconButton(
                     icon: const Icon(Icons.more_vert_rounded, size: 20),
-                    tooltip: 'More',
+                    tooltip: AppLocalizations.of(btnContext)!.more,
                     onPressed: () {
                       final box = btnContext.findRenderObject() as RenderBox?;
                       final pos = box != null

@@ -2276,5 +2276,22 @@
   "loadingRemoteLibrary": "Chargement de la bibliothèque distante...",
   "noIndexedRemoteFolders": "Aucun dossier distant indexé",
   "noIndexedRemoteFoldersDesc": "Faites un clic droit ou sélectionnez plusieurs dossiers dans le navigateur SMB / WebDAV pour les ajouter à la médiathèque.",
-  "miniMode": "Mode mini"
+  "miniMode": "Mode mini",
+  "errorLoadingServers": "Erreur lors du chargement des serveurs : {error}",
+  "userLabel": "Utilisateur : {username}",
+  "anonymousUser": "Anonyme",
+  "transcodeBitrateRaw": "Brut (Sans transcodage)",
+  "transcodeBitrate320": "320 kbps (Haute qualité)",
+  "transcodeBitrate192": "192 kbps (Standard)",
+  "transcodeBitrate128": "128 kbps (Faible bande passante)",
+  "songsFoundCount": "Titres trouvés : {count}",
+  "autoDetectedPath": "Chemin détecté automatiquement : {path}",
+  "directoryNotSelected": "Non sélectionné",
+  "errorWithDetails": "Erreur : {error}",
+  "renamePlaylistFailed": "Échec du renommage de la liste de lecture",
+  "emptyParen": "(Vide)",
+  "lyricsLinesCount": "{count} lignes",
+  "timelineOffsetMs": "Décalage : {offset}ms",
+  "smbConnectedNoShares": "Connexion réussie, mais aucun dossier partagé trouvé.",
+  "smbConnectedFoundShares": "Connexion réussie ! {count} dossier(s) partagé(s) trouvé(s)."
 }

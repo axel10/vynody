@@ -347,14 +347,16 @@ class _LyricsTimelineModalState extends ConsumerState<_LyricsTimelineModal> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '${_getActionTitle(entry.actionType, l10n)} (${entry.lyrics.split('\n').length} lines)',
+              '${_getActionTitle(entry.actionType, l10n)} (${l10n.lyricsLinesCount(entry.lyrics.split('\n').length)})',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
             if (entry.timelineOffsetMillis != 0)
               Text(
-                'Offset: ${entry.timelineOffsetMillis > 0 ? "+" : ""}${entry.timelineOffsetMillis}ms',
+                l10n.timelineOffsetMs(
+                  '${entry.timelineOffsetMillis > 0 ? "+" : ""}${entry.timelineOffsetMillis}',
+                ),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.bold,
