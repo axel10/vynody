@@ -23,6 +23,7 @@ import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'remote/remote_folder_browser_page.dart';
 import '../dialogs/music_folders_dialog.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
+import '../widgets/dock_reset_navigator_observer.dart';
 
 class FoldersPage extends ConsumerStatefulWidget {
   final Future<void> Function()? onOpenPlayback;
@@ -45,6 +46,8 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
   ScannerService? _scanner;
   late final LibrarySelectionScopeController _librarySelectionScopeController;
   late final HeroController _heroController;
+  final DockResetNavigatorObserver _dockResetObserver =
+      DockResetNavigatorObserver();
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 
@@ -672,7 +675,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       child: Navigator(
         key: _navigatorKey,
         pages: pages,
-        observers: [_heroController],
+        observers: [_heroController, _dockResetObserver],
         onDidRemovePage: (page) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;

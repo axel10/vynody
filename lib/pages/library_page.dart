@@ -18,6 +18,7 @@ import 'library_search_page.dart';
 import 'main_layout_riverpod.dart';
 import '../player/library/library_overview_providers.dart';
 import '../widgets/library_selection_scope.dart';
+import '../widgets/dock_reset_navigator_observer.dart';
 import '../widgets/library_tab_navigator.dart';
 import '../widgets/app_top_nav_bar.dart';
 import '../widgets/library_header_actions.dart';
@@ -70,6 +71,8 @@ class LibraryPage extends ConsumerStatefulWidget {
 
 class LibraryPageState extends ConsumerState<LibraryPage> {
   late final HeroController _heroController;
+  final DockResetNavigatorObserver _dockResetObserver =
+      DockResetNavigatorObserver();
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   /// 各子分类各自持有的 Navigator key，交给二级宿主挂载、由返回键统一分发。
@@ -256,7 +259,7 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
       },
       child: Navigator(
         key: _navigatorKey,
-        observers: [_heroController],
+        observers: [_heroController, _dockResetObserver],
         onGenerateInitialRoutes: (navigator, initialRoute) {
           final int? persistedIndex = ref.read(libraryActiveTabIndexProvider);
           final bool hasDeepLink =
@@ -410,6 +413,12 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int?>(libraryActiveTabIndexProvider, (previous, next) {
+      if (previous != null && next != null && previous != next) {
+        resetFloatingDockWithRef(ref, animated: true);
+      }
+    });
+
     final hostInsets = LibrarySubHostInsets.of(context, ref);
     final bool isLandscape = hostInsets.isLandscape;
     final double railWidth = hostInsets.railWidth;

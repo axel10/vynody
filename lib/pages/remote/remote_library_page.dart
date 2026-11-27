@@ -15,6 +15,7 @@ import '../../widgets/mini_player_wrapper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../player/remote/services/remote_download_service.dart';
 import '../../widgets/library_selection_scope.dart';
+import '../../widgets/dock_reset_navigator_observer.dart';
 import '../main_layout_riverpod.dart';
 import '../../player/remote/remote_library_navigation.dart';
 import '../../widgets/library_action_bar.dart';
@@ -70,6 +71,8 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
         6,
         (i) => GlobalKey<NavigatorState>(debugLabel: 'remote_library_tab_$i'),
       );
+  final DockResetNavigatorObserver _dockResetObserver =
+      DockResetNavigatorObserver();
 
   late RemoteMediaLibraryClient _client;
 
@@ -2682,6 +2685,7 @@ class RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage> {
     } else {
       content = Navigator(
         key: _navigatorKey,
+        observers: [_dockResetObserver],
         onGenerateInitialRoutes: (navigator, initialRoute) => _initialRoutes(),
         onGenerateRoute: (settings) => _remoteRoute(
           (context) => settings.name == _kSubHostRoute

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dock_reset_navigator_observer.dart';
 
 /// 媒体库子分类根路由的名称。
 const String kLibraryTabRootRouteName = 'library_tab_root';
@@ -45,6 +46,8 @@ class _LibraryTabNavigatorState extends State<LibraryTabNavigator> {
   late final _TabRouteStackObserver _stackObserver = _TabRouteStackObserver(
     (hasChild) => widget.onHasChildRouteChanged?.call(hasChild),
   );
+  final DockResetNavigatorObserver _dockResetObserver =
+      DockResetNavigatorObserver();
 
   Route<void> _buildRootRoute() {
     return MaterialPageRoute<void>(
@@ -60,7 +63,7 @@ class _LibraryTabNavigatorState extends State<LibraryTabNavigator> {
       onNotification: (notification) => true,
       child: Navigator(
         key: widget.navigatorKey,
-        observers: [_stackObserver],
+        observers: [_stackObserver, _dockResetObserver],
         onGenerateInitialRoutes: (navigator, initialRoute) =>
             <Route<void>>[_buildRootRoute()],
         onGenerateRoute: (settings) => _buildRootRoute(),

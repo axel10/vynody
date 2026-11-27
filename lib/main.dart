@@ -28,6 +28,7 @@ import 'utils/app_surface_palette.dart';
 import 'utils/memory_trace.dart';
 import 'utils/startup_profiler.dart';
 import 'package:vynody/player/sharing/security/tls_certificate_service.dart';
+import 'widgets/dock_reset_navigator_observer.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/platform/desktop_tray_service.dart';
@@ -753,6 +754,7 @@ class _MyAppState extends ConsumerState<MyApp>
     );
     Widget app = MaterialApp(
         title: 'Vynody',
+        navigatorObservers: [DockResetNavigatorObserver()],
         locale: effectiveLocale,
         theme: _buildTheme(Brightness.light, themeColor),
         darkTheme: _buildTheme(Brightness.dark, themeColor),

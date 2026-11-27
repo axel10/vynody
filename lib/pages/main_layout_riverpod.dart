@@ -418,6 +418,51 @@ final floatingDockCollapsedProvider =
       FloatingDockCollapsedNotifier.new,
     );
 
+/// 每次触发程序化复位时递增，用于通知浮动 Dock 栏播放平滑归位动画，
+/// 而用户手动滚动时保持零延迟跟手。
+class FloatingDockAnimateResetVersionNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void trigger() {
+    if (!ref.mounted) return;
+    state++;
+  }
+}
+
+final floatingDockAnimateResetVersionProvider =
+    NotifierProvider<FloatingDockAnimateResetVersionNotifier, int>(
+      FloatingDockAnimateResetVersionNotifier.new,
+    );
+
+/// 通过 [ProviderContainer] 复位浮动 Dock 栏到原位（最上方）。
+void resetFloatingDockWithContainer(
+  ProviderContainer container, {
+  bool animated = true,
+}) {
+  if (animated && container.read(floatingDockScrollOffsetProvider) > 0.0) {
+    container.read(floatingDockAnimateResetVersionProvider.notifier).trigger();
+  }
+  container.read(floatingDockScrollOffsetProvider.notifier).reset();
+  container.read(floatingDockCollapseProgressProvider.notifier).reset();
+  container
+      .read(floatingDockCollapsedProvider.notifier)
+      .setCollapsed(false, reason: 'route_reset');
+}
+
+/// 通过 [WidgetRef] 复位浮动 Dock 栏到原位（最上方）。
+void resetFloatingDockWithRef(WidgetRef ref, {bool animated = true}) {
+  if (!ref.context.mounted) return;
+  if (animated && ref.read(floatingDockScrollOffsetProvider) > 0.0) {
+    ref.read(floatingDockAnimateResetVersionProvider.notifier).trigger();
+  }
+  ref.read(floatingDockScrollOffsetProvider.notifier).reset();
+  ref.read(floatingDockCollapseProgressProvider.notifier).reset();
+  ref
+      .read(floatingDockCollapsedProvider.notifier)
+      .setCollapsed(false, reason: 'route_reset');
+}
+
 /// 辅助管理浮动 Dock 随向下滚动移出、以及向上滚动上移直至原位的手势跟随位移
 class FloatingDockScrollHelper {
   FloatingDockScrollHelper({
@@ -464,14 +509,10 @@ class FloatingDockScrollHelper {
 
   void dispose() {}
 
-  void reset(WidgetRef ref) {
+  void reset(WidgetRef ref, {bool animated = true}) {
     _isUserScrolling = false;
     _trace('reset() 位移清零');
-    if (ref.context.mounted) {
-      ref.read(floatingDockScrollOffsetProvider.notifier).reset();
-      ref.read(floatingDockCollapseProgressProvider.notifier).reset();
-      ref.read(floatingDockCollapsedProvider.notifier).setCollapsed(false);
-    }
+    resetFloatingDockWithRef(ref, animated: animated);
   }
 
   bool handleScrollNotification(

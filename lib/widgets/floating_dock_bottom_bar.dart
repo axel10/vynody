@@ -64,9 +64,33 @@ class FloatingDockBottomBar extends ConsumerStatefulWidget {
       _FloatingDockBottomBarState();
 }
 
-class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
+class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar>
+    with SingleTickerProviderStateMixin {
   bool _isDragging = false;
   double _dragProgress = 0.0;
+
+  late final AnimationController _resetAnimController;
+  double _resetAnimStartOffset = 0.0;
+  double _lastRenderedOffset = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _resetAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+    )..addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _resetAnimController.dispose();
+    super.dispose();
+  }
 
   /// 诊断用：记录上一次 build 时的收起相关状态，变化时打点，
   /// 用来区分「provider 标志位变了」与「标志位没变但视觉变了」
@@ -102,6 +126,18 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(floatingDockAnimateResetVersionProvider, (previous, next) {
+      if (!widget.isPlayback && _lastRenderedOffset > 0.0) {
+        _resetAnimStartOffset = _lastRenderedOffset;
+        _resetAnimController.forward(from: 0.0);
+      }
+    });
+    ref.listen<double>(floatingDockScrollOffsetProvider, (previous, next) {
+      if (next > 0.0 && _resetAnimController.isAnimating) {
+        _resetAnimController.stop();
+      }
+    });
+
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isPlaying = ref.watch(audioIsPlayingProvider);
     final isBuffering = ref.watch(audioIsBufferingProvider);
@@ -208,6 +244,16 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
       orElse: () => tabs[0],
     );
 
+    final double effectiveScrollOffset = _resetAnimController.isAnimating
+        ? (lerpDouble(
+                _resetAnimStartOffset,
+                0.0,
+                Curves.easeOutCubic.transform(_resetAnimController.value),
+              ) ??
+              scrollOffset)
+        : scrollOffset;
+    _lastRenderedOffset = effectiveScrollOffset;
+
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
@@ -217,7 +263,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
           ? -(200.0 + bottomPadding + 600.0)
           : totalBottomOffset,
       child: Transform.translate(
-        offset: Offset(0.0, scrollOffset),
+        offset: Offset(0.0, effectiveScrollOffset),
         child: Center(
           child: AnimatedOpacity(
             duration: const Duration(milliseconds: 300),

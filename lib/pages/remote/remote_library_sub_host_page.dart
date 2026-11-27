@@ -91,6 +91,12 @@ class _RemoteLibrarySubHostPageState
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int?>(remoteLibraryActiveTabIndexProvider, (previous, next) {
+      if (previous != null && next != null && previous != next) {
+        resetFloatingDockWithRef(ref, animated: true);
+      }
+    });
+
     final hostInsets = LibrarySubHostInsets.of(context, ref);
     final bool isLandscape = hostInsets.isLandscape;
     final double railWidth = hostInsets.railWidth;
