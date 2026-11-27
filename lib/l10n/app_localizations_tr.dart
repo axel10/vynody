@@ -54,6 +54,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get addRootDirectory => 'Kök Dizin Ekle';
 
   @override
+  String get addMediaSource => 'Medya Kaynağı Ekle';
+
+  @override
   String get goBack => 'Geri Dön';
 
   @override

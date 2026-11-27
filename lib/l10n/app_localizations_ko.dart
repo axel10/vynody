@@ -53,6 +53,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get addRootDirectory => '루트 디렉토리 추가';
 
   @override
+  String get addMediaSource => '미디어 소스 추가';
+
+  @override
   String get goBack => '뒤로 가기';
 
   @override

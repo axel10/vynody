@@ -54,6 +54,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get addRootDirectory => 'ルートディレクトリを追加';
 
   @override
+  String get addMediaSource => 'メディアソースを追加';
+
+  @override
   String get goBack => '戻る';
 
   @override

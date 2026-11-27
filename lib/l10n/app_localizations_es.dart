@@ -54,6 +54,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addRootDirectory => 'Agregar directorio raíz';
 
   @override
+  String get addMediaSource => 'Agregar fuente multimedia';
+
+  @override
   String get goBack => 'Volver';
 
   @override

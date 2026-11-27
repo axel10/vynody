@@ -58,6 +58,10 @@
   "@addRootDirectory": {
     "description": "Add root directory"
   },
+  "addMediaSource": "添加媒体源",
+  "@addMediaSource": {
+    "description": "Add media source button"
+  },
   "goBack": "返回上一层",
   "@goBack": {
     "description": "Go back to parent directory"

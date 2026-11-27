@@ -25,6 +25,7 @@
   "scanDirectory": "Kaynaklar",
   "sort": "Sırala",
   "addRootDirectory": "Kök Dizin Ekle",
+  "addMediaSource": "Medya Kaynağı Ekle",
   "goBack": "Geri Dön",
   "noMediaLibraryPermission": "Medya kitaplığı erişim izni yok",
   "grantPermission": "İzin Ver",

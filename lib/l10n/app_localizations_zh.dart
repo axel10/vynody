@@ -52,6 +52,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addRootDirectory => '添加根目录';
 
   @override
+  String get addMediaSource => '添加媒体源';
+
+  @override
   String get goBack => '返回上一层';
 
   @override
@@ -5982,6 +5985,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get addRootDirectory => '新增根目錄';
+
+  @override
+  String get addMediaSource => '新增媒體來源';
 
   @override
   String get goBack => '返回上一層';

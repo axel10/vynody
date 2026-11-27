@@ -13,6 +13,7 @@
   "scanDirectory": "媒體源",
   "sort": "排序",
   "addRootDirectory": "新增根目錄",
+  "addMediaSource": "新增媒體來源",
   "goBack": "返回上一層",
   "noMediaLibraryPermission": "未取得媒體庫存取權限",
   "grantPermission": "授予權限",

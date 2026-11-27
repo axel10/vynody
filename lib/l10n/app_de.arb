@@ -28,6 +28,7 @@
   "scanDirectory": "Quellen",
   "sort": "Sortieren",
   "addRootDirectory": "Stammverzeichnis hinzufügen",
+  "addMediaSource": "Medienquelle hinzufügen",
   "goBack": "Zurück",
   "noMediaLibraryPermission": "Kein Zugriff auf die Mediathek",
   "grantPermission": "Berechtigung erteilen",

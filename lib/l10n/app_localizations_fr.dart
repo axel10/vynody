@@ -54,6 +54,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get addRootDirectory => 'Ajouter un répertoire racine';
 
   @override
+  String get addMediaSource => 'Ajouter une source multimédia';
+
+  @override
   String get goBack => 'Retour';
 
   @override

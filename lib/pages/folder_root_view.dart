@@ -422,7 +422,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                       Icons.add_circle_outline,
                       size: isCompactPortrait ? 20.0 : (isLargeScreen ? 18.0 : 16.0),
                     ),
-                    label: Text(l10n.addRootDirectory),
+                    label: Text(l10n.addMediaSource),
                     style: FilledButton.styleFrom(
                       minimumSize: Size(0, isLargeScreen ? 38.0 : 32.0),
                       padding: EdgeInsets.symmetric(

@@ -31,6 +31,7 @@
   "scanDirectory": "Sources",
   "sort": "Sort",
   "addRootDirectory": "Add Root Directory",
+  "addMediaSource": "Add Media Source",
   "goBack": "Go Back",
   "noMediaLibraryPermission": "No media library access permission",
   "grantPermission": "Grant Permission",

@@ -28,6 +28,7 @@
   "scanDirectory": "ソース",
   "sort": "並び替え",
   "addRootDirectory": "ルートディレクトリを追加",
+  "addMediaSource": "メディアソースを追加",
   "goBack": "戻る",
   "noMediaLibraryPermission": "メディアライブラリへのアクセス権限がありません",
   "grantPermission": "権限を付与",

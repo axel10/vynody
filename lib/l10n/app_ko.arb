@@ -28,6 +28,7 @@
   "scanDirectory": "소스",
   "sort": "정렬",
   "addRootDirectory": "루트 디렉토리 추가",
+  "addMediaSource": "미디어 소스 추가",
   "goBack": "뒤로 가기",
   "noMediaLibraryPermission": "미디어 라이브러리 접근 권한 없음",
   "grantPermission": "권한 허용",

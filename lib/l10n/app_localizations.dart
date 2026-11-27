@@ -189,6 +189,12 @@ abstract class AppLocalizations {
   /// **'添加根目录'**
   String get addRootDirectory;
 
+  /// Add media source button
+  ///
+  /// In zh, this message translates to:
+  /// **'添加媒体源'**
+  String get addMediaSource;
+
   /// Go back to parent directory
   ///
   /// In zh, this message translates to:
