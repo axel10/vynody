@@ -528,21 +528,21 @@ class _AddEditRemoteServerDialogState
                           const SizedBox(height: 14),
                           TextFormField(
                             controller: _customPathController,
-                            decoration: const InputDecoration(
-                              labelText: '共享文件夹 / Share (可选)',
-                              hintText: '如: music (留空则先浏览共享列表)',
-                              prefixIcon: Icon(Icons.folder_shared_outlined),
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: l10n.smbShareLabel,
+                              hintText: l10n.smbShareHint,
+                              prefixIcon: const Icon(Icons.folder_shared_outlined),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                           const SizedBox(height: 14),
                           TextFormField(
                             controller: _domainController,
-                            decoration: const InputDecoration(
-                              labelText: '工作组 / Domain (可选)',
+                            decoration: InputDecoration(
+                              labelText: l10n.smbDomainLabel,
                               hintText: 'WORKGROUP',
-                              prefixIcon: Icon(Icons.domain_outlined),
-                              border: OutlineInputBorder(),
+                              prefixIcon: const Icon(Icons.domain_outlined),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ],
@@ -686,7 +686,7 @@ class _AddEditRemoteServerDialogState
                                         _testResult!.availableShares!.isNotEmpty) ...[
                                       const SizedBox(height: 6),
                                       Text(
-                                        '检测到以下共享文件夹 (点击填入):',
+                                        l10n.detectedSharesHint,
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,

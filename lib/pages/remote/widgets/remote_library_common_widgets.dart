@@ -146,7 +146,9 @@ class RemoteLibraryLoadingView extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            message ?? (isZh ? '正在载入远程媒体库...' : 'Loading Remote Library...'),
+            message ??
+                (AppLocalizations.of(context)?.loadingRemoteLibrary ??
+                    'Loading Remote Library...'),
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
               color: theme.colorScheme.onSurface,

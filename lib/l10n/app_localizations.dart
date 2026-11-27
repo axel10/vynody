@@ -10898,6 +10898,126 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'标签已补全并保存，封面已同步应用至同目录 {count} 首歌曲'**
   String tagCompletionSuccessWithDirectoryCover(Object count);
+
+  /// No description provided for @smbShareLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'共享文件夹 / Share (可选)'**
+  String get smbShareLabel;
+
+  /// No description provided for @smbShareHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'如: music (留空则先浏览共享列表)'**
+  String get smbShareHint;
+
+  /// No description provided for @smbDomainLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'工作组 / Domain (可选)'**
+  String get smbDomainLabel;
+
+  /// No description provided for @detectedSharesHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'检测到以下共享文件夹 (点击填入):'**
+  String get detectedSharesHint;
+
+  /// No description provided for @noDirectoriesAddedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂未添加任何目录'**
+  String get noDirectoriesAddedTitle;
+
+  /// No description provided for @noDirectoriesAddedDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'你尚未添加音乐根目录，是否先进入应用稍后再添加？'**
+  String get noDirectoriesAddedDesc;
+
+  /// No description provided for @exploreAppFirst.
+  ///
+  /// In zh, this message translates to:
+  /// **'先去逛逛'**
+  String get exploreAppFirst;
+
+  /// No description provided for @selectFoldersToScan.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择要扫描的音乐文件夹'**
+  String get selectFoldersToScan;
+
+  /// No description provided for @noRootFoldersSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无已选根目录'**
+  String get noRootFoldersSelected;
+
+  /// No description provided for @tapAddFolderTip.
+  ///
+  /// In zh, this message translates to:
+  /// **'请点击下方按钮添加你的本地音乐文件夹'**
+  String get tapAddFolderTip;
+
+  /// No description provided for @addFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加文件夹'**
+  String get addFolder;
+
+  /// No description provided for @saveAndScan.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存并扫描'**
+  String get saveAndScan;
+
+  /// No description provided for @filterBySource.
+  ///
+  /// In zh, this message translates to:
+  /// **'渠道与来源筛选'**
+  String get filterBySource;
+
+  /// No description provided for @collapsePlaybackTip.
+  ///
+  /// In zh, this message translates to:
+  /// **'下拉或点击收起播放页'**
+  String get collapsePlaybackTip;
+
+  /// No description provided for @collapsePlayback.
+  ///
+  /// In zh, this message translates to:
+  /// **'收起播放页'**
+  String get collapsePlayback;
+
+  /// No description provided for @loadingPlaylistTracks.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在加载歌单曲目...'**
+  String get loadingPlaylistTracks;
+
+  /// No description provided for @loadingRemoteLibrary.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在载入远程媒体库...'**
+  String get loadingRemoteLibrary;
+
+  /// No description provided for @noIndexedRemoteFolders.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无已索引的远程目录'**
+  String get noIndexedRemoteFolders;
+
+  /// No description provided for @noIndexedRemoteFoldersDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'可在 SMB / WebDAV 浏览界面中右键或多选文件夹加入媒体库'**
+  String get noIndexedRemoteFoldersDesc;
+
+  /// No description provided for @miniMode.
+  ///
+  /// In zh, this message translates to:
+  /// **'迷你模式'**
+  String get miniMode;
 }
 
 class _AppLocalizationsDelegate

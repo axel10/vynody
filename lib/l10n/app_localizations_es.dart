@@ -6259,4 +6259,69 @@ class AppLocalizationsEs extends AppLocalizations {
   String tagCompletionSuccessWithDirectoryCover(Object count) {
     return 'Etiquetas completadas y guardadas; carátula aplicada a $count pistas de la carpeta';
   }
+
+  @override
+  String get smbShareLabel => 'Carpeta compartida / Share (Opcional)';
+
+  @override
+  String get smbShareHint => 'ej. music (dejar vacío para explorar recursos)';
+
+  @override
+  String get smbDomainLabel => 'Grupo de trabajo / Dominio (Opcional)';
+
+  @override
+  String get detectedSharesHint =>
+      'Carpetas compartidas detectadas (toca para rellenar):';
+
+  @override
+  String get noDirectoriesAddedTitle => 'Aún no se han añadido carpetas';
+
+  @override
+  String get noDirectoriesAddedDesc =>
+      'Aún no has añadido ninguna carpeta raíz de música. ¿Entrar en la aplicación y añadirlas más tarde?';
+
+  @override
+  String get exploreAppFirst => 'Explorar primero';
+
+  @override
+  String get selectFoldersToScan =>
+      'Seleccionar carpetas de música para escanear';
+
+  @override
+  String get noRootFoldersSelected => 'No hay carpetas raíz seleccionadas';
+
+  @override
+  String get tapAddFolderTip =>
+      'Toca el botón de abajo para añadir tus carpetas de música locales';
+
+  @override
+  String get addFolder => 'Añadir carpeta';
+
+  @override
+  String get saveAndScan => 'Guardar y escanear';
+
+  @override
+  String get filterBySource => 'Filtrar por origen';
+
+  @override
+  String get collapsePlaybackTip => 'Desliza hacia abajo o toca para contraer';
+
+  @override
+  String get collapsePlayback => 'Contraer reproducción';
+
+  @override
+  String get loadingPlaylistTracks => 'Cargando pistas de la lista...';
+
+  @override
+  String get loadingRemoteLibrary => 'Cargando biblioteca remota...';
+
+  @override
+  String get noIndexedRemoteFolders => 'No hay carpetas remotas indexadas';
+
+  @override
+  String get noIndexedRemoteFoldersDesc =>
+      'Haz clic derecho o selecciona varios directorios en el explorador SMB / WebDAV para añadirlos a la biblioteca.';
+
+  @override
+  String get miniMode => 'Modo mini';
 }

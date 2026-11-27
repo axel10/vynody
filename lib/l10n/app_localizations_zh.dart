@@ -5874,6 +5874,66 @@ class AppLocalizationsZh extends AppLocalizations {
   String tagCompletionSuccessWithDirectoryCover(Object count) {
     return '标签已补全并保存，封面已同步应用至同目录 $count 首歌曲';
   }
+
+  @override
+  String get smbShareLabel => '共享文件夹 / Share (可选)';
+
+  @override
+  String get smbShareHint => '如: music (留空则先浏览共享列表)';
+
+  @override
+  String get smbDomainLabel => '工作组 / Domain (可选)';
+
+  @override
+  String get detectedSharesHint => '检测到以下共享文件夹 (点击填入):';
+
+  @override
+  String get noDirectoriesAddedTitle => '暂未添加任何目录';
+
+  @override
+  String get noDirectoriesAddedDesc => '你尚未添加音乐根目录，是否先进入应用稍后再添加？';
+
+  @override
+  String get exploreAppFirst => '先去逛逛';
+
+  @override
+  String get selectFoldersToScan => '选择要扫描的音乐文件夹';
+
+  @override
+  String get noRootFoldersSelected => '暂无已选根目录';
+
+  @override
+  String get tapAddFolderTip => '请点击下方按钮添加你的本地音乐文件夹';
+
+  @override
+  String get addFolder => '添加文件夹';
+
+  @override
+  String get saveAndScan => '保存并扫描';
+
+  @override
+  String get filterBySource => '渠道与来源筛选';
+
+  @override
+  String get collapsePlaybackTip => '下拉或点击收起播放页';
+
+  @override
+  String get collapsePlayback => '收起播放页';
+
+  @override
+  String get loadingPlaylistTracks => '正在加载歌单曲目...';
+
+  @override
+  String get loadingRemoteLibrary => '正在载入远程媒体库...';
+
+  @override
+  String get noIndexedRemoteFolders => '暂无已索引的远程目录';
+
+  @override
+  String get noIndexedRemoteFoldersDesc => '可在 SMB / WebDAV 浏览界面中右键或多选文件夹加入媒体库';
+
+  @override
+  String get miniMode => '迷你模式';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11746,4 +11806,64 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String tagCompletionSuccessWithDirectoryCover(Object count) {
     return '標籤已補全並儲存，封面已同步套用至同目錄 $count 首歌曲';
   }
+
+  @override
+  String get smbShareLabel => '共用資料夾 / Share (可選)';
+
+  @override
+  String get smbShareHint => '如: music (留空則先瀏覽共用清單)';
+
+  @override
+  String get smbDomainLabel => '工作群組 / Domain (可選)';
+
+  @override
+  String get detectedSharesHint => '偵測到以下共用資料夾 (點擊填入):';
+
+  @override
+  String get noDirectoriesAddedTitle => '暫未新增任何目錄';
+
+  @override
+  String get noDirectoriesAddedDesc => '你尚未新增音樂根目錄，是否先進入應用稍後再新增？';
+
+  @override
+  String get exploreAppFirst => '先去逛逛';
+
+  @override
+  String get selectFoldersToScan => '選擇要掃描的音樂資料夾';
+
+  @override
+  String get noRootFoldersSelected => '暫無已選根目錄';
+
+  @override
+  String get tapAddFolderTip => '請點擊下方按鈕新增你的本地音樂資料夾';
+
+  @override
+  String get addFolder => '新增資料夾';
+
+  @override
+  String get saveAndScan => '儲存並掃描';
+
+  @override
+  String get filterBySource => '管道與來源篩選';
+
+  @override
+  String get collapsePlaybackTip => '下拉或點擊收合播放頁';
+
+  @override
+  String get collapsePlayback => '收合播放頁';
+
+  @override
+  String get loadingPlaylistTracks => '正在載入歌單曲目...';
+
+  @override
+  String get loadingRemoteLibrary => '正在載入遠端媒體庫...';
+
+  @override
+  String get noIndexedRemoteFolders => '暫無已索引的遠端目錄';
+
+  @override
+  String get noIndexedRemoteFoldersDesc => '可在 SMB / WebDAV 瀏覽介面中右鍵或多選資料夾加入媒體庫';
+
+  @override
+  String get miniMode => '迷你模式';
 }

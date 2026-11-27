@@ -6260,4 +6260,72 @@ class AppLocalizationsFr extends AppLocalizations {
   String tagCompletionSuccessWithDirectoryCover(Object count) {
     return 'Étiquettes complétées et enregistrées ; pochette appliquée à $count pistes du dossier';
   }
+
+  @override
+  String get smbShareLabel => 'Dossier partagé / Share (Optionnel)';
+
+  @override
+  String get smbShareHint =>
+      'ex. music (laisser vide pour parcourir les partages)';
+
+  @override
+  String get smbDomainLabel => 'Groupe de travail / Domaine (Optionnel)';
+
+  @override
+  String get detectedSharesHint =>
+      'Dossiers partagés détectés (appuyer pour remplir) :';
+
+  @override
+  String get noDirectoriesAddedTitle => 'Aucun dossier ajouté pour le moment';
+
+  @override
+  String get noDirectoriesAddedDesc =>
+      'Vous n\'avez pas encore ajouté de dossier racine musical. Entrer dans l\'application et les ajouter plus tard ?';
+
+  @override
+  String get exploreAppFirst => 'Explorer d\'abord';
+
+  @override
+  String get selectFoldersToScan =>
+      'Sélectionner les dossiers musicaux à analyser';
+
+  @override
+  String get noRootFoldersSelected => 'Aucun dossier racine sélectionné';
+
+  @override
+  String get tapAddFolderTip =>
+      'Appuyez sur le bouton ci-dessous pour ajouter vos dossiers musicaux locaux';
+
+  @override
+  String get addFolder => 'Ajouter un dossier';
+
+  @override
+  String get saveAndScan => 'Enregistrer et analyser';
+
+  @override
+  String get filterBySource => 'Filtrer par source';
+
+  @override
+  String get collapsePlaybackTip =>
+      'Glisser vers le bas ou appuyer pour réduire';
+
+  @override
+  String get collapsePlayback => 'Réduire la lecture';
+
+  @override
+  String get loadingPlaylistTracks => 'Chargement des pistes de la playlist...';
+
+  @override
+  String get loadingRemoteLibrary =>
+      'Chargement de la bibliothèque distante...';
+
+  @override
+  String get noIndexedRemoteFolders => 'Aucun dossier distant indexé';
+
+  @override
+  String get noIndexedRemoteFoldersDesc =>
+      'Faites un clic droit ou sélectionnez plusieurs dossiers dans le navigateur SMB / WebDAV pour les ajouter à la médiathèque.';
+
+  @override
+  String get miniMode => 'Mode mini';
 }

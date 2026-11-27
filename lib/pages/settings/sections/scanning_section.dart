@@ -145,16 +145,8 @@ class ScanningSection extends ConsumerWidget {
         if (roots.isEmpty)
           ListTile(
             leading: const Icon(Icons.cloud_off_rounded),
-            title: Text(
-              Localizations.localeOf(context).languageCode == 'zh'
-                  ? '暂无已索引的远程目录'
-                  : 'No indexed remote folders',
-            ),
-            subtitle: Text(
-              Localizations.localeOf(context).languageCode == 'zh'
-                  ? '可在 SMB / WebDAV 浏览界面中右键或多选文件夹加入媒体库'
-                  : 'You can right-click or multi-select folders in SMB/WebDAV to add them to media library.',
-            ),
+            title: Text(l10n.noIndexedRemoteFolders),
+            subtitle: Text(l10n.noIndexedRemoteFoldersDesc),
           )
         else
           for (final root in roots)

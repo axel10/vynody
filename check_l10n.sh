@@ -1,0 +1,1 @@
+dart --packages=.dart_tool/package_config.json scripts/check_hardcoded_l10n.dart --ui-only --ignore-fallbacks

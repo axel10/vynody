@@ -170,9 +170,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                         iconSize: 16,
                         tooltip: isSmallWindowMode
                             ? (l10n?.restoreWindow ?? 'Restore Window')
-                            : (Localizations.localeOf(context).languageCode == 'zh'
-                                ? '迷你模式'
-                                : 'Mini Mode'),
+                            : (l10n?.miniMode ?? 'Mini Mode'),
                         onPressed: () {
                           settings.isSmallWindowMode =
                               !settings.isSmallWindowMode;
@@ -303,9 +301,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                         iconSize: isSmallWindowMode ? 14 : 16,
                         tooltip: isSmallWindowMode
                             ? (l10n?.restoreWindow ?? 'Restore Window')
-                            : (Localizations.localeOf(context).languageCode == 'zh'
-                                ? '迷你模式'
-                                : 'Mini Mode'),
+                            : (l10n?.miniMode ?? 'Mini Mode'),
                         onPressed: () {
                           settings.isSmallWindowMode =
                               !settings.isSmallWindowMode;

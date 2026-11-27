@@ -6245,4 +6245,70 @@ class AppLocalizationsDe extends AppLocalizations {
   String tagCompletionSuccessWithDirectoryCover(Object count) {
     return 'Tags vervollständigt und gespeichert; Cover auf $count Titel im Ordner angewendet';
   }
+
+  @override
+  String get smbShareLabel => 'Freigabeordner / Share (Optional)';
+
+  @override
+  String get smbShareHint =>
+      'z. B. music (leer lassen, um Freigaben zu durchsuchen)';
+
+  @override
+  String get smbDomainLabel => 'Arbeitsgruppe / Domain (Optional)';
+
+  @override
+  String get detectedSharesHint =>
+      'Folgende Freigabeordner erkannt (zum Ausfüllen tippen):';
+
+  @override
+  String get noDirectoriesAddedTitle => 'Noch keine Ordner hinzugefügt';
+
+  @override
+  String get noDirectoriesAddedDesc =>
+      'Sie haben noch keine Musik-Stammordner hinzugefügt. App jetzt betreten und später hinzufügen?';
+
+  @override
+  String get exploreAppFirst => 'Erst umschauen';
+
+  @override
+  String get selectFoldersToScan => 'Zu scannende Musikordner auswählen';
+
+  @override
+  String get noRootFoldersSelected => 'Keine Stammordner ausgewählt';
+
+  @override
+  String get tapAddFolderTip =>
+      'Tippen Sie auf die Schaltfläche unten, um lokale Musikordner hinzuzufügen';
+
+  @override
+  String get addFolder => 'Ordner hinzufügen';
+
+  @override
+  String get saveAndScan => 'Speichern & Scannen';
+
+  @override
+  String get filterBySource => 'Nach Quelle filtern';
+
+  @override
+  String get collapsePlaybackTip =>
+      'Nach unten ziehen oder tippen zum Einklappen';
+
+  @override
+  String get collapsePlayback => 'Wiedergabe einklappen';
+
+  @override
+  String get loadingPlaylistTracks => 'Playlist-Titel werden geladen...';
+
+  @override
+  String get loadingRemoteLibrary => 'Remote-Mediathek wird geladen...';
+
+  @override
+  String get noIndexedRemoteFolders => 'Keine indizierten Remote-Ordner';
+
+  @override
+  String get noIndexedRemoteFoldersDesc =>
+      'Klicken Sie im SMB-/WebDAV-Browser mit der rechten Maustaste oder wählen Sie mehrere Ordner aus, um sie zur Mediathek hinzuzufügen.';
+
+  @override
+  String get miniMode => 'Mini-Modus';
 }

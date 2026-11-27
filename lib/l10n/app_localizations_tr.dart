@@ -6197,4 +6197,70 @@ class AppLocalizationsTr extends AppLocalizations {
   String tagCompletionSuccessWithDirectoryCover(Object count) {
     return 'Etiketler tamamlandı ve kaydedildi; kapak klasördeki $count parçaya uygulandı';
   }
+
+  @override
+  String get smbShareLabel => 'Paylaşılan Klasör / Share (İsteğe bağlı)';
+
+  @override
+  String get smbShareHint =>
+      'örn. music (paylaşımlara göz atmak için boş bırakın)';
+
+  @override
+  String get smbDomainLabel => 'Çalışma Grubu / Etki Alanı (İsteğe bağlı)';
+
+  @override
+  String get detectedSharesHint =>
+      'Algılanan paylaşılan klasörler (doldurmak için dokunun):';
+
+  @override
+  String get noDirectoriesAddedTitle => 'Henüz Klasör Eklenmedi';
+
+  @override
+  String get noDirectoriesAddedDesc =>
+      'Henüz müzik kök klasörü eklemediniz. Uygulamaya girip daha sonra eklemek ister misiniz?';
+
+  @override
+  String get exploreAppFirst => 'Önce Keşfet';
+
+  @override
+  String get selectFoldersToScan => 'Taranacak müzik klasörlerini seçin';
+
+  @override
+  String get noRootFoldersSelected => 'Seçili Kök Klasör Yok';
+
+  @override
+  String get tapAddFolderTip =>
+      'Yerel müzik klasörlerinizi eklemek için aşağıdaki düğmeye dokunun';
+
+  @override
+  String get addFolder => 'Klasör Ekle';
+
+  @override
+  String get saveAndScan => 'Kaydet ve Tara';
+
+  @override
+  String get filterBySource => 'Kaynağa Göre Filtrele';
+
+  @override
+  String get collapsePlaybackTip =>
+      'Daraltmak için aşağı sürükleyin veya dokunun';
+
+  @override
+  String get collapsePlayback => 'Oynatmayı Daralt';
+
+  @override
+  String get loadingPlaylistTracks => 'Çalma listesi parçaları yükleniyor...';
+
+  @override
+  String get loadingRemoteLibrary => 'Uzak Kitaplık Yükleniyor...';
+
+  @override
+  String get noIndexedRemoteFolders => 'Dizinlenmiş uzak klasör yok';
+
+  @override
+  String get noIndexedRemoteFoldersDesc =>
+      'Medya kitaplığına eklemek için SMB / WebDAV tarayıcısında klasörlere sağ tıklayın veya çoklu seçim yapın.';
+
+  @override
+  String get miniMode => 'Mini Mod';
 }

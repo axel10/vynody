@@ -5978,4 +5978,66 @@ class AppLocalizationsJa extends AppLocalizations {
   String tagCompletionSuccessWithDirectoryCover(Object count) {
     return 'タグを補完して保存し、同じフォルダ内の $count 曲にカバーを適用しました';
   }
+
+  @override
+  String get smbShareLabel => '共有フォルダ / Share (任意)';
+
+  @override
+  String get smbShareHint => '例: music (空欄で共有リストを参照)';
+
+  @override
+  String get smbDomainLabel => 'ワークグループ / ドメイン (任意)';
+
+  @override
+  String get detectedSharesHint => '次の共有フォルダが検出されました (タップして入力):';
+
+  @override
+  String get noDirectoriesAddedTitle => 'フォルダがまだ追加されていません';
+
+  @override
+  String get noDirectoriesAddedDesc =>
+      '音楽のルートフォルダがまだ追加されていません。アプリに入って後で追加しますか？';
+
+  @override
+  String get exploreAppFirst => 'まずは見てみる';
+
+  @override
+  String get selectFoldersToScan => 'スキャンする音楽フォルダを選択';
+
+  @override
+  String get noRootFoldersSelected => '選択されたルートフォルダはありません';
+
+  @override
+  String get tapAddFolderTip => '下のボタンをタップしてローカルの音楽フォルダを追加してください';
+
+  @override
+  String get addFolder => 'フォルダを追加';
+
+  @override
+  String get saveAndScan => '保存してスキャン';
+
+  @override
+  String get filterBySource => 'ソースで絞り込み';
+
+  @override
+  String get collapsePlaybackTip => '下に引くかタップして閉じる';
+
+  @override
+  String get collapsePlayback => '再生画面を閉じる';
+
+  @override
+  String get loadingPlaylistTracks => 'プレイリストの曲を読み込み中...';
+
+  @override
+  String get loadingRemoteLibrary => 'リモートライブラリを読み込み中...';
+
+  @override
+  String get noIndexedRemoteFolders => 'インデックス済みのリモートフォルダはありません';
+
+  @override
+  String get noIndexedRemoteFoldersDesc =>
+      'SMB / WebDAV ブラウザでフォルダを右クリックまたは複数選択してライブラリに追加できます。';
+
+  @override
+  String get miniMode => 'ミニモード';
 }

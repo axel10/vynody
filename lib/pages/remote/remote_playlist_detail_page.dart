@@ -999,7 +999,8 @@ class _RemotePlaylistDetailContentState
             ),
             const SizedBox(height: 16),
             Text(
-              isZh ? '正在加载歌单曲目...' : 'Loading playlist tracks...',
+              AppLocalizations.of(context)?.loadingPlaylistTracks ??
+                  'Loading playlist tracks...',
               style: TextStyle(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontSize: 14,

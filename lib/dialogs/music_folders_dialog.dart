@@ -211,8 +211,11 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('暂未添加任何目录'),
-          content: const Text('你尚未添加音乐根目录，是否先进入应用稍后再添加？'),
+          title: Text(l10n?.noDirectoriesAddedTitle ?? '暂未添加任何目录'),
+          content: Text(
+            l10n?.noDirectoriesAddedDesc ??
+                '你尚未添加音乐根目录，是否先进入应用稍后再添加？',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
@@ -220,7 +223,7 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('先去逛逛'),
+              child: Text(l10n?.exploreAppFirst ?? '先去逛逛'),
             ),
           ],
         ),
@@ -311,9 +314,7 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          l10n != null && l10n.localeName.startsWith('zh')
-                              ? '选择要扫描的音乐文件夹'
-                              : 'Select folders to scan',
+                          l10n?.selectFoldersToScan ?? 'Select folders to scan',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                             fontSize: 12,
@@ -356,6 +357,7 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
   }
 
   Widget _buildEmptyState(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
@@ -377,7 +379,7 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
             ),
             const SizedBox(height: 14),
             Text(
-              '暂无已选根目录',
+              l10n?.noRootFoldersSelected ?? '暂无已选根目录',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
@@ -385,7 +387,7 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
             ),
             const SizedBox(height: 6),
             Text(
-              '请点击下方按钮添加你的本地音乐文件夹',
+              l10n?.tapAddFolderTip ?? '请点击下方按钮添加你的本地音乐文件夹',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -465,7 +467,7 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
                 size: 18,
                 color: theme.colorScheme.error.withValues(alpha: 0.85),
               ),
-              tooltip: '移除',
+              tooltip: AppLocalizations.of(context)?.remove ?? '移除',
               onPressed: () => _removeFolder(folder.path),
             ),
           );
@@ -475,6 +477,7 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
   }
 
   Widget _buildBottomButtons(ThemeData theme, bool stackButtons) {
+    final l10n = AppLocalizations.of(context);
     final addFolderBtn = SizedBox(
       height: 48,
       child: FilledButton.tonalIcon(
@@ -486,9 +489,9 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.create_new_folder_rounded, size: 20),
-        label: const Text(
-          '添加文件夹',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        label: Text(
+          l10n?.addFolder ?? '添加文件夹',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         style: FilledButton.styleFrom(
           shape: RoundedRectangleBorder(
@@ -503,9 +506,9 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
       child: FilledButton.icon(
         onPressed: _saveAndScan,
         icon: const Icon(Icons.radar_rounded, size: 20),
-        label: const Text(
-          '保存并扫描',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        label: Text(
+          l10n?.saveAndScan ?? '保存并扫描',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         style: FilledButton.styleFrom(
           backgroundColor: const Color(0xFF39C5BB),

@@ -262,9 +262,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
   Widget _buildTopDragHandle() {
     return AppTooltip(
-      message: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
-          ? '下拉或点击收起播放页'
-          : 'Drag down or tap to collapse',
+      message: AppLocalizations.of(context)?.collapsePlaybackTip ??
+          'Drag down or tap to collapse',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _triggerCollapse(animated: true),
@@ -292,9 +291,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
   Widget _buildPlaybackCollapseButton(BuildContext context) {
     return AppTooltip(
-      message: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
-          ? '收起播放页'
-          : 'Collapse Playback',
+      message: AppLocalizations.of(context)?.collapsePlayback ??
+          'Collapse Playback',
       child: Container(
         width: 44,
         height: 44,

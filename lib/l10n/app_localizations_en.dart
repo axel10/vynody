@@ -6171,4 +6171,67 @@ class AppLocalizationsEn extends AppLocalizations {
   String tagCompletionSuccessWithDirectoryCover(Object count) {
     return 'Tags completed and saved; cover applied to $count tracks in folder';
   }
+
+  @override
+  String get smbShareLabel => 'Shared Folder / Share (Optional)';
+
+  @override
+  String get smbShareHint => 'e.g. music (leave blank to browse shares)';
+
+  @override
+  String get smbDomainLabel => 'Workgroup / Domain (Optional)';
+
+  @override
+  String get detectedSharesHint => 'Detected shared folders (tap to fill):';
+
+  @override
+  String get noDirectoriesAddedTitle => 'No Folders Added Yet';
+
+  @override
+  String get noDirectoriesAddedDesc =>
+      'You haven\'t added any music root folders yet. Enter the app now and add them later?';
+
+  @override
+  String get exploreAppFirst => 'Explore First';
+
+  @override
+  String get selectFoldersToScan => 'Select folders to scan';
+
+  @override
+  String get noRootFoldersSelected => 'No Root Folders Selected';
+
+  @override
+  String get tapAddFolderTip =>
+      'Tap the button below to add your local music folders';
+
+  @override
+  String get addFolder => 'Add Folder';
+
+  @override
+  String get saveAndScan => 'Save & Scan';
+
+  @override
+  String get filterBySource => 'Filter by Source';
+
+  @override
+  String get collapsePlaybackTip => 'Drag down or tap to collapse';
+
+  @override
+  String get collapsePlayback => 'Collapse Playback';
+
+  @override
+  String get loadingPlaylistTracks => 'Loading playlist tracks...';
+
+  @override
+  String get loadingRemoteLibrary => 'Loading Remote Library...';
+
+  @override
+  String get noIndexedRemoteFolders => 'No indexed remote folders';
+
+  @override
+  String get noIndexedRemoteFoldersDesc =>
+      'Right-click or multi-select folders in SMB / WebDAV browser to add them to the media library.';
+
+  @override
+  String get miniMode => 'Mini Mode';
 }

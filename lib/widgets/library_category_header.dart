@@ -82,7 +82,6 @@ class LibraryCategoryHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
     final currentFilter = ref.watch(librarySourceFilterProvider);
     final isFiltered = currentFilter.type != LibrarySourceType.all;
@@ -99,7 +98,7 @@ class LibraryCategoryHeader extends ConsumerWidget {
       if (showSourceFilter)
         LibraryToolbarAction(
           icon: Icons.tune_rounded,
-          label: isZh ? '渠道与来源筛选' : 'Filter by Source',
+          label: l10n.filterBySource,
           onPressed: () => showLibrarySourceFilterDialog(context),
           color: isFiltered ? theme.colorScheme.primary : null,
           showBadge: isFiltered,

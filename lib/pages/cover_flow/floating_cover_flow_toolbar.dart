@@ -264,9 +264,8 @@ class _FloatingCoverFlowToolbarState extends State<FloatingCoverFlowToolbar> {
                   builder: (context, ref, child) {
                     final filter = ref.watch(librarySourceFilterProvider);
                     final isFiltered = filter.type != LibrarySourceType.all;
-                    final isZh = Localizations.localeOf(context).languageCode == 'zh';
                     return IconButton(
-                      tooltip: isZh ? '渠道与来源筛选' : 'Filter by Source',
+                      tooltip: l10n.filterBySource,
                       iconSize: 20,
                       visualDensity: VisualDensity.compact,
                       onPressed: () => showLibrarySourceFilterDialog(context),

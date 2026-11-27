@@ -5984,4 +5984,66 @@ class AppLocalizationsKo extends AppLocalizations {
   String tagCompletionSuccessWithDirectoryCover(Object count) {
     return '태그가 완성되어 저장되었으며 폴더 내 $count곡에 커버를 적용했습니다';
   }
+
+  @override
+  String get smbShareLabel => '공유 폴더 / Share (선택 사항)';
+
+  @override
+  String get smbShareHint => '예: music (비워 두면 공유 목록 탐색)';
+
+  @override
+  String get smbDomainLabel => '작업 그룹 / 도메인 (선택 사항)';
+
+  @override
+  String get detectedSharesHint => '다음 공유 폴더가 감지되었습니다 (탭하여 입력):';
+
+  @override
+  String get noDirectoriesAddedTitle => '아직 추가된 폴더가 없습니다';
+
+  @override
+  String get noDirectoriesAddedDesc =>
+      '아직 음악 루트 폴더를 추가하지 않았습니다. 먼저 앱으로 들어가 나중에 추가할까요?';
+
+  @override
+  String get exploreAppFirst => '먼저 둘러보기';
+
+  @override
+  String get selectFoldersToScan => '스캔할 음악 폴더 선택';
+
+  @override
+  String get noRootFoldersSelected => '선택된 루트 폴더가 없습니다';
+
+  @override
+  String get tapAddFolderTip => '아래 버튼을 눌러 로컬 음악 폴더를 추가하세요';
+
+  @override
+  String get addFolder => '폴더 추가';
+
+  @override
+  String get saveAndScan => '저장 및 스캔';
+
+  @override
+  String get filterBySource => '소스별 필터링';
+
+  @override
+  String get collapsePlaybackTip => '아래로 당기거나 탭하여 접기';
+
+  @override
+  String get collapsePlayback => '재생 화면 접기';
+
+  @override
+  String get loadingPlaylistTracks => '재생목록 트랙 불러오는 중...';
+
+  @override
+  String get loadingRemoteLibrary => '원격 라이브러리 불러오는 중...';
+
+  @override
+  String get noIndexedRemoteFolders => '인덱싱된 원격 폴더가 없습니다';
+
+  @override
+  String get noIndexedRemoteFoldersDesc =>
+      'SMB / WebDAV 브라우저에서 폴더를 우클릭하거나 다중 선택하여 미디어 라이브러리에 추가할 수 있습니다.';
+
+  @override
+  String get miniMode => '미니 모드';
 }
