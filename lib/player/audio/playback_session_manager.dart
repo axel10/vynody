@@ -182,7 +182,9 @@ class PlaybackSessionManager {
   static Future<bool> songExists(String path, {bool? hasPermission}) async {
     if (path.trim().isEmpty) return false;
     if (RemoteMediaResolver.isRemoteUri(path)) return true;
-    if (path.startsWith('content://')) return true;
+    if (path.startsWith('content://') || path.startsWith('ipod-library://')) {
+      return true;
+    }
 
     if (Platform.isAndroid) {
       final isExternal = path.startsWith('/storage/') || path.startsWith('/sdcard/');

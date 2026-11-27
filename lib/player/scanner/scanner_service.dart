@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:collection/collection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_storage_listener/mobile_storage_event.dart';
@@ -97,6 +98,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void>? _androidMediaMetadataInFlight;
   /// 在途期间又被请求重读的最新一批条目。
   List<AndroidMediaLibraryEntry>? _pendingAndroidMediaEntries;
+  Future<void>? _iosMediaMetadataInFlight;
+  List<IosMediaLibraryEntry>? _pendingIosMediaEntries;
   bool _hasPermission = false;
   late final ScannerServiceRoots _roots;
   late final ScannerMetadataStore _metadataStore;
@@ -2316,6 +2319,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       MetadataHelper.invalidatePermissionCache();
       return granted;
     }
+    if (Platform.isIOS) {
+      final controller = _playerController;
+      if (controller == null) return false;
+      return request
+          ? controller.ensureIosMediaLibraryPermission()
+          : controller.hasIosMediaLibraryPermission();
+    }
     return true; // Assume granted on other platforms for now
   }
 
@@ -2327,8 +2337,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       'hasPermission=$_hasPermission '
       'playerController=${_playerController != null}',
     );
-    if (!Platform.isAndroid) {
-      debugPrint('[ScannerService] scanSystemMedia skipped: Android only');
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      debugPrint('[ScannerService] scanSystemMedia skipped: mobile only');
       return;
     }
     if (!_hasPermission) {
@@ -2337,6 +2347,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     try {
+      if (Platform.isIOS) {
+        await _scanIosSystemMedia();
+        return;
+      }
       if (Platform.isAndroid) {
         final controller = _playerController;
         if (controller == null) {
@@ -2817,6 +2831,201 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
     unawaited(_refreshFolderCoversForRoots(['system']));
+  }
+
+  Future<void> _scanIosSystemMedia() async {
+    final controller = _playerController;
+    if (controller == null) {
+      debugPrint(
+        'scanSystemMedia skipped: AudioCoreController is not available yet.',
+      );
+      return;
+    }
+
+    final scanResult = await controller.scanIosMediaLibrary();
+    _hasPermission = scanResult.permissionGranted;
+    if (!scanResult.permissionGranted) {
+      _setSystemMediaFolder(null);
+      notifyListeners();
+      return;
+    }
+
+    final keptEntries = scanResult.entries
+        .where(
+          (entry) =>
+              !_shouldSkipShortAudioDuration(entry.duration.inMilliseconds),
+        )
+        .toList(growable: false);
+    final skippedEntryPaths = scanResult.entries
+        .where(
+          (entry) =>
+              _shouldSkipShortAudioDuration(entry.duration.inMilliseconds),
+        )
+        .map((entry) => entry.uri.trim())
+        .where((uri) => uri.isNotEmpty)
+        .toList(growable: false);
+    if (skippedEntryPaths.isNotEmpty) {
+      _metadataStore.deleteMissingFromCache(skippedEntryPaths);
+    }
+
+    if (keptEntries.isEmpty) {
+      _setSystemMediaFolder(null);
+      await MetadataDatabase().syncSongSourcePresence(
+        sourceMask: SongSourceFlags.systemMedia,
+        presentPaths: const [],
+      );
+      notifyListeners();
+      return;
+    }
+
+    final filePaths = keptEntries
+        .map((entry) => entry.uri.trim())
+        .where((uri) => uri.isNotEmpty)
+        .toList(growable: false);
+    final metadataByPath = filePaths.isEmpty
+        ? <String, SongMetadata>{}
+        : await MetadataDatabase().getSongMetadataByPaths(filePaths);
+
+    _setSystemMediaFolder(
+      _treeBuilder.buildIosMediaLibrary(
+        keptEntries,
+        metadataByPath,
+        _compareNaturally,
+        unknownArtist: _l10n().unknownArtist,
+        unknownAlbum: _l10n().unknownAlbum,
+      ),
+    );
+    if (_systemMediaFolder != null) {
+      _folderSorter.sortFolderRecursiveForTree(
+        _systemMediaFolder!,
+        resolveSettings: _resolveSortSettingsForFolder,
+      );
+    }
+    await MetadataDatabase().syncSongSourcePresence(
+      sourceMask: SongSourceFlags.systemMedia,
+      presentPaths: filePaths,
+    );
+    notifyListeners();
+
+    unawaited(_refreshFolderCoversForRoots(['system']));
+    unawaited(_processAndSaveIosSongsBackground(keptEntries));
+  }
+
+  Future<void> _processAndSaveIosSongsBackground(
+    List<IosMediaLibraryEntry> entries,
+  ) async {
+    _pendingIosMediaEntries = entries;
+    if (_iosMediaMetadataInFlight != null) return;
+
+    while (true) {
+      final batch = _pendingIosMediaEntries;
+      if (batch == null) break;
+      _pendingIosMediaEntries = null;
+
+      final future = _saveIosEntriesMetadataBatch(batch);
+      _iosMediaMetadataInFlight = future;
+      try {
+        await future;
+      } finally {
+        _iosMediaMetadataInFlight = null;
+      }
+    }
+    unawaited(_refreshFolderCoversForRoots(['system']));
+  }
+
+  Future<void> _saveIosEntriesMetadataBatch(
+    List<IosMediaLibraryEntry> entries,
+  ) async {
+    final player = _playerController;
+    if (player == null) return;
+
+    String? thumbnailsDirPath;
+    try {
+      final supportDir = await getApplicationSupportDirectory();
+      final dir = Directory(p.join(supportDir.path, 'thumbnails'));
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      thumbnailsDirPath = dir.path;
+    } catch (_) {}
+
+    final paths = entries
+        .map((e) => e.uri.trim())
+        .where((p) => p.isNotEmpty)
+        .toList(growable: false);
+    final existingByPath = paths.isEmpty
+        ? <String, SongMetadata>{}
+        : await MetadataDatabase().getSongMetadataByPaths(paths);
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    for (final entry in entries) {
+      await _waitUntilResumed();
+      final path = entry.uri.trim();
+      if (path.isEmpty) continue;
+
+      try {
+        final existing = existingByPath[path];
+        String? thumbnailPath = existing?.thumbnailPath;
+        bool? hasArtwork = existing?.hasArtwork;
+
+        if ((thumbnailPath == null || !File(thumbnailPath).existsSync()) &&
+            thumbnailsDirPath != null &&
+            hasArtwork != false) {
+          final bytes = await player.extractIosMediaArtwork(
+            entry.id,
+            maxSize: vynodyArtworkThumbnailSize,
+          );
+          if (bytes != null && bytes.isNotEmpty) {
+            final safeId = entry.id.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+            final thumbFile = File(p.join(thumbnailsDirPath, 'ios_$safeId.jpg'));
+            await thumbFile.writeAsBytes(bytes, flush: true);
+            thumbnailPath = thumbFile.path;
+            hasArtwork = true;
+          } else {
+            hasArtwork = false;
+          }
+        }
+
+        final metadata = SongMetadata(
+          id: existing?.id,
+          mediaId: int.tryParse(entry.id) ?? existing?.mediaId,
+          path: path,
+          title: (existing != null && existing.isAppModified)
+              ? existing.title
+              : entry.label,
+          album: (existing != null && existing.isAppModified)
+              ? existing.album
+              : (entry.album ?? _l10n().unknownAlbum),
+          artist: (existing != null && existing.isAppModified)
+              ? existing.artist
+              : (entry.artist ?? _l10n().unknownArtist),
+          albumArtist: (existing != null && existing.isAppModified)
+              ? existing.albumArtist
+              : entry.albumArtist,
+          duration: entry.duration.inMilliseconds,
+          thumbnailPath: thumbnailPath,
+          artworkPath: existing?.artworkPath,
+          artworkWidth: existing?.artworkWidth,
+          artworkHeight: existing?.artworkHeight,
+          trackNumber: (existing != null && existing.isAppModified)
+              ? existing.trackNumber
+              : entry.trackNumber,
+          genres: (existing != null && existing.isAppModified)
+              ? existing.genres
+              : (entry.genre != null ? [entry.genre!] : null),
+          sourceFlags: (existing?.sourceFlags ?? 0) | SongSourceFlags.systemMedia,
+          isAppModified: existing?.isAppModified ?? false,
+          hasArtwork: hasArtwork,
+          metadataTextScanned: 1,
+          metadataImgScanned: 1,
+          createdAt: existing?.createdAt ?? nowMs,
+        );
+        await MetadataDatabase().insertOrUpdateSong(metadata);
+        _metadataStore.cacheMetadata(metadata);
+      } catch (e) {
+        debugPrint('iOS background metadata save error for $path: $e');
+      }
+    }
   }
 
   Future<void> _processEntriesBackground<T>(
@@ -3839,7 +4048,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     _failedThumbnailPaths.clear();
     _watchedFileMtimes.clear();
-    if (rescanSystemMedia && Platform.isAndroid && _hasPermission) {
+    if (rescanSystemMedia &&
+        (Platform.isAndroid || Platform.isIOS) &&
+        _hasPermission) {
       unawaited(scanSystemMedia());
     }
     await _scanRootsWithFullFlow(

@@ -467,7 +467,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
           isSelectionMode: isRootSelectionMode,
           selectedFolderPaths: widget.selectedRootPaths,
           reorderController: _reorderController,
-          showSystemMedia: Platform.isAndroid,
+          showSystemMedia: Platform.isAndroid || Platform.isIOS,
           hasPermission: hasPermission,
           systemMediaTitle: l10n.systemMediaLibrary,
           systemMediaSubtitle: l10n.needPermissionToScan,

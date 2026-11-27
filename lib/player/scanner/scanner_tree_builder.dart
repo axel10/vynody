@@ -50,6 +50,49 @@ class ScannerTreeBuilder {
     );
   }
 
+  /// Builds a two-level virtual directory tree (`<Artist>/<Album>`) for
+  /// iOS `MPMediaLibrary` entries under the `system` root.
+  MusicFolder buildIosMediaLibrary(
+    List<IosMediaLibraryEntry> entries,
+    Map<String, SongMetadata> metadataByPath,
+    int Function(String a, String b) compareNaturally, {
+    String? unknownArtist,
+    String? unknownAlbum,
+  }) {
+    final fallbackArtist = unknownArtist ?? _l10n().unknownArtist;
+    final fallbackAlbum = unknownAlbum ?? _l10n().unknownAlbum;
+    final items = <_FolderItem>[];
+
+    for (final entry in entries) {
+      final path = entry.uri.trim();
+      if (path.isEmpty) continue;
+      final meta = metadataByPath[path];
+      final artist = _sanitizeVirtualSegment(
+        _cleanText(meta?.albumArtist) ??
+            _cleanText(meta?.artist) ??
+            _cleanText(entry.albumArtist) ??
+            _cleanText(entry.artist) ??
+            fallbackArtist,
+      );
+      final album = _sanitizeVirtualSegment(
+        _cleanText(meta?.album) ?? _cleanText(entry.album) ?? fallbackAlbum,
+      );
+      items.add(
+        _FolderItem(
+          file: musicFileFromIosEntry(entry, path: path, metadata: meta),
+          folderPath: '$artist/$album',
+        ),
+      );
+    }
+
+    return _buildFolderTree(
+      items,
+      compareNaturally,
+      rootPath: 'system',
+      rootName: _l10n().systemMediaLibrary,
+    );
+  }
+
   MusicFolder buildFolderTreeFromMetadata(
     Iterable<SongMetadata> songs,
     int Function(String a, String b) compareNaturally, {
@@ -480,6 +523,37 @@ class ScannerTreeBuilder {
       lastModifiedTime: resolvedMetadata?.lastModifiedTime,
       hasArtwork: resolvedMetadata?.hasArtwork,
     );
+  }
+
+  MusicFile musicFileFromIosEntry(
+    IosMediaLibraryEntry entry, {
+    required String path,
+    SongMetadata? metadata,
+  }) {
+    final parsedId = int.tryParse(entry.id);
+    final resolvedMetadata = metadata;
+    return MusicFile(
+      path: path,
+      name: entry.label,
+      title: _cleanText(resolvedMetadata?.title ?? entry.title),
+      artist: _cleanText(resolvedMetadata?.artist ?? entry.artist),
+      album: _cleanText(resolvedMetadata?.album ?? entry.album),
+      trackNumber: resolvedMetadata?.trackNumber ?? entry.trackNumber,
+      durationMillis:
+          resolvedMetadata?.duration ?? entry.duration.inMilliseconds,
+      id: parsedId ?? resolvedMetadata?.mediaId ?? resolvedMetadata?.id,
+      mediaUri: entry.uri,
+      thumbnailPath: resolvedMetadata?.thumbnailPath,
+      artworkPath: resolvedMetadata?.artworkPath,
+      artworkWidth: resolvedMetadata?.artworkWidth,
+      artworkHeight: resolvedMetadata?.artworkHeight,
+      lastModifiedTime: resolvedMetadata?.lastModifiedTime,
+      hasArtwork: resolvedMetadata?.hasArtwork,
+    );
+  }
+
+  String _sanitizeVirtualSegment(String segment) {
+    return segment.replaceAll('/', '／').replaceAll('\\', '＼').trim();
   }
 
   String? _cleanText(String? value) {

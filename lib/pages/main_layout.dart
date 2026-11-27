@@ -679,9 +679,13 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
 
       // 文件存在性校验
-      final exists = path.startsWith('content://') || File(path).existsSync();
+      final exists = path.startsWith('content://') ||
+          path.startsWith('ipod-library://') ||
+          File(path).existsSync();
       final isMusic =
-          path.startsWith('content://') || MusicFileUtils.isMusicFilePath(path);
+          path.startsWith('content://') ||
+          path.startsWith('ipod-library://') ||
+          MusicFileUtils.isMusicFilePath(path);
       debugPrint(
         '[external-open] _handleArgs inspect path=$path exists=$exists isMusic=$isMusic',
       );

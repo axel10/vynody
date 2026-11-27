@@ -111,8 +111,12 @@ Future<void> _handleFileOpenArgs(
     }
 
     // 检查文件是否存在
-    final exists = path.startsWith('content://') || File(path).existsSync();
-    final isMusic = path.startsWith('content://') || MusicFileUtils.isMusicFilePath(path);
+    final exists = path.startsWith('content://') ||
+        path.startsWith('ipod-library://') ||
+        File(path).existsSync();
+    final isMusic = path.startsWith('content://') ||
+        path.startsWith('ipod-library://') ||
+        MusicFileUtils.isMusicFilePath(path);
     AppLog.log(
       '[external-open] inspect path=$path exists=$exists isMusic=$isMusic',
       mirrorToConsole: true,

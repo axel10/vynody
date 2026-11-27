@@ -226,7 +226,8 @@ class MetadataHelper {
     }
     if (trimmed.startsWith('http://') ||
         trimmed.startsWith('https://') ||
-        trimmed.startsWith('content://')) {
+        trimmed.startsWith('content://') ||
+        trimmed.startsWith('ipod-library://')) {
       return true;
     }
 
@@ -255,6 +256,7 @@ class MetadataHelper {
     final resolvedPath = ScannerPathUtils.resolveIosSandboxPath(filePath);
     if (!Platform.isAndroid ||
         resolvedPath.startsWith('content://') ||
+        resolvedPath.startsWith('ipod-library://') ||
         resolvedPath.startsWith('http://') ||
         resolvedPath.startsWith('https://') ||
         resolvedPath.startsWith('subsonic://') ||
