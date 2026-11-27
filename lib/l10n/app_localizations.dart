@@ -10968,7 +10968,7 @@ abstract class AppLocalizations {
   /// No description provided for @addFolder.
   ///
   /// In zh, this message translates to:
-  /// **'添加文件夹'**
+  /// **'本地文件夹'**
   String get addFolder;
 
   /// No description provided for @saveAndScan.

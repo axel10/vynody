@@ -2267,7 +2267,7 @@
   "selectFoldersToScan": "Sélectionner les dossiers musicaux à analyser",
   "noRootFoldersSelected": "Aucun dossier racine sélectionné",
   "tapAddFolderTip": "Appuyez sur le bouton ci-dessous pour ajouter vos dossiers musicaux locaux",
-  "addFolder": "Ajouter un dossier",
+  "addFolder": "Dossier local",
   "saveAndScan": "Enregistrer et analyser",
   "filterBySource": "Filtrer par source",
   "collapsePlaybackTip": "Glisser vers le bas ou appuyer pour réduire",

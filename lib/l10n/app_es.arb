@@ -2267,7 +2267,7 @@
   "selectFoldersToScan": "Seleccionar carpetas de música para escanear",
   "noRootFoldersSelected": "No hay carpetas raíz seleccionadas",
   "tapAddFolderTip": "Toca el botón de abajo para añadir tus carpetas de música locales",
-  "addFolder": "Añadir carpeta",
+  "addFolder": "Carpeta local",
   "saveAndScan": "Guardar y escanear",
   "filterBySource": "Filtrar por origen",
   "collapsePlaybackTip": "Desliza hacia abajo o toca para contraer",

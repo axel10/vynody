@@ -2267,7 +2267,7 @@
   "selectFoldersToScan": "스캔할 음악 폴더 선택",
   "noRootFoldersSelected": "선택된 루트 폴더가 없습니다",
   "tapAddFolderTip": "아래 버튼을 눌러 로컬 음악 폴더를 추가하세요",
-  "addFolder": "폴더 추가",
+  "addFolder": "로컬 폴더",
   "saveAndScan": "저장 및 스캔",
   "filterBySource": "소스별 필터링",
   "collapsePlaybackTip": "아래로 당기거나 탭하여 접기",

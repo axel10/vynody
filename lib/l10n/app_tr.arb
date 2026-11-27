@@ -2399,7 +2399,7 @@
   "selectFoldersToScan": "Taranacak müzik klasörlerini seçin",
   "noRootFoldersSelected": "Seçili Kök Klasör Yok",
   "tapAddFolderTip": "Yerel müzik klasörlerinizi eklemek için aşağıdaki düğmeye dokunun",
-  "addFolder": "Klasör Ekle",
+  "addFolder": "Yerel Klasör",
   "saveAndScan": "Kaydet ve Tara",
   "filterBySource": "Kaynağa Göre Filtrele",
   "collapsePlaybackTip": "Daraltmak için aşağı sürükleyin veya dokunun",

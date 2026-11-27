@@ -5909,7 +5909,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tapAddFolderTip => '请点击下方按钮添加你的本地音乐文件夹';
 
   @override
-  String get addFolder => '添加文件夹';
+  String get addFolder => '本地文件夹';
 
   @override
   String get saveAndScan => '保存并扫描';
@@ -11911,7 +11911,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get tapAddFolderTip => '請點擊下方按鈕新增你的本地音樂資料夾';
 
   @override
-  String get addFolder => '新增資料夾';
+  String get addFolder => '本地資料夾';
 
   @override
   String get saveAndScan => '儲存並掃描';

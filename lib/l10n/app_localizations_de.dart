@@ -6284,7 +6284,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Tippen Sie auf die Schaltfläche unten, um lokale Musikordner hinzuzufügen';
 
   @override
-  String get addFolder => 'Ordner hinzufügen';
+  String get addFolder => 'Lokaler Ordner';
 
   @override
   String get saveAndScan => 'Speichern & Scannen';

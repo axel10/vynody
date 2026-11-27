@@ -6020,7 +6020,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get tapAddFolderTip => '아래 버튼을 눌러 로컬 음악 폴더를 추가하세요';
 
   @override
-  String get addFolder => '폴더 추가';
+  String get addFolder => '로컬 폴더';
 
   @override
   String get saveAndScan => '저장 및 스캔';

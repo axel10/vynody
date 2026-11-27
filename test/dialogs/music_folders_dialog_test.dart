@@ -137,8 +137,14 @@ void main() {
     );
   }
 
-  testWidgets('MusicFoldersDialog renders 2+1 buttons and remote server list',
+  testWidgets(
+      'MusicFoldersDialog renders 3 stacked action buttons and remote server list',
       (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     bool? closedResult;
     await tester.pumpWidget(
       buildDialogHost(
@@ -151,11 +157,21 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    // Header & 2+1 buttons
+    // Header & 3 stacked buttons
     expect(find.text('添加媒体源'), findsOneWidget);
-    expect(find.text('添加文件夹'), findsOneWidget);
-    expect(find.text('远程媒体库'), findsOneWidget);
-    expect(find.text('保存并扫描'), findsOneWidget);
+    final addFolderFinder = find.text('本地文件夹');
+    final remoteLibFinder = find.text('远程媒体库');
+    final saveAndScanFinder = find.text('保存并扫描');
+    expect(addFolderFinder, findsOneWidget);
+    expect(remoteLibFinder, findsOneWidget);
+    expect(saveAndScanFinder, findsOneWidget);
+
+    // Buttons are stacked vertically in order
+    final addFolderRect = tester.getRect(addFolderFinder);
+    final remoteLibRect = tester.getRect(remoteLibFinder);
+    final saveAndScanRect = tester.getRect(saveAndScanFinder);
+    expect(addFolderRect.bottom, lessThan(remoteLibRect.top));
+    expect(remoteLibRect.bottom, lessThan(saveAndScanRect.top));
 
     // Remote server is shown in list even when rootFolders is empty
     expect(find.text('Navidrome Library'), findsOneWidget);
@@ -167,6 +183,28 @@ void main() {
 
     expect(find.text('暂未添加任何目录'), findsNothing);
     expect(closedResult, isTrue);
+  });
+
+  testWidgets('MusicFoldersDialog places add buttons side-by-side when wide',
+      (tester) async {
+    tester.view.physicalSize = const Size(1000, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildDialogHost(servers: [subsonicServer]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final addFolderRect = tester.getRect(find.text('本地文件夹'));
+    final remoteLibRect = tester.getRect(find.text('远程媒体库'));
+    final saveAndScanRect = tester.getRect(find.text('保存并扫描'));
+
+    expect((addFolderRect.top - remoteLibRect.top).abs(), lessThan(4));
+    expect(addFolderRect.right, lessThan(remoteLibRect.left));
+    expect(addFolderRect.bottom, lessThan(saveAndScanRect.top));
   });
 
   testWidgets('MusicFoldersDialog warns when both folders and servers are empty',

@@ -2658,7 +2658,7 @@
   "selectFoldersToScan": "Select folders to scan",
   "noRootFoldersSelected": "No Root Folders Selected",
   "tapAddFolderTip": "Tap the button below to add your local music folders",
-  "addFolder": "Add Folder",
+  "addFolder": "Local Folder",
   "saveAndScan": "Save & Scan",
   "filterBySource": "Filter by Source",
   "collapsePlaybackTip": "Drag down or tap to collapse",

@@ -2366,7 +2366,7 @@
   "selectFoldersToScan": "スキャンする音楽フォルダを選択",
   "noRootFoldersSelected": "選択されたルートフォルダはありません",
   "tapAddFolderTip": "下のボタンをタップしてローカルの音楽フォルダを追加してください",
-  "addFolder": "フォルダを追加",
+  "addFolder": "ローカルフォルダー",
   "saveAndScan": "保存してスキャン",
   "filterBySource": "ソースで絞り込み",
   "collapsePlaybackTip": "下に引くかタップして閉じる",

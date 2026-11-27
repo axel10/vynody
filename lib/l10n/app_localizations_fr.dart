@@ -6300,7 +6300,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Appuyez sur le bouton ci-dessous pour ajouter vos dossiers musicaux locaux';
 
   @override
-  String get addFolder => 'Ajouter un dossier';
+  String get addFolder => 'Dossier local';
 
   @override
   String get saveAndScan => 'Enregistrer et analyser';

@@ -6298,7 +6298,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Toca el botón de abajo para añadir tus carpetas de música locales';
 
   @override
-  String get addFolder => 'Añadir carpeta';
+  String get addFolder => 'Carpeta local';
 
   @override
   String get saveAndScan => 'Guardar y escanear';

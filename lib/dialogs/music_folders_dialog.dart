@@ -308,7 +308,7 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(
           maxWidth: 500,
-          maxHeight: 580,
+          maxHeight: 680,
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
@@ -404,8 +404,10 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
         ),
       ),
       child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.create_new_folder_outlined,
@@ -431,6 +433,7 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -577,7 +580,7 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
               )
             : const Icon(Icons.create_new_folder_rounded, size: 19),
         label: Text(
-          l10n?.addFolder ?? '添加文件夹',
+          l10n?.addFolder ?? '本地文件夹',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
@@ -632,19 +635,35 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
       ),
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 360) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: addFolderBtn),
+                  const SizedBox(width: 10),
+                  Expanded(child: addRemoteLibraryBtn),
+                ],
+              ),
+              const SizedBox(height: 10),
+              saveAndScanBtn,
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(child: addFolderBtn),
-            const SizedBox(width: 10),
-            Expanded(child: addRemoteLibraryBtn),
+            addFolderBtn,
+            const SizedBox(height: 10),
+            addRemoteLibraryBtn,
+            const SizedBox(height: 10),
+            saveAndScanBtn,
           ],
-        ),
-        const SizedBox(height: 10),
-        SizedBox(width: double.infinity, child: saveAndScanBtn),
-      ],
+        );
+      },
     );
   }
 }

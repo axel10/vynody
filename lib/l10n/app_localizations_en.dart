@@ -6208,7 +6208,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tap the button below to add your local music folders';
 
   @override
-  String get addFolder => 'Add Folder';
+  String get addFolder => 'Local Folder';
 
   @override
   String get saveAndScan => 'Save & Scan';

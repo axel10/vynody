@@ -2267,7 +2267,7 @@
   "selectFoldersToScan": "Zu scannende Musikordner auswählen",
   "noRootFoldersSelected": "Keine Stammordner ausgewählt",
   "tapAddFolderTip": "Tippen Sie auf die Schaltfläche unten, um lokale Musikordner hinzuzufügen",
-  "addFolder": "Ordner hinzufügen",
+  "addFolder": "Lokaler Ordner",
   "saveAndScan": "Speichern & Scannen",
   "filterBySource": "Nach Quelle filtern",
   "collapsePlaybackTip": "Nach unten ziehen oder tippen zum Einklappen",

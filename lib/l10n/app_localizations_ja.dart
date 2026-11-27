@@ -6014,7 +6014,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get tapAddFolderTip => '下のボタンをタップしてローカルの音楽フォルダを追加してください';
 
   @override
-  String get addFolder => 'フォルダを追加';
+  String get addFolder => 'ローカルフォルダー';
 
   @override
   String get saveAndScan => '保存してスキャン';

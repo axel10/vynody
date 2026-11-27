@@ -4184,7 +4184,7 @@
   "selectFoldersToScan": "选择要扫描的音乐文件夹",
   "noRootFoldersSelected": "暂无已选根目录",
   "tapAddFolderTip": "请点击下方按钮添加你的本地音乐文件夹",
-  "addFolder": "添加文件夹",
+  "addFolder": "本地文件夹",
   "saveAndScan": "保存并扫描",
   "filterBySource": "渠道与来源筛选",
   "collapsePlaybackTip": "下拉或点击收起播放页",

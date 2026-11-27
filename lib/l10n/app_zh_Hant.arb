@@ -1982,7 +1982,7 @@
   "selectFoldersToScan": "選擇要掃描的音樂資料夾",
   "noRootFoldersSelected": "暫無已選根目錄",
   "tapAddFolderTip": "請點擊下方按鈕新增你的本地音樂資料夾",
-  "addFolder": "新增資料夾",
+  "addFolder": "本地資料夾",
   "saveAndScan": "儲存並掃描",
   "filterBySource": "管道與來源篩選",
   "collapsePlaybackTip": "下拉或點擊收合播放頁",

@@ -6236,7 +6236,7 @@ class AppLocalizationsTr extends AppLocalizations {
       'Yerel müzik klasörlerinizi eklemek için aşağıdaki düğmeye dokunun';
 
   @override
-  String get addFolder => 'Klasör Ekle';
+  String get addFolder => 'Yerel Klasör';
 
   @override
   String get saveAndScan => 'Kaydet ve Tara';
