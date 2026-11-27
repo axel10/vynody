@@ -702,6 +702,15 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     return false;
   }
 
+  /// Returns whether [path] is currently present in the system media library tree.
+  bool isSystemMediaSong(String path) {
+    final systemFolder = _systemMediaFolder;
+    if (systemFolder == null) return false;
+    final normalized = _normalizePath(path);
+    if (normalized.isEmpty) return false;
+    return systemFolder.allSongPaths.contains(_pathLookupKey(normalized));
+  }
+
   Future<List<MusicFile>> searchSongs(
     String query, {
     String? folderPath,
@@ -734,6 +743,22 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           results.add(root);
         }
       }
+    }
+
+    final systemFolder = _systemMediaFolder;
+    if (systemFolder != null) {
+      void collectSystemFolders(MusicFolder folder) {
+        if (folder.name.toLowerCase().contains(lowercaseQuery)) {
+          if (seenPaths.add(folder.path)) {
+            results.add(folder);
+          }
+        }
+        for (final sub in folder.subFolders) {
+          collectSystemFolders(sub);
+        }
+      }
+
+      collectSystemFolders(systemFolder);
     }
 
     final pendingPaths = <String>[];
@@ -806,6 +831,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   MusicFolder? get systemMediaFolder => _systemMediaFolder;
+
+  @visibleForTesting
+  void setSystemMediaFolderForTest(MusicFolder? folder) {
+    _setSystemMediaFolder(folder);
+  }
 
   void _setSystemMediaFolder(MusicFolder? folder) {
     _systemMediaFolder = folder;

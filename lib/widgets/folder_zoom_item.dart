@@ -7,6 +7,7 @@ import '../widgets/song_thumbnail.dart';
 import 'default_cover_art.dart';
 import 'draggable_folder_item.dart';
 import 'folder_layout_utils.dart';
+import 'system_media_badge.dart';
 
 /// Unified folder item widget that smoothly morphs between List View and Grid View
 /// based on [FolderZoomLayoutMetrics].
@@ -28,6 +29,7 @@ class FolderZoomItem extends StatelessWidget {
     this.customTitle,
     this.enableHero = true,
     this.isIndexed = false,
+    this.showSystemMediaBadge = false,
     this.index,
     this.section,
   });
@@ -54,6 +56,7 @@ class FolderZoomItem extends StatelessWidget {
   final String? customTitle;
   final bool enableHero;
   final bool isIndexed;
+  final bool showSystemMediaBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -94,9 +97,9 @@ class FolderZoomItem extends StatelessWidget {
       coverWidget = defaultCoverWidget;
     }
 
-    Widget? indexBadge;
+    Widget? cornerBadge;
     if (isIndexed) {
-      indexBadge = Positioned(
+      cornerBadge = Positioned(
         top: lerpDouble(3.0, 8.0, gridMorph)!,
         right: lerpDouble(3.0, 8.0, gridMorph)!,
         child: Tooltip(
@@ -119,6 +122,16 @@ class FolderZoomItem extends StatelessWidget {
           ),
         ),
       );
+    } else if (showSystemMediaBadge &&
+        SystemMediaBadge.isSystemFolderPath(folder.path)) {
+      cornerBadge = Positioned(
+        top: lerpDouble(3.0, 6.0, gridMorph)!,
+        right: lerpDouble(3.0, 6.0, gridMorph)!,
+        child: SystemMediaBadge.corner(
+          iconSize: lerpDouble(10.0, 13.0, gridMorph)!,
+          padding: EdgeInsets.all(lerpDouble(2.5, 4.0, gridMorph)!),
+        ),
+      );
     }
 
     final cover = ZoomItemCover(
@@ -126,7 +139,7 @@ class FolderZoomItem extends StatelessWidget {
       isSelected: isSelected,
       isSelectionMode: isSelectionMode,
       onToggleSelect: onTap,
-      badge: indexBadge,
+      badge: cornerBadge,
       child: coverWidget,
     );
 

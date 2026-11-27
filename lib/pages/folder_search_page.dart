@@ -526,6 +526,7 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage>
                                                 crossAxisExtent:
                                                     crossAxisExtent,
                                                 bottomPadding: 0.0,
+                                                showSystemMediaBadge: true,
                                                 isSelectionMode:
                                                     selectionActive,
                                                 selectedFolderPaths:
@@ -593,6 +594,7 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage>
                                                     crossAxisExtent,
                                                 topPadding: 4.0,
                                                 bottomPadding: 0.0,
+                                                showSystemMediaBadge: true,
                                                 isSelectionMode:
                                                     selectionActive,
                                                 selectedSongPaths:
@@ -659,6 +661,7 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage>
                                                 crossAxisExtent:
                                                     crossAxisExtent,
                                                 bottomPadding: 0.0,
+                                                showSystemMediaBadge: true,
                                                 isSelectionMode:
                                                     selectionActive,
                                                 selectedFolderPaths:
@@ -725,6 +728,7 @@ class _FolderSearchPageState extends ConsumerState<FolderSearchPage>
                                                     crossAxisExtent,
                                                 topPadding: 4.0,
                                                 bottomPadding: 0.0,
+                                                showSystemMediaBadge: true,
                                                 isSelectionMode:
                                                     selectionActive,
                                                 selectedSongPaths:

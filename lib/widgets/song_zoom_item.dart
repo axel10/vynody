@@ -11,7 +11,9 @@ import '../utils/time_format_utils.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/playing_equalizer_icon.dart';
 import '../player/audio/audio_riverpod.dart';
+import '../player/metadata/metadata_database.dart';
 import 'remote_media_badge.dart';
+import 'system_media_badge.dart';
 import 'draggable_song_item.dart';
 import 'folder_layout_utils.dart';
 import 'library_selection_scope.dart';
@@ -31,6 +33,7 @@ class SongZoomItem extends ConsumerWidget {
     this.isHighlighted = false,
     this.customCover,
     this.showRemoteBadge = true,
+    this.showSystemMediaBadge = false,
     this.trailing,
     this.trailingWidth,
     this.dragHandle,
@@ -63,6 +66,9 @@ class SongZoomItem extends ConsumerWidget {
 
   /// Whether to show the remote media badge (cloud icon) in the corner of the cover.
   final bool showRemoteBadge;
+
+  /// Whether to show the system media library badge in the corner of the cover.
+  final bool showSystemMediaBadge;
 
   /// Optional trailing widget in list mode (e.g. favorite button + context menu).
   final Widget? trailing;
@@ -144,17 +150,35 @@ class SongZoomItem extends ConsumerWidget {
       borderRadius: BorderRadius.zero,
     );
 
+    final isSystemMedia = showSystemMediaBadge &&
+        !RemoteMediaHelper.isRemote(song) &&
+        (song.path.startsWith('ipod-library://') ||
+            ((metadata?.sourceFlags ?? 0) & SongSourceFlags.systemMedia) != 0 ||
+            ref.watch(
+              scannerServiceProvider.select(
+                (s) => s.isSystemMediaSong(song.path),
+              ),
+            ));
+
     final coverWidget = ExcludeSemantics(
       child: Opacity(
         opacity: isMissing ? 0.35 : 1.0,
-        child: RemoteMediaBadge.wrapCover(
-          showRemoteBadge: showRemoteBadge,
+        child: SystemMediaBadge.wrapCover(
+          show: isSystemMedia,
           fit: StackFit.expand,
-          song: song,
-          title: song.displayName,
-          top: 4.0,
-          right: 4.0,
-          child: customCover ?? thumbnail,
+          top: lerpDouble(2.5, 4.0, gridMorph)!,
+          right: lerpDouble(2.5, 4.0, gridMorph)!,
+          iconSize: lerpDouble(10.0, 13.0, gridMorph)!,
+          padding: lerpDouble(2.5, 4.0, gridMorph)!,
+          child: RemoteMediaBadge.wrapCover(
+            showRemoteBadge: showRemoteBadge,
+            fit: StackFit.expand,
+            song: song,
+            title: song.displayName,
+            top: 4.0,
+            right: 4.0,
+            child: customCover ?? thumbnail,
+          ),
         ),
       ),
     );

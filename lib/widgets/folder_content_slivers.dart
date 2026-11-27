@@ -141,6 +141,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
 
   /// 本段身份，必须与 `SliverAnimatedZoomGridDelegate.section` 一致。
   final Object? section;
+  final bool showSystemMediaBadge;
 
   const FolderSubfoldersSliver({
     super.key,
@@ -165,6 +166,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
     this.bottomPadding,
     this.crossAxisExtent,
     this.section,
+    this.showSystemMediaBadge = false,
   });
 
   double get _effectiveZoomScale => snapFolderZoomScale(zoomScale);
@@ -474,6 +476,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
             representativeSong: representativeSong,
             isSelected: isSelected,
             isSelectionMode: isSelectionMode,
+            showSystemMediaBadge: showSystemMediaBadge,
             onTap: onFolderTap != null
                 ? (isAvailable || isSelectionMode
                     ? () => onFolderTap?.call(folder, folderIndex)
@@ -524,6 +527,7 @@ class FolderSongsSliver extends StatelessWidget {
 
   /// 本段身份，必须与 `SliverAnimatedZoomGridDelegate.section` 一致。
   final Object? section;
+  final bool showSystemMediaBadge;
 
   const FolderSongsSliver({
     super.key,
@@ -541,6 +545,7 @@ class FolderSongsSliver extends StatelessWidget {
     this.bottomPadding = 160.0,
     this.crossAxisExtent,
     this.section,
+    this.showSystemMediaBadge = false,
   });
 
   double get _effectiveZoomScale => snapFolderZoomScale(zoomScale);
@@ -578,6 +583,7 @@ class FolderSongsSliver extends StatelessWidget {
           isSelectionMode: isSelectionMode,
           selectedPaths: selectedSongPaths,
           isHighlighted: highlightedSongPath == file.path,
+          showSystemMediaBadge: showSystemMediaBadge,
           onTap: () => onSongTap(file, fileIndex),
           onLongPress: () => onSongLongPress?.call(file),
           onSecondaryTapDown: (details) {

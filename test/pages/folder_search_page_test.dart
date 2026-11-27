@@ -21,6 +21,7 @@ import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/widgets/folder_zoom_item.dart';
 import 'package:vynody/widgets/library_large_title.dart';
 import 'package:vynody/widgets/library_search_field.dart';
+import 'package:vynody/widgets/system_media_badge.dart';
 
 import 'package:vynody/player/settings/settings_service.dart';
 
@@ -360,5 +361,71 @@ void main() {
     await tester.longPress(find.text('Rock Song'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('已选 2 项'), findsOneWidget);
+  });
+
+  testWidgets(
+      'FolderSearchPage shows SystemMediaBadge only on system media folders and songs',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final localSong = MusicFile(
+      path: '/root/music/local_rock.mp3',
+      name: 'local_rock.mp3',
+      title: 'Local Rock',
+      artist: 'Local Band',
+    );
+    final iosSystemSong = MusicFile(
+      path: 'ipod-library://item/item.mp3?id=42',
+      name: 'system_rock.mp3',
+      title: 'System Rock',
+      artist: 'System Band',
+    );
+    final androidSystemSong = MusicFile(
+      path: '/storage/emulated/0/Music/Rock/android_rock.mp3',
+      name: 'android_rock.mp3',
+      title: 'Android Rock',
+      artist: 'Android Band',
+    );
+    final localFolder = MusicFolder(
+      path: '/root/music/Rock',
+      name: 'Rock',
+      files: [localSong],
+    );
+    final systemFolder = MusicFolder(
+      path: 'system/Rock',
+      name: 'Rock',
+      files: [iosSystemSong, androidSystemSong],
+    );
+    final systemRoot = MusicFolder(
+      path: 'system',
+      name: '系统媒体库',
+      subFolders: [systemFolder],
+    );
+
+    final stubScanner = _StubScannerService(
+      mockSongs: [localSong, iosSystemSong, androidSystemSong],
+      mockFolders: [localFolder, systemFolder],
+      mockSongCounts: {
+        '/root/music/Rock': 1,
+        'system/Rock': 2,
+      },
+    )..setSystemMediaFolderForTest(systemRoot);
+
+    expect(stubScanner.isSystemMediaSong(androidSystemSong.path), isTrue);
+    expect(stubScanner.isSystemMediaSong(localSong.path), isFalse);
+
+    await tester.pumpWidget(createSubject(scanner: stubScanner));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'rock');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // 2 个文件夹 + 3 首歌曲：其中 system/Rock、iosSystemSong、androidSystemSong 各带 1 个系统媒体库徽章，共 3 个
+    expect(find.byType(FolderZoomItem), findsNWidgets(2));
+    expect(find.byType(SystemMediaBadge), findsNWidgets(3));
   });
 }
