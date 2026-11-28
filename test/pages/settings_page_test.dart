@@ -1,12 +1,18 @@
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/dialogs/shortcut_settings_dialog.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/audio_service.dart';
+import 'package:vynody/player/audio/audio_snapshot.dart';
 import 'package:vynody/pages/settings/sections/about_section.dart';
 import 'package:vynody/pages/settings/sections/acoustid_section.dart';
 import 'package:vynody/pages/settings/sections/audio_section.dart';
@@ -20,6 +26,7 @@ import 'package:vynody/pages/settings/widgets/settings_dropdown_tile.dart';
 import 'package:vynody/pages/settings/widgets/settings_group_card.dart';
 import 'package:vynody/pages/settings/widgets/settings_section_header.dart';
 import 'package:vynody/pages/settings_page.dart';
+import 'package:vynody/player/metadata/loudness_backfill_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/shortcut_bindings.dart';
@@ -382,4 +389,132 @@ void main() {
     expect(find.text(l10n.proxySettingsTitle), findsWidgets);
     expect(find.text(l10n.proxyMode), findsOneWidget);
   });
+
+  testWidgets(
+    'AudioSection loudness switch starts and stops backfill automatically',
+    (tester) async {
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+      final notifier = _RecordingLoudnessBackfillNotifier();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            settingsServiceProvider.overrideWith((ref) => settings),
+            audioServiceProvider.overrideWith((ref) => _FakeAudioService()),
+            loudnessBackfillProvider.overrideWith(() => notifier),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: ListenableBuilder(
+                listenable: settings,
+                builder: (context, _) => AudioSection(settings: settings),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final switchFinder = find.byKey(
+        const ValueKey<String>('settings_loudness_normalization_switch'),
+      );
+      await tester.ensureVisible(switchFinder);
+      await tester.pumpAndSettle();
+
+      // Enable -> starts backfill automatically.
+      await tester.tap(switchFinder);
+      await tester.pumpAndSettle();
+      expect(settings.loudnessNormalizationEnabled, isTrue);
+      expect(notifier.startBackfillCalls, 1);
+      expect(notifier.requestStopCalls, 0);
+
+      // Disable -> requests stop automatically.
+      await tester.tap(switchFinder);
+      await tester.pumpAndSettle();
+      expect(settings.loudnessNormalizationEnabled, isFalse);
+      expect(notifier.requestStopCalls, 1);
+
+      // Re-enable -> resumes backfill automatically.
+      await tester.tap(switchFinder);
+      await tester.pumpAndSettle();
+      expect(settings.loudnessNormalizationEnabled, isTrue);
+      expect(notifier.startBackfillCalls, 2);
+    },
+  );
+}
+
+class _RecordingLoudnessBackfillNotifier extends LoudnessBackfillNotifier {
+  int startBackfillCalls = 0;
+  int requestStopCalls = 0;
+
+  @override
+  LoudnessBackfillState build() => const LoudnessBackfillState();
+
+  @override
+  Future<void> refreshStats() async {}
+
+  @override
+  Future<void> startBackfill({
+    bool Function()? isPlaying,
+    LoudnessPriorityTarget? Function()? currentTarget,
+    bool includeFailed = false,
+  }) async {
+    startBackfillCalls += 1;
+    state = state.copyWith(isRunning: true, isStopping: false);
+  }
+
+  @override
+  void requestStop() {
+    requestStopCalls += 1;
+    if (!state.isRunning) return;
+    state = state.copyWith(isStopping: true);
+  }
+}
+
+class _FakeAudioService extends AudioService {
+  @override
+  AudioSnapshot build() => AudioSnapshot(
+        isPlaying: false,
+        isTransitioning: false,
+        isLastActionNext: null,
+        currentMusic: null,
+        position: Duration.zero,
+        duration: Duration.zero,
+        volume: 1.0,
+        isMuted: false,
+        currentIndex: 0,
+        isRandomMode: false,
+        isShuffleRandomMode: false,
+        playbackMode: AppPlaybackMode.queue,
+        equalizerConfig: EqualizerConfig(
+          enabled: false,
+          bandCount: 10,
+          preampDb: 0.0,
+          bassBoostDb: 0.0,
+          bassBoostFrequencyHz: 80.0,
+          bassBoostQ: 1.0,
+          bandGainsDb: Float32List(10),
+        ),
+        currentVisualizerOptions: const VisualizerOptimizationOptions(
+          frequencyGroups: 100,
+        ),
+        historyCursor: null,
+        deckCursor: null,
+        isVisualizerEnabled: false,
+        dynamicStartColor: null,
+        dynamicEndColor: null,
+        isLyricsActive: false,
+        sleepTimerRemaining: null,
+        sleepTimerDuration: null,
+        playbackSpeed: 1.0,
+      );
+
+  @override
+  bool get isPlaying => false;
+
+  @override
+  MusicFile? get currentMusic => null;
 }

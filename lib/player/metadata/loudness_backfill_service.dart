@@ -175,6 +175,7 @@ class LoudnessBackfillState {
 class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
   static const int _maxAlbumGroupSize = 40;
   bool _cancelRequested = false;
+  Future<void>? _activeRun;
   void Function(String path)? _onSongUpdated;
 
   @override
@@ -211,9 +212,35 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
     LoudnessPriorityTarget? Function()? currentTarget,
     bool includeFailed = false,
   }) async {
-    if (state.isRunning) return;
+    if (state.isRunning) {
+      if (!state.isStopping) return;
+      _cancelRequested = false;
+      state = state.copyWith(isStopping: false);
+      await _activeRun;
+      if (_cancelRequested || state.isRunning) return;
+    }
     _cancelRequested = false;
 
+    final run = _runBackfill(
+      isPlaying: isPlaying,
+      currentTarget: currentTarget,
+      includeFailed: includeFailed,
+    );
+    _activeRun = run;
+    try {
+      await run;
+    } finally {
+      if (identical(_activeRun, run)) {
+        _activeRun = null;
+      }
+    }
+  }
+
+  Future<void> _runBackfill({
+    bool Function()? isPlaying,
+    LoudnessPriorityTarget? Function()? currentTarget,
+    bool includeFailed = false,
+  }) async {
     state = state.copyWith(
       isRunning: true,
       isStopping: false,

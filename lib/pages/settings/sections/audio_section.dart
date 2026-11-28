@@ -719,11 +719,34 @@ class AudioSection extends ConsumerWidget {
     );
   }
 
+  void _startLoudnessBackfill(
+    WidgetRef ref, {
+    bool includeFailed = false,
+  }) {
+    final backfillNotifier = ref.read(loudnessBackfillProvider.notifier);
+    final audio = ref.read(audioServiceProvider);
+    unawaited(
+      backfillNotifier.startBackfill(
+        includeFailed: includeFailed,
+        isPlaying: () => audio.isPlaying,
+        currentTarget: () {
+          final current = audio.currentMusic;
+          if (current == null) return null;
+          return LoudnessPriorityTarget(
+            path: current.path,
+            album: current.album,
+            albumArtist: current.albumArtist,
+            artist: current.artist,
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildLoudnessNormalizationCard(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final backfillState = ref.watch(loudnessBackfillProvider);
     final backfillNotifier = ref.read(loudnessBackfillProvider.notifier);
-    final audio = ref.read(audioServiceProvider);
     final enabled = settings.loudnessNormalizationEnabled;
 
     return SettingsGroupCard(
@@ -738,7 +761,9 @@ class AudioSection extends ConsumerWidget {
           onChanged: (value) {
             settings.loudnessNormalizationEnabled = value;
             if (value) {
-              unawaited(backfillNotifier.refreshStats());
+              _startLoudnessBackfill(ref);
+            } else {
+              backfillNotifier.requestStop();
             }
           },
         ),
@@ -879,23 +904,7 @@ class AudioSection extends ConsumerWidget {
                         key: const ValueKey<String>(
                           'settings_loudness_backfill_button',
                         ),
-                        onPressed: () {
-                          unawaited(
-                            backfillNotifier.startBackfill(
-                              isPlaying: () => audio.isPlaying,
-                              currentTarget: () {
-                                final current = audio.currentMusic;
-                                if (current == null) return null;
-                                return LoudnessPriorityTarget(
-                                  path: current.path,
-                                  album: current.album,
-                                  albumArtist: current.albumArtist,
-                                  artist: current.artist,
-                                );
-                              },
-                            ),
-                          );
-                        },
+                        onPressed: () => _startLoudnessBackfill(ref),
                         icon: const Icon(Icons.analytics_outlined),
                         label: Text(l10n.loudnessBackfillButton),
                       ),
@@ -904,24 +913,10 @@ class AudioSection extends ConsumerWidget {
                           key: const ValueKey<String>(
                             'settings_loudness_retry_failed_button',
                           ),
-                          onPressed: () {
-                            unawaited(
-                              backfillNotifier.startBackfill(
-                                includeFailed: true,
-                                isPlaying: () => audio.isPlaying,
-                                currentTarget: () {
-                                  final current = audio.currentMusic;
-                                  if (current == null) return null;
-                                  return LoudnessPriorityTarget(
-                                    path: current.path,
-                                    album: current.album,
-                                    albumArtist: current.albumArtist,
-                                    artist: current.artist,
-                                  );
-                                },
-                              ),
-                            );
-                          },
+                          onPressed: () => _startLoudnessBackfill(
+                            ref,
+                            includeFailed: true,
+                          ),
                           icon: const Icon(Icons.refresh_outlined),
                           label: Text(
                             l10n.loudnessBackfillRetryFailedButton(
