@@ -35,6 +35,21 @@ class LoudnessAnalysisGroup {
   final List<SongMetadata> songs;
 }
 
+/// Resolves the adaptive worker thread count for multithreaded loudness
+/// analysis based on CPU core count and platform class.
+int resolveLoudnessMultithreadedCount({
+  int? processorCount,
+  bool? isMobile,
+}) {
+  final cores = processorCount ?? Platform.numberOfProcessors;
+  if (cores <= 1) return 1;
+  final mobile = isMobile ?? (Platform.isAndroid || Platform.isIOS);
+  if (mobile) {
+    return (cores ~/ 2).clamp(2, 4);
+  }
+  return (cores * 0.75).floor().clamp(2, 8);
+}
+
 /// Builds a normalized album-group key, or `null` for empty/unknown albums.
 String? buildLoudnessAlbumGroupKey({
   required String? album,
@@ -185,7 +200,8 @@ class LoudnessBackfillState {
 
 class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
   static const int _maxAlbumGroupSize = 40;
-  static const int multithreadedAnalysisThreads = 4;
+  static int get multithreadedAnalysisThreads =>
+      resolveLoudnessMultithreadedCount();
   bool _cancelRequested = false;
   Future<void>? _activeRun;
   void Function(String path)? _onSongUpdated;

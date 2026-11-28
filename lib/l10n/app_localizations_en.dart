@@ -6340,7 +6340,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loudnessMultithreadedAnalysisDescription =>
-      'Use 4 worker threads to accelerate loudness analysis. May increase CPU usage and disk I/O.';
+      'Automatically use multiple worker threads based on CPU cores to accelerate loudness analysis. May increase CPU usage and disk I/O.';
 
   @override
   String get loudnessBackfillButton => 'Analyze Missing Loudness Data';

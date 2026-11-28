@@ -458,7 +458,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(settings.loudnessMultithreadedAnalysis, isTrue);
       expect(notifier.restartBackfillCalls, 1);
-      expect(notifier.lastThreads, 4);
+      expect(
+        notifier.lastThreads,
+        LoudnessBackfillNotifier.multithreadedAnalysisThreads,
+      );
 
       // Toggle multithreaded analysis back off while running -> restarts with 1 thread.
       await tester.tap(multithreadSwitchFinder);

@@ -11190,7 +11190,7 @@ abstract class AppLocalizations {
   /// No description provided for @loudnessMultithreadedAnalysisDescription.
   ///
   /// In zh, this message translates to:
-  /// **'使用 4 个线程并发分析响度数据以加快处理速度，可能会提高 CPU 与磁盘负载。'**
+  /// **'根据设备 CPU 核心数自动启用多线程并发分析响度数据以加快处理速度，可能会提高 CPU 与磁盘负载。'**
   String get loudnessMultithreadedAnalysisDescription;
 
   /// No description provided for @loudnessBackfillButton.

@@ -215,4 +215,23 @@ void main() {
       expect(LoudnessSource.failed, lessThan(0));
     });
   });
+
+  group('resolveLoudnessMultithreadedCount', () {
+    test('uses 75% of cores clamped to 2..8 on desktop', () {
+      expect(resolveLoudnessMultithreadedCount(processorCount: 1, isMobile: false), 1);
+      expect(resolveLoudnessMultithreadedCount(processorCount: 2, isMobile: false), 2);
+      expect(resolveLoudnessMultithreadedCount(processorCount: 4, isMobile: false), 3);
+      expect(resolveLoudnessMultithreadedCount(processorCount: 8, isMobile: false), 6);
+      expect(resolveLoudnessMultithreadedCount(processorCount: 12, isMobile: false), 8);
+      expect(resolveLoudnessMultithreadedCount(processorCount: 16, isMobile: false), 8);
+    });
+
+    test('uses half of cores clamped to 2..4 on mobile', () {
+      expect(resolveLoudnessMultithreadedCount(processorCount: 1, isMobile: true), 1);
+      expect(resolveLoudnessMultithreadedCount(processorCount: 4, isMobile: true), 2);
+      expect(resolveLoudnessMultithreadedCount(processorCount: 6, isMobile: true), 3);
+      expect(resolveLoudnessMultithreadedCount(processorCount: 8, isMobile: true), 4);
+      expect(resolveLoudnessMultithreadedCount(processorCount: 12, isMobile: true), 4);
+    });
+  });
 }

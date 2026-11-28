@@ -6145,7 +6145,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get loudnessMultithreadedAnalysisDescription =>
-      '使用 4 个线程并发分析响度数据以加快处理速度，可能会提高 CPU 与磁盘负载。';
+      '根据设备 CPU 核心数自动启用多线程并发分析响度数据以加快处理速度，可能会提高 CPU 与磁盘负载。';
 
   @override
   String get loudnessBackfillButton => '不足分のラウドネスを解析';
