@@ -10,6 +10,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/widgets/album_cover.dart';
 import 'package:vynody/widgets/app_top_nav_bar.dart';
 import 'package:vynody/widgets/cover_flip_route.dart';
+import 'package:vynody/widgets/song_thumbnail.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
 
@@ -30,6 +31,14 @@ Rect _transformedGlobalRect(WidgetTester tester, Finder finder) {
   final renderBox = tester.renderObject<RenderBox>(finder);
   final matrix = renderBox.getTransformTo(null);
   return MatrixUtils.transformRect(matrix, Offset.zero & renderBox.size);
+}
+
+/// [CoverFlipSource] 恒定包一层 `Opacity`（包装层常驻，禁按状态增删）；
+/// 这里取离封面最近的那层，即它自己的显隐开关。
+double _sourceCoverOpacity(WidgetTester tester, Finder cover) {
+  final finder = find.ancestor(of: cover, matching: find.byType(Opacity));
+  expect(finder, findsWidgets, reason: '封面外层必须常驻 Opacity 包装层');
+  return tester.widget<Opacity>(finder.first).opacity;
 }
 
 void main() {
@@ -238,10 +247,7 @@ void main() {
     // the tapped cover used to be ("点下去的瞬间条目闪一下").
     await tester.pump();
     expect(find.byType(AlbumDetailPage), findsNothing);
-    expect(
-      find.ancestor(of: sourceFinder, matching: find.byType(Opacity)),
-      findsNothing,
-    );
+    expect(_sourceCoverOpacity(tester, sourceFinder), 1.0);
 
     final frame0DetailCoverFinder = find.descendant(
       of: find.byType(AlbumDetailPage, skipOffstage: false),
@@ -268,13 +274,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 16));
 
     // Detail AlbumCover should now be flying and source should be hidden (opacity 0).
-    final sourceOpacity = tester.widget<Opacity>(
-      find.ancestor(
-        of: sourceFinder,
-        matching: find.byType(Opacity),
-      ).first,
-    );
-    expect(sourceOpacity.opacity, 0.0);
+    expect(_sourceCoverOpacity(tester, sourceFinder), 0.0);
 
     final detailCoverFinder = find.descendant(
       of: find.byType(AlbumDetailPage),
@@ -332,12 +332,8 @@ void main() {
 
     await tester.pumpAndSettle();
     expect(find.byType(AlbumDetailPage), findsNothing);
-    // Source cover is visible again (no Opacity(0) wrapper left).
-    final restoredOpacityFinder = find.ancestor(
-      of: sourceFinder,
-      matching: find.byType(Opacity),
-    );
-    expect(restoredOpacityFinder, findsNothing);
+    // Source cover is visible again (back to alpha 1.0 on the resident wrapper).
+    expect(_sourceCoverOpacity(tester, sourceFinder), 1.0);
   });
 
   testWidgets('push 首帧不留空白：源封面可见性只在详情页已绘制的那一帧让出', (tester) async {
@@ -393,10 +389,8 @@ void main() {
         frame == 0 ? Duration.zero : const Duration(milliseconds: 16),
       );
 
-      final bool sourceHidden = find
-          .ancestor(of: sourceFinder, matching: find.byType(Opacity))
-          .evaluate()
-          .any((e) => (e.widget as Opacity).opacity == 0.0);
+      final bool sourceHidden =
+          _sourceCoverOpacity(tester, sourceFinder) == 0.0;
       final bool detailPainted =
           find.byType(AlbumDetailPage).evaluate().isNotEmpty;
 
@@ -423,6 +417,57 @@ void main() {
 
     await tester.pumpAndSettle();
     expect(find.byType(AlbumDetailPage), findsOneWidget);
+  });
+
+  testWidgets('隐藏/恢复只改 alpha，不重建封面子树（SongThumbnail 不丢 State）', (tester) async {
+    late BuildContext hostCtx;
+    await tester.pumpWidget(
+      buildApp(
+        Scaffold(
+          body: Builder(
+            builder: (context) {
+              hostCtx = context;
+              return Center(
+                child: CoverFlipSource(
+                  tag: albumCoverFlipTag(sampleAlbum.id),
+                  borderRadius: 12.0,
+                  sourceBucketSize: 250.0,
+                  child: AlbumCover(
+                    key: const ValueKey('state_source_cover'),
+                    album: sampleAlbum,
+                    size: 96,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final coverFinder = find.byKey(const ValueKey('state_source_cover'));
+    final Element coverElement = tester.element(find.byType(SongThumbnail));
+    expect(_sourceCoverOpacity(tester, coverFinder), 1.0);
+
+    final origin = CoverFlipRegistry.captureOrigin(
+      hostCtx,
+      tag: albumCoverFlipTag(sampleAlbum.id),
+    );
+    expect(origin, isNotNull);
+
+    // 隐藏 → 恢复：包装层常驻，只改 alpha。若这里按状态增删 `Opacity`，
+    // 根 widget 类型切换会让 `SongThumbnail` 的 State 连同已解析的封面一起丢，
+    // 恢复时重走「待解析空白 → 淡入」= 返回列表时那张封面闪一下。
+    origin!.setSourceHidden(true);
+    await tester.pump();
+    expect(_sourceCoverOpacity(tester, coverFinder), 0.0);
+    expect(tester.element(find.byType(SongThumbnail)), same(coverElement));
+
+    origin.setSourceHidden(false);
+    await tester.pump();
+    expect(_sourceCoverOpacity(tester, coverFinder), 1.0);
+    expect(tester.element(find.byType(SongThumbnail)), same(coverElement));
   });
 
   testWidgets('pushAlbumDetailPage falls back to MaterialPageRoute without source', (tester) async {
@@ -525,11 +570,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 60));
 
     final sourceFinder = find.byKey(const ValueKey('source_cover_scroll'));
-    final sourceOpacity = find.ancestor(
-      of: sourceFinder,
-      matching: find.byType(Opacity),
-    );
-    expect(sourceOpacity, findsNothing);
+    expect(_sourceCoverOpacity(tester, sourceFinder), 1.0);
 
     await tester.pumpAndSettle();
     expect(find.byType(AlbumDetailPage), findsNothing);

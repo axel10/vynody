@@ -309,8 +309,16 @@ class _CoverFlipSourceState extends State<CoverFlipSource> {
         valueListenable: _isHiddenNotifier,
         child: widget.child,
         builder: (context, hidden, child) {
-          if (!hidden) return child!;
-          return Opacity(opacity: 0.0, child: child);
+          // 包装层必须常驻：隐藏/恢复若切换根 widget 类型（`child` ↔ `Opacity`），
+          // Flutter 会按 runtimeType 失配把整棵子树重建 —— `SongThumbnail` 的
+          // State 被销毁，封面重走「解析 → 待解析空白 → 淡入」，表现为点进详情、
+          // 返回列表时那张封面闪一下（远程封面 / 会话内刚生成尚未落库的缩略图
+          // 尤其明显，它们的图片来源只存在 State 里）。恒定 `Opacity` 后 hide/show
+          // 只改 alpha；alpha=255 时 `RenderOpacity` 直接绘制子节点，不建图层。
+          return Opacity(
+            opacity: hidden ? 0.0 : 1.0,
+            child: child,
+          );
         },
       ),
     );

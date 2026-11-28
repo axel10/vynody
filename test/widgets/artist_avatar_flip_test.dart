@@ -189,16 +189,18 @@ void main() {
     expect(originRect.width, 96.0);
 
     await tester.tap(find.byKey(const ValueKey('source_tap')));
-    // Frame 0: source hidden, pushed route offstage for one frame, flight cover
-    // already parked at the origin rect.
+    // Frame 0: the pushed route is held offstage by HeroController (not painted),
+    // so the source avatar must still be visible — hiding it here would leave a
+    // one-frame hole ("点下去的瞬间头像闪一下").
     await tester.pump();
+    expect(find.byType(ArtistDetailPage), findsNothing);
     expect(
       tester
           .widget<Opacity>(
             find.ancestor(of: sourceFinder, matching: find.byType(Opacity)).first,
           )
           .opacity,
-      0.0,
+      1.0,
     );
     final flyingCoverFinder = find.descendant(
       of: find.byType(ArtistDetailPage, skipOffstage: false),
@@ -239,9 +241,14 @@ void main() {
 
     await tester.pumpAndSettle();
     expect(find.byType(ArtistDetailPage), findsNothing);
+    // Resident wrapper back to alpha 1.0 (it is never added/removed by state).
     expect(
-      find.ancestor(of: sourceFinder, matching: find.byType(Opacity)),
-      findsNothing,
+      tester
+          .widget<Opacity>(
+            find.ancestor(of: sourceFinder, matching: find.byType(Opacity)).first,
+          )
+          .opacity,
+      1.0,
     );
   });
 
