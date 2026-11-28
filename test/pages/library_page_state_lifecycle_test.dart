@@ -36,7 +36,9 @@ import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/utils/app_icons.dart';
+import 'package:vynody/widgets/album_cover.dart';
 import 'package:vynody/widgets/album_zoom_item.dart';
+import 'package:vynody/widgets/app_top_nav_bar.dart';
 import 'package:vynody/widgets/library_insight_list.dart';
 import 'package:vynody/widgets/section_type_toggle.dart';
 
@@ -165,6 +167,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         settingsServiceProvider.overrideWith((ref) => settingsService),
+        isBlurEffectEnabledProvider.overrideWith((ref) => true),
         audioServiceProvider.overrideWith((ref) => audioService),
         audioSnapshotProvider.overrideWith((ref) => audioService.snapshot),
         audioCurrentMusicProvider.overrideWith((ref) => null),
@@ -475,5 +478,88 @@ void main() {
 
     // 退出详情页后，宿主 PopScope.canPop 恢复为 true
     expect(subHostCanPop(), isTrue, reason: '退出详情页后，宿主恢复允许 pop');
+  });
+
+  testWidgets('竖屏专辑页进详情页触发 FLIP 且末尾封面无垂直跳变', (tester) async {
+    setSurface(tester, const Size(430, 932));
+    final container = createContainer();
+    final keys = List<GlobalKey<NavigatorState>>.generate(
+      9,
+      (index) => GlobalKey<NavigatorState>(debugLabel: 'test_flip_tab_$index'),
+    );
+
+    await tester.pumpWidget(
+      wrap(container, LibrarySubHostPage(tabNavigatorKeys: keys)),
+    );
+    await settle(tester);
+
+    container.read(libraryActiveTabIndexProvider.notifier).set(4);
+    await settle(tester);
+    expect(find.byType(AlbumsTab), findsOneWidget);
+
+    await tester.tap(find.byType(AlbumZoomItem).first);
+    await tester.pump();
+
+    final detailPage = tester.widget<AlbumDetailPage>(
+      find.byType(AlbumDetailPage),
+    );
+    expect(detailPage.coverOrigin, isNotNull);
+
+    final detailCover = find.descendant(
+      of: find.byType(AlbumDetailPage),
+      matching: find.byType(AlbumCover),
+    );
+    // Frame 0: flying cover is immediately onstage at origin without BackdropFilter.
+    expect(detailCover, findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlbumDetailPage),
+        matching: find.byType(BackdropFilter),
+      ),
+      findsNothing,
+    );
+
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(detailCover, findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlbumDetailPage),
+        matching: find.byType(BackdropFilter),
+      ),
+      findsNothing,
+    );
+
+    Rect globalRectOf(Finder finder) {
+      final box = tester.renderObject<RenderBox>(finder);
+      return MatrixUtils.transformRect(
+        box.getTransformTo(null),
+        Offset.zero & box.size,
+      );
+    }
+
+    final startRect = globalRectOf(detailCover);
+    expect(startRect.width, lessThan(260.0));
+
+    await tester.pump(const Duration(milliseconds: 330));
+    final preSettleRect = globalRectOf(detailCover);
+
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.descendant(
+          of: find.byType(AlbumDetailPage),
+          matching: find.byType(AppTopNavBar),
+        ),
+        matching: find.byType(BackdropFilter),
+      ),
+      findsOneWidget,
+    );
+    final settledRect = globalRectOf(detailCover);
+    expect(settledRect.width, closeTo(260.0, 0.5));
+    expect(
+      (settledRect.top - preSettleRect.top).abs(),
+      lessThan(3.0),
+      reason: '动画末尾封面不应突然上移跳变',
+    );
   });
 }

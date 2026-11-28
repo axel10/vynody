@@ -18,6 +18,7 @@ import '../utils/search_selection_utils.dart';
 import '../utils/song_context_menu_utils.dart';
 import '../widgets/album_context_menu.dart';
 import '../widgets/album_cover.dart';
+import '../widgets/cover_flip_route.dart';
 import '../widgets/artist_avatar.dart';
 import '../widgets/artist_context_menu.dart';
 import '../widgets/library_large_title.dart';
@@ -651,10 +652,16 @@ class _LibrarySearchPageState extends ConsumerState<LibrarySearchPage>
           children: [
             Stack(
               children: [
-                AlbumCover(
-                  album: album,
-                  size: coverSize,
-                  borderRadius: const BorderRadius.all(Radius.circular(10)),
+                CoverFlipSource(
+                  tag: albumCoverFlipTag(album.id),
+                  borderRadius: 10.0,
+                  sourceBucketSize: coverSize,
+                  enabled: !isSelectionMode,
+                  child: AlbumCover(
+                    album: album,
+                    size: coverSize,
+                    borderRadius: const BorderRadius.all(Radius.circular(10)),
+                  ),
                 ),
                 // 选中边框叠一层而不是给封面加 border：加 border 会把封面
                 // inset 2px，进出多选时整个网格会抖一下。
@@ -877,14 +884,7 @@ class _LibrarySearchPageState extends ConsumerState<LibrarySearchPage>
   }
 
   void _openAlbumDetail(AlbumSummary album) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        settings: RouteSettings(
-          name: '/album_detail/${Uri.encodeComponent(album.id)}',
-        ),
-        builder: (_) => AlbumDetailPage(album: album),
-      ),
-    );
+    pushAlbumDetailPage<void>(context, album: album);
   }
 }
 

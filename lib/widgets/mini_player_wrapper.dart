@@ -100,6 +100,7 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
     );
 
     return Stack(
+      fit: StackFit.expand,
       children: [
         Positioned.fill(
           child: NotificationListener<ScrollNotification>(

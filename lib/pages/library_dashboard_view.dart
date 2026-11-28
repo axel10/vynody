@@ -20,6 +20,7 @@ import 'package:vynody/player/metadata/theaudiodb_artist_service.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/widgets/album_context_menu.dart';
 import 'package:vynody/widgets/album_cover.dart';
+import 'package:vynody/widgets/cover_flip_route.dart';
 import 'package:vynody/widgets/artist_avatar.dart';
 import 'package:vynody/widgets/artist_context_menu.dart';
 import 'package:vynody/widgets/default_cover_art.dart';
@@ -1287,11 +1288,7 @@ class _HorizontalAlbumSection extends StatelessWidget {
         return Consumer(
           builder: (context, ref, _) {
             void openDetails() {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => AlbumDetailPage(album: album),
-                ),
-              );
+              pushAlbumDetailPage<void>(context, album: album);
             }
 
             return _AlbumCard(
@@ -1832,7 +1829,12 @@ class _AlbumCardState extends State<_AlbumCard> {
             children: [
               Stack(
                 children: [
-                  AlbumCover(album: widget.album, size: size),
+                  CoverFlipSource(
+                    tag: albumCoverFlipTag(widget.album.id),
+                    borderRadius: 12.0,
+                    sourceBucketSize: size,
+                    child: AlbumCover(album: widget.album, size: size),
+                  ),
                   Positioned(
                     right: btnOffset,
                     bottom: btnOffset,

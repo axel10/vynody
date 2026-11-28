@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/models/album_summary.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../widgets/cover_flip_route.dart';
 import '../../widgets/song_thumbnail.dart';
 import '../album_detail_page.dart';
 
@@ -173,14 +174,7 @@ class Album3DCoverFlowViewState extends ConsumerState<Album3DCoverFlowView>
     if (widget.onOpenAlbum != null) {
       widget.onOpenAlbum!(album);
     } else {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          settings: RouteSettings(
-            name: '/album_detail/${Uri.encodeComponent(album.id)}',
-          ),
-          builder: (_) => AlbumDetailPage(album: album),
-        ),
-      );
+      pushAlbumDetailPage<void>(context, album: album);
     }
   }
 
@@ -458,7 +452,7 @@ class Album3DCoverFlowViewState extends ConsumerState<Album3DCoverFlowView>
                               coverSize: coverSize,
                               isSelected: isSelected,
                               isSelectionMode: widget.isSelectionMode,
-                              isHeroEnabled: widget.isHeroEnabled,
+                              isHeroEnabled: widget.isHeroEnabled && absD < 0.3,
                             ),
                           ),
                         ),
@@ -635,9 +629,14 @@ class Album3DCoverCard extends StatelessWidget {
       );
     }
 
-    final coverBox = Container(
-      width: coverSize,
-      height: coverSize,
+    final coverBox = CoverFlipSource(
+      tag: albumCoverFlipTag(album.id),
+      borderRadius: 14.0,
+      sourceBucketSize: coverSize,
+      enabled: isHeroEnabled && !isSelectionMode,
+      child: Container(
+        width: coverSize,
+        height: coverSize,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
@@ -698,6 +697,7 @@ class Album3DCoverCard extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
 
     return SizedBox(

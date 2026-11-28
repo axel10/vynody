@@ -225,11 +225,10 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
   void _openAlbum(TimeMachineAlbumEntry entry) {
     if (entry.songs.isEmpty) return;
     final album = _summaryFor(entry);
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        settings: RouteSettings(name: 'album_detail_${album.id}'),
-        builder: (_) => AlbumDetailPage(album: album),
-      ),
+    pushAlbumDetailPage<void>(
+      context,
+      album: album,
+      settings: RouteSettings(name: 'album_detail_${album.id}'),
     );
   }
 

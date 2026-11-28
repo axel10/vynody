@@ -18,6 +18,8 @@ class AlbumCover extends StatelessWidget {
     this.enableHero = false,
     this.heroTag,
     this.showRemoteBadge = true,
+    this.cacheSize,
+    this.gaplessPlayback = false,
   });
 
   /// Whether to display a remote badge if all songs are from a remote media library.
@@ -44,6 +46,12 @@ class AlbumCover extends StatelessWidget {
   /// Custom hero tag. Defaults to `'album-cover-${album.id}'` when [enableHero] is true.
   final Object? heroTag;
 
+  /// Optional cache bucket override passed to [SongThumbnail].
+  final double? cacheSize;
+
+  /// Whether to keep the previous decoded frame when image cache keys change.
+  final bool gaplessPlayback;
+
   @override
   Widget build(BuildContext context) {
     // Hero 动画已全局禁用，直接使用原始封面组件
@@ -53,6 +61,8 @@ class AlbumCover extends StatelessWidget {
       width: width,
       height: height,
       borderRadius: borderRadius,
+      cacheSize: cacheSize,
+      gaplessPlayback: gaplessPlayback,
     );
 
     final double effectiveSize = width ?? height ?? size;

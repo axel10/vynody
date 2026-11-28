@@ -25,6 +25,7 @@ class AppTopNavBar extends StatelessWidget {
     this.titleOpacity = 1.0,
     this.isFloatingCapsule = false,
     this.contentMaxWidth,
+    this.enableBlur,
   });
 
   final String? title;
@@ -49,6 +50,9 @@ class AppTopNavBar extends StatelessWidget {
 
   /// 内容区域的最大宽度限制（与页面主内容区对齐，避免胶囊按钮在宽屏下飞到屏幕最边缘）
   final double? contentMaxWidth;
+
+  /// 是否启用毛玻璃背景模糊；为 null 时遵循全局 [isBlurEffectEnabledProvider]。
+  final bool? enableBlur;
 
   /// 标准内容高度（44px）
   static const double contentHeight = 44.0;
@@ -110,6 +114,7 @@ class AppTopNavBar extends StatelessWidget {
         final Widget? backCapsule = showBackButton
             ? NavCapsuleIsland(
                 parentTitle: effectiveParentTitle,
+                enableBlur: enableBlur,
                 onBack: () {
                   final nav = Navigator.of(context);
                   final rootNav = Navigator.of(context, rootNavigator: true);
@@ -137,7 +142,11 @@ class AppTopNavBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             backCapsule ?? const SizedBox.shrink(),
-            if (hasActions) NavActionsCapsule(actions: actions!),
+            if (hasActions)
+              NavActionsCapsule(
+                actions: actions!,
+                enableBlur: enableBlur,
+              ),
           ],
         );
 
@@ -189,10 +198,11 @@ class AppTopNavBar extends StatelessWidget {
         child: ClipRect(
           child: AppBackdropFilter(
             filter: AppBlur.heavyFilter,
+            enabled: enableBlur,
             child: Container(
               padding: EdgeInsets.only(top: safeTopPadding),
               decoration: BoxDecoration(
-                color: AppBlur.heavySurface(context),
+                color: AppBlur.heavySurface(context, isBlurEnabled: enableBlur),
                 border: Border(
                   bottom: BorderSide(
                     color: theme.dividerColor.withValues(alpha: 0.12),

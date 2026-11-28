@@ -9,6 +9,8 @@ import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/album_cover.dart';
 import '../widgets/album_detail_widgets.dart';
+import '../widgets/cover_flip_route.dart';
+import '../widgets/playback/playback_cover_flight.dart';
 import '../widgets/remote_media_badge.dart';
 import '../widgets/playing_equalizer_icon.dart';
 import '../widgets/mini_player_wrapper.dart';
@@ -23,10 +25,57 @@ import '../widgets/app_circular_back_button.dart';
 import '../utils/app_log.dart';
 import 'main_layout_riverpod.dart';
 
+/// 供 FLIP 转场关联源封面与详情页封面的统一标识。
+String albumCoverFlipTag(String albumId) => 'album_cover:$albumId';
+
+/// 打开专辑详情页；当当前上下文存在可见的源封面锚点且 [enableFlip] 为 true 时，
+/// 自动采用 FLIP 原位反向变换动画，否则无缝回退至标准页面路由。
+Future<T?> pushAlbumDetailPage<T>(
+  BuildContext context, {
+  required AlbumSummary album,
+  bool enableFlip = true,
+  RouteSettings? settings,
+}) {
+  final effectiveSettings = settings ??
+      RouteSettings(
+        name: '/album_detail/${Uri.encodeComponent(album.id)}',
+      );
+  final CoverFlipOrigin? origin = enableFlip
+      ? CoverFlipRegistry.captureOrigin(
+          context,
+          tag: albumCoverFlipTag(album.id),
+        )
+      : null;
+  if (origin != null) {
+    origin.setSourceHidden(true);
+    return Navigator.of(context).push<T>(
+      CoverFlipPageRoute<T>(
+        settings: effectiveSettings,
+        origin: origin,
+        builder: (_) => AlbumDetailPage(
+          album: album,
+          coverOrigin: origin,
+        ),
+      ),
+    );
+  }
+  return Navigator.of(context).push<T>(
+    MaterialPageRoute<T>(
+      settings: effectiveSettings,
+      builder: (_) => AlbumDetailPage(album: album),
+    ),
+  );
+}
+
 class AlbumDetailPage extends ConsumerStatefulWidget {
-  const AlbumDetailPage({super.key, required this.album});
+  const AlbumDetailPage({
+    super.key,
+    required this.album,
+    this.coverOrigin,
+  });
 
   final AlbumSummary album;
+  final CoverFlipOrigin? coverOrigin;
 
   @override
   ConsumerState<AlbumDetailPage> createState() => _AlbumDetailPageState();
@@ -42,8 +91,20 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
   late final ScrollController _scrollController;
   late final IsAlbumDetailActiveNotifier _isAlbumDetailActiveNotifier;
   late final LandscapeMiniPlayerExtraLeftNotifier _landscapeMiniPlayerExtraLeftNotifier;
+  final GlobalKey _flightLayerKey =
+      GlobalKey(debugLabel: 'album_detail_flight_layer');
+  final GlobalKey _coverSlotKey =
+      GlobalKey(debugLabel: 'album_detail_cover_slot');
+  final GlobalKey _coverContentKey =
+      GlobalKey(debugLabel: 'album_detail_cover_content');
+  Rect? _targetRect;
+  Offset _overlayOrigin = Offset.zero;
+  bool _isFlipActive = false;
+  bool _useFallbackFadePop = false;
   bool _isPastTop = false;
   bool _isPopping = false;
+  bool? _lastReportedDetailActive;
+  double? _lastReportedExtraLeft;
   Animation<double>? _routeAnimation;
 
   @override
@@ -54,6 +115,10 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
         ref.read(isAlbumDetailActiveProvider.notifier);
     _landscapeMiniPlayerExtraLeftNotifier =
         ref.read(landscapeMiniPlayerExtraLeftProvider.notifier);
+    if (widget.coverOrigin != null) {
+      _isFlipActive = true;
+      _scheduleInitialTargetMeasure();
+    }
     AppLog.log(
       '[NavTrace] AlbumDetailPage.initState: album="${widget.album.title}" (id=${widget.album.id}, songs=${widget.album.songs.length})',
       mirrorToConsole: true,
@@ -62,6 +127,72 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
       if (!mounted || _isPopping) return;
       _isAlbumDetailActiveNotifier.set(true);
     });
+  }
+
+  void _scheduleInitialTargetMeasure() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _useFallbackFadePop) return;
+      if (_routeAnimation?.status == AnimationStatus.completed) {
+        widget.coverOrigin?.setSourceHidden(false);
+        if (_isFlipActive) {
+          setState(() => _isFlipActive = false);
+        }
+        return;
+      }
+      final measured = _measureCoverSlotRect();
+      if (measured != null) {
+        widget.coverOrigin?.setSourceHidden(true);
+        setState(() {
+          _targetRect = measured.rect;
+          _overlayOrigin = measured.overlayOrigin;
+        });
+      } else {
+        widget.coverOrigin?.setSourceHidden(false);
+        setState(() {
+          _isFlipActive = false;
+        });
+      }
+    });
+  }
+
+  ({Rect rect, Offset overlayOrigin})? _measureCoverSlotRect() {
+    final ctx = _coverSlotKey.currentContext;
+    if (ctx == null || !ctx.mounted) return null;
+    final renderObject = ctx.findRenderObject();
+    if (renderObject is! RenderBox ||
+        !renderObject.attached ||
+        !renderObject.hasSize) {
+      return null;
+    }
+    final size = renderObject.size;
+    if (size.width <= 1.0 || size.height <= 1.0) return null;
+    final topLeft = renderObject.localToGlobal(Offset.zero);
+    final bottomRight = renderObject.localToGlobal(
+      Offset(size.width, size.height),
+    );
+    if (!topLeft.dx.isFinite ||
+        !topLeft.dy.isFinite ||
+        !bottomRight.dx.isFinite ||
+        !bottomRight.dy.isFinite) {
+      return null;
+    }
+    Offset overlayOrigin = Offset.zero;
+    final overlayCtx = _flightLayerKey.currentContext;
+    if (overlayCtx != null && overlayCtx.mounted) {
+      final overlayBox = overlayCtx.findRenderObject();
+      if (overlayBox is RenderBox &&
+          overlayBox.attached &&
+          overlayBox.hasSize) {
+        final originPoint = overlayBox.localToGlobal(Offset.zero);
+        if (originPoint.dx.isFinite && originPoint.dy.isFinite) {
+          overlayOrigin = originPoint;
+        }
+      }
+    }
+    return (
+      rect: Rect.fromPoints(topLeft, bottomRight),
+      overlayOrigin: overlayOrigin,
+    );
   }
 
   @override
@@ -80,9 +211,43 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
       _isPopping = true;
       _isAlbumDetailActiveNotifier.set(false);
       _landscapeMiniPlayerExtraLeftNotifier.set(0.0);
+      if (widget.coverOrigin != null && mounted) {
+        final mediaSize = MediaQuery.sizeOf(context);
+        final bool sameWindow = mediaSize == widget.coverOrigin!.windowSize;
+        final measured = sameWindow ? _measureCoverSlotRect() : null;
+        final bool isLandscape =
+            ref.read(isEffectiveLandscapeProvider(mediaSize));
+        final bool isShortLandscape = isLandscape && (mediaSize.height < 500);
+        final double minVisibleBottom =
+            isShortLandscape ? 0.0 : (getBarHeight(context) * 0.5);
+        final bool isVisible = measured != null &&
+            measured.rect.bottom > minVisibleBottom &&
+            measured.rect.top < mediaSize.height;
+        if (isVisible) {
+          widget.coverOrigin!.setSourceHidden(true);
+          setState(() {
+            _targetRect = measured.rect;
+            _overlayOrigin = measured.overlayOrigin;
+            _isFlipActive = true;
+            _useFallbackFadePop = false;
+          });
+        } else {
+          widget.coverOrigin!.setSourceHidden(false);
+          setState(() {
+            _isFlipActive = false;
+            _useFallbackFadePop = true;
+          });
+        }
+      }
     } else if (status == AnimationStatus.completed) {
       _isPopping = false;
       _isAlbumDetailActiveNotifier.set(true);
+      if (widget.coverOrigin != null && mounted && _isFlipActive) {
+        setState(() {
+          _isFlipActive = false;
+          _useFallbackFadePop = false;
+        });
+      }
       if (mounted) {
         final mediaSize = MediaQuery.sizeOf(context);
         final isPortrait =
@@ -93,6 +258,9 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
         _landscapeMiniPlayerExtraLeftNotifier
             .set(isShortLandscape ? leftColWidth : 0.0);
       }
+    } else if (status == AnimationStatus.dismissed) {
+      widget.coverOrigin?.setSourceHidden(false);
+      _isFlipActive = false;
     }
   }
 
@@ -113,6 +281,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
       '[NavTrace] AlbumDetailPage.dispose: album="${widget.album.title}" (id=${widget.album.id})',
       mirrorToConsole: true,
     );
+    widget.coverOrigin?.setSourceHidden(false);
     _routeAnimation?.removeStatusListener(_onRouteAnimationStatus);
     Future.microtask(() {
       _isAlbumDetailActiveNotifier.set(false);
@@ -229,16 +398,17 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                 !modalRoute.isActive));
     final double targetExtraLeft =
         (isShortLandscape && !isRoutePopping) ? leftColWidth : 0.0;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (isRoutePopping) {
-        _isAlbumDetailActiveNotifier.set(false);
-        _landscapeMiniPlayerExtraLeftNotifier.set(0.0);
-      } else {
-        _isAlbumDetailActiveNotifier.set(true);
+    final bool targetDetailActive = !isRoutePopping;
+    if (_lastReportedDetailActive != targetDetailActive ||
+        _lastReportedExtraLeft != targetExtraLeft) {
+      _lastReportedDetailActive = targetDetailActive;
+      _lastReportedExtraLeft = targetExtraLeft;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _isAlbumDetailActiveNotifier.set(targetDetailActive);
         _landscapeMiniPlayerExtraLeftNotifier.set(targetExtraLeft);
-      }
-    });
+      });
+    }
 
     final selectedSongs = isSelectionMode
         ? getSelectedSongs(widget.album.songs)
@@ -339,6 +509,85 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
             ),
     ];
 
+    final bool hasFlipOrigin = widget.coverOrigin != null && _routeAnimation != null;
+    final bool isAnimatingFlip = hasFlipOrigin && _isFlipActive;
+    final bool isAnimatingFallback = hasFlipOrigin && _useFallbackFadePop;
+    final bool isTransitioningFlip = isAnimatingFlip || isAnimatingFallback;
+
+    final double? sourceBucket = widget.coverOrigin?.sourceBucketSize;
+    final double activeLayoutCoverSize = isShortLandscape
+        ? (_targetRect?.width ?? (mediaSize.height * 0.36).clamp(92.0, 136.0))
+        : (isPortrait ? 260.0 : 220.0);
+    final double effectiveCacheSize = (isAnimatingFlip && sourceBucket != null)
+        ? sourceBucket
+        : ((sourceBucket == 250.0 && activeLayoutCoverSize <= 260.0)
+            ? 250.0
+            : activeLayoutCoverSize);
+
+    Widget buildDecoratedCover({
+      required double size,
+      required double borderRadius,
+      required double shadowBlur,
+      required Offset shadowOffset,
+      double shadowAlphaScale = 1.0,
+    }) {
+      final double shadowAlpha =
+          (theme.brightness == Brightness.dark ? 0.35 : 0.12) *
+              shadowAlphaScale;
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(borderRadius),
+          boxShadow: shadowAlphaScale <= 0.001
+              ? const []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: shadowAlpha),
+                    blurRadius: shadowBlur,
+                    offset: shadowOffset,
+                  ),
+                ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(borderRadius),
+          child: KeyedSubtree(
+            key: _coverContentKey,
+            child: AlbumCover(
+              album: widget.album,
+              size: size,
+              width: size,
+              height: size,
+              borderRadius: BorderRadius.zero,
+              cacheSize: effectiveCacheSize,
+              gaplessPlayback: true,
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget buildHeaderCoverSlot({
+      required double size,
+      required double borderRadius,
+      required double shadowBlur,
+      required Offset shadowOffset,
+    }) {
+      return SizedBox(
+        key: _coverSlotKey,
+        width: size,
+        height: size,
+        child: isAnimatingFlip
+            ? null
+            : buildDecoratedCover(
+                size: size,
+                borderRadius: borderRadius,
+                shadowBlur: shadowBlur,
+                shadowOffset: shadowOffset,
+              ),
+      );
+    }
+
     final Widget scrollBody = CustomScrollView(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(
@@ -356,10 +605,12 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                   subtitle: widget.album.artist,
                   metadata: metadataWidget,
                   actionButtons: actionButtons,
-                  coverWidget: AlbumCover(
-                    album: widget.album,
+                  showCoverDecoration: false,
+                  coverWidget: buildHeaderCoverSlot(
                     size: 260,
-                    enableHero: true,
+                    borderRadius: 12,
+                    shadowBlur: 14,
+                    shadowOffset: const Offset(0, 6),
                   ),
                   barHeight: barHeight,
                 )
@@ -368,11 +619,13 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                   subtitle: widget.album.artist,
                   metadata: metadataWidget,
                   actionButtons: actionButtons,
+                  showCoverDecoration: false,
                   alignActionsToBottom: true,
-                  coverWidget: AlbumCover(
-                    album: widget.album,
+                  coverWidget: buildHeaderCoverSlot(
                     size: 220,
-                    enableHero: true,
+                    borderRadius: 12,
+                    shadowBlur: 18,
+                    shadowOffset: const Offset(0, 8),
                   ),
                 ),
         ),
@@ -403,7 +656,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
           width: leftColWidth,
           child: Container(
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
+              color: isTransitioningFlip ? null : theme.colorScheme.surface,
               border: Border(
                 right: BorderSide(
                   color: theme.dividerColor.withValues(alpha: 0.12),
@@ -437,28 +690,11 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: theme.brightness == Brightness.dark
-                                      ? 0.35
-                                      : 0.12,
-                                ),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: AlbumCover(
-                              album: widget.album,
-                              size: coverSize,
-                            ),
-                          ),
+                        buildHeaderCoverSlot(
+                          size: coverSize,
+                          borderRadius: 10,
+                          shadowBlur: 14,
+                          shadowOffset: const Offset(0, 4),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -553,6 +789,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
         forceVisible: isSelectionMode,
         builder: (context, isHeaderVisible) {
           final Widget content = Scaffold(
+            backgroundColor: isTransitioningFlip ? Colors.transparent : null,
             body: Padding(
               padding: EdgeInsets.only(left: leftPadding),
               child: Stack(
@@ -571,6 +808,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                           titleKey: const ValueKey('album_title'),
                           isFloatingCapsule: _isPastTop,
                           contentMaxWidth: kSingleColumnContentMaxWidth,
+                          enableBlur: isTransitioningFlip ? false : null,
                           onBack: _handleBack,
                         ),
                       ),
@@ -592,6 +830,129 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
           );
 
         final wrapped = MiniPlayerWrapper(child: content);
+        final Widget bodyRoot;
+        if (!hasFlipOrigin) {
+          bodyRoot = wrapped;
+        } else {
+          final routeAnim = _routeAnimation!;
+          final double targetRadius = isShortLandscape ? 10.0 : 12.0;
+          final double shadowBlur = isPortrait ? 14.0 : (isShortLandscape ? 14.0 : 18.0);
+          final Offset shadowOffset = isShortLandscape
+              ? const Offset(0, 4)
+              : (isPortrait ? const Offset(0, 6) : const Offset(0, 8));
+
+          bodyRoot = Stack(
+            key: _flightLayerKey,
+            fit: StackFit.expand,
+            children: [
+              if (isTransitioningFlip)
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: routeAnim,
+                    builder: (context, _) {
+                      final double p =
+                          Curves.fastOutSlowIn.transform(routeAnim.value);
+                      final double bgAlpha = isAnimatingFallback
+                          ? p
+                          : PlaybackCoverFlightGeometry.computeBackdropOpacity(p);
+                      return ColoredBox(
+                        color: theme.colorScheme.surface
+                            .withValues(alpha: bgAlpha),
+                      );
+                    },
+                  ),
+                ),
+              AnimatedBuilder(
+                animation: routeAnim,
+                child: RepaintBoundary(child: wrapped),
+                builder: (context, childWidget) {
+                  if (!isTransitioningFlip) return childWidget!;
+                  final double p =
+                      Curves.fastOutSlowIn.transform(routeAnim.value);
+                  if (isAnimatingFallback) {
+                    return Opacity(opacity: p, child: childWidget);
+                  }
+                  final double chromeOpacity =
+                      PlaybackCoverFlightGeometry.computeChromeOpacity(p);
+                  if (chromeOpacity >= 0.9999) {
+                    return childWidget!;
+                  }
+                  return Opacity(
+                    opacity: chromeOpacity,
+                    child: childWidget,
+                  );
+                },
+              ),
+              if (isAnimatingFlip)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: AnimatedBuilder(
+                      animation: routeAnim,
+                      builder: (context, _) {
+                        final Rect localStart =
+                            widget.coverOrigin!.rect.shift(-_overlayOrigin);
+                        if (_targetRect == null) {
+                          return Stack(
+                            children: [
+                              Positioned(
+                                left: localStart.left,
+                                top: localStart.top,
+                                width: localStart.width,
+                                height: localStart.height,
+                                child: buildDecoratedCover(
+                                  size: localStart.width,
+                                  borderRadius:
+                                      widget.coverOrigin!.borderRadius,
+                                  shadowBlur: shadowBlur,
+                                  shadowOffset: shadowOffset,
+                                  shadowAlphaScale: 0.0,
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                        final Rect localEnd =
+                            _targetRect!.shift(-_overlayOrigin);
+                        final double curved =
+                            Curves.fastOutSlowIn.transform(routeAnim.value);
+                        final flight = CoverFlipMath.computeTransform(
+                          startRect: localStart,
+                          startBorderRadius:
+                              widget.coverOrigin!.borderRadius,
+                          endRect: localEnd,
+                          endBorderRadius: targetRadius,
+                          progress: curved,
+                        );
+                        final double shadowAlphaScale =
+                            ((curved - 0.15) / 0.85).clamp(0.0, 1.0);
+                        return Stack(
+                          children: [
+                            Positioned(
+                              left: localEnd.left,
+                              top: localEnd.top,
+                              width: localEnd.width,
+                              height: localEnd.height,
+                              child: Transform(
+                                alignment: Alignment.topLeft,
+                                transform: flight.transform,
+                                child: buildDecoratedCover(
+                                  size: localEnd.width,
+                                  borderRadius: flight.localBorderRadius,
+                                  shadowBlur: shadowBlur,
+                                  shadowOffset: shadowOffset,
+                                  shadowAlphaScale: shadowAlphaScale,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
+            ],
+          );
+        }
         // PopScope 常驻、仅切换 canPop：避免多选开关导致根节点类型变化，
         // 否则整棵子树（含滚动位置）会被销毁重建。
         return PopScope(
@@ -609,7 +970,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
             }
             cancelSongSelection();
           },
-          child: wrapped,
+          child: bodyRoot,
         );
       },
     ),

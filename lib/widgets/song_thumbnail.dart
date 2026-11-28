@@ -70,6 +70,12 @@ class SongThumbnail extends ConsumerStatefulWidget {
   /// 否则会短暂显示上一首的封面；只有始终代表「同一张封面」的场景（迷你播放器）才置 true。
   final bool gaplessPlayback;
 
+  /// Optional override for the thumbnail cache bucket size (dp).
+  ///
+  /// Defaults to [size] when omitted. Used by FLIP transitions so the detail
+  /// cover can immediately hit the source thumbnail's already-decoded cache.
+  final double? cacheSize;
+
   const SongThumbnail({
     super.key,
     required this.path,
@@ -84,6 +90,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.fallbackWidget,
     this.isAlbum = false,
     this.gaplessPlayback = false,
+    this.cacheSize,
   });
 
   /// Factory constructor for a [MusicFile].
@@ -97,6 +104,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.fallbackWidget,
     this.isAlbum = false,
     this.gaplessPlayback = false,
+    this.cacheSize,
   })  : path = song.path,
         id = song.id,
         thumbnailPath = song.thumbnailPath,
@@ -114,6 +122,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.fallbackWidget,
     this.isAlbum = true,
     this.gaplessPlayback = false,
+    this.cacheSize,
   })  : path = album.representativeSong.path,
         id = album.representativeSong.id,
         thumbnailPath = album.representativeSong.thumbnailPath,
@@ -131,6 +140,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.fallbackWidget,
     this.isAlbum = false,
     this.gaplessPlayback = false,
+    this.cacheSize,
   })  : path = metadata.path,
         id = metadata.id,
         thumbnailPath = metadata.thumbnailPath,
@@ -328,7 +338,8 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     }
   }
 
-  double get _bucketedSize => thumbnailBucketSizeFor(widget.size);
+  double get _bucketedSize =>
+      thumbnailBucketSizeFor(widget.cacheSize ?? widget.size);
 
   @override
   void didUpdateWidget(SongThumbnail oldWidget) {

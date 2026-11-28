@@ -1,6 +1,10 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 
 import '../models/album_summary.dart';
+import '../pages/album_detail_page.dart' show albumCoverFlipTag;
+import 'cover_flip_route.dart';
 import 'folder_layout_utils.dart';
 import 'remote_media_badge.dart';
 import 'song_thumbnail.dart';
@@ -64,13 +68,21 @@ class AlbumZoomItem extends StatelessWidget {
       child: thumbnail,
     );
 
-    final cover = ZoomItemCover(
-      metrics: metrics,
-      isSelected: isSelected,
-      isSelectionMode: isSelectionMode,
-      onToggleSelect: onToggleSelect ?? onTap,
-      onPlay: onPlay,
-      child: coverWidget,
+    final double coverBorderRadius = lerpDouble(8.0, 12.0, gridMorph) ?? 12.0;
+    final cover = CoverFlipSource(
+      tag: albumCoverFlipTag(album.id),
+      borderRadius: coverBorderRadius,
+      borderRadiusGetter: () => lerpDouble(8.0, 12.0, gridMorph) ?? 12.0,
+      sourceBucketSize: 250.0,
+      enabled: enableHero && !isSelectionMode,
+      child: ZoomItemCover(
+        metrics: metrics,
+        isSelected: isSelected,
+        isSelectionMode: isSelectionMode,
+        onToggleSelect: onToggleSelect ?? onTap,
+        onPlay: onPlay,
+        child: coverWidget,
+      ),
     );
 
     final titleColor = isSelectionMode && isSelected

@@ -809,14 +809,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
       mirrorToConsole: true,
     );
     if (!mounted) return;
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        settings: RouteSettings(
-          name: '/album_detail/${Uri.encodeComponent(album.id)}',
-        ),
-        builder: (_) => AlbumDetailPage(album: album),
-      ),
-    );
+    pushAlbumDetailPage<void>(context, album: album);
   }
 }
 

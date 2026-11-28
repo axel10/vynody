@@ -194,6 +194,7 @@ class AlbumPortraitHeaderBanner extends StatelessWidget {
     this.metadata,
     required this.actionButtons,
     this.coverWidget,
+    this.showCoverDecoration = true,
     required this.barHeight,
     this.backgroundOpacityDark = 0.38,
     this.backgroundOpacityLight = 0.30,
@@ -205,6 +206,7 @@ class AlbumPortraitHeaderBanner extends StatelessWidget {
   final Widget? metadata;
   final List<Widget> actionButtons;
   final Widget? coverWidget;
+  final bool showCoverDecoration;
   final double barHeight;
   final double backgroundOpacityDark;
   final double backgroundOpacityLight;
@@ -233,18 +235,20 @@ class AlbumPortraitHeaderBanner extends StatelessWidget {
                   Center(
                     child: Container(
                       margin: const EdgeInsets.only(top: 4, bottom: 16),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: isDark ? 0.35 : 0.12,
-                            ),
-                            blurRadius: 14,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
+                      decoration: showCoverDecoration
+                          ? BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(
+                                    alpha: isDark ? 0.35 : 0.12,
+                                  ),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            )
+                          : null,
                       child: coverWidget!,
                     ),
                   ),
@@ -316,6 +320,7 @@ class AlbumLandscapeHeaderBanner extends StatelessWidget {
     this.metadata,
     required this.actionButtons,
     required this.coverWidget,
+    this.showCoverDecoration = true,
     this.alignActionsToBottom = false,
     this.maxWidth = kSingleColumnContentMaxWidth,
   });
@@ -326,6 +331,7 @@ class AlbumLandscapeHeaderBanner extends StatelessWidget {
   final Widget? metadata;
   final List<Widget> actionButtons;
   final Widget coverWidget;
+  final bool showCoverDecoration;
   final bool alignActionsToBottom;
   final double maxWidth;
 
@@ -334,25 +340,27 @@ class AlbumLandscapeHeaderBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final coverCard = Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: isDark ? 0.35 : 0.12,
+    final Widget coverCard = showCoverDecoration
+        ? Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: isDark ? 0.35 : 0.12,
+                  ),
+                  blurRadius: 18,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-            blurRadius: 18,
-            spreadRadius: 0,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: coverWidget,
-      ),
-    );
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: coverWidget,
+            ),
+          )
+        : coverWidget;
 
     final bannerRow = Row(
       crossAxisAlignment: alignActionsToBottom

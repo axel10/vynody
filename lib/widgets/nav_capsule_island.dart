@@ -39,6 +39,7 @@ class NavCapsuleIsland extends StatelessWidget {
     this.actions,
     this.showBack = true,
     this.tooltip,
+    this.enableBlur,
   });
 
   /// 上一层的位置名称（用于 Tooltip 悬浮提示等）
@@ -58,6 +59,9 @@ class NavCapsuleIsland extends StatelessWidget {
 
   /// 鼠标悬停时的 Tooltip 提示
   final String? tooltip;
+
+  /// 是否启用背景模糊；为 null 时遵循全局 [isBlurEffectEnabledProvider]。
+  final bool? enableBlur;
 
   @override
   Widget build(BuildContext context) {
@@ -118,10 +122,11 @@ class NavCapsuleIsland extends StatelessWidget {
         borderRadius: shapeRadius,
         child: AppBackdropFilter(
           filter: AppBlur.heavyFilter,
+          enabled: enableBlur,
           child: Container(
             height: kNavCapsuleHeight,
             decoration: BoxDecoration(
-              color: AppBlur.heavySurface(context),
+              color: AppBlur.heavySurface(context, isBlurEnabled: enableBlur),
               borderRadius: shapeRadius,
             ),
             // 描边走 foreground：`BoxDecoration.border` 会算进 Container 的
@@ -168,9 +173,11 @@ class NavActionsCapsule extends StatelessWidget {
   const NavActionsCapsule({
     super.key,
     required this.actions,
+    this.enableBlur,
   });
 
   final List<Widget> actions;
+  final bool? enableBlur;
 
   @override
   Widget build(BuildContext context) {
@@ -198,6 +205,7 @@ class NavActionsCapsule extends StatelessWidget {
         borderRadius: shapeRadius,
         child: AppBackdropFilter(
           filter: AppBlur.heavyFilter,
+          enabled: enableBlur,
           child: Container(
             height: kNavCapsuleHeight,
             constraints: box,
@@ -205,7 +213,7 @@ class NavActionsCapsule extends StatelessWidget {
                 ? EdgeInsets.zero
                 : const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
-              color: AppBlur.heavySurface(context),
+              color: AppBlur.heavySurface(context, isBlurEnabled: enableBlur),
               borderRadius: shapeRadius,
             ),
             // 描边走前景，理由同 NavCapsuleIsland：`border` 会算进内边距。
