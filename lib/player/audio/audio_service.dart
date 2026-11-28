@@ -662,14 +662,15 @@ class AudioService extends Notifier<AudioSnapshot> {
       unawaited(_applyLoudnessNormalizationForPath(currentMusic?.path));
     };
     settingsService.addListener(_settingsListener);
-    ref.read(loudnessBackfillProvider.notifier).setOnSongUpdatedCallback((path) {
+    final loudnessBackfillNotifier = ref.read(loudnessBackfillProvider.notifier);
+    loudnessBackfillNotifier.setOnSongUpdatedCallback((path) {
       if (_disposed) return;
       if (currentMusic?.path == path) {
         unawaited(_applyLoudnessNormalizationForPath(path));
       }
     });
     ref.onDispose(() {
-      ref.read(loudnessBackfillProvider.notifier).setOnSongUpdatedCallback(null);
+      loudnessBackfillNotifier.setOnSongUpdatedCallback(null);
     });
     ref.onDispose(_dispose);
     unawaited(
