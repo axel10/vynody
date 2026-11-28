@@ -6110,4 +6110,52 @@ class AppLocalizationsJa extends AppLocalizations {
   String smbConnectedFoundShares(int count) {
     return '接続に成功しました！$count 個の共有フォルダーが見つかりました。';
   }
+
+  @override
+  String get loudnessNormalizationGroup => '响度均衡';
+
+  @override
+  String get loudnessNormalizationTitle => '自动均衡歌曲音量';
+
+  @override
+  String get loudnessNormalizationDescription =>
+      '依据 ITU-R BS.1770 / ReplayGain 标准调节不同曲目的回放电平，减少切歌时的音量落差。';
+
+  @override
+  String get loudnessNormalizationModeLabel => '均衡模式';
+
+  @override
+  String get loudnessModeTrack => '按单曲';
+
+  @override
+  String get loudnessModeAlbum => '按专辑';
+
+  @override
+  String get loudnessTargetLufsLabel => '目标响度';
+
+  @override
+  String get loudnessClippingProtectionTitle => '防削波保护';
+
+  @override
+  String get loudnessClippingProtectionDescription =>
+      '依据真峰值限制正向增益上限（-1.0 dBTP），避免高动态曲目失真。';
+
+  @override
+  String get loudnessBackfillButton => '补全歌曲响度数据';
+
+  @override
+  String get loudnessBackfillStopButton => '停止分析';
+
+  @override
+  String get loudnessBackfillStopping => '正在停止...';
+
+  @override
+  String loudnessBackfillProgress(int analyzed, int total) {
+    return '已具备响度数据：$analyzed / $total 首本地曲目';
+  }
+
+  @override
+  String loudnessBackfillRunningDetail(String name, int completed) {
+    return '正在分析：$name（本次已完成 $completed 首）';
+  }
 }

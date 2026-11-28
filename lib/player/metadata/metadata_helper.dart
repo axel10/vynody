@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:vynody/player/audio/loudness_normalization.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/platform/apple_file_access.dart';
@@ -934,6 +935,7 @@ class MetadataHelper {
       int? year;
       List<String>? genres;
       bool? hasArtwork;
+      ReplayGainParseResult? replayGain;
       // 标签解析是否整体失败。封面字段的取舍依赖它：读取失败时必须保留
       // 库内已有封面路径，不能因为「这次没读到」就当成「文件确实没有封面」。
       bool tagReadFailed = false;
@@ -966,6 +968,7 @@ class MetadataHelper {
         year = metadata.year;
         genres = metadata.genres;
         hasArtwork = metadata.hasArtwork;
+        replayGain = metadata.replayGain;
         artworkData = metadata.pictures.isNotEmpty
             ? metadata.pictures.first.bytes
             : null;
@@ -1129,6 +1132,16 @@ class MetadataHelper {
         // 流派：标签里读不到时保留库内旧值，宁可留旧也不写空。
         genres: (genres != null && genres.isNotEmpty) ? genres : base.genres,
         hasArtwork: hasArtwork ?? base.hasArtwork,
+        trackLufs: replayGain?.trackLufs ?? base.trackLufs,
+        trackPeak: replayGain?.trackPeak ?? base.trackPeak,
+        albumLufs: replayGain?.albumLufs ?? base.albumLufs,
+        albumPeak: replayGain?.albumPeak ?? base.albumPeak,
+        loudnessSource: (replayGain?.hasAny ?? false)
+            ? LoudnessSource.embeddedTag
+            : base.loudnessSource,
+        loudnessAnalyzedAt: (replayGain?.hasAny ?? false)
+            ? DateTime.now().millisecondsSinceEpoch
+            : base.loudnessAnalyzedAt,
         // id / mediaId / isAppModified / waveformBlob / deletedAt 有意不覆盖：
         // 它们不是「读文件能得到的列」，必须原样保留。
       );
@@ -1659,6 +1672,7 @@ class MetadataHelper {
         rating: rating,
         year: year,
         genres: parseGenreTag(tagFile.genre),
+        replayGain: parseReplayGainTags(tagFile.properties),
       );
     } finally {
       tagFile.close();
@@ -1717,6 +1731,7 @@ class MetadataHelper {
         rating: rating,
         year: year,
         genres: parseGenreTag(tagFile.genre),
+        replayGain: parseReplayGainTags(tagFile.properties),
       );
     } finally {
       tagFile.close();
@@ -2258,6 +2273,7 @@ class TagLibMetadata {
   final int? rating;
   final int? year;
   final List<String>? genres;
+  final ReplayGainParseResult? replayGain;
 
   TagLibMetadata({
     this.title,
@@ -2277,6 +2293,7 @@ class TagLibMetadata {
     this.rating,
     this.year,
     this.genres,
+    this.replayGain,
   });
 }
 

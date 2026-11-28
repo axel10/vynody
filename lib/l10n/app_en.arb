@@ -2684,5 +2684,39 @@
   "lyricsLinesCount": "{count} lines",
   "timelineOffsetMs": "Offset: {offset}ms",
   "smbConnectedNoShares": "Connected successfully, but no shared folders were found.",
-  "smbConnectedFoundShares": "Successfully connected! Found {count} shared folder(s)."
+  "smbConnectedFoundShares": "Successfully connected! Found {count} shared folder(s).",
+  "loudnessNormalizationGroup": "Loudness Normalization",
+  "loudnessNormalizationTitle": "Normalize Track Volume",
+  "loudnessNormalizationDescription": "Automatically balance playback loudness across tracks using ITU-R BS.1770 / ReplayGain standards.",
+  "loudnessNormalizationModeLabel": "Normalization Mode",
+  "loudnessModeTrack": "Track",
+  "loudnessModeAlbum": "Album",
+  "loudnessTargetLufsLabel": "Target Loudness",
+  "loudnessClippingProtectionTitle": "True Peak Clipping Protection",
+  "loudnessClippingProtectionDescription": "Cap positive gain at -1.0 dBTP based on measured true peak to prevent distortion.",
+  "loudnessBackfillButton": "Analyze Missing Loudness Data",
+  "loudnessBackfillStopButton": "Stop Analysis",
+  "loudnessBackfillStopping": "Stopping...",
+  "loudnessBackfillProgress": "Loudness data ready: {analyzed} / {total} local tracks",
+  "@loudnessBackfillProgress": {
+    "placeholders": {
+      "analyzed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "loudnessBackfillRunningDetail": "Analyzing: {name} ({completed} completed)",
+  "@loudnessBackfillRunningDetail": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "completed": {
+        "type": "int"
+      }
+    }
+  }
 }

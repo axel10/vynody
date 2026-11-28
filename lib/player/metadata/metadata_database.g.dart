@@ -353,6 +353,71 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _trackLufsMeta = const VerificationMeta(
+    'trackLufs',
+  );
+  @override
+  late final GeneratedColumn<double> trackLufs = GeneratedColumn<double>(
+    'trackLufs',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _trackPeakMeta = const VerificationMeta(
+    'trackPeak',
+  );
+  @override
+  late final GeneratedColumn<double> trackPeak = GeneratedColumn<double>(
+    'trackPeak',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _albumLufsMeta = const VerificationMeta(
+    'albumLufs',
+  );
+  @override
+  late final GeneratedColumn<double> albumLufs = GeneratedColumn<double>(
+    'albumLufs',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _albumPeakMeta = const VerificationMeta(
+    'albumPeak',
+  );
+  @override
+  late final GeneratedColumn<double> albumPeak = GeneratedColumn<double>(
+    'albumPeak',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _loudnessSourceMeta = const VerificationMeta(
+    'loudnessSource',
+  );
+  @override
+  late final GeneratedColumn<int> loudnessSource = GeneratedColumn<int>(
+    'loudnessSource',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _loudnessAnalyzedAtMeta =
+      const VerificationMeta('loudnessAnalyzedAt');
+  @override
+  late final GeneratedColumn<int> loudnessAnalyzedAt = GeneratedColumn<int>(
+    'loudnessAnalyzedAt',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _lastSeenRootScanSessionIdMeta =
       const VerificationMeta('lastSeenRootScanSessionId');
   @override
@@ -398,6 +463,12 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     codec,
     fileRating,
     year,
+    trackLufs,
+    trackPeak,
+    albumLufs,
+    albumPeak,
+    loudnessSource,
+    loudnessAnalyzedAt,
     lastSeenRootScanSessionId,
   ];
   @override
@@ -642,6 +713,48 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         year.isAcceptableOrUnknown(data['year']!, _yearMeta),
       );
     }
+    if (data.containsKey('trackLufs')) {
+      context.handle(
+        _trackLufsMeta,
+        trackLufs.isAcceptableOrUnknown(data['trackLufs']!, _trackLufsMeta),
+      );
+    }
+    if (data.containsKey('trackPeak')) {
+      context.handle(
+        _trackPeakMeta,
+        trackPeak.isAcceptableOrUnknown(data['trackPeak']!, _trackPeakMeta),
+      );
+    }
+    if (data.containsKey('albumLufs')) {
+      context.handle(
+        _albumLufsMeta,
+        albumLufs.isAcceptableOrUnknown(data['albumLufs']!, _albumLufsMeta),
+      );
+    }
+    if (data.containsKey('albumPeak')) {
+      context.handle(
+        _albumPeakMeta,
+        albumPeak.isAcceptableOrUnknown(data['albumPeak']!, _albumPeakMeta),
+      );
+    }
+    if (data.containsKey('loudnessSource')) {
+      context.handle(
+        _loudnessSourceMeta,
+        loudnessSource.isAcceptableOrUnknown(
+          data['loudnessSource']!,
+          _loudnessSourceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('loudnessAnalyzedAt')) {
+      context.handle(
+        _loudnessAnalyzedAtMeta,
+        loudnessAnalyzedAt.isAcceptableOrUnknown(
+          data['loudnessAnalyzedAt']!,
+          _loudnessAnalyzedAtMeta,
+        ),
+      );
+    }
     if (data.containsKey('lastSeenRootScanSessionId')) {
       context.handle(
         _lastSeenRootScanSessionIdMeta,
@@ -788,6 +901,30 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         DriftSqlType.int,
         data['${effectivePrefix}year'],
       ),
+      trackLufs: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}trackLufs'],
+      ),
+      trackPeak: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}trackPeak'],
+      ),
+      albumLufs: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}albumLufs'],
+      ),
+      albumPeak: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}albumPeak'],
+      ),
+      loudnessSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}loudnessSource'],
+      ),
+      loudnessAnalyzedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}loudnessAnalyzedAt'],
+      ),
       lastSeenRootScanSessionId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}lastSeenRootScanSessionId'],
@@ -834,6 +971,12 @@ class Song extends DataClass implements Insertable<Song> {
   final String? codec;
   final int? fileRating;
   final int? year;
+  final double? trackLufs;
+  final double? trackPeak;
+  final double? albumLufs;
+  final double? albumPeak;
+  final int? loudnessSource;
+  final int? loudnessAnalyzedAt;
   final int? lastSeenRootScanSessionId;
   const Song({
     required this.id,
@@ -868,6 +1011,12 @@ class Song extends DataClass implements Insertable<Song> {
     this.codec,
     this.fileRating,
     this.year,
+    this.trackLufs,
+    this.trackPeak,
+    this.albumLufs,
+    this.albumPeak,
+    this.loudnessSource,
+    this.loudnessAnalyzedAt,
     this.lastSeenRootScanSessionId,
   });
   @override
@@ -962,6 +1111,24 @@ class Song extends DataClass implements Insertable<Song> {
     }
     if (!nullToAbsent || year != null) {
       map['year'] = Variable<int>(year);
+    }
+    if (!nullToAbsent || trackLufs != null) {
+      map['trackLufs'] = Variable<double>(trackLufs);
+    }
+    if (!nullToAbsent || trackPeak != null) {
+      map['trackPeak'] = Variable<double>(trackPeak);
+    }
+    if (!nullToAbsent || albumLufs != null) {
+      map['albumLufs'] = Variable<double>(albumLufs);
+    }
+    if (!nullToAbsent || albumPeak != null) {
+      map['albumPeak'] = Variable<double>(albumPeak);
+    }
+    if (!nullToAbsent || loudnessSource != null) {
+      map['loudnessSource'] = Variable<int>(loudnessSource);
+    }
+    if (!nullToAbsent || loudnessAnalyzedAt != null) {
+      map['loudnessAnalyzedAt'] = Variable<int>(loudnessAnalyzedAt);
     }
     if (!nullToAbsent || lastSeenRootScanSessionId != null) {
       map['lastSeenRootScanSessionId'] = Variable<int>(
@@ -1061,6 +1228,24 @@ class Song extends DataClass implements Insertable<Song> {
           ? const Value.absent()
           : Value(fileRating),
       year: year == null && nullToAbsent ? const Value.absent() : Value(year),
+      trackLufs: trackLufs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trackLufs),
+      trackPeak: trackPeak == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trackPeak),
+      albumLufs: albumLufs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(albumLufs),
+      albumPeak: albumPeak == null && nullToAbsent
+          ? const Value.absent()
+          : Value(albumPeak),
+      loudnessSource: loudnessSource == null && nullToAbsent
+          ? const Value.absent()
+          : Value(loudnessSource),
+      loudnessAnalyzedAt: loudnessAnalyzedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(loudnessAnalyzedAt),
       lastSeenRootScanSessionId:
           lastSeenRootScanSessionId == null && nullToAbsent
           ? const Value.absent()
@@ -1108,6 +1293,12 @@ class Song extends DataClass implements Insertable<Song> {
       codec: serializer.fromJson<String?>(json['codec']),
       fileRating: serializer.fromJson<int?>(json['fileRating']),
       year: serializer.fromJson<int?>(json['year']),
+      trackLufs: serializer.fromJson<double?>(json['trackLufs']),
+      trackPeak: serializer.fromJson<double?>(json['trackPeak']),
+      albumLufs: serializer.fromJson<double?>(json['albumLufs']),
+      albumPeak: serializer.fromJson<double?>(json['albumPeak']),
+      loudnessSource: serializer.fromJson<int?>(json['loudnessSource']),
+      loudnessAnalyzedAt: serializer.fromJson<int?>(json['loudnessAnalyzedAt']),
       lastSeenRootScanSessionId: serializer.fromJson<int?>(
         json['lastSeenRootScanSessionId'],
       ),
@@ -1149,6 +1340,12 @@ class Song extends DataClass implements Insertable<Song> {
       'codec': serializer.toJson<String?>(codec),
       'fileRating': serializer.toJson<int?>(fileRating),
       'year': serializer.toJson<int?>(year),
+      'trackLufs': serializer.toJson<double?>(trackLufs),
+      'trackPeak': serializer.toJson<double?>(trackPeak),
+      'albumLufs': serializer.toJson<double?>(albumLufs),
+      'albumPeak': serializer.toJson<double?>(albumPeak),
+      'loudnessSource': serializer.toJson<int?>(loudnessSource),
+      'loudnessAnalyzedAt': serializer.toJson<int?>(loudnessAnalyzedAt),
       'lastSeenRootScanSessionId': serializer.toJson<int?>(
         lastSeenRootScanSessionId,
       ),
@@ -1188,6 +1385,12 @@ class Song extends DataClass implements Insertable<Song> {
     Value<String?> codec = const Value.absent(),
     Value<int?> fileRating = const Value.absent(),
     Value<int?> year = const Value.absent(),
+    Value<double?> trackLufs = const Value.absent(),
+    Value<double?> trackPeak = const Value.absent(),
+    Value<double?> albumLufs = const Value.absent(),
+    Value<double?> albumPeak = const Value.absent(),
+    Value<int?> loudnessSource = const Value.absent(),
+    Value<int?> loudnessAnalyzedAt = const Value.absent(),
     Value<int?> lastSeenRootScanSessionId = const Value.absent(),
   }) => Song(
     id: id ?? this.id,
@@ -1234,6 +1437,16 @@ class Song extends DataClass implements Insertable<Song> {
     codec: codec.present ? codec.value : this.codec,
     fileRating: fileRating.present ? fileRating.value : this.fileRating,
     year: year.present ? year.value : this.year,
+    trackLufs: trackLufs.present ? trackLufs.value : this.trackLufs,
+    trackPeak: trackPeak.present ? trackPeak.value : this.trackPeak,
+    albumLufs: albumLufs.present ? albumLufs.value : this.albumLufs,
+    albumPeak: albumPeak.present ? albumPeak.value : this.albumPeak,
+    loudnessSource: loudnessSource.present
+        ? loudnessSource.value
+        : this.loudnessSource,
+    loudnessAnalyzedAt: loudnessAnalyzedAt.present
+        ? loudnessAnalyzedAt.value
+        : this.loudnessAnalyzedAt,
     lastSeenRootScanSessionId: lastSeenRootScanSessionId.present
         ? lastSeenRootScanSessionId.value
         : this.lastSeenRootScanSessionId,
@@ -1304,6 +1517,16 @@ class Song extends DataClass implements Insertable<Song> {
           ? data.fileRating.value
           : this.fileRating,
       year: data.year.present ? data.year.value : this.year,
+      trackLufs: data.trackLufs.present ? data.trackLufs.value : this.trackLufs,
+      trackPeak: data.trackPeak.present ? data.trackPeak.value : this.trackPeak,
+      albumLufs: data.albumLufs.present ? data.albumLufs.value : this.albumLufs,
+      albumPeak: data.albumPeak.present ? data.albumPeak.value : this.albumPeak,
+      loudnessSource: data.loudnessSource.present
+          ? data.loudnessSource.value
+          : this.loudnessSource,
+      loudnessAnalyzedAt: data.loudnessAnalyzedAt.present
+          ? data.loudnessAnalyzedAt.value
+          : this.loudnessAnalyzedAt,
       lastSeenRootScanSessionId: data.lastSeenRootScanSessionId.present
           ? data.lastSeenRootScanSessionId.value
           : this.lastSeenRootScanSessionId,
@@ -1345,6 +1568,12 @@ class Song extends DataClass implements Insertable<Song> {
           ..write('codec: $codec, ')
           ..write('fileRating: $fileRating, ')
           ..write('year: $year, ')
+          ..write('trackLufs: $trackLufs, ')
+          ..write('trackPeak: $trackPeak, ')
+          ..write('albumLufs: $albumLufs, ')
+          ..write('albumPeak: $albumPeak, ')
+          ..write('loudnessSource: $loudnessSource, ')
+          ..write('loudnessAnalyzedAt: $loudnessAnalyzedAt, ')
           ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
@@ -1384,6 +1613,12 @@ class Song extends DataClass implements Insertable<Song> {
     codec,
     fileRating,
     year,
+    trackLufs,
+    trackPeak,
+    albumLufs,
+    albumPeak,
+    loudnessSource,
+    loudnessAnalyzedAt,
     lastSeenRootScanSessionId,
   ]);
   @override
@@ -1425,6 +1660,12 @@ class Song extends DataClass implements Insertable<Song> {
           other.codec == this.codec &&
           other.fileRating == this.fileRating &&
           other.year == this.year &&
+          other.trackLufs == this.trackLufs &&
+          other.trackPeak == this.trackPeak &&
+          other.albumLufs == this.albumLufs &&
+          other.albumPeak == this.albumPeak &&
+          other.loudnessSource == this.loudnessSource &&
+          other.loudnessAnalyzedAt == this.loudnessAnalyzedAt &&
           other.lastSeenRootScanSessionId == this.lastSeenRootScanSessionId);
 }
 
@@ -1461,6 +1702,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
   final Value<String?> codec;
   final Value<int?> fileRating;
   final Value<int?> year;
+  final Value<double?> trackLufs;
+  final Value<double?> trackPeak;
+  final Value<double?> albumLufs;
+  final Value<double?> albumPeak;
+  final Value<int?> loudnessSource;
+  final Value<int?> loudnessAnalyzedAt;
   final Value<int?> lastSeenRootScanSessionId;
   const SongsCompanion({
     this.id = const Value.absent(),
@@ -1495,6 +1742,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.codec = const Value.absent(),
     this.fileRating = const Value.absent(),
     this.year = const Value.absent(),
+    this.trackLufs = const Value.absent(),
+    this.trackPeak = const Value.absent(),
+    this.albumLufs = const Value.absent(),
+    this.albumPeak = const Value.absent(),
+    this.loudnessSource = const Value.absent(),
+    this.loudnessAnalyzedAt = const Value.absent(),
     this.lastSeenRootScanSessionId = const Value.absent(),
   });
   SongsCompanion.insert({
@@ -1530,6 +1783,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.codec = const Value.absent(),
     this.fileRating = const Value.absent(),
     this.year = const Value.absent(),
+    this.trackLufs = const Value.absent(),
+    this.trackPeak = const Value.absent(),
+    this.albumLufs = const Value.absent(),
+    this.albumPeak = const Value.absent(),
+    this.loudnessSource = const Value.absent(),
+    this.loudnessAnalyzedAt = const Value.absent(),
     this.lastSeenRootScanSessionId = const Value.absent(),
   }) : path = Value(path);
   static Insertable<Song> custom({
@@ -1565,6 +1824,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Expression<String>? codec,
     Expression<int>? fileRating,
     Expression<int>? year,
+    Expression<double>? trackLufs,
+    Expression<double>? trackPeak,
+    Expression<double>? albumLufs,
+    Expression<double>? albumPeak,
+    Expression<int>? loudnessSource,
+    Expression<int>? loudnessAnalyzedAt,
     Expression<int>? lastSeenRootScanSessionId,
   }) {
     return RawValuesInsertable({
@@ -1601,6 +1866,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
       if (codec != null) 'codec': codec,
       if (fileRating != null) 'fileRating': fileRating,
       if (year != null) 'year': year,
+      if (trackLufs != null) 'trackLufs': trackLufs,
+      if (trackPeak != null) 'trackPeak': trackPeak,
+      if (albumLufs != null) 'albumLufs': albumLufs,
+      if (albumPeak != null) 'albumPeak': albumPeak,
+      if (loudnessSource != null) 'loudnessSource': loudnessSource,
+      if (loudnessAnalyzedAt != null) 'loudnessAnalyzedAt': loudnessAnalyzedAt,
       if (lastSeenRootScanSessionId != null)
         'lastSeenRootScanSessionId': lastSeenRootScanSessionId,
     });
@@ -1639,6 +1910,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Value<String?>? codec,
     Value<int?>? fileRating,
     Value<int?>? year,
+    Value<double?>? trackLufs,
+    Value<double?>? trackPeak,
+    Value<double?>? albumLufs,
+    Value<double?>? albumPeak,
+    Value<int?>? loudnessSource,
+    Value<int?>? loudnessAnalyzedAt,
     Value<int?>? lastSeenRootScanSessionId,
   }) {
     return SongsCompanion(
@@ -1674,6 +1951,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
       codec: codec ?? this.codec,
       fileRating: fileRating ?? this.fileRating,
       year: year ?? this.year,
+      trackLufs: trackLufs ?? this.trackLufs,
+      trackPeak: trackPeak ?? this.trackPeak,
+      albumLufs: albumLufs ?? this.albumLufs,
+      albumPeak: albumPeak ?? this.albumPeak,
+      loudnessSource: loudnessSource ?? this.loudnessSource,
+      loudnessAnalyzedAt: loudnessAnalyzedAt ?? this.loudnessAnalyzedAt,
       lastSeenRootScanSessionId:
           lastSeenRootScanSessionId ?? this.lastSeenRootScanSessionId,
     );
@@ -1778,6 +2061,24 @@ class SongsCompanion extends UpdateCompanion<Song> {
     if (year.present) {
       map['year'] = Variable<int>(year.value);
     }
+    if (trackLufs.present) {
+      map['trackLufs'] = Variable<double>(trackLufs.value);
+    }
+    if (trackPeak.present) {
+      map['trackPeak'] = Variable<double>(trackPeak.value);
+    }
+    if (albumLufs.present) {
+      map['albumLufs'] = Variable<double>(albumLufs.value);
+    }
+    if (albumPeak.present) {
+      map['albumPeak'] = Variable<double>(albumPeak.value);
+    }
+    if (loudnessSource.present) {
+      map['loudnessSource'] = Variable<int>(loudnessSource.value);
+    }
+    if (loudnessAnalyzedAt.present) {
+      map['loudnessAnalyzedAt'] = Variable<int>(loudnessAnalyzedAt.value);
+    }
     if (lastSeenRootScanSessionId.present) {
       map['lastSeenRootScanSessionId'] = Variable<int>(
         lastSeenRootScanSessionId.value,
@@ -1821,6 +2122,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
           ..write('codec: $codec, ')
           ..write('fileRating: $fileRating, ')
           ..write('year: $year, ')
+          ..write('trackLufs: $trackLufs, ')
+          ..write('trackPeak: $trackPeak, ')
+          ..write('albumLufs: $albumLufs, ')
+          ..write('albumPeak: $albumPeak, ')
+          ..write('loudnessSource: $loudnessSource, ')
+          ..write('loudnessAnalyzedAt: $loudnessAnalyzedAt, ')
           ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
@@ -10332,6 +10639,12 @@ typedef $$SongsTableCreateCompanionBuilder =
       Value<String?> codec,
       Value<int?> fileRating,
       Value<int?> year,
+      Value<double?> trackLufs,
+      Value<double?> trackPeak,
+      Value<double?> albumLufs,
+      Value<double?> albumPeak,
+      Value<int?> loudnessSource,
+      Value<int?> loudnessAnalyzedAt,
       Value<int?> lastSeenRootScanSessionId,
     });
 typedef $$SongsTableUpdateCompanionBuilder =
@@ -10368,6 +10681,12 @@ typedef $$SongsTableUpdateCompanionBuilder =
       Value<String?> codec,
       Value<int?> fileRating,
       Value<int?> year,
+      Value<double?> trackLufs,
+      Value<double?> trackPeak,
+      Value<double?> albumLufs,
+      Value<double?> albumPeak,
+      Value<int?> loudnessSource,
+      Value<int?> loudnessAnalyzedAt,
       Value<int?> lastSeenRootScanSessionId,
     });
 
@@ -10537,6 +10856,36 @@ class $$SongsTableFilterComposer
 
   ColumnFilters<int> get year => $composableBuilder(
     column: $table.year,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get trackLufs => $composableBuilder(
+    column: $table.trackLufs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get trackPeak => $composableBuilder(
+    column: $table.trackPeak,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get albumLufs => $composableBuilder(
+    column: $table.albumLufs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get albumPeak => $composableBuilder(
+    column: $table.albumPeak,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get loudnessSource => $composableBuilder(
+    column: $table.loudnessSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get loudnessAnalyzedAt => $composableBuilder(
+    column: $table.loudnessAnalyzedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10715,6 +11064,36 @@ class $$SongsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get trackLufs => $composableBuilder(
+    column: $table.trackLufs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get trackPeak => $composableBuilder(
+    column: $table.trackPeak,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get albumLufs => $composableBuilder(
+    column: $table.albumLufs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get albumPeak => $composableBuilder(
+    column: $table.albumPeak,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get loudnessSource => $composableBuilder(
+    column: $table.loudnessSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get loudnessAnalyzedAt => $composableBuilder(
+    column: $table.loudnessAnalyzedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get lastSeenRootScanSessionId => $composableBuilder(
     column: $table.lastSeenRootScanSessionId,
     builder: (column) => ColumnOrderings(column),
@@ -10858,6 +11237,28 @@ class $$SongsTableAnnotationComposer
   GeneratedColumn<int> get year =>
       $composableBuilder(column: $table.year, builder: (column) => column);
 
+  GeneratedColumn<double> get trackLufs =>
+      $composableBuilder(column: $table.trackLufs, builder: (column) => column);
+
+  GeneratedColumn<double> get trackPeak =>
+      $composableBuilder(column: $table.trackPeak, builder: (column) => column);
+
+  GeneratedColumn<double> get albumLufs =>
+      $composableBuilder(column: $table.albumLufs, builder: (column) => column);
+
+  GeneratedColumn<double> get albumPeak =>
+      $composableBuilder(column: $table.albumPeak, builder: (column) => column);
+
+  GeneratedColumn<int> get loudnessSource => $composableBuilder(
+    column: $table.loudnessSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get loudnessAnalyzedAt => $composableBuilder(
+    column: $table.loudnessAnalyzedAt,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get lastSeenRootScanSessionId => $composableBuilder(
     column: $table.lastSeenRootScanSessionId,
     builder: (column) => column,
@@ -10924,6 +11325,12 @@ class $$SongsTableTableManager
                 Value<String?> codec = const Value.absent(),
                 Value<int?> fileRating = const Value.absent(),
                 Value<int?> year = const Value.absent(),
+                Value<double?> trackLufs = const Value.absent(),
+                Value<double?> trackPeak = const Value.absent(),
+                Value<double?> albumLufs = const Value.absent(),
+                Value<double?> albumPeak = const Value.absent(),
+                Value<int?> loudnessSource = const Value.absent(),
+                Value<int?> loudnessAnalyzedAt = const Value.absent(),
                 Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion(
                 id: id,
@@ -10958,6 +11365,12 @@ class $$SongsTableTableManager
                 codec: codec,
                 fileRating: fileRating,
                 year: year,
+                trackLufs: trackLufs,
+                trackPeak: trackPeak,
+                albumLufs: albumLufs,
+                albumPeak: albumPeak,
+                loudnessSource: loudnessSource,
+                loudnessAnalyzedAt: loudnessAnalyzedAt,
                 lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           createCompanionCallback:
@@ -10994,6 +11407,12 @@ class $$SongsTableTableManager
                 Value<String?> codec = const Value.absent(),
                 Value<int?> fileRating = const Value.absent(),
                 Value<int?> year = const Value.absent(),
+                Value<double?> trackLufs = const Value.absent(),
+                Value<double?> trackPeak = const Value.absent(),
+                Value<double?> albumLufs = const Value.absent(),
+                Value<double?> albumPeak = const Value.absent(),
+                Value<int?> loudnessSource = const Value.absent(),
+                Value<int?> loudnessAnalyzedAt = const Value.absent(),
                 Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion.insert(
                 id: id,
@@ -11028,6 +11447,12 @@ class $$SongsTableTableManager
                 codec: codec,
                 fileRating: fileRating,
                 year: year,
+                trackLufs: trackLufs,
+                trackPeak: trackPeak,
+                albumLufs: albumLufs,
+                albumPeak: albumPeak,
+                loudnessSource: loudnessSource,
+                loudnessAnalyzedAt: loudnessAnalyzedAt,
                 lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           withReferenceMapper: (p0) => p0

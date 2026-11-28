@@ -172,6 +172,11 @@ abstract final class AppleFileAccess {
   static Future<T> withRead<T>(String path, Future<T> Function() body) =>
       _withTransient(<String>[path], AppleFileAccessHolder.reader, body);
 
+  static Future<T> withReadMany<T>(
+    List<String> paths,
+    Future<T> Function() body,
+  ) => _withTransient(paths, AppleFileAccessHolder.reader, body);
+
   /// 瞬态写租约：覆盖若干路径的写入过程（写标签、转码输出等）。
   ///
   /// 与 [hold] 不同，这里不做去重 —— 必须和 [body] 严格成对，否则会和常驻占用串账。

@@ -6305,4 +6305,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String smbConnectedFoundShares(int count) {
     return 'Successfully connected! Found $count shared folder(s).';
   }
+
+  @override
+  String get loudnessNormalizationGroup => 'Loudness Normalization';
+
+  @override
+  String get loudnessNormalizationTitle => 'Normalize Track Volume';
+
+  @override
+  String get loudnessNormalizationDescription =>
+      'Automatically balance playback loudness across tracks using ITU-R BS.1770 / ReplayGain standards.';
+
+  @override
+  String get loudnessNormalizationModeLabel => 'Normalization Mode';
+
+  @override
+  String get loudnessModeTrack => 'Track';
+
+  @override
+  String get loudnessModeAlbum => 'Album';
+
+  @override
+  String get loudnessTargetLufsLabel => 'Target Loudness';
+
+  @override
+  String get loudnessClippingProtectionTitle => 'True Peak Clipping Protection';
+
+  @override
+  String get loudnessClippingProtectionDescription =>
+      'Cap positive gain at -1.0 dBTP based on measured true peak to prevent distortion.';
+
+  @override
+  String get loudnessBackfillButton => 'Analyze Missing Loudness Data';
+
+  @override
+  String get loudnessBackfillStopButton => 'Stop Analysis';
+
+  @override
+  String get loudnessBackfillStopping => 'Stopping...';
+
+  @override
+  String loudnessBackfillProgress(int analyzed, int total) {
+    return 'Loudness data ready: $analyzed / $total local tracks';
+  }
+
+  @override
+  String loudnessBackfillRunningDetail(String name, int completed) {
+    return 'Analyzing: $name ($completed completed)';
+  }
 }

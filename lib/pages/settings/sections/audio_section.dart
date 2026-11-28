@@ -7,6 +7,7 @@ import 'package:vynody/dialogs/shortcut_settings_dialog.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/audio/android_usb_exclusive_controller.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/metadata/loudness_backfill_service.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/player/settings/settings_service.dart';
@@ -713,6 +714,172 @@ class AudioSection extends ConsumerWidget {
             ),
           ],
         ),
+        _buildLoudnessNormalizationCard(context, ref),
+      ],
+    );
+  }
+
+  Widget _buildLoudnessNormalizationCard(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final backfillState = ref.watch(loudnessBackfillProvider);
+    final backfillNotifier = ref.read(loudnessBackfillProvider.notifier);
+    final audio = ref.read(audioServiceProvider);
+    final enabled = settings.loudnessNormalizationEnabled;
+
+    return SettingsGroupCard(
+      title: l10n.loudnessNormalizationGroup,
+      icon: Icons.volume_up_rounded,
+      children: [
+        SwitchListTile(
+          key: const ValueKey<String>('settings_loudness_normalization_switch'),
+          title: Text(l10n.loudnessNormalizationTitle),
+          subtitle: Text(l10n.loudnessNormalizationDescription),
+          value: enabled,
+          onChanged: (value) {
+            settings.loudnessNormalizationEnabled = value;
+            if (value) {
+              unawaited(backfillNotifier.refreshStats());
+            }
+          },
+        ),
+        if (enabled) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.loudnessNormalizationModeLabel,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<String>(
+                  segments: [
+                    ButtonSegment<String>(
+                      value: 'track',
+                      label: Text(l10n.loudnessModeTrack),
+                    ),
+                    ButtonSegment<String>(
+                      value: 'album',
+                      label: Text(l10n.loudnessModeAlbum),
+                    ),
+                  ],
+                  selected: {
+                    settings.loudnessNormalizationMode == 'album'
+                        ? 'album'
+                        : 'track',
+                  },
+                  onSelectionChanged: (selected) {
+                    if (selected.isNotEmpty) {
+                      settings.loudnessNormalizationMode = selected.first;
+                    }
+                  },
+                  showSelectedIcon: false,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.loudnessTargetLufsLabel,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<double>(
+                  segments: const [
+                    ButtonSegment<double>(value: -18.0, label: Text('-18 LUFS')),
+                    ButtonSegment<double>(value: -16.0, label: Text('-16 LUFS')),
+                    ButtonSegment<double>(value: -14.0, label: Text('-14 LUFS')),
+                  ],
+                  selected: {
+                    const [-18.0, -16.0, -14.0].contains(
+                      settings.loudnessTargetLufs,
+                    )
+                        ? settings.loudnessTargetLufs
+                        : -18.0,
+                  },
+                  onSelectionChanged: (selected) {
+                    if (selected.isNotEmpty) {
+                      settings.loudnessTargetLufs = selected.first;
+                    }
+                  },
+                  showSelectedIcon: false,
+                ),
+              ],
+            ),
+          ),
+          SwitchListTile(
+            title: Text(l10n.loudnessClippingProtectionTitle),
+            subtitle: Text(l10n.loudnessClippingProtectionDescription),
+            value: settings.loudnessClippingProtection,
+            onChanged: (value) {
+              settings.loudnessClippingProtection = value;
+            },
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.loudnessBackfillProgress(
+                    backfillState.libraryAnalyzed,
+                    backfillState.libraryTotal,
+                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(value: backfillState.libraryProgress),
+                if (backfillState.isRunning &&
+                    backfillState.currentFileName != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.loudnessBackfillRunningDetail(
+                      backfillState.currentFileName!,
+                      backfillState.completedInRun,
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (!backfillState.isRunning)
+                      FilledButton.icon(
+                        key: const ValueKey<String>(
+                          'settings_loudness_backfill_button',
+                        ),
+                        onPressed: () {
+                          unawaited(
+                            backfillNotifier.startBackfill(
+                              isPlaying: () => audio.isPlaying,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.analytics_outlined),
+                        label: Text(l10n.loudnessBackfillButton),
+                      )
+                    else
+                      OutlinedButton.icon(
+                        onPressed: backfillState.isStopping
+                            ? null
+                            : backfillNotifier.requestStop,
+                        icon: const Icon(Icons.stop_circle_outlined),
+                        label: Text(
+                          backfillState.isStopping
+                              ? l10n.loudnessBackfillStopping
+                              : l10n.loudnessBackfillStopButton,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

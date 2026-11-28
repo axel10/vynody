@@ -14,10 +14,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_snapshot.dart';
 import 'package:vynody/player/audio/app_playback_mode.dart';
+import 'package:vynody/player/audio/loudness_normalization.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/audio/spatial_audio_mode.dart';
 import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/artist_library.dart';
+import 'package:vynody/player/metadata/loudness_backfill_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/platform/apple_file_access.dart';
 import 'package:vynody/player/metadata/artwork_constants.dart';
@@ -657,8 +659,18 @@ class AudioService extends Notifier<AudioSnapshot> {
       }
 
       unawaited(_refreshCurrentWaveform());
+      unawaited(_applyLoudnessNormalizationForPath(currentMusic?.path));
     };
     settingsService.addListener(_settingsListener);
+    ref.read(loudnessBackfillProvider.notifier).setOnSongUpdatedCallback((path) {
+      if (_disposed) return;
+      if (currentMusic?.path == path) {
+        unawaited(_applyLoudnessNormalizationForPath(path));
+      }
+    });
+    ref.onDispose(() {
+      ref.read(loudnessBackfillProvider.notifier).setOnSongUpdatedCallback(null);
+    });
     ref.onDispose(_dispose);
     unawaited(
       _player.initialize().then((_) async {
@@ -1473,10 +1485,41 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
     await _updateCurrentMetadata(song);
     await _refreshCurrentWaveform();
+    unawaited(_applyLoudnessNormalizationForPath(song.path));
     _logPlaybackTrace(
       '_syncCurrentPlaybackSong end -> current=${_debugSongLabel(currentMusic)} '
       'queueIndex=$_currentIndex',
     );
+  }
+
+  Future<void> _applyLoudnessNormalizationForPath(String? path) async {
+    if (_disposed) return;
+    final enabled = settingsService.loudnessNormalizationEnabled;
+    if (!enabled || path == null || path.isEmpty) {
+      await _player.setNormalizationGain(0.0);
+      return;
+    }
+
+    final mode = LoudnessNormalizationMode.fromStorage(
+      settingsService.loudnessNormalizationMode,
+    );
+    final metadata = await _db.getSongMetadata(path);
+    if (_disposed) return;
+
+    final gainDb = computeNormalizationGainDb(
+      enabled: enabled,
+      mode: mode == LoudnessNormalizationMode.off
+          ? LoudnessNormalizationMode.track
+          : mode,
+      targetLufs: settingsService.loudnessTargetLufs,
+      clippingProtection: settingsService.loudnessClippingProtection,
+      fallbackGainDb: settingsService.loudnessFallbackGainDb,
+      trackLufs: metadata?.trackLufs,
+      trackPeak: metadata?.trackPeak,
+      albumLufs: metadata?.albumLufs,
+      albumPeak: metadata?.albumPeak,
+    );
+    await _player.setNormalizationGain(gainDb);
   }
 
   void _resetPlaybackTrackingForSong(MusicFile? song) {

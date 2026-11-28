@@ -70,6 +70,12 @@ abstract class SongMetadata with _$SongMetadata {
     String? codec,
     int? fileRating,
     int? year,
+    double? trackLufs,
+    double? trackPeak,
+    double? albumLufs,
+    double? albumPeak,
+    int? loudnessSource,
+    int? loudnessAnalyzedAt,
   }) = _SongMetadata;
 
   bool get isModified => isAppModified;
@@ -107,6 +113,12 @@ abstract class SongMetadata with _$SongMetadata {
       'codec': codec,
       'fileRating': fileRating,
       'year': year,
+      'trackLufs': trackLufs,
+      'trackPeak': trackPeak,
+      'albumLufs': albumLufs,
+      'albumPeak': albumPeak,
+      'loudnessSource': loudnessSource,
+      'loudnessAnalyzedAt': loudnessAnalyzedAt,
     };
   }
 
@@ -152,6 +164,12 @@ abstract class SongMetadata with _$SongMetadata {
       codec: map['codec'],
       fileRating: map['fileRating'] as int?,
       year: map['year'] as int?,
+      trackLufs: (map['trackLufs'] as num?)?.toDouble(),
+      trackPeak: (map['trackPeak'] as num?)?.toDouble(),
+      albumLufs: (map['albumLufs'] as num?)?.toDouble(),
+      albumPeak: (map['albumPeak'] as num?)?.toDouble(),
+      loudnessSource: map['loudnessSource'] as int?,
+      loudnessAnalyzedAt: map['loudnessAnalyzedAt'] as int?,
     );
   }
 }
@@ -680,6 +698,30 @@ class MetadataDatabase {
 
   Future<List<SongMetadata>> getSongsUnderPath(String rootPath) =>
       _db.getSongsUnderPath(rootPath);
+
+  Future<void> updateSongLoudness({
+    required String path,
+    double? trackLufs,
+    double? trackPeak,
+    double? albumLufs,
+    double? albumPeak,
+    required int loudnessSource,
+    int? loudnessAnalyzedAt,
+  }) => _db.updateSongLoudness(
+    path: path,
+    trackLufs: trackLufs,
+    trackPeak: trackPeak,
+    albumLufs: albumLufs,
+    albumPeak: albumPeak,
+    loudnessSource: loudnessSource,
+    loudnessAnalyzedAt: loudnessAnalyzedAt,
+  );
+
+  Future<List<SongMetadata>> getLocalSongsNeedingLoudnessAnalysis() =>
+      _db.getLocalSongsNeedingLoudnessAnalysis();
+
+  Future<({int total, int analyzed})> getLocalLoudnessStats() =>
+      _db.getLocalLoudnessStats();
 
   Future<int> getSongCountUnderPath(String rootPath) =>
       _db.getSongCountUnderPath(rootPath);

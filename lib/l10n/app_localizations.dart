@@ -11126,6 +11126,90 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'连接成功！发现 {count} 个共享文件夹。'**
   String smbConnectedFoundShares(int count);
+
+  /// No description provided for @loudnessNormalizationGroup.
+  ///
+  /// In zh, this message translates to:
+  /// **'响度均衡'**
+  String get loudnessNormalizationGroup;
+
+  /// No description provided for @loudnessNormalizationTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动均衡歌曲音量'**
+  String get loudnessNormalizationTitle;
+
+  /// No description provided for @loudnessNormalizationDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'依据 ITU-R BS.1770 / ReplayGain 标准调节不同曲目的回放电平，减少切歌时的音量落差。'**
+  String get loudnessNormalizationDescription;
+
+  /// No description provided for @loudnessNormalizationModeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'均衡模式'**
+  String get loudnessNormalizationModeLabel;
+
+  /// No description provided for @loudnessModeTrack.
+  ///
+  /// In zh, this message translates to:
+  /// **'按单曲'**
+  String get loudnessModeTrack;
+
+  /// No description provided for @loudnessModeAlbum.
+  ///
+  /// In zh, this message translates to:
+  /// **'按专辑'**
+  String get loudnessModeAlbum;
+
+  /// No description provided for @loudnessTargetLufsLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'目标响度'**
+  String get loudnessTargetLufsLabel;
+
+  /// No description provided for @loudnessClippingProtectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'防削波保护'**
+  String get loudnessClippingProtectionTitle;
+
+  /// No description provided for @loudnessClippingProtectionDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'依据真峰值限制正向增益上限（-1.0 dBTP），避免高动态曲目失真。'**
+  String get loudnessClippingProtectionDescription;
+
+  /// No description provided for @loudnessBackfillButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'补全歌曲响度数据'**
+  String get loudnessBackfillButton;
+
+  /// No description provided for @loudnessBackfillStopButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'停止分析'**
+  String get loudnessBackfillStopButton;
+
+  /// No description provided for @loudnessBackfillStopping.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在停止...'**
+  String get loudnessBackfillStopping;
+
+  /// No description provided for @loudnessBackfillProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'已具备响度数据：{analyzed} / {total} 首本地曲目'**
+  String loudnessBackfillProgress(int analyzed, int total);
+
+  /// No description provided for @loudnessBackfillRunningDetail.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在分析：{name}（本次已完成 {completed} 首）'**
+  String loudnessBackfillRunningDetail(String name, int completed);
 }
 
 class _AppLocalizationsDelegate

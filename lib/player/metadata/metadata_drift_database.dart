@@ -26,7 +26,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 49;
+  int get schemaVersion => 50;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -549,6 +549,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         // 匹配分支因为这张表是 UNIQUE(cacheKey) 而不可能命中。
         await _dropLyricsCacheLanguageCodeColumn(m);
       }
+      if (from < 50) {
+        await _addColumnIfMissing(m, 'songs', 'trackLufs', 'REAL');
+        await _addColumnIfMissing(m, 'songs', 'trackPeak', 'REAL');
+        await _addColumnIfMissing(m, 'songs', 'albumLufs', 'REAL');
+        await _addColumnIfMissing(m, 'songs', 'albumPeak', 'REAL');
+        await _addColumnIfMissing(m, 'songs', 'loudnessSource', 'INTEGER');
+        await _addColumnIfMissing(m, 'songs', 'loudnessAnalyzedAt', 'INTEGER');
+      }
     },
   );
 
@@ -1056,6 +1064,73 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       r'.*/Containers/(?:Data/Application|Shared/AppGroup|[^/]+)/[^/]+(?:/[^/]+)*(?:/Data)?(/(?:Documents|Library)(?:/.*)?)$',
     ).firstMatch(path);
     return match?.group(1);
+  }
+
+  Future<void> updateSongLoudness({
+    required String path,
+    double? trackLufs,
+    double? trackPeak,
+    double? albumLufs,
+    double? albumPeak,
+    required int loudnessSource,
+    int? loudnessAnalyzedAt,
+  }) async {
+    final normalized = _normalizePath(path);
+    if (normalized.isEmpty) return;
+    final timestamp =
+        loudnessAnalyzedAt ?? DateTime.now().millisecondsSinceEpoch;
+    await (update(songs)..where((t) => t.path.equals(normalized))).write(
+      SongsCompanion(
+        trackLufs: Value(trackLufs),
+        trackPeak: Value(trackPeak),
+        albumLufs: Value(albumLufs),
+        albumPeak: Value(albumPeak),
+        loudnessSource: Value(loudnessSource),
+        loudnessAnalyzedAt: Value(timestamp),
+      ),
+    );
+  }
+
+  Future<List<SongMetadata>> getLocalSongsNeedingLoudnessAnalysis() async {
+    final rows = await customSelect(
+      '''
+      SELECT *
+      FROM songs
+      WHERE deletedAt IS NULL
+        AND (loudnessSource IS NULL OR loudnessSource = 0)
+      ORDER BY albumArtist ASC, album ASC, trackNumber ASC, path ASC
+      ''',
+      readsFrom: {songs},
+    ).get();
+    return rows
+        .map(_songFromQueryRow)
+        .where((song) => !RemoteMediaResolver.isRemoteUri(song.path))
+        .toList(growable: false);
+  }
+
+  Future<({int total, int analyzed})> getLocalLoudnessStats() async {
+    final rows = await customSelect(
+      '''
+      SELECT path, loudnessSource
+      FROM songs
+      WHERE deletedAt IS NULL
+      ''',
+      readsFrom: {songs},
+    ).get();
+    var total = 0;
+    var analyzed = 0;
+    for (final row in rows) {
+      final path = row.read<String?>('path');
+      if (path == null || RemoteMediaResolver.isRemoteUri(path)) {
+        continue;
+      }
+      total++;
+      final source = row.read<int?>('loudnessSource');
+      if (source != null && source > 0) {
+        analyzed++;
+      }
+    }
+    return (total: total, analyzed: analyzed);
   }
 
   Future<int> getSongCountUnderPath(String rootPath) async {
@@ -3237,6 +3312,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       codec: row.read<String?>('codec'),
       fileRating: row.read<int?>('fileRating'),
       year: row.read<int?>('year'),
+      trackLufs: row.read<double?>('trackLufs'),
+      trackPeak: row.read<double?>('trackPeak'),
+      albumLufs: row.read<double?>('albumLufs'),
+      albumPeak: row.read<double?>('albumPeak'),
+      loudnessSource: row.read<int?>('loudnessSource'),
+      loudnessAnalyzedAt: row.read<int?>('loudnessAnalyzedAt'),
     );
   }
 
@@ -3282,6 +3363,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       codec: row.codec,
       fileRating: row.fileRating,
       year: row.year,
+      trackLufs: row.trackLufs,
+      trackPeak: row.trackPeak,
+      albumLufs: row.albumLufs,
+      albumPeak: row.albumPeak,
+      loudnessSource: row.loudnessSource,
+      loudnessAnalyzedAt: row.loudnessAnalyzedAt,
     );
   }
 
@@ -3327,6 +3414,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       codec: Value(song.codec),
       fileRating: Value(song.fileRating),
       year: Value(song.year),
+      trackLufs: Value(song.trackLufs),
+      trackPeak: Value(song.trackPeak),
+      albumLufs: Value(song.albumLufs),
+      albumPeak: Value(song.albumPeak),
+      loudnessSource: Value(song.loudnessSource),
+      loudnessAnalyzedAt: Value(song.loudnessAnalyzedAt),
       lastSeenRootScanSessionId: lastSeenRootScanSessionId == null
           ? const Value.absent()
           : Value(lastSeenRootScanSessionId),
@@ -4123,6 +4216,13 @@ class Songs extends Table {
   TextColumn get codec => text().nullable().named('codec')();
   IntColumn get fileRating => integer().nullable().named('fileRating')();
   IntColumn get year => integer().nullable().named('year')();
+  RealColumn get trackLufs => real().nullable().named('trackLufs')();
+  RealColumn get trackPeak => real().nullable().named('trackPeak')();
+  RealColumn get albumLufs => real().nullable().named('albumLufs')();
+  RealColumn get albumPeak => real().nullable().named('albumPeak')();
+  IntColumn get loudnessSource => integer().nullable().named('loudnessSource')();
+  IntColumn get loudnessAnalyzedAt =>
+      integer().nullable().named('loudnessAnalyzedAt')();
   IntColumn get lastSeenRootScanSessionId =>
       integer().nullable().named('lastSeenRootScanSessionId')();
 

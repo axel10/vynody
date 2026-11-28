@@ -800,6 +800,12 @@ class SettingsService extends ChangeNotifier {
   static const String _keyEqualizerEnabled = 'equalizer_enabled';
   static const String _keyEqualizerGains = 'equalizer_gains';
   static const String _keyEqualizerPreamp = 'equalizer_preamp';
+  static const String _keyLoudnessNormEnabled = 'loudness_normalization_enabled';
+  static const String _keyLoudnessNormMode = 'loudness_normalization_mode';
+  static const String _keyLoudnessTargetLufs = 'loudness_target_lufs';
+  static const String _keyLoudnessClippingProtection =
+      'loudness_clipping_protection';
+  static const String _keyLoudnessFallbackGainDb = 'loudness_fallback_gain_db';
   static const String _keyEqualizerBassBoost = 'equalizer_bass_boost';
   static const String _keySpatialAudioMode = 'spatial_audio_mode';
   static const String _keyCustomEqPresets = 'custom_eq_presets';
@@ -2377,6 +2383,41 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _loudnessNormEnabledProperty = SettingProperty<bool>(
+    key: _keyLoudnessNormEnabled,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _loudnessNormModeProperty = SettingProperty<String>(
+    key: _keyLoudnessNormMode,
+    defaultValue: 'track',
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _loudnessTargetLufsProperty = SettingProperty<double>(
+    key: _keyLoudnessTargetLufs,
+    defaultValue: -18.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _loudnessClippingProtectionProperty = SettingProperty<bool>(
+    key: _keyLoudnessClippingProtection,
+    defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _loudnessFallbackGainDbProperty = SettingProperty<double>(
+    key: _keyLoudnessFallbackGainDb,
+    defaultValue: 0.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
   late final _equalizerBassBoostProperty = SettingProperty<double>(
     key: _keyEqualizerBassBoost,
     defaultValue: 0.0,
@@ -3572,6 +3613,29 @@ class SettingsService extends ChangeNotifier {
 
   double get equalizerPreamp => _equalizerPreampProperty.value;
   set equalizerPreamp(double value) => _equalizerPreampProperty.value = value;
+
+  bool get loudnessNormalizationEnabled => _loudnessNormEnabledProperty.value;
+  set loudnessNormalizationEnabled(bool value) =>
+      _loudnessNormEnabledProperty.value = value;
+
+  String get loudnessNormalizationMode => _loudnessNormModeProperty.value;
+  set loudnessNormalizationMode(String value) =>
+      _loudnessNormModeProperty.value = value;
+
+  double get loudnessTargetLufs =>
+      _loudnessTargetLufsProperty.value.clamp(-24.0, -10.0);
+  set loudnessTargetLufs(double value) =>
+      _loudnessTargetLufsProperty.value = value.clamp(-24.0, -10.0);
+
+  bool get loudnessClippingProtection =>
+      _loudnessClippingProtectionProperty.value;
+  set loudnessClippingProtection(bool value) =>
+      _loudnessClippingProtectionProperty.value = value;
+
+  double get loudnessFallbackGainDb =>
+      _loudnessFallbackGainDbProperty.value.clamp(-12.0, 6.0);
+  set loudnessFallbackGainDb(double value) =>
+      _loudnessFallbackGainDbProperty.value = value.clamp(-12.0, 6.0);
 
   double get equalizerBassBoost => _equalizerBassBoostProperty.value.clamp(0.0, 12.0);
   set equalizerBassBoost(double value) =>
