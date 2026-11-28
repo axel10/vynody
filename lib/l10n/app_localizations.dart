@@ -11210,6 +11210,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'正在分析：{name}（本次已完成 {completed} 首）'**
   String loudnessBackfillRunningDetail(String name, int completed);
+
+  /// No description provided for @loudnessBackfillFailedSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'另有 {failed} 首本地曲目因文件缺失或无法解码而跳过'**
+  String loudnessBackfillFailedSummary(int failed);
+
+  /// No description provided for @loudnessBackfillLastError.
+  ///
+  /// In zh, this message translates to:
+  /// **'最近异常：{error}'**
+  String loudnessBackfillLastError(String error);
+
+  /// No description provided for @loudnessBackfillRetryFailedButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'重试失败曲目（{count}）'**
+  String loudnessBackfillRetryFailedButton(int count);
 }
 
 class _AppLocalizationsDelegate

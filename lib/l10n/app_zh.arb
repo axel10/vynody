@@ -4300,5 +4300,29 @@
         "type": "int"
       }
     }
+  },
+  "loudnessBackfillFailedSummary": "另有 {failed} 首本地曲目因文件缺失或无法解码而跳过",
+  "@loudnessBackfillFailedSummary": {
+    "placeholders": {
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "loudnessBackfillLastError": "最近异常：{error}",
+  "@loudnessBackfillLastError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "loudnessBackfillRetryFailedButton": "重试失败曲目（{count}）",
+  "@loudnessBackfillRetryFailedButton": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

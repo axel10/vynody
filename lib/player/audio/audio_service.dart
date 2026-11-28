@@ -1504,7 +1504,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       settingsService.loudnessNormalizationMode,
     );
     final metadata = await _db.getSongMetadata(path);
-    if (_disposed) return;
+    if (_disposed || currentMusic?.path != path) return;
 
     final gainDb = computeNormalizationGainDb(
       enabled: enabled,

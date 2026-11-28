@@ -6353,4 +6353,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String loudnessBackfillRunningDetail(String name, int completed) {
     return 'Analyzing: $name ($completed completed)';
   }
+
+  @override
+  String loudnessBackfillFailedSummary(int failed) {
+    return '$failed local tracks were skipped due to missing files or decode errors';
+  }
+
+  @override
+  String loudnessBackfillLastError(String error) {
+    return 'Last error: $error';
+  }
+
+  @override
+  String loudnessBackfillRetryFailedButton(int count) {
+    return 'Retry Failed ($count)';
+  }
 }

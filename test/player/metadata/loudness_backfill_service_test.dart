@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vynody/player/audio/loudness_normalization.dart';
 import 'package:vynody/player/metadata/loudness_backfill_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 
@@ -129,6 +130,27 @@ void main() {
         ),
       );
       expect(pathFallbackIdx, 1);
+    });
+  });
+
+  group('LoudnessBackfillState', () {
+    test('tracks libraryFailed and failedInRun independently from analyzed count', () {
+      const initial = LoudnessBackfillState(
+        libraryTotal: 1216,
+        libraryAnalyzed: 1198,
+        libraryFailed: 18,
+      );
+      expect(initial.libraryProgress, closeTo(1198 / 1216, 1e-6));
+
+      final updated = initial.copyWith(
+        failedInRun: 2,
+        libraryFailed: 20,
+        lastError: 'File not accessible: missing.m4a',
+      );
+      expect(updated.libraryFailed, 20);
+      expect(updated.failedInRun, 2);
+      expect(updated.lastError, 'File not accessible: missing.m4a');
+      expect(LoudnessSource.failed, lessThan(0));
     });
   });
 }

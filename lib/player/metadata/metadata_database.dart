@@ -717,10 +717,12 @@ class MetadataDatabase {
     loudnessAnalyzedAt: loudnessAnalyzedAt,
   );
 
-  Future<List<SongMetadata>> getLocalSongsNeedingLoudnessAnalysis() =>
-      _db.getLocalSongsNeedingLoudnessAnalysis();
+  Future<List<SongMetadata>> getLocalSongsNeedingLoudnessAnalysis({
+    bool includeFailed = false,
+  }) =>
+      _db.getLocalSongsNeedingLoudnessAnalysis(includeFailed: includeFailed);
 
-  Future<({int total, int analyzed})> getLocalLoudnessStats() =>
+  Future<({int total, int analyzed, int failed})> getLocalLoudnessStats() =>
       _db.getLocalLoudnessStats();
 
   Future<int> getSongCountUnderPath(String rootPath) =>

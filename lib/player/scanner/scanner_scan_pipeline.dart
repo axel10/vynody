@@ -243,9 +243,21 @@ class ScannerScanPipeline {
     final int? resolvedMetadataTextScanned =
         readFailed ? existing?.metadataTextScanned : lastModified;
 
-    return SongMetadata(
+    // 以库内记录为基底做 copyWith，仅更新本次文本/技术参数扫描负责的列；
+    // 封面、波形、响度以及未来新增的任何非扫描字段都会自动保留，不会被置空。
+    final base =
+        existing ??
+        SongMetadata(
+          path: filePath,
+          title: resolvedFallbackTitle,
+          album: _cleanText(fallbackAlbum) ?? 'Unknown Album',
+          artist: _cleanText(fallbackArtist) ?? 'Unknown Artist',
+          createdAt: now,
+        );
+
+    return base.copyWith(
       path: filePath,
-      mediaId: mediaId ?? existing?.mediaId,
+      mediaId: mediaId ?? base.mediaId,
       title:
           _cleanText(scanned.title) ??
           (hasError ? _cleanText(existing?.title) : null) ??
@@ -271,29 +283,21 @@ class ScannerScanPipeline {
           (hasError ? existing?.trackNumber : null) ??
           fallbackTrackNumber,
       sourceFlags: sourceFlags ?? existing?.sourceFlags,
-      artworkPath: existing?.artworkPath,
-      thumbnailPath: existing?.thumbnailPath,
-      artworkWidth: existing?.artworkWidth,
-      artworkHeight: existing?.artworkHeight,
-      themeColorsBlob: existing?.themeColorsBlob,
-      waveformBlob: existing?.waveformBlob,
       lastModifiedTime: lastModified,
       metadataTextScanned: resolvedMetadataTextScanned,
-      metadataImgScanned: existing?.metadataImgScanned,
       createdAt: existing?.createdAt ?? now,
       genres: scanned.genres ?? existing?.genres,
-      isAppModified: existing?.isAppModified ?? false,
       // scanned.hasArtwork 是非空 bool，读取失败时是 false。若直接写进去，
       // 一次失败就会把「库里本来有封面」的记录标成无封面。
       hasArtwork: hasError ? existing?.hasArtwork : scanned.hasArtwork,
-      bitrate: scanned.bitrate ?? (hasError ? existing?.bitrate : null) ?? existing?.bitrate,
-      sampleRate: scanned.sampleRate ?? (hasError ? existing?.sampleRate : null) ?? existing?.sampleRate,
-      channels: scanned.channels ?? (hasError ? existing?.channels : null) ?? existing?.channels,
-      bitDepth: scanned.bitDepth ?? (hasError ? existing?.bitDepth : null) ?? existing?.bitDepth,
-      format: scanned.format ?? (hasError ? existing?.format : null) ?? existing?.format,
-      codec: scanned.codec ?? (hasError ? existing?.codec : null) ?? existing?.codec,
-      fileRating: scanned.fileRating ?? (hasError ? existing?.fileRating : null) ?? existing?.fileRating,
-      year: scanned.year ?? (hasError ? existing?.year : null) ?? existing?.year,
+      bitrate: scanned.bitrate ?? existing?.bitrate,
+      sampleRate: scanned.sampleRate ?? existing?.sampleRate,
+      channels: scanned.channels ?? existing?.channels,
+      bitDepth: scanned.bitDepth ?? existing?.bitDepth,
+      format: scanned.format ?? existing?.format,
+      codec: scanned.codec ?? existing?.codec,
+      fileRating: scanned.fileRating ?? existing?.fileRating,
+      year: scanned.year ?? existing?.year,
     );
   }
 

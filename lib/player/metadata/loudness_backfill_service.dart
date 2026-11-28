@@ -122,6 +122,7 @@ class LoudnessBackfillState {
     this.failedInRun = 0,
     this.libraryTotal = 0,
     this.libraryAnalyzed = 0,
+    this.libraryFailed = 0,
     this.currentFileName,
     this.lastError,
   });
@@ -133,6 +134,7 @@ class LoudnessBackfillState {
   final int failedInRun;
   final int libraryTotal;
   final int libraryAnalyzed;
+  final int libraryFailed;
   final String? currentFileName;
   final String? lastError;
 
@@ -147,6 +149,7 @@ class LoudnessBackfillState {
     int? failedInRun,
     int? libraryTotal,
     int? libraryAnalyzed,
+    int? libraryFailed,
     String? currentFileName,
     bool clearCurrentFileName = false,
     String? lastError,
@@ -160,6 +163,7 @@ class LoudnessBackfillState {
       failedInRun: failedInRun ?? this.failedInRun,
       libraryTotal: libraryTotal ?? this.libraryTotal,
       libraryAnalyzed: libraryAnalyzed ?? this.libraryAnalyzed,
+      libraryFailed: libraryFailed ?? this.libraryFailed,
       currentFileName: clearCurrentFileName
           ? null
           : (currentFileName ?? this.currentFileName),
@@ -189,6 +193,7 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
       state = state.copyWith(
         libraryTotal: stats.total,
         libraryAnalyzed: stats.analyzed,
+        libraryFailed: stats.failed,
       );
     } catch (e) {
       debugPrint('[LoudnessBackfill] refreshStats failed: $e');
@@ -204,6 +209,7 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
   Future<void> startBackfill({
     bool Function()? isPlaying,
     LoudnessPriorityTarget? Function()? currentTarget,
+    bool includeFailed = false,
   }) async {
     if (state.isRunning) return;
     _cancelRequested = false;
@@ -220,13 +226,16 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
     try {
       await AudioCoreController.ensureRustLibInitialized();
       final db = MetadataDatabase();
-      final pending = await db.getLocalSongsNeedingLoudnessAnalysis();
+      final pending = await db.getLocalSongsNeedingLoudnessAnalysis(
+        includeFailed: includeFailed,
+      );
       final stats = await db.getLocalLoudnessStats();
 
       state = state.copyWith(
         totalPending: pending.length,
         libraryTotal: stats.total,
         libraryAnalyzed: stats.analyzed,
+        libraryFailed: stats.failed,
       );
 
       if (pending.isEmpty) {
@@ -270,9 +279,29 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
         isStopping: false,
         libraryTotal: stats.total,
         libraryAnalyzed: stats.analyzed,
+        libraryFailed: stats.failed,
         clearCurrentFileName: true,
       );
     }
+  }
+
+  Future<void> _markSongFailed(SongMetadata song, String errorMessage) async {
+    try {
+      await MetadataDatabase().updateSongLoudness(
+        path: song.path,
+        loudnessSource: LoudnessSource.failed,
+      );
+    } catch (e) {
+      debugPrint('[LoudnessBackfill] mark failed status error (${song.path}): $e');
+    }
+    final wasAlreadyFailed = song.loudnessSource == LoudnessSource.failed;
+    state = state.copyWith(
+      failedInRun: state.failedInRun + 1,
+      libraryFailed: wasAlreadyFailed
+          ? state.libraryFailed
+          : state.libraryFailed + 1,
+      lastError: errorMessage,
+    );
   }
 
   Future<void> _analyzeSingleSong(SongMetadata song) async {
@@ -283,9 +312,9 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
         (resolvedPath) => analyzeTrackLoudness(path: resolvedPath),
       );
       if (res == null) {
-        state = state.copyWith(
-          failedInRun: state.failedInRun + 1,
-          lastError: 'File not accessible: ${p.basename(song.path)}',
+        await _markSongFailed(
+          song,
+          'File not accessible: ${p.basename(song.path)}',
         );
         return;
       }
@@ -296,16 +325,17 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
         loudnessSource: LoudnessSource.analyzedEbuR128,
       );
       _onSongUpdated?.call(song.path);
+      final wasFailed = song.loudnessSource == LoudnessSource.failed;
       state = state.copyWith(
         completedInRun: state.completedInRun + 1,
         libraryAnalyzed: state.libraryAnalyzed + 1,
+        libraryFailed: wasFailed && state.libraryFailed > 0
+            ? state.libraryFailed - 1
+            : state.libraryFailed,
       );
     } catch (e) {
       debugPrint('[LoudnessBackfill] analyzeTrackLoudness failed (${song.path}): $e');
-      state = state.copyWith(
-        failedInRun: state.failedInRun + 1,
-        lastError: '${p.basename(song.path)}: $e',
-      );
+      await _markSongFailed(song, '${p.basename(song.path)}: $e');
     }
   }
 
@@ -325,7 +355,10 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
       if (exists == true) {
         accessibleSongs.add(song);
       } else {
-        state = state.copyWith(failedInRun: state.failedInRun + 1);
+        await _markSongFailed(
+          song,
+          'File not accessible: ${p.basename(song.path)}',
+        );
       }
     }
 

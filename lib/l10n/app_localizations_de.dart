@@ -6431,4 +6431,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String loudnessBackfillRunningDetail(String name, int completed) {
     return '正在分析：$name（本次已完成 $completed 首）';
   }
+
+  @override
+  String loudnessBackfillFailedSummary(int failed) {
+    return '另有 $failed 首本地曲目因文件缺失或无法解码而跳过';
+  }
+
+  @override
+  String loudnessBackfillLastError(String error) {
+    return '最近异常：$error';
+  }
+
+  @override
+  String loudnessBackfillRetryFailedButton(int count) {
+    return '重试失败曲目（$count）';
+  }
 }

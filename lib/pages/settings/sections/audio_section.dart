@@ -842,12 +842,39 @@ class AudioSection extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
+                if (backfillState.libraryFailed > 0 ||
+                    backfillState.failedInRun > 0) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.loudnessBackfillFailedSummary(
+                      backfillState.libraryFailed > 0
+                          ? backfillState.libraryFailed
+                          : backfillState.failedInRun,
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                  ),
+                  if (backfillState.lastError != null &&
+                      backfillState.lastError!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.loudnessBackfillLastError(backfillState.lastError!),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    if (!backfillState.isRunning)
+                    if (!backfillState.isRunning) ...[
                       FilledButton.icon(
                         key: const ValueKey<String>(
                           'settings_loudness_backfill_button',
@@ -871,8 +898,38 @@ class AudioSection extends ConsumerWidget {
                         },
                         icon: const Icon(Icons.analytics_outlined),
                         label: Text(l10n.loudnessBackfillButton),
-                      )
-                    else
+                      ),
+                      if (backfillState.libraryFailed > 0)
+                        OutlinedButton.icon(
+                          key: const ValueKey<String>(
+                            'settings_loudness_retry_failed_button',
+                          ),
+                          onPressed: () {
+                            unawaited(
+                              backfillNotifier.startBackfill(
+                                includeFailed: true,
+                                isPlaying: () => audio.isPlaying,
+                                currentTarget: () {
+                                  final current = audio.currentMusic;
+                                  if (current == null) return null;
+                                  return LoudnessPriorityTarget(
+                                    path: current.path,
+                                    album: current.album,
+                                    albumArtist: current.albumArtist,
+                                    artist: current.artist,
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.refresh_outlined),
+                          label: Text(
+                            l10n.loudnessBackfillRetryFailedButton(
+                              backfillState.libraryFailed,
+                            ),
+                          ),
+                        ),
+                    ] else
                       OutlinedButton.icon(
                         onPressed: backfillState.isStopping
                             ? null

@@ -22,6 +22,7 @@ enum LoudnessNormalizationMode {
 
 /// Source of the stored loudness data on [SongMetadata.loudnessSource].
 abstract final class LoudnessSource {
+  static const int failed = -1;
   static const int none = 0;
   static const int embeddedTag = 1;
   static const int analyzedEbuR128 = 2;

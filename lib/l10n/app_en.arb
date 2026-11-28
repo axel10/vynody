@@ -2718,5 +2718,29 @@
         "type": "int"
       }
     }
+  },
+  "loudnessBackfillFailedSummary": "{failed} local tracks were skipped due to missing files or decode errors",
+  "@loudnessBackfillFailedSummary": {
+    "placeholders": {
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "loudnessBackfillLastError": "Last error: {error}",
+  "@loudnessBackfillLastError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "loudnessBackfillRetryFailedButton": "Retry Failed ({count})",
+  "@loudnessBackfillRetryFailedButton": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

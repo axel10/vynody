@@ -1091,13 +1091,18 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     );
   }
 
-  Future<List<SongMetadata>> getLocalSongsNeedingLoudnessAnalysis() async {
+  Future<List<SongMetadata>> getLocalSongsNeedingLoudnessAnalysis({
+    bool includeFailed = false,
+  }) async {
+    final condition = includeFailed
+        ? '(loudnessSource IS NULL OR loudnessSource <= 0)'
+        : '(loudnessSource IS NULL OR loudnessSource = 0)';
     final rows = await customSelect(
       '''
       SELECT *
       FROM songs
       WHERE deletedAt IS NULL
-        AND (loudnessSource IS NULL OR loudnessSource = 0)
+        AND $condition
       ORDER BY albumArtist ASC, album ASC, trackNumber ASC, path ASC
       ''',
       readsFrom: {songs},
@@ -1108,7 +1113,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         .toList(growable: false);
   }
 
-  Future<({int total, int analyzed})> getLocalLoudnessStats() async {
+  Future<({int total, int analyzed, int failed})> getLocalLoudnessStats() async {
     final rows = await customSelect(
       '''
       SELECT path, loudnessSource
@@ -1119,6 +1124,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     ).get();
     var total = 0;
     var analyzed = 0;
+    var failed = 0;
     for (final row in rows) {
       final path = row.read<String?>('path');
       if (path == null || RemoteMediaResolver.isRemoteUri(path)) {
@@ -1128,9 +1134,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       final source = row.read<int?>('loudnessSource');
       if (source != null && source > 0) {
         analyzed++;
+      } else if (source != null && source < 0) {
+        failed++;
       }
     }
-    return (total: total, analyzed: analyzed);
+    return (total: total, analyzed: analyzed, failed: failed);
   }
 
   Future<int> getSongCountUnderPath(String rootPath) async {

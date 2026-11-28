@@ -3016,39 +3016,37 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           }
         }
 
-        final metadata = SongMetadata(
-          id: existing?.id,
-          mediaId: int.tryParse(entry.id) ?? existing?.mediaId,
+        final base =
+            existing ??
+            SongMetadata(
+              path: path,
+              title: entry.label,
+              album: entry.album ?? _l10n().unknownAlbum,
+              artist: entry.artist ?? _l10n().unknownArtist,
+              createdAt: nowMs,
+            );
+        final metadata = base.copyWith(
+          mediaId: int.tryParse(entry.id) ?? base.mediaId,
           path: path,
-          title: (existing != null && existing.isAppModified)
-              ? existing.title
-              : entry.label,
-          album: (existing != null && existing.isAppModified)
-              ? existing.album
+          title: base.isAppModified ? base.title : entry.label,
+          album: base.isAppModified
+              ? base.album
               : (entry.album ?? _l10n().unknownAlbum),
-          artist: (existing != null && existing.isAppModified)
-              ? existing.artist
+          artist: base.isAppModified
+              ? base.artist
               : (entry.artist ?? _l10n().unknownArtist),
-          albumArtist: (existing != null && existing.isAppModified)
-              ? existing.albumArtist
-              : entry.albumArtist,
+          albumArtist: base.isAppModified ? base.albumArtist : entry.albumArtist,
           duration: entry.duration.inMilliseconds,
           thumbnailPath: thumbnailPath,
-          artworkPath: existing?.artworkPath,
-          artworkWidth: existing?.artworkWidth,
-          artworkHeight: existing?.artworkHeight,
-          trackNumber: (existing != null && existing.isAppModified)
-              ? existing.trackNumber
-              : entry.trackNumber,
-          genres: (existing != null && existing.isAppModified)
-              ? existing.genres
+          trackNumber: base.isAppModified ? base.trackNumber : entry.trackNumber,
+          genres: base.isAppModified
+              ? base.genres
               : (entry.genre != null ? [entry.genre!] : null),
-          sourceFlags: (existing?.sourceFlags ?? 0) | SongSourceFlags.systemMedia,
-          isAppModified: existing?.isAppModified ?? false,
+          sourceFlags: (base.sourceFlags ?? 0) | SongSourceFlags.systemMedia,
           hasArtwork: hasArtwork,
           metadataTextScanned: 1,
           metadataImgScanned: 1,
-          createdAt: existing?.createdAt ?? nowMs,
+          createdAt: base.createdAt ?? nowMs,
         );
         await MetadataDatabase().insertOrUpdateSong(metadata);
         _metadataStore.cacheMetadata(metadata);
