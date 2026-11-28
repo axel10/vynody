@@ -54,7 +54,9 @@ Future<T?> pushArtistDetailPage<T>(
         )
       : null;
   if (origin != null) {
-    origin.setSourceHidden(true);
+    // 同 album：新路由首帧被 HeroController 置 offstage、不绘制，
+    // 此处提前隐藏会让头像在点击瞬间空掉一帧。隐藏由 CoverFlipDetailHost
+    // 量到目标槽位后统一负责。
     return Navigator.of(context).push<T>(
       CoverFlipPageRoute<T>(
         settings: effectiveSettings,

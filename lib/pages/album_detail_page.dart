@@ -47,7 +47,11 @@ Future<T?> pushAlbumDetailPage<T>(
         )
       : null;
   if (origin != null) {
-    origin.setSourceHidden(true);
+    // 不要把源封面在这里就隐藏：新推入的路由在第一帧会被 HeroController
+    // 置为 offstage（`to.offstage = to.animation.value == 0`），这一帧详情页
+    // 根本不绘制，若此时源封面已隐藏，列表上被点的那张封面会空掉一帧 ——
+    // 观感就是「点下去的瞬间条目闪一下」。隐藏交给详情页量到目标槽位后
+    // （结束帧回调 → 下一帧生效）与飞行层同时生效。
     return Navigator.of(context).push<T>(
       CoverFlipPageRoute<T>(
         settings: effectiveSettings,

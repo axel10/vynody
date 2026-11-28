@@ -231,17 +231,17 @@ void main() {
     expect(originRect.width, 96.0);
 
     await tester.tap(find.byKey(const ValueKey('source_tap')));
-    // Frame 0: source is hidden immediately; MaterialApp's HeroController holds
-    // the pushed PageRoute offstage for 1 frame, and inside it the flying cover
-    // is already mounted at originRect without BackdropFilter.
+    // Frame 0: the pushed PageRoute is held offstage by MaterialApp's
+    // HeroController (`to.offstage = to.animation.value == 0`), so the detail
+    // page is mounted but NOT painted on this frame. The source cover must
+    // therefore still be visible — hiding it here leaves a one-frame hole where
+    // the tapped cover used to be ("点下去的瞬间条目闪一下").
     await tester.pump();
-    final frame0SourceOpacity = tester.widget<Opacity>(
-      find.ancestor(
-        of: sourceFinder,
-        matching: find.byType(Opacity),
-      ).first,
+    expect(find.byType(AlbumDetailPage), findsNothing);
+    expect(
+      find.ancestor(of: sourceFinder, matching: find.byType(Opacity)),
+      findsNothing,
     );
-    expect(frame0SourceOpacity.opacity, 0.0);
 
     final frame0DetailCoverFinder = find.descendant(
       of: find.byType(AlbumDetailPage, skipOffstage: false),
@@ -338,6 +338,91 @@ void main() {
       matching: find.byType(Opacity),
     );
     expect(restoredOpacityFinder, findsNothing);
+  });
+
+  testWidgets('push 首帧不留空白：源封面可见性只在详情页已绘制的那一帧让出', (tester) async {
+    tester.view.physicalSize = const Size(390 * 2, 844 * 2);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      buildApp(
+        Scaffold(
+          body: Builder(
+            builder: (context) {
+              return Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 24, bottom: 80),
+                  child: GestureDetector(
+                    key: const ValueKey('blank_source_tap'),
+                    onTap: () => pushAlbumDetailPage<void>(
+                      context,
+                      album: sampleAlbum,
+                    ),
+                    child: CoverFlipSource(
+                      tag: albumCoverFlipTag(sampleAlbum.id),
+                      borderRadius: 12.0,
+                      sourceBucketSize: 250.0,
+                      child: AlbumCover(
+                        key: const ValueKey('blank_source_cover'),
+                        album: sampleAlbum,
+                        size: 96,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final sourceFinder = find.byKey(const ValueKey('blank_source_cover'));
+    final originRect = tester.getRect(sourceFinder);
+
+    await tester.tap(find.byKey(const ValueKey('blank_source_tap')));
+
+    for (int frame = 0; frame < 4; frame++) {
+      await tester.pump(
+        frame == 0 ? Duration.zero : const Duration(milliseconds: 16),
+      );
+
+      final bool sourceHidden = find
+          .ancestor(of: sourceFinder, matching: find.byType(Opacity))
+          .evaluate()
+          .any((e) => (e.widget as Opacity).opacity == 0.0);
+      final bool detailPainted =
+          find.byType(AlbumDetailPage).evaluate().isNotEmpty;
+
+      // 不变量：源封面被隐藏时，详情页必须已经在绘制（飞行层接管那一刻起），
+      // 否则列表上就出现「既没有源封面、也没有飞行封面」的空白帧。
+      expect(
+        sourceHidden && !detailPainted,
+        isFalse,
+        reason: 'frame $frame 出现空白帧：源封面已隐藏但详情页尚未绘制',
+      );
+
+      if (detailPainted) {
+        final coverFinder = find.descendant(
+          of: find.byType(AlbumDetailPage),
+          matching: find.byType(AlbumCover),
+        );
+        final rect = _transformedGlobalRect(tester, coverFinder);
+        // 首次绘制时飞行封面必须贴着源尺寸起飞，不能先跳到 260 的目标槽位。
+        if (frame <= 1) {
+          expect(rect.width, lessThan(originRect.width + 24.0));
+        }
+      }
+    }
+
+    await tester.pumpAndSettle();
+    expect(find.byType(AlbumDetailPage), findsOneWidget);
   });
 
   testWidgets('pushAlbumDetailPage falls back to MaterialPageRoute without source', (tester) async {
