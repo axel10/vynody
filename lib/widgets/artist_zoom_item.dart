@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/artist_summary.dart';
+import '../pages/artist_detail_page.dart' show artistAvatarFlipTag;
 import '../player/metadata/theaudiodb_artist_service.dart';
 import 'artist_avatar.dart';
 import 'artist_context_menu.dart';
+import 'cover_flip_route.dart';
 import 'folder_layout_utils.dart';
 import 'remote_media_badge.dart';
 
@@ -45,6 +47,9 @@ class _ArtistZoomItemState extends ConsumerState<ArtistZoomItem> {
   String? _cachedImagePath;
   StreamSubscription<String>? _imageSub;
   Timer? _debounceTimer;
+
+  /// 头像实际渲染边长，供圆形 FLIP 起点半径使用。
+  double _avatarSide = 48.0;
 
   @override
   void initState() {
@@ -136,6 +141,8 @@ class _ArtistZoomItemState extends ConsumerState<ArtistZoomItem> {
       builder: (context, constraints) {
         final size =
             constraints.maxWidth.isFinite ? constraints.maxWidth : 48.0;
+        // 记录头像实际边长，供圆形 FLIP 起点半径使用（captureOrigin 时读取）。
+        _avatarSide = size;
         return ArtistAvatar(
           diameter: size,
           imagePath: displayImagePath,
@@ -144,15 +151,20 @@ class _ArtistZoomItemState extends ConsumerState<ArtistZoomItem> {
       },
     );
 
-    final cover = ZoomItemCover(
-      metrics: metrics,
-      isSelected: isSelected,
-      isSelectionMode: widget.isSelectionMode,
-      isCircle: true,
-      centerCheckboxInGrid: true,
-      selectionOverlayColor: Colors.black38,
-      onToggleSelect: (widget.onToggleSelect ?? widget.onTap),
-      child: avatar,
+    final cover = CoverFlipSource(
+      tag: artistAvatarFlipTag(artist.queryKey),
+      borderRadiusGetter: () => _avatarSide / 2,
+      enabled: !widget.isSelectionMode,
+      child: ZoomItemCover(
+        metrics: metrics,
+        isSelected: isSelected,
+        isSelectionMode: widget.isSelectionMode,
+        isCircle: true,
+        centerCheckboxInGrid: true,
+        selectionOverlayColor: Colors.black38,
+        onToggleSelect: (widget.onToggleSelect ?? widget.onTap),
+        child: avatar,
+      ),
     );
 
     final titleColor = widget.isSelectionMode && isSelected

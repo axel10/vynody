@@ -21,6 +21,8 @@ import '../widgets/album_context_menu.dart';
 import '../widgets/album_sections.dart';
 import '../widgets/album_zoom_item.dart';
 import '../widgets/artist_avatar.dart';
+import '../widgets/cover_flip_detail_host.dart';
+import '../widgets/cover_flip_route.dart';
 import '../widgets/draggable_album_item.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/remote_media_badge.dart';
@@ -32,31 +34,113 @@ import '../widgets/detail_page_shell.dart';
 import '../widgets/library_selection_back_guard.dart';
 import 'album_detail_page.dart';
 
+/// 供 FLIP 转场关联列表头像与详情页头像的统一标识。
+String artistAvatarFlipTag(String artistKey) => 'artist_avatar:$artistKey';
+
+/// 打开艺术家详情页；当当前上下文存在可见的头像锚点且 [enableFlip] 为 true 时，
+/// 自动采用 FLIP 原位反向变换动画，否则无缝回退至标准页面路由。
+Future<T?> pushArtistDetailPage<T>(
+  BuildContext context, {
+  required ArtistSummary artist,
+  bool enableFlip = true,
+  RouteSettings? settings,
+}) {
+  final effectiveSettings =
+      settings ?? const RouteSettings(name: 'artist_detail');
+  final CoverFlipOrigin? origin = enableFlip
+      ? CoverFlipRegistry.captureOrigin(
+          context,
+          tag: artistAvatarFlipTag(artist.queryKey),
+        )
+      : null;
+  if (origin != null) {
+    origin.setSourceHidden(true);
+    return Navigator.of(context).push<T>(
+      CoverFlipPageRoute<T>(
+        settings: effectiveSettings,
+        origin: origin,
+        builder: (_) => ArtistDetailPage(artist: artist, avatarOrigin: origin),
+      ),
+    );
+  }
+  return Navigator.of(context).push<T>(
+    MaterialPageRoute<T>(
+      settings: effectiveSettings,
+      builder: (_) => ArtistDetailPage(artist: artist),
+    ),
+  );
+}
+
 class ArtistDetailPage extends StatelessWidget {
   const ArtistDetailPage({
     super.key,
     required this.artist,
     this.onGoBack,
+    this.avatarOrigin,
   });
 
   final ArtistSummary artist;
   final VoidCallback? onGoBack;
 
+  /// 头像 FLIP 快照；为空时按普通页面路由方式直接展示。
+  final CoverFlipOrigin? avatarOrigin;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return LibrarySelectionBackGuard(
-      child: DetailPageShell(
-        title: artist.name,
-        parentTitle: l10n?.artists,
-        titleKey: const ValueKey('album_title'),
-        onGoBack: onGoBack,
-        contentBuilder: (context, scrollController, topPadding) =>
-            ArtistDetailContent(
-          artist: artist,
-          scrollController: scrollController,
-          topPadding: topPadding,
+    final origin = avatarOrigin;
+
+    Widget buildShell(CoverFlipSlot? slot) {
+      return LibrarySelectionBackGuard(
+        child: DetailPageShell(
+          title: artist.name,
+          parentTitle: l10n?.artists,
+          titleKey: const ValueKey('album_title'),
+          onGoBack: onGoBack,
+          contentBuilder: (context, scrollController, topPadding) =>
+              ArtistDetailContent(
+            artist: artist,
+            scrollController: scrollController,
+            topPadding: topPadding,
+            coverFlipSlot: slot,
+          ),
         ),
+      );
+    }
+
+    if (origin == null) return buildShell(null);
+
+    return CoverFlipDetailHost(
+      origin: origin,
+      targetBorderRadiusResolver: (rect) => rect.width / 2,
+      coverBuilder: _buildFlightAvatar,
+      contentBuilder: (context, slot) => buildShell(slot),
+    );
+  }
+
+  /// 飞行封面：圆形，带与页头一致的投影（阴影强度随飞行进度淡入）。
+  Widget _buildFlightAvatar(double size, double shadowAlphaScale) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: shadowAlphaScale <= 0.001
+            ? const []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: 0.12 * shadowAlphaScale,
+                  ),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+      ),
+      child: ArtistAvatar(
+        diameter: size,
+        imagePath: artist.cachedImagePath,
+        imageUrl: artist.imageUrl,
       ),
     );
   }
@@ -70,6 +154,7 @@ class ArtistDetailContent extends ConsumerStatefulWidget {
     this.hasBottomPanel = false,
     this.scrollController,
     this.topPadding = 0.0,
+    this.coverFlipSlot,
   });
 
   final ArtistSummary artist;
@@ -77,6 +162,9 @@ class ArtistDetailContent extends ConsumerStatefulWidget {
   final bool hasBottomPanel;
   final ScrollController? scrollController;
   final double topPadding;
+
+  /// 页头头像的 FLIP 槽位；为空时直接绘制头像。
+  final CoverFlipSlot? coverFlipSlot;
 
   @override
   ConsumerState<ArtistDetailContent> createState() => _ArtistDetailContentState();
@@ -487,6 +575,35 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
     );
   }
 
+  /// 页头头像：竖屏带投影，作为 FLIP 转场的目标槽位。
+  Widget _buildAvatarSlot(double size, {required bool isPortrait}) {
+    final avatar = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: isPortrait
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : const [],
+      ),
+      child: ArtistAvatar(
+        diameter: size,
+        imagePath: _cachedImagePath ?? widget.artist.cachedImagePath,
+        imageUrl: widget.artist.imageUrl,
+      ),
+    );
+
+    final slot = widget.coverFlipSlot;
+    if (slot == null) return avatar;
+    return slot.wrap(avatar, size: size);
+  }
+
   Widget _buildArtistHeader({
     required AppLocalizations l10n,
     required dynamic audio,
@@ -528,25 +645,7 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
       ),
       subtitles: subtitles,
       avatarBuilder: (size) {
-        final avatar = ArtistAvatar(
-          diameter: size,
-          imagePath: _cachedImagePath ?? widget.artist.cachedImagePath,
-          imageUrl: widget.artist.imageUrl,
-        );
-        if (!isPortrait) return avatar;
-        return Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: avatar,
-        );
+        return _buildAvatarSlot(size, isPortrait: isPortrait);
       },
       onPlayAll: () =>
           audio.playPlaylist(visibleSongs, source: _artistSource),

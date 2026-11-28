@@ -318,14 +318,9 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
                                   allKeys:
                                       items.map((a) => a.queryKey).toList(),
                                   onNormalTap: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute<void>(
-                                        settings: const RouteSettings(
-                                          name: 'artist_detail',
-                                        ),
-                                        builder: (_) =>
-                                            ArtistDetailPage(artist: artist),
-                                      ),
+                                    pushArtistDetailPage<void>(
+                                      context,
+                                      artist: artist,
                                     );
                                   },
                                 );
