@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/dialogs/shortcut_settings_dialog.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/android_usb_exclusive_controller.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/metadata/loudness_backfill_service.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
@@ -719,6 +721,45 @@ class AudioSection extends ConsumerWidget {
     );
   }
 
+  List<LoudnessPriorityTarget> _buildLoudnessPriorityTargets(AudioService audio) {
+    final targets = <LoudnessPriorityTarget>[];
+    final seenKeys = <String>{};
+
+    void addMusic(MusicFile? music) {
+      if (music == null) return;
+      final albumKey = buildLoudnessAlbumGroupKey(
+        album: music.album,
+        albumArtist: music.albumArtist,
+        artist: music.artist,
+      );
+      final dedupKey = albumKey != null ? 'a:$albumKey' : 'p:${music.path}';
+      if (!seenKeys.add(dedupKey)) return;
+      targets.add(
+        LoudnessPriorityTarget(
+          path: music.path,
+          album: music.album,
+          albumArtist: music.albumArtist,
+          artist: music.artist,
+        ),
+      );
+    }
+
+    addMusic(audio.currentMusic);
+    final queue = audio.queue;
+    if (queue.isNotEmpty) {
+      final start = audio.currentIndex >= 0 && audio.currentIndex < queue.length
+          ? audio.currentIndex + 1
+          : 0;
+      for (var i = start; i < queue.length; i++) {
+        addMusic(queue[i]);
+      }
+      for (var i = 0; i < start && i < queue.length; i++) {
+        addMusic(queue[i]);
+      }
+    }
+    return targets;
+  }
+
   void _startLoudnessBackfill(
     WidgetRef ref, {
     bool includeFailed = false,
@@ -728,17 +769,11 @@ class AudioSection extends ConsumerWidget {
     unawaited(
       backfillNotifier.startBackfill(
         includeFailed: includeFailed,
+        threads: settings.loudnessMultithreadedAnalysis
+            ? LoudnessBackfillNotifier.multithreadedAnalysisThreads
+            : 1,
         isPlaying: () => audio.isPlaying,
-        currentTarget: () {
-          final current = audio.currentMusic;
-          if (current == null) return null;
-          return LoudnessPriorityTarget(
-            path: current.path,
-            album: current.album,
-            albumArtist: current.albumArtist,
-            artist: current.artist,
-          );
-        },
+        priorityTargets: () => _buildLoudnessPriorityTargets(audio),
       ),
     );
   }
@@ -836,6 +871,17 @@ class AudioSection extends ConsumerWidget {
             value: settings.loudnessClippingProtection,
             onChanged: (value) {
               settings.loudnessClippingProtection = value;
+            },
+          ),
+          SwitchListTile(
+            key: const ValueKey<String>(
+              'settings_loudness_multithreaded_analysis_switch',
+            ),
+            title: Text(l10n.loudnessMultithreadedAnalysisTitle),
+            subtitle: Text(l10n.loudnessMultithreadedAnalysisDescription),
+            value: settings.loudnessMultithreadedAnalysis,
+            onChanged: (value) {
+              settings.loudnessMultithreadedAnalysis = value;
             },
           ),
           Padding(

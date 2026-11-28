@@ -437,11 +437,36 @@ void main() {
       expect(settings.loudnessNormalizationEnabled, isFalse);
       expect(notifier.requestStopCalls, 1);
 
-      // Re-enable -> resumes backfill automatically.
+      // Re-enable -> resumes backfill automatically with 1 thread by default.
       await tester.tap(switchFinder);
       await tester.pumpAndSettle();
       expect(settings.loudnessNormalizationEnabled, isTrue);
       expect(notifier.startBackfillCalls, 2);
+      expect(notifier.lastThreads, 1);
+
+      // Toggle multithreaded analysis -> persists setting and uses 4 threads.
+      final multithreadSwitchFinder = find.byKey(
+        const ValueKey<String>(
+          'settings_loudness_multithreaded_analysis_switch',
+        ),
+      );
+      await tester.ensureVisible(multithreadSwitchFinder);
+      await tester.pumpAndSettle();
+      expect(settings.loudnessMultithreadedAnalysis, isFalse);
+
+      await tester.tap(multithreadSwitchFinder);
+      await tester.pumpAndSettle();
+      expect(settings.loudnessMultithreadedAnalysis, isTrue);
+
+      // Re-trigger backfill via main switch -> uses 4 threads.
+      await tester.ensureVisible(switchFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(switchFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(switchFinder);
+      await tester.pumpAndSettle();
+      expect(notifier.startBackfillCalls, 3);
+      expect(notifier.lastThreads, 4);
     },
   );
 }
@@ -449,6 +474,7 @@ void main() {
 class _RecordingLoudnessBackfillNotifier extends LoudnessBackfillNotifier {
   int startBackfillCalls = 0;
   int requestStopCalls = 0;
+  int? lastThreads;
 
   @override
   LoudnessBackfillState build() => const LoudnessBackfillState();
@@ -461,8 +487,10 @@ class _RecordingLoudnessBackfillNotifier extends LoudnessBackfillNotifier {
     bool Function()? isPlaying,
     LoudnessPriorityTarget? Function()? currentTarget,
     bool includeFailed = false,
+    int threads = 1,
   }) async {
     startBackfillCalls += 1;
+    lastThreads = threads;
     state = state.copyWith(isRunning: true, isStopping: false);
   }
 

@@ -6141,6 +6141,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '測定されたトゥルーピークに基づきプラスゲインの上限を -1.0 dBTP に制限し、音割れを防ぎます。';
 
   @override
+  String get loudnessMultithreadedAnalysisTitle => '多线程分析';
+
+  @override
+  String get loudnessMultithreadedAnalysisDescription =>
+      '使用 4 个线程并发分析响度数据以加快处理速度，可能会提高 CPU 与磁盘负载。';
+
+  @override
   String get loudnessBackfillButton => '不足分のラウドネスを解析';
 
   @override

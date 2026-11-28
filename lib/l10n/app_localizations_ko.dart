@@ -6147,6 +6147,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '측정된 트루 피크를 기준으로 양의 게인 상한을 -1.0 dBTP로 제한하여 왜곡을 방지합니다.';
 
   @override
+  String get loudnessMultithreadedAnalysisTitle => '多线程分析';
+
+  @override
+  String get loudnessMultithreadedAnalysisDescription =>
+      '使用 4 个线程并发分析响度数据以加快处理速度，可能会提高 CPU 与磁盘负载。';
+
+  @override
   String get loudnessBackfillButton => '누락된 라우드니스 데이터 분석';
 
   @override

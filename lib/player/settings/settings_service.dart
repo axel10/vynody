@@ -806,6 +806,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyLoudnessClippingProtection =
       'loudness_clipping_protection';
   static const String _keyLoudnessFallbackGainDb = 'loudness_fallback_gain_db';
+  static const String _keyLoudnessMultithreadedAnalysis =
+      'loudness_multithreaded_analysis';
   static const String _keyEqualizerBassBoost = 'equalizer_bass_boost';
   static const String _keySpatialAudioMode = 'spatial_audio_mode';
   static const String _keyCustomEqPresets = 'custom_eq_presets';
@@ -2418,6 +2420,13 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _loudnessMultithreadedAnalysisProperty = SettingProperty<bool>(
+    key: _keyLoudnessMultithreadedAnalysis,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
   late final _equalizerBassBoostProperty = SettingProperty<double>(
     key: _keyEqualizerBassBoost,
     defaultValue: 0.0,
@@ -3636,6 +3645,11 @@ class SettingsService extends ChangeNotifier {
       _loudnessFallbackGainDbProperty.value.clamp(-12.0, 6.0);
   set loudnessFallbackGainDb(double value) =>
       _loudnessFallbackGainDbProperty.value = value.clamp(-12.0, 6.0);
+
+  bool get loudnessMultithreadedAnalysis =>
+      _loudnessMultithreadedAnalysisProperty.value;
+  set loudnessMultithreadedAnalysis(bool value) =>
+      _loudnessMultithreadedAnalysisProperty.value = value;
 
   double get equalizerBassBoost => _equalizerBassBoostProperty.value.clamp(0.0, 12.0);
   set equalizerBassBoost(double value) =>

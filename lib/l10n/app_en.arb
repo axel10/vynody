@@ -2694,6 +2694,8 @@
   "loudnessTargetLufsLabel": "Target Loudness",
   "loudnessClippingProtectionTitle": "True Peak Clipping Protection",
   "loudnessClippingProtectionDescription": "Cap positive gain at -1.0 dBTP based on measured true peak to prevent distortion.",
+  "loudnessMultithreadedAnalysisTitle": "Multithreaded Analysis",
+  "loudnessMultithreadedAnalysisDescription": "Use 4 worker threads to accelerate loudness analysis. May increase CPU usage and disk I/O.",
   "loudnessBackfillButton": "Analyze Missing Loudness Data",
   "loudnessBackfillStopButton": "Stop Analysis",
   "loudnessBackfillStopping": "Stopping...",

@@ -11181,6 +11181,18 @@ abstract class AppLocalizations {
   /// **'依据真峰值限制正向增益上限（-1.0 dBTP），避免高动态曲目失真。'**
   String get loudnessClippingProtectionDescription;
 
+  /// No description provided for @loudnessMultithreadedAnalysisTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'多线程分析'**
+  String get loudnessMultithreadedAnalysisTitle;
+
+  /// No description provided for @loudnessMultithreadedAnalysisDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用 4 个线程并发分析响度数据以加快处理速度，可能会提高 CPU 与磁盘负载。'**
+  String get loudnessMultithreadedAnalysisDescription;
+
   /// No description provided for @loudnessBackfillButton.
   ///
   /// In zh, this message translates to:

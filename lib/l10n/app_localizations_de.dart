@@ -6414,6 +6414,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Begrenzt die positive Verstärkung anhand des gemessenen True Peak auf -1,0 dBTP, um Verzerrungen zu vermeiden.';
 
   @override
+  String get loudnessMultithreadedAnalysisTitle => '多线程分析';
+
+  @override
+  String get loudnessMultithreadedAnalysisDescription =>
+      '使用 4 个线程并发分析响度数据以加快处理速度，可能会提高 CPU 与磁盘负载。';
+
+  @override
   String get loudnessBackfillButton => 'Fehlende Lautheitsdaten analysieren';
 
   @override

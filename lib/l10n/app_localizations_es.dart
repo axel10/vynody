@@ -6427,6 +6427,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Limita la ganancia positiva a -1.0 dBTP según el pico verdadero medido para evitar distorsiones.';
 
   @override
+  String get loudnessMultithreadedAnalysisTitle => '多线程分析';
+
+  @override
+  String get loudnessMultithreadedAnalysisDescription =>
+      '使用 4 个线程并发分析响度数据以加快处理速度，可能会提高 CPU 与磁盘负载。';
+
+  @override
   String get loudnessBackfillButton => 'Analizar datos de sonoridad faltantes';
 
   @override

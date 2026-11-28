@@ -65,13 +65,13 @@ void main() {
 
   group('selectNextLoudnessGroupIndex', () {
     test('returns -1 for empty list and 0 when no priority target', () {
-      expect(selectNextLoudnessGroupIndex(const [], null), -1);
+      expect(selectNextLoudnessGroupIndex(const [], const []), -1);
 
       final groups = groupSongsForLoudnessAnalysis([
         _makeSong(path: '/a/1.flac', album: 'Album A', artist: 'Artist A'),
         _makeSong(path: '/b/1.flac', album: 'Album B', artist: 'Artist B'),
       ]);
-      expect(selectNextLoudnessGroupIndex(groups, null), 0);
+      expect(selectNextLoudnessGroupIndex(groups, const []), 0);
     });
 
     test('prioritizes currently playing album dynamically even if in middle/end', () {
@@ -83,11 +83,13 @@ void main() {
 
       final idx = selectNextLoudnessGroupIndex(
         groups,
-        const LoudnessPriorityTarget(
-          path: '/c/2.flac',
-          album: 'Album C',
-          artist: 'Artist C',
-        ),
+        const [
+          LoudnessPriorityTarget(
+            path: '/c/2.flac',
+            album: 'Album C',
+            artist: 'Artist C',
+          ),
+        ],
       );
       expect(idx, 2);
 
@@ -95,13 +97,69 @@ void main() {
       groups.removeAt(idx);
       final nextIdx = selectNextLoudnessGroupIndex(
         groups,
-        const LoudnessPriorityTarget(
-          path: '/b/1.flac',
-          album: 'Album B',
-          artist: 'Artist B',
-        ),
+        const [
+          LoudnessPriorityTarget(
+            path: '/b/1.flac',
+            album: 'Album B',
+            artist: 'Artist B',
+          ),
+        ],
       );
       expect(nextIdx, 1);
+    });
+
+    test('prioritizes upcoming queue tracks in order after current album finishes', () {
+      final groups = groupSongsForLoudnessAnalysis([
+        _makeSong(path: '/a/1.flac', album: 'Album A', artist: 'Artist A'),
+        _makeSong(path: '/b/1.flac', album: 'Album B', artist: 'Artist B'),
+        _makeSong(path: '/c/1.flac', album: 'Album C', artist: 'Artist C'),
+      ]);
+
+      // Current album (Album D) is already analyzed, but queue has Album C then Album B.
+      final idx1 = selectNextLoudnessGroupIndex(
+        groups,
+        const [
+          LoudnessPriorityTarget(
+            path: '/d/1.flac',
+            album: 'Album D',
+            artist: 'Artist D',
+          ),
+          LoudnessPriorityTarget(
+            path: '/c/1.flac',
+            album: 'Album C',
+            artist: 'Artist C',
+          ),
+          LoudnessPriorityTarget(
+            path: '/b/1.flac',
+            album: 'Album B',
+            artist: 'Artist B',
+          ),
+        ],
+      );
+      expect(idx1, 2);
+      groups.removeAt(idx1);
+
+      final idx2 = selectNextLoudnessGroupIndex(
+        groups,
+        const [
+          LoudnessPriorityTarget(
+            path: '/d/1.flac',
+            album: 'Album D',
+            artist: 'Artist D',
+          ),
+          LoudnessPriorityTarget(
+            path: '/c/1.flac',
+            album: 'Album C',
+            artist: 'Artist C',
+          ),
+          LoudnessPriorityTarget(
+            path: '/b/1.flac',
+            album: 'Album B',
+            artist: 'Artist B',
+          ),
+        ],
+      );
+      expect(idx2, 1);
     });
 
     test('falls back to matching track path for unknown album or tag mismatch', () {
@@ -113,21 +171,25 @@ void main() {
 
       final unknownIdx = selectNextLoudnessGroupIndex(
         groups,
-        const LoudnessPriorityTarget(
-          path: '/u/1.flac',
-          album: 'Unknown',
-          artist: 'Artist U',
-        ),
+        const [
+          LoudnessPriorityTarget(
+            path: '/u/1.flac',
+            album: 'Unknown',
+            artist: 'Artist U',
+          ),
+        ],
       );
       expect(unknownIdx, 2);
 
       final pathFallbackIdx = selectNextLoudnessGroupIndex(
         groups,
-        const LoudnessPriorityTarget(
-          path: '/c/1.flac',
-          album: 'Different Tag',
-          artist: 'Other Artist',
-        ),
+        const [
+          LoudnessPriorityTarget(
+            path: '/c/1.flac',
+            album: 'Different Tag',
+            artist: 'Other Artist',
+          ),
+        ],
       );
       expect(pathFallbackIdx, 1);
     });

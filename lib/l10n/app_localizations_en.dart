@@ -6336,6 +6336,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Cap positive gain at -1.0 dBTP based on measured true peak to prevent distortion.';
 
   @override
+  String get loudnessMultithreadedAnalysisTitle => 'Multithreaded Analysis';
+
+  @override
+  String get loudnessMultithreadedAnalysisDescription =>
+      'Use 4 worker threads to accelerate loudness analysis. May increase CPU usage and disk I/O.';
+
+  @override
   String get loudnessBackfillButton => 'Analyze Missing Loudness Data';
 
   @override

@@ -83,30 +83,41 @@ List<LoudnessAnalysisGroup> groupSongsForLoudnessAnalysis(
   ];
 }
 
-/// Selects the next group index to analyze, prioritizing the group matching
-/// [priorityTarget] (by album key first, then by track path).
+/// Selects the next group index to analyze, prioritizing groups matching
+/// [priorityTargets] in order (by album key first, then by track path).
 int selectNextLoudnessGroupIndex(
   List<LoudnessAnalysisGroup> remainingGroups,
-  LoudnessPriorityTarget? priorityTarget,
+  List<LoudnessPriorityTarget> priorityTargets,
 ) {
   if (remainingGroups.isEmpty) return -1;
-  if (priorityTarget != null) {
+  if (priorityTargets.isEmpty) return 0;
+
+  final albumKeyToIndex = <String, int>{};
+  final pathToIndex = <String, int>{};
+  for (var i = 0; i < remainingGroups.length; i++) {
+    final group = remainingGroups[i];
+    final albumKey = group.albumKey;
+    if (albumKey != null) {
+      albumKeyToIndex.putIfAbsent(albumKey, () => i);
+    }
+    for (final song in group.songs) {
+      pathToIndex.putIfAbsent(song.path, () => i);
+    }
+  }
+
+  for (final target in priorityTargets) {
     final targetAlbumKey = buildLoudnessAlbumGroupKey(
-      album: priorityTarget.album,
-      albumArtist: priorityTarget.albumArtist,
-      artist: priorityTarget.artist,
+      album: target.album,
+      albumArtist: target.albumArtist,
+      artist: target.artist,
     );
     if (targetAlbumKey != null) {
-      final albumMatch = remainingGroups.indexWhere(
-        (group) => group.albumKey == targetAlbumKey,
-      );
-      if (albumMatch != -1) return albumMatch;
+      final albumMatch = albumKeyToIndex[targetAlbumKey];
+      if (albumMatch != null) return albumMatch;
     }
-    if (priorityTarget.path.isNotEmpty) {
-      final pathMatch = remainingGroups.indexWhere(
-        (group) => group.songs.any((song) => song.path == priorityTarget.path),
-      );
-      if (pathMatch != -1) return pathMatch;
+    if (target.path.isNotEmpty) {
+      final pathMatch = pathToIndex[target.path];
+      if (pathMatch != null) return pathMatch;
     }
   }
   return 0;
@@ -174,6 +185,7 @@ class LoudnessBackfillState {
 
 class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
   static const int _maxAlbumGroupSize = 40;
+  static const int multithreadedAnalysisThreads = 4;
   bool _cancelRequested = false;
   Future<void>? _activeRun;
   void Function(String path)? _onSongUpdated;
@@ -209,8 +221,9 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
 
   Future<void> startBackfill({
     bool Function()? isPlaying,
-    LoudnessPriorityTarget? Function()? currentTarget,
+    List<LoudnessPriorityTarget> Function()? priorityTargets,
     bool includeFailed = false,
+    int threads = 1,
   }) async {
     if (state.isRunning) {
       if (!state.isStopping) return;
@@ -223,8 +236,9 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
 
     final run = _runBackfill(
       isPlaying: isPlaying,
-      currentTarget: currentTarget,
+      priorityTargets: priorityTargets,
       includeFailed: includeFailed,
+      threads: threads,
     );
     _activeRun = run;
     try {
@@ -238,9 +252,11 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
 
   Future<void> _runBackfill({
     bool Function()? isPlaying,
-    LoudnessPriorityTarget? Function()? currentTarget,
+    List<LoudnessPriorityTarget> Function()? priorityTargets,
     bool includeFailed = false,
+    int threads = 1,
   }) async {
+    final effectiveThreads = threads < 1 ? 1 : threads;
     state = state.copyWith(
       isRunning: true,
       isStopping: false,
@@ -276,21 +292,39 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
 
         final nextIndex = selectNextLoudnessGroupIndex(
           remainingGroups,
-          currentTarget?.call(),
+          priorityTargets?.call() ?? const [],
         );
         if (nextIndex < 0) break;
         final group = remainingGroups.removeAt(nextIndex).songs;
 
         if (group.length == 1 || group.length > _maxAlbumGroupSize) {
-          for (final song in group) {
-            if (_cancelRequested) break;
-            await _analyzeSingleSong(song);
-            if (isPlaying?.call() == true) {
-              await Future<void>.delayed(const Duration(milliseconds: 60));
+          if (effectiveThreads <= 1) {
+            for (final song in group) {
+              if (_cancelRequested) break;
+              await _analyzeSingleSong(song);
+              if (isPlaying?.call() == true) {
+                await Future<void>.delayed(const Duration(milliseconds: 60));
+              }
             }
+          } else {
+            final batch = <SongMetadata>[...group];
+            if (group.length == 1) {
+              while (batch.length < effectiveThreads) {
+                final singleIdx = remainingGroups.indexWhere(
+                  (g) => g.songs.length == 1,
+                );
+                if (singleIdx < 0) break;
+                batch.add(remainingGroups.removeAt(singleIdx).songs.first);
+              }
+            }
+            await _analyzeSongsConcurrently(
+              batch,
+              concurrency: effectiveThreads,
+              isPlaying: isPlaying,
+            );
           }
         } else {
-          await _analyzeAlbumGroup(group);
+          await _analyzeAlbumGroup(group, threads: effectiveThreads);
           if (isPlaying?.call() == true) {
             await Future<void>.delayed(const Duration(milliseconds: 60));
           }
@@ -366,7 +400,34 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
     }
   }
 
-  Future<void> _analyzeAlbumGroup(List<SongMetadata> group) async {
+  Future<void> _analyzeSongsConcurrently(
+    List<SongMetadata> songs, {
+    required int concurrency,
+    bool Function()? isPlaying,
+  }) async {
+    if (songs.isEmpty) return;
+    final workerCount = concurrency.clamp(1, songs.length);
+    var nextIndex = 0;
+
+    Future<void> runWorker() async {
+      while (!_cancelRequested && nextIndex < songs.length) {
+        final song = songs[nextIndex++];
+        await _analyzeSingleSong(song);
+        if (isPlaying?.call() == true) {
+          await Future<void>.delayed(const Duration(milliseconds: 60));
+        }
+      }
+    }
+
+    await Future.wait([
+      for (var i = 0; i < workerCount; i++) runWorker(),
+    ]);
+  }
+
+  Future<void> _analyzeAlbumGroup(
+    List<SongMetadata> group, {
+    int threads = 1,
+  }) async {
     final first = group.first;
     state = state.copyWith(
       currentFileName: '${first.album} (${group.length})',
@@ -398,7 +459,10 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
     try {
       final albumResult = await _withReadablePaths(
         accessibleSongs.map((s) => s.path).toList(growable: false),
-        (resolvedPaths) => analyzeAlbumLoudness(paths: resolvedPaths),
+        (resolvedPaths) => analyzeAlbumLoudness(
+          paths: resolvedPaths,
+          threads: threads,
+        ),
       );
       if (albumResult == null ||
           albumResult.tracks.length != accessibleSongs.length) {
