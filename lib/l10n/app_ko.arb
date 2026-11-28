@@ -2293,5 +2293,22 @@
   "lyricsLinesCount": "{count}줄",
   "timelineOffsetMs": "오프셋: {offset}ms",
   "smbConnectedNoShares": "연결에 성공했지만 공유 폴더를 찾을 수 없습니다.",
-  "smbConnectedFoundShares": "연결 성공! {count}개의 공유 폴더를 찾았습니다."
+  "smbConnectedFoundShares": "연결 성공! {count}개의 공유 폴더를 찾았습니다.",
+  "loudnessNormalizationGroup": "라우드니스 정규화",
+  "loudnessNormalizationTitle": "트랙 음량 자동 정규화",
+  "loudnessNormalizationDescription": "ITU-R BS.1770 / ReplayGain 표준에 따라 트랙별 재생 음량을 자동으로 조절하여 곡 전환 시 음량 차이를 줄입니다.",
+  "loudnessNormalizationModeLabel": "정규화 모드",
+  "loudnessModeTrack": "트랙별",
+  "loudnessModeAlbum": "앨범별",
+  "loudnessTargetLufsLabel": "목표 라우드니스",
+  "loudnessClippingProtectionTitle": "트루 피크 클리핑 방지",
+  "loudnessClippingProtectionDescription": "측정된 트루 피크를 기준으로 양의 게인 상한을 -1.0 dBTP로 제한하여 왜곡을 방지합니다.",
+  "loudnessBackfillProgress": "라우드니스 데이터 준비됨: {analyzed} / {total} 로컬 트랙",
+  "loudnessBackfillButton": "누락된 라우드니스 데이터 분석",
+  "loudnessBackfillStopButton": "분석 중지",
+  "loudnessBackfillStopping": "중지하는 중...",
+  "loudnessBackfillRunningDetail": "분석 중: {name} ({completed}곡 완료)",
+  "loudnessBackfillFailedSummary": "파일이 없거나 디코딩할 수 없어 로컬 트랙 {failed}곡을 건너뛰었습니다",
+  "loudnessBackfillLastError": "최근 오류: {error}",
+  "loudnessBackfillRetryFailedButton": "실패한 항목 재시도 ({count})"
 }

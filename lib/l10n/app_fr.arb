@@ -2293,5 +2293,22 @@
   "lyricsLinesCount": "{count} lignes",
   "timelineOffsetMs": "Décalage : {offset}ms",
   "smbConnectedNoShares": "Connexion réussie, mais aucun dossier partagé trouvé.",
-  "smbConnectedFoundShares": "Connexion réussie ! {count} dossier(s) partagé(s) trouvé(s)."
+  "smbConnectedFoundShares": "Connexion réussie ! {count} dossier(s) partagé(s) trouvé(s).",
+  "loudnessNormalizationGroup": "Normalisation du volume sonore",
+  "loudnessNormalizationTitle": "Normaliser le volume des pistes",
+  "loudnessNormalizationDescription": "Équilibre automatiquement le volume sonore entre les pistes selon les normes ITU-R BS.1770 / ReplayGain.",
+  "loudnessNormalizationModeLabel": "Mode de normalisation",
+  "loudnessModeTrack": "Piste",
+  "loudnessModeAlbum": "Album",
+  "loudnessTargetLufsLabel": "Volume cible",
+  "loudnessClippingProtectionTitle": "Protection contre l'écrêtage (True Peak)",
+  "loudnessClippingProtectionDescription": "Plafonne le gain positif à -1,0 dBTP selon le pic réel mesuré pour éviter toute distorsion.",
+  "loudnessBackfillProgress": "Données de volume prêtes : {analyzed} / {total} pistes locales",
+  "loudnessBackfillButton": "Analyser les données de volume manquantes",
+  "loudnessBackfillStopButton": "Arrêter l'analyse",
+  "loudnessBackfillStopping": "Arrêt en cours...",
+  "loudnessBackfillRunningDetail": "Analyse : {name} ({completed} terminées)",
+  "loudnessBackfillFailedSummary": "{failed} pistes locales ont été ignorées en raison de fichiers manquants ou d'erreurs de décodage",
+  "loudnessBackfillLastError": "Dernière erreur : {error}",
+  "loudnessBackfillRetryFailedButton": "Réessayer les échecs ({count})"
 }

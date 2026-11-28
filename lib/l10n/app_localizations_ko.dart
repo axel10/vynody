@@ -6118,65 +6118,65 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get loudnessNormalizationGroup => '响度均衡';
+  String get loudnessNormalizationGroup => '라우드니스 정규화';
 
   @override
-  String get loudnessNormalizationTitle => '自动均衡歌曲音量';
+  String get loudnessNormalizationTitle => '트랙 음량 자동 정규화';
 
   @override
   String get loudnessNormalizationDescription =>
-      '依据 ITU-R BS.1770 / ReplayGain 标准调节不同曲目的回放电平，减少切歌时的音量落差。';
+      'ITU-R BS.1770 / ReplayGain 표준에 따라 트랙별 재생 음량을 자동으로 조절하여 곡 전환 시 음량 차이를 줄입니다.';
 
   @override
-  String get loudnessNormalizationModeLabel => '均衡模式';
+  String get loudnessNormalizationModeLabel => '정규화 모드';
 
   @override
-  String get loudnessModeTrack => '按单曲';
+  String get loudnessModeTrack => '트랙별';
 
   @override
-  String get loudnessModeAlbum => '按专辑';
+  String get loudnessModeAlbum => '앨범별';
 
   @override
-  String get loudnessTargetLufsLabel => '目标响度';
+  String get loudnessTargetLufsLabel => '목표 라우드니스';
 
   @override
-  String get loudnessClippingProtectionTitle => '防削波保护';
+  String get loudnessClippingProtectionTitle => '트루 피크 클리핑 방지';
 
   @override
   String get loudnessClippingProtectionDescription =>
-      '依据真峰值限制正向增益上限（-1.0 dBTP），避免高动态曲目失真。';
+      '측정된 트루 피크를 기준으로 양의 게인 상한을 -1.0 dBTP로 제한하여 왜곡을 방지합니다.';
 
   @override
-  String get loudnessBackfillButton => '补全歌曲响度数据';
+  String get loudnessBackfillButton => '누락된 라우드니스 데이터 분석';
 
   @override
-  String get loudnessBackfillStopButton => '停止分析';
+  String get loudnessBackfillStopButton => '분석 중지';
 
   @override
-  String get loudnessBackfillStopping => '正在停止...';
+  String get loudnessBackfillStopping => '중지하는 중...';
 
   @override
   String loudnessBackfillProgress(int analyzed, int total) {
-    return '已具备响度数据：$analyzed / $total 首本地曲目';
+    return '라우드니스 데이터 준비됨: $analyzed / $total 로컬 트랙';
   }
 
   @override
   String loudnessBackfillRunningDetail(String name, int completed) {
-    return '正在分析：$name（本次已完成 $completed 首）';
+    return '분석 중: $name ($completed곡 완료)';
   }
 
   @override
   String loudnessBackfillFailedSummary(int failed) {
-    return '另有 $failed 首本地曲目因文件缺失或无法解码而跳过';
+    return '파일이 없거나 디코딩할 수 없어 로컬 트랙 $failed곡을 건너뛰었습니다';
   }
 
   @override
   String loudnessBackfillLastError(String error) {
-    return '最近异常：$error';
+    return '최근 오류: $error';
   }
 
   @override
   String loudnessBackfillRetryFailedButton(int count) {
-    return '重试失败曲目（$count）';
+    return '실패한 항목 재시도 ($count)';
   }
 }

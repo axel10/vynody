@@ -2293,5 +2293,22 @@
   "lyricsLinesCount": "{count} Zeilen",
   "timelineOffsetMs": "Versatz: {offset}ms",
   "smbConnectedNoShares": "Verbindung hergestellt, aber keine freigegebenen Ordner gefunden.",
-  "smbConnectedFoundShares": "Verbindung erfolgreich! {count} freigegebene(r) Ordner gefunden."
+  "smbConnectedFoundShares": "Verbindung erfolgreich! {count} freigegebene(r) Ordner gefunden.",
+  "loudnessNormalizationGroup": "Lautheitsnormalisierung",
+  "loudnessNormalizationTitle": "Titellautstärke angleichen",
+  "loudnessNormalizationDescription": "Passt die Wiedergabelautstärke zwischen Titeln automatisch nach den Standards ITU-R BS.1770 / ReplayGain an.",
+  "loudnessNormalizationModeLabel": "Normalisierungsmodus",
+  "loudnessModeTrack": "Titel",
+  "loudnessModeAlbum": "Album",
+  "loudnessTargetLufsLabel": "Ziellautheit",
+  "loudnessClippingProtectionTitle": "True-Peak-Clipping-Schutz",
+  "loudnessClippingProtectionDescription": "Begrenzt die positive Verstärkung anhand des gemessenen True Peak auf -1,0 dBTP, um Verzerrungen zu vermeiden.",
+  "loudnessBackfillProgress": "Lautheitsdaten bereit: {analyzed} / {total} lokale Titel",
+  "loudnessBackfillButton": "Fehlende Lautheitsdaten analysieren",
+  "loudnessBackfillStopButton": "Analyse stoppen",
+  "loudnessBackfillStopping": "Wird gestoppt...",
+  "loudnessBackfillRunningDetail": "Analysiere: {name} ({completed} abgeschlossen)",
+  "loudnessBackfillFailedSummary": "{failed} lokale Titel wurden wegen fehlender Dateien oder Dekodierungsfehlern übersprungen",
+  "loudnessBackfillLastError": "Letzter Fehler: {error}",
+  "loudnessBackfillRetryFailedButton": "Fehlgeschlagene wiederholen ({count})"
 }

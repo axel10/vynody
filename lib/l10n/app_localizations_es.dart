@@ -6397,65 +6397,66 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get loudnessNormalizationGroup => '响度均衡';
+  String get loudnessNormalizationGroup => 'Normalización de sonoridad';
 
   @override
-  String get loudnessNormalizationTitle => '自动均衡歌曲音量';
+  String get loudnessNormalizationTitle => 'Normalizar volumen de pistas';
 
   @override
   String get loudnessNormalizationDescription =>
-      '依据 ITU-R BS.1770 / ReplayGain 标准调节不同曲目的回放电平，减少切歌时的音量落差。';
+      'Equilibra automáticamente el volumen de reproducción entre pistas según los estándares ITU-R BS.1770 / ReplayGain.';
 
   @override
-  String get loudnessNormalizationModeLabel => '均衡模式';
+  String get loudnessNormalizationModeLabel => 'Modo de normalización';
 
   @override
-  String get loudnessModeTrack => '按单曲';
+  String get loudnessModeTrack => 'Pista';
 
   @override
-  String get loudnessModeAlbum => '按专辑';
+  String get loudnessModeAlbum => 'Álbum';
 
   @override
-  String get loudnessTargetLufsLabel => '目标响度';
+  String get loudnessTargetLufsLabel => 'Sonoridad objetivo';
 
   @override
-  String get loudnessClippingProtectionTitle => '防削波保护';
+  String get loudnessClippingProtectionTitle =>
+      'Protección contra recorte (True Peak)';
 
   @override
   String get loudnessClippingProtectionDescription =>
-      '依据真峰值限制正向增益上限（-1.0 dBTP），避免高动态曲目失真。';
+      'Limita la ganancia positiva a -1.0 dBTP según el pico verdadero medido para evitar distorsiones.';
 
   @override
-  String get loudnessBackfillButton => '补全歌曲响度数据';
+  String get loudnessBackfillButton => 'Analizar datos de sonoridad faltantes';
 
   @override
-  String get loudnessBackfillStopButton => '停止分析';
+  String get loudnessBackfillStopButton => 'Detener análisis';
 
   @override
-  String get loudnessBackfillStopping => '正在停止...';
+  String get loudnessBackfillStopping => 'Deteniendo...';
 
   @override
   String loudnessBackfillProgress(int analyzed, int total) {
-    return '已具备响度数据：$analyzed / $total 首本地曲目';
+    return 'Datos de sonoridad listos: $analyzed / $total pistas locales';
   }
 
   @override
   String loudnessBackfillRunningDetail(String name, int completed) {
-    return '正在分析：$name（本次已完成 $completed 首）';
+    return 'Analizando: $name ($completed completadas)';
   }
 
   @override
   String loudnessBackfillFailedSummary(int failed) {
-    return '另有 $failed 首本地曲目因文件缺失或无法解码而跳过';
+    return 'Se omitieron $failed pistas locales por archivos faltantes o errores de decodificación';
   }
 
   @override
   String loudnessBackfillLastError(String error) {
-    return '最近异常：$error';
+    return 'Último error: $error';
   }
 
   @override
   String loudnessBackfillRetryFailedButton(int count) {
-    return '重试失败曲目（$count）';
+    return 'Reintentar fallidas ($count)';
   }
 }

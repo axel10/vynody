@@ -2392,5 +2392,22 @@
   "lyricsLinesCount": "{count} 行",
   "timelineOffsetMs": "オフセット: {offset}ms",
   "smbConnectedNoShares": "接続に成功しましたが、共有フォルダーが見つかりませんでした。",
-  "smbConnectedFoundShares": "接続に成功しました！{count} 個の共有フォルダーが見つかりました。"
+  "smbConnectedFoundShares": "接続に成功しました！{count} 個の共有フォルダーが見つかりました。",
+  "loudnessNormalizationGroup": "ラウドネスノーマライゼーション",
+  "loudnessNormalizationTitle": "曲の音量を自動調整",
+  "loudnessNormalizationDescription": "ITU-R BS.1770 / ReplayGain 規格に基づき曲ごとの再生音量を自動調整し、曲切り替え時の音量差を抑えます。",
+  "loudnessNormalizationModeLabel": "ノーマライズモード",
+  "loudnessModeTrack": "トラック別",
+  "loudnessModeAlbum": "アルバム別",
+  "loudnessTargetLufsLabel": "ターゲットラウドネス",
+  "loudnessClippingProtectionTitle": "トゥルーピーク・クリッピング保護",
+  "loudnessClippingProtectionDescription": "測定されたトゥルーピークに基づきプラスゲインの上限を -1.0 dBTP に制限し、音割れを防ぎます。",
+  "loudnessBackfillProgress": "ラウドネスデータ取得済み: {analyzed} / {total} 曲（ローカル）",
+  "loudnessBackfillButton": "不足分のラウドネスを解析",
+  "loudnessBackfillStopButton": "解析を停止",
+  "loudnessBackfillStopping": "停止中...",
+  "loudnessBackfillRunningDetail": "解析中: {name}（{completed} 曲完了）",
+  "loudnessBackfillFailedSummary": "ファイルが見つからないかデコードできないため、{failed} 曲のローカル楽曲がスキップされました",
+  "loudnessBackfillLastError": "最新のエラー: {error}",
+  "loudnessBackfillRetryFailedButton": "失敗した曲を再試行（{count}）"
 }

@@ -6336,65 +6336,66 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get loudnessNormalizationGroup => '响度均衡';
+  String get loudnessNormalizationGroup => 'Ses Yüksekliği Normalizasyonu';
 
   @override
-  String get loudnessNormalizationTitle => '自动均衡歌曲音量';
+  String get loudnessNormalizationTitle => 'Parça Ses Düzeyini Eşitle';
 
   @override
   String get loudnessNormalizationDescription =>
-      '依据 ITU-R BS.1770 / ReplayGain 标准调节不同曲目的回放电平，减少切歌时的音量落差。';
+      'Parçalar arasındaki çalma ses yüksekliğini ITU-R BS.1770 / ReplayGain standartlarına göre otomatik olarak dengeler.';
 
   @override
-  String get loudnessNormalizationModeLabel => '均衡模式';
+  String get loudnessNormalizationModeLabel => 'Normalizasyon Modu';
 
   @override
-  String get loudnessModeTrack => '按单曲';
+  String get loudnessModeTrack => 'Parça';
 
   @override
-  String get loudnessModeAlbum => '按专辑';
+  String get loudnessModeAlbum => 'Albüm';
 
   @override
-  String get loudnessTargetLufsLabel => '目标响度';
+  String get loudnessTargetLufsLabel => 'Hedef Ses Yüksekliği';
 
   @override
-  String get loudnessClippingProtectionTitle => '防削波保护';
+  String get loudnessClippingProtectionTitle => 'Gerçek Tepe Kırpma Koruması';
 
   @override
   String get loudnessClippingProtectionDescription =>
-      '依据真峰值限制正向增益上限（-1.0 dBTP），避免高动态曲目失真。';
+      'Bozulmayı önlemek için ölçülen gerçek tepe değerine göre pozitif kazancı -1.0 dBTP ile sınırlar.';
 
   @override
-  String get loudnessBackfillButton => '补全歌曲响度数据';
+  String get loudnessBackfillButton =>
+      'Eksik Ses Yüksekliği Verilerini Analiz Et';
 
   @override
-  String get loudnessBackfillStopButton => '停止分析';
+  String get loudnessBackfillStopButton => 'Analizi Durdur';
 
   @override
-  String get loudnessBackfillStopping => '正在停止...';
+  String get loudnessBackfillStopping => 'Durduruluyor...';
 
   @override
   String loudnessBackfillProgress(int analyzed, int total) {
-    return '已具备响度数据：$analyzed / $total 首本地曲目';
+    return 'Ses yüksekliği verisi hazır: $analyzed / $total yerel parça';
   }
 
   @override
   String loudnessBackfillRunningDetail(String name, int completed) {
-    return '正在分析：$name（本次已完成 $completed 首）';
+    return 'Analiz ediliyor: $name ($completed tamamlandı)';
   }
 
   @override
   String loudnessBackfillFailedSummary(int failed) {
-    return '另有 $failed 首本地曲目因文件缺失或无法解码而跳过';
+    return 'Eksik dosya veya kod çözme hatası nedeniyle $failed yerel parça atlandı';
   }
 
   @override
   String loudnessBackfillLastError(String error) {
-    return '最近异常：$error';
+    return 'Son hata: $error';
   }
 
   @override
   String loudnessBackfillRetryFailedButton(int count) {
-    return '重试失败曲目（$count）';
+    return 'Başarısızları Yeniden Dene ($count)';
   }
 }

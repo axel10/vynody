@@ -12069,4 +12069,67 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String smbConnectedFoundShares(int count) {
     return '連線成功！找到 $count 個共用資料夾。';
   }
+
+  @override
+  String get loudnessNormalizationGroup => '響度均衡';
+
+  @override
+  String get loudnessNormalizationTitle => '自動均衡歌曲音量';
+
+  @override
+  String get loudnessNormalizationDescription =>
+      '依據 ITU-R BS.1770 / ReplayGain 標準調節不同曲目的回放電平，減少切歌時的音量落差。';
+
+  @override
+  String get loudnessNormalizationModeLabel => '均衡模式';
+
+  @override
+  String get loudnessModeTrack => '按單曲';
+
+  @override
+  String get loudnessModeAlbum => '按專輯';
+
+  @override
+  String get loudnessTargetLufsLabel => '目標響度';
+
+  @override
+  String get loudnessClippingProtectionTitle => '防削波保護';
+
+  @override
+  String get loudnessClippingProtectionDescription =>
+      '依據真峰值限制正向增益上限（-1.0 dBTP），避免高動態曲目失真。';
+
+  @override
+  String get loudnessBackfillButton => '補全歌曲響度資料';
+
+  @override
+  String get loudnessBackfillStopButton => '停止分析';
+
+  @override
+  String get loudnessBackfillStopping => '正在停止...';
+
+  @override
+  String loudnessBackfillProgress(int analyzed, int total) {
+    return '已具備響度資料：$analyzed / $total 首本地曲目';
+  }
+
+  @override
+  String loudnessBackfillRunningDetail(String name, int completed) {
+    return '正在分析：$name（本次已完成 $completed 首）';
+  }
+
+  @override
+  String loudnessBackfillFailedSummary(int failed) {
+    return '另有 $failed 首本地曲目因檔案缺失或無法解碼而略過';
+  }
+
+  @override
+  String loudnessBackfillLastError(String error) {
+    return '最近異常：$error';
+  }
+
+  @override
+  String loudnessBackfillRetryFailedButton(int count) {
+    return '重試失敗曲目（$count）';
+  }
 }

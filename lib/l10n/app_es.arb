@@ -2293,5 +2293,22 @@
   "lyricsLinesCount": "{count} líneas",
   "timelineOffsetMs": "Desfase: {offset}ms",
   "smbConnectedNoShares": "Conexión exitosa, pero no se encontraron carpetas compartidas.",
-  "smbConnectedFoundShares": "¡Conexión exitosa! Se encontraron {count} carpeta(s) compartida(s)."
+  "smbConnectedFoundShares": "¡Conexión exitosa! Se encontraron {count} carpeta(s) compartida(s).",
+  "loudnessNormalizationGroup": "Normalización de sonoridad",
+  "loudnessNormalizationTitle": "Normalizar volumen de pistas",
+  "loudnessNormalizationDescription": "Equilibra automáticamente el volumen de reproducción entre pistas según los estándares ITU-R BS.1770 / ReplayGain.",
+  "loudnessNormalizationModeLabel": "Modo de normalización",
+  "loudnessModeTrack": "Pista",
+  "loudnessModeAlbum": "Álbum",
+  "loudnessTargetLufsLabel": "Sonoridad objetivo",
+  "loudnessClippingProtectionTitle": "Protección contra recorte (True Peak)",
+  "loudnessClippingProtectionDescription": "Limita la ganancia positiva a -1.0 dBTP según el pico verdadero medido para evitar distorsiones.",
+  "loudnessBackfillProgress": "Datos de sonoridad listos: {analyzed} / {total} pistas locales",
+  "loudnessBackfillButton": "Analizar datos de sonoridad faltantes",
+  "loudnessBackfillStopButton": "Detener análisis",
+  "loudnessBackfillStopping": "Deteniendo...",
+  "loudnessBackfillRunningDetail": "Analizando: {name} ({completed} completadas)",
+  "loudnessBackfillFailedSummary": "Se omitieron {failed} pistas locales por archivos faltantes o errores de decodificación",
+  "loudnessBackfillLastError": "Último error: {error}",
+  "loudnessBackfillRetryFailedButton": "Reintentar fallidas ({count})"
 }

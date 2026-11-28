@@ -2425,5 +2425,22 @@
   "lyricsLinesCount": "{count} satır",
   "timelineOffsetMs": "Ofset: {offset}ms",
   "smbConnectedNoShares": "Bağlantı başarılı ancak paylaşılan klasör bulunamadı.",
-  "smbConnectedFoundShares": "Bağlantı başarılı! {count} paylaşılan klasör bulundu."
+  "smbConnectedFoundShares": "Bağlantı başarılı! {count} paylaşılan klasör bulundu.",
+  "loudnessNormalizationGroup": "Ses Yüksekliği Normalizasyonu",
+  "loudnessNormalizationTitle": "Parça Ses Düzeyini Eşitle",
+  "loudnessNormalizationDescription": "Parçalar arasındaki çalma ses yüksekliğini ITU-R BS.1770 / ReplayGain standartlarına göre otomatik olarak dengeler.",
+  "loudnessNormalizationModeLabel": "Normalizasyon Modu",
+  "loudnessModeTrack": "Parça",
+  "loudnessModeAlbum": "Albüm",
+  "loudnessTargetLufsLabel": "Hedef Ses Yüksekliği",
+  "loudnessClippingProtectionTitle": "Gerçek Tepe Kırpma Koruması",
+  "loudnessClippingProtectionDescription": "Bozulmayı önlemek için ölçülen gerçek tepe değerine göre pozitif kazancı -1.0 dBTP ile sınırlar.",
+  "loudnessBackfillProgress": "Ses yüksekliği verisi hazır: {analyzed} / {total} yerel parça",
+  "loudnessBackfillButton": "Eksik Ses Yüksekliği Verilerini Analiz Et",
+  "loudnessBackfillStopButton": "Analizi Durdur",
+  "loudnessBackfillStopping": "Durduruluyor...",
+  "loudnessBackfillRunningDetail": "Analiz ediliyor: {name} ({completed} tamamlandı)",
+  "loudnessBackfillFailedSummary": "Eksik dosya veya kod çözme hatası nedeniyle {failed} yerel parça atlandı",
+  "loudnessBackfillLastError": "Son hata: {error}",
+  "loudnessBackfillRetryFailedButton": "Başarısızları Yeniden Dene ({count})"
 }
