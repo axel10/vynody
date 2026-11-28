@@ -444,7 +444,7 @@ void main() {
       expect(notifier.startBackfillCalls, 2);
       expect(notifier.lastThreads, 1);
 
-      // Toggle multithreaded analysis -> persists setting and uses 4 threads.
+      // Toggle multithreaded analysis while running -> restarts backfill with 4 threads.
       final multithreadSwitchFinder = find.byKey(
         const ValueKey<String>(
           'settings_loudness_multithreaded_analysis_switch',
@@ -457,22 +457,22 @@ void main() {
       await tester.tap(multithreadSwitchFinder);
       await tester.pumpAndSettle();
       expect(settings.loudnessMultithreadedAnalysis, isTrue);
-
-      // Re-trigger backfill via main switch -> uses 4 threads.
-      await tester.ensureVisible(switchFinder);
-      await tester.pumpAndSettle();
-      await tester.tap(switchFinder);
-      await tester.pumpAndSettle();
-      await tester.tap(switchFinder);
-      await tester.pumpAndSettle();
-      expect(notifier.startBackfillCalls, 3);
+      expect(notifier.restartBackfillCalls, 1);
       expect(notifier.lastThreads, 4);
+
+      // Toggle multithreaded analysis back off while running -> restarts with 1 thread.
+      await tester.tap(multithreadSwitchFinder);
+      await tester.pumpAndSettle();
+      expect(settings.loudnessMultithreadedAnalysis, isFalse);
+      expect(notifier.restartBackfillCalls, 2);
+      expect(notifier.lastThreads, 1);
     },
   );
 }
 
 class _RecordingLoudnessBackfillNotifier extends LoudnessBackfillNotifier {
   int startBackfillCalls = 0;
+  int restartBackfillCalls = 0;
   int requestStopCalls = 0;
   int? lastThreads;
 
@@ -485,11 +485,24 @@ class _RecordingLoudnessBackfillNotifier extends LoudnessBackfillNotifier {
   @override
   Future<void> startBackfill({
     bool Function()? isPlaying,
-    LoudnessPriorityTarget? Function()? currentTarget,
+    List<LoudnessPriorityTarget> Function()? priorityTargets,
     bool includeFailed = false,
     int threads = 1,
   }) async {
     startBackfillCalls += 1;
+    lastThreads = threads;
+    state = state.copyWith(isRunning: true, isStopping: false);
+  }
+
+  @override
+  Future<void> restartBackfill({
+    bool Function()? isPlaying,
+    List<LoudnessPriorityTarget> Function()? priorityTargets,
+    bool includeFailed = false,
+    int threads = 1,
+    bool Function()? shouldContinue,
+  }) async {
+    restartBackfillCalls += 1;
     lastThreads = threads;
     state = state.copyWith(isRunning: true, isStopping: false);
   }

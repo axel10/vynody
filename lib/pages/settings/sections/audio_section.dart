@@ -778,6 +778,23 @@ class AudioSection extends ConsumerWidget {
     );
   }
 
+  void _restartLoudnessBackfillIfRunning(WidgetRef ref) {
+    final backfillState = ref.read(loudnessBackfillProvider);
+    if (!backfillState.isRunning) return;
+    final backfillNotifier = ref.read(loudnessBackfillProvider.notifier);
+    final audio = ref.read(audioServiceProvider);
+    unawaited(
+      backfillNotifier.restartBackfill(
+        threads: settings.loudnessMultithreadedAnalysis
+            ? LoudnessBackfillNotifier.multithreadedAnalysisThreads
+            : 1,
+        isPlaying: () => audio.isPlaying,
+        shouldContinue: () => settings.loudnessNormalizationEnabled,
+        priorityTargets: () => _buildLoudnessPriorityTargets(audio),
+      ),
+    );
+  }
+
   Widget _buildLoudnessNormalizationCard(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final backfillState = ref.watch(loudnessBackfillProvider);
@@ -882,6 +899,7 @@ class AudioSection extends ConsumerWidget {
             value: settings.loudnessMultithreadedAnalysis,
             onChanged: (value) {
               settings.loudnessMultithreadedAnalysis = value;
+              _restartLoudnessBackfillIfRunning(ref);
             },
           ),
           Padding(

@@ -219,6 +219,26 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
     state = state.copyWith(isStopping: true);
   }
 
+  /// Stops any active backfill run and starts a new one with the updated options.
+  Future<void> restartBackfill({
+    bool Function()? isPlaying,
+    List<LoudnessPriorityTarget> Function()? priorityTargets,
+    bool includeFailed = false,
+    int threads = 1,
+    bool Function()? shouldContinue,
+  }) async {
+    if (!state.isRunning) return;
+    requestStop();
+    await _activeRun;
+    if (shouldContinue?.call() == false) return;
+    await startBackfill(
+      isPlaying: isPlaying,
+      priorityTargets: priorityTargets,
+      includeFailed: includeFailed,
+      threads: threads,
+    );
+  }
+
   Future<void> startBackfill({
     bool Function()? isPlaying,
     List<LoudnessPriorityTarget> Function()? priorityTargets,
@@ -285,6 +305,9 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
         return;
       }
 
+      debugPrint(
+        '[LoudnessBackfill] started: pending=${pending.length}, threads=$effectiveThreads',
+      );
       final remainingGroups = groupSongsForLoudnessAnalysis(pending);
 
       while (remainingGroups.isNotEmpty) {
