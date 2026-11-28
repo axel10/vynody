@@ -43,13 +43,11 @@ double thumbnailBucketSizeFor(double size) {
 /// 歌曲 / 专辑 / 文件夹的封面缩略图。
 ///
 /// 淡入策略由组件自己统一决定，不提供开关：只要缩略图还没就位（没解析出来、
-/// 或解析出来了但还没解码出首帧），该区域保持空白；就位那一刻按
-/// [kArtworkFadeInDuration] 淡入。
+/// 或解析出来了但还没解码出首帧），该区域保持空白；就位那一刻（无论是封面还是
+/// 异步确认无封面后的默认图标）按 [kArtworkFadeInDuration] 淡入。
 ///
-/// 唯一的例外是**解析结果确认没有封面**：此时落定的就是默认图标，它不再套
-/// [kArtworkFadeInDuration]，直接以 1.0 呈现。默认图标自己再排一段淡入的话，
-/// 它和外层档位过渡的不透明度是两条时钟，会明显晚一拍（详见 [_SongThumbnailState._needsFadeIn]）。
-/// 所有调用方（歌曲行、文件夹条目、专辑卡片、播放列表封面……）行为一致。
+/// 命中已有本地缓存（或已在本次会话中确认无封面的负缓存）时，首帧直接以 1.0 呈现，
+/// 不再额外套淡入。所有调用方（歌曲行、文件夹条目、专辑卡片、播放列表封面……）行为一致。
 class SongThumbnail extends ConsumerStatefulWidget {
   final String path;
   final int? id;
@@ -170,10 +168,9 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
 
   /// 本次挂载或更新是否需要淡入展示。
   ///
-  /// - 命中已有本地缓存（已有缩略图文件/内存字节）：false，首帧直接展示，不套淡入；
-  /// - 尚未生成缩略图（等待动画结束或后台生成完毕）：true，就位时由外层统一平滑淡入；
-  /// - 解析落定为「没有封面」（结果是默认图标）：false。默认图标不该有自己的淡入时钟，
-  ///   否则换档过渡时它会比有封面的条目晚一整段 [kArtworkFadeInDuration]。
+  /// - 命中已有本地缓存（已有缩略图文件/内存字节）或同步负缓存：false，首帧直接展示，不套淡入；
+  /// - 尚未确定是否有封面（进入异步解析等待）：true，结果落定（封面或默认图标）后按
+  ///   [kArtworkFadeInDuration] 平滑淡入，避免一帧硬切跳出。
   bool _needsFadeIn = false;
 
   /// 异步解析（查找 / 生成缩略图）是否仍在进行。
@@ -183,7 +180,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   bool _isGenerating = false;
 
   static final Set<String> _failedRemoteUrls = <String>{};
-  Animation<double>? _routeAnimation;
+  bool _queryInFlight = false;
 
   @override
   void initState() {
@@ -194,18 +191,21 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 若初次挂载时需要异步慢解析，挂接到当前路由转场动画监听
-    if (_artworkFilePath == null && _remoteArtworkUrl == null && widget.bytes == null) {
-      _scheduleQueryArtwork();
+    if (_isGenerating &&
+        !_queryInFlight &&
+        _artworkFilePath == null &&
+        _remoteArtworkUrl == null &&
+        widget.bytes == null) {
+      _queryArtworkAsync();
     }
   }
 
   void _checkOrQueryArtwork({bool fromInitState = false}) {
     // 快速路径：直接复用已知缩略图路径，不在 UI 线程同步调用 File.existsSync()
     final scanner = ref.read(scannerServiceProvider);
-    final rawExisting = widget.thumbnailPath ??
-        scanner.metadataMap[widget.path]?.thumbnailPath ??
-        _artworkFilePath;
+    final resolvedThumbArg =
+        widget.thumbnailPath ?? scanner.metadataMap[widget.path]?.thumbnailPath;
+    final rawExisting = resolvedThumbArg ?? _artworkFilePath;
     final existingPath = rawExisting != null
         ? ScannerPathUtils.resolveIosSandboxPath(rawExisting)
         : null;
@@ -234,8 +234,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     // 快速路径，所以只有远程曲目那批看得出来。
     final cachedThumb = ArtworkResolver.peekCachedThumbnail(
       path: widget.path,
-      thumbnailPath: widget.thumbnailPath ??
-          scanner.metadataMap[widget.path]?.thumbnailPath,
+      thumbnailPath: resolvedThumbArg,
     );
     if (cachedThumb != null && cachedThumb.isNotEmpty) {
       _artworkFilePath = ScannerPathUtils.resolveIosSandboxPath(cachedThumb);
@@ -246,64 +245,48 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       return;
     }
 
-    _isGenerating = true;
-    _needsFadeIn = true;
-    if (!fromInitState) {
-      _scheduleQueryArtwork();
-    }
-  }
-
-  void _scheduleQueryArtwork() {
-    if (!mounted) return;
-    final routeAnimation = ModalRoute.of(context)?.animation;
-    if (routeAnimation != null && !routeAnimation.isCompleted) {
-      _cleanupRouteAnimation();
-      _routeAnimation = routeAnimation;
-      routeAnimation.addStatusListener(_handleRouteAnimationStatus);
+    // 同步负缓存命中：本次会话已确认无封面，首帧直接落定为默认图标。
+    if (ArtworkResolver.isNegativeCached(
+      widget.path,
+      thumbnailPath: resolvedThumbArg,
+      artworkPath: widget.artworkPath,
+    )) {
+      _isGenerating = false;
+      if (fromInitState) {
+        _needsFadeIn = false;
+      }
       return;
     }
-    _queryArtworkAsync();
-  }
 
-  void _handleRouteAnimationStatus(AnimationStatus status) {
-    if (status == AnimationStatus.completed) {
-      _cleanupRouteAnimation();
-      if (mounted && _artworkFilePath == null && _remoteArtworkUrl == null && widget.bytes == null) {
-        _queryArtworkAsync();
-      }
+    _isGenerating = true;
+    _needsFadeIn = true;
+    if (!fromInitState && !_queryInFlight) {
+      _queryArtworkAsync();
     }
-  }
-
-  void _cleanupRouteAnimation() {
-    _routeAnimation?.removeStatusListener(_handleRouteAnimationStatus);
-    _routeAnimation = null;
-  }
-
-  @override
-  void dispose() {
-    _cleanupRouteAnimation();
-    super.dispose();
   }
 
   Future<void> _queryArtworkAsync() async {
+    if (_queryInFlight) return;
+    _queryInFlight = true;
+    final String targetPath = widget.path;
     try {
       RemoteMediaResolver? remoteResolver;
-      if (RemoteMediaResolver.isRemoteUri(widget.path)) {
+      if (RemoteMediaResolver.isRemoteUri(targetPath)) {
         remoteResolver = await ref.read(remoteMediaResolverProvider.future);
       }
       final scanner = ref.read(scannerServiceProvider);
       final result = await ArtworkResolver.resolveForThumbnail(
-        path: widget.path,
+        path: targetPath,
         id: widget.id,
-        thumbnailPath: widget.thumbnailPath ??
-            scanner.metadataMap[widget.path]?.thumbnailPath,
+        thumbnailPath:
+            widget.thumbnailPath ?? scanner.metadataMap[targetPath]?.thumbnailPath,
         artworkPath: widget.artworkPath,
         remoteResolver: remoteResolver,
         onThumbnailGenerated: (newThumb) {
-          scanner.updateSongThumbnailPath(widget.path, newThumb);
+          scanner.updateSongThumbnailPath(targetPath, newThumb);
         },
       );
-      if (!mounted) return;
+      if (!mounted || widget.path != targetPath) return;
       if (result != null && result.isNotEmpty) {
         if (result.startsWith('http://') || result.startsWith('https://')) {
           setState(() {
@@ -315,26 +298,23 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
             _artworkFilePath = result;
             _isGenerating = false;
           });
-          scanner.updateSongThumbnailPath(widget.path, result);
+          scanner.updateSongThumbnailPath(targetPath, result);
         }
       } else {
         setState(() {
           _isGenerating = false;
-          // 解析确认「没有封面」时，落定的就是默认图标本身，不需要再为它单独排一段
-          // 淡入：那 280ms 与条目级的不透明度（换档过渡的 `Opacity(transition.opacity)`）
-          // 是两条时钟，会让默认图标条目比有封面的条目明显晚一拍。
-          // 这里直接置 1.0：换档尚未结束时它跟着条目那条曲线一起淡入，已经结束则立即显示。
-          _needsFadeIn = false;
+          _needsFadeIn = true;
         });
       }
     } catch (_) {
-      if (mounted) {
+      if (mounted && widget.path == targetPath) {
         setState(() {
           _isGenerating = false;
-          // 解析异常同样落定为默认图标，理由同上。
-          _needsFadeIn = false;
+          _needsFadeIn = true;
         });
       }
+    } finally {
+      _queryInFlight = false;
     }
   }
 
@@ -481,7 +461,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
                     _isGenerating = true;
                     _needsFadeIn = true;
                   });
-                  _scheduleQueryArtwork();
+                  _queryArtworkAsync();
                 }
               });
             }
@@ -515,9 +495,8 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     }
 
     // 由外层这唯一一层 AnimatedOpacity 统一管理淡入：
-    // - 首批已有缓存条目：duration 为 zero，首帧直接展示，不套淡入层；
-    // - 慢路径新生成完毕：以 kArtworkFadeInDuration 平滑淡入；
-    // - 解析确认没有封面（落定默认图标）：duration 为 zero，图标直接呈现；
+    // - 首批已有缓存或同步命中负缓存条目：duration 为 zero，首帧直接展示，不套淡入层；
+    // - 异步解析落定（新生成封面或确认无封面后的默认图标）：以 kArtworkFadeInDuration 平滑淡入；
     // - 已经展示着封面的重建（列表滚动、播放状态变化）：duration 为 zero，不重复淡入。
     return AnimatedOpacity(
       opacity: isPending ? 0.0 : 1.0,

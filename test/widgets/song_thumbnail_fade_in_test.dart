@@ -26,6 +26,7 @@ void main() {
   });
 
   tearDown(() async {
+    ArtworkResolver.debugResolveForThumbnailOverride = null;
     if (await tempDir.exists()) {
       await tempDir.delete(recursive: true);
     }
@@ -215,6 +216,67 @@ void main() {
     await tester.pump();
 
     expect(find.byType(Image), findsOneWidget);
+    final fade = outerFade(tester);
+    expect(fade.opacity, 1.0);
+    expect(fade.duration, Duration.zero);
+  });
+
+  testWidgets('转场中挂载、最终落定为无封面：转场期间立即开始解析并淡入默认图标', (tester) async {
+    ArtworkResolver.debugResolveForThumbnailOverride = (_) async => null;
+
+    final navigatorKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          navigatorKey: navigatorKey,
+          home: const Scaffold(body: SizedBox.shrink()),
+        ),
+      ),
+    );
+
+    // 推入一个带转场的详情页：解析在转场期间直接开始，不在等动画结束才触发。
+    navigatorKey.currentState!.push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 400),
+        pageBuilder: (_, _, _) => const Scaffold(
+          body: Center(
+            child: SongThumbnail(
+              path: '/music/no_cover_transition.mp3',
+              size: 56,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final scopedFade = find.descendant(
+      of: find.byType(SongThumbnail),
+      matching: find.byType(AnimatedOpacity),
+    );
+    AnimatedOpacity fade() => tester.widget<AnimatedOpacity>(scopedFade.first);
+
+    // 转场尚未结束（400ms，当前仅推进 50ms），异步解析已在过程中完成并落定默认图标，且带淡入动画
+    expect(find.byType(DefaultCoverArt), findsOneWidget);
+    expect(fade().opacity, 1.0);
+    expect(fade().duration, kArtworkFadeInDuration);
+  });
+
+  testWidgets('命中同步负缓存的无封面曲目在重建时首帧直接展示默认图标', (tester) async {
+    const noCoverPath = '/music/negative_cached_song.mp3';
+
+    // 写入负缓存（模拟本次会话已确认无封面）
+    ArtworkResolver.markThumbnailFailed(noCoverPath, '');
+    expect(ArtworkResolver.isNegativeCached(noCoverPath), isTrue);
+
+    await tester.pumpWidget(
+      wrap(const SongThumbnail(path: noCoverPath, size: 56)),
+    );
+    await tester.pump();
+
+    expect(find.byType(DefaultCoverArt), findsOneWidget);
     final fade = outerFade(tester);
     expect(fade.opacity, 1.0);
     expect(fade.duration, Duration.zero);

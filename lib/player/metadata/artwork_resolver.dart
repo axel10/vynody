@@ -250,6 +250,9 @@ class ArtworkResolver {
   ///    `clamp(cores ~/ 2, 2, 4)`，远程固定 2）；
   /// 4. 没缓存则按照统一逻辑 (findRawArtwork) 查找封面，
   ///    从原图生成缩略图缓存并保存，通知回调后展示。
+  @visibleForTesting
+  static Future<String?> Function(String path)? debugResolveForThumbnailOverride;
+
   static Future<String?> resolveForThumbnail({
     required String path,
     int? id,
@@ -258,6 +261,9 @@ class ArtworkResolver {
     RemoteMediaResolver? remoteResolver,
     void Function(String generatedPath)? onThumbnailGenerated,
   }) {
+    if (debugResolveForThumbnailOverride != null) {
+      return debugResolveForThumbnailOverride!(path);
+    }
     final resolvedSongPath = ScannerPathUtils.resolveIosSandboxPath(path);
 
     // 快速路径必须留在闸门外：这两步是微秒级同步操作，一旦进队列就会被
