@@ -2121,12 +2121,8 @@ class _DashboardArtistItemState extends ConsumerState<_DashboardArtistItem> {
         ref.read(selectedArtistKeyProvider.notifier).set(artist.queryKey);
         widget.onViewAll();
       } else {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            settings: const RouteSettings(name: 'artist_detail'),
-            builder: (_) => ArtistDetailPage(artist: artist),
-          ),
-        );
+        // 与艺术家 tab 同源：存在可见头像锚点时走 FLIP 原位飞入详情页头。
+        pushArtistDetailPage<void>(context, artist: artist);
       }
     }
 
@@ -2155,10 +2151,14 @@ class _DashboardArtistItemState extends ConsumerState<_DashboardArtistItem> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ArtistAvatar(
-              diameter: widget.avatarDiameter,
-              imagePath: displayPath,
-              imageUrl: artist.imageUrl,
+            CoverFlipSource(
+              tag: artistAvatarFlipTag(artist.queryKey),
+              borderRadiusGetter: () => widget.avatarDiameter / 2,
+              child: ArtistAvatar(
+                diameter: widget.avatarDiameter,
+                imagePath: displayPath,
+                imageUrl: artist.imageUrl,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
