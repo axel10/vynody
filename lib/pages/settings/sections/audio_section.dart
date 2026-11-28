@@ -856,6 +856,16 @@ class AudioSection extends ConsumerWidget {
                           unawaited(
                             backfillNotifier.startBackfill(
                               isPlaying: () => audio.isPlaying,
+                              currentTarget: () {
+                                final current = audio.currentMusic;
+                                if (current == null) return null;
+                                return LoudnessPriorityTarget(
+                                  path: current.path,
+                                  album: current.album,
+                                  albumArtist: current.albumArtist,
+                                  artist: current.artist,
+                                );
+                              },
                             ),
                           );
                         },

@@ -10,6 +10,109 @@ import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/platform/apple_file_access.dart';
 
 @immutable
+class LoudnessPriorityTarget {
+  const LoudnessPriorityTarget({
+    required this.path,
+    this.album,
+    this.albumArtist,
+    this.artist,
+  });
+
+  final String path;
+  final String? album;
+  final String? albumArtist;
+  final String? artist;
+}
+
+@immutable
+class LoudnessAnalysisGroup {
+  const LoudnessAnalysisGroup({
+    required this.albumKey,
+    required this.songs,
+  });
+
+  final String? albumKey;
+  final List<SongMetadata> songs;
+}
+
+/// Builds a normalized album-group key, or `null` for empty/unknown albums.
+String? buildLoudnessAlbumGroupKey({
+  required String? album,
+  String? albumArtist,
+  String? artist,
+}) {
+  final trimmedAlbum = album?.trim() ?? '';
+  final lowerAlbum = trimmedAlbum.toLowerCase();
+  if (trimmedAlbum.isEmpty ||
+      lowerAlbum == 'unknown album' ||
+      lowerAlbum == 'unknown') {
+    return null;
+  }
+  final effectiveArtist = (albumArtist?.trim().isNotEmpty == true
+          ? albumArtist!.trim()
+          : (artist?.trim() ?? ''))
+      .toLowerCase();
+  return '$effectiveArtist\u0000$lowerAlbum';
+}
+
+/// Groups pending songs by album (or as standalone single-track groups when
+/// album metadata is missing/unknown).
+List<LoudnessAnalysisGroup> groupSongsForLoudnessAnalysis(
+  List<SongMetadata> songs,
+) {
+  final grouped = <String, List<SongMetadata>>{};
+  final singles = <LoudnessAnalysisGroup>[];
+
+  for (final song in songs) {
+    final key = buildLoudnessAlbumGroupKey(
+      album: song.album,
+      albumArtist: song.albumArtist,
+      artist: song.artist,
+    );
+    if (key == null) {
+      singles.add(LoudnessAnalysisGroup(albumKey: null, songs: [song]));
+      continue;
+    }
+    grouped.putIfAbsent(key, () => []).add(song);
+  }
+
+  return [
+    for (final entry in grouped.entries)
+      LoudnessAnalysisGroup(albumKey: entry.key, songs: entry.value),
+    ...singles,
+  ];
+}
+
+/// Selects the next group index to analyze, prioritizing the group matching
+/// [priorityTarget] (by album key first, then by track path).
+int selectNextLoudnessGroupIndex(
+  List<LoudnessAnalysisGroup> remainingGroups,
+  LoudnessPriorityTarget? priorityTarget,
+) {
+  if (remainingGroups.isEmpty) return -1;
+  if (priorityTarget != null) {
+    final targetAlbumKey = buildLoudnessAlbumGroupKey(
+      album: priorityTarget.album,
+      albumArtist: priorityTarget.albumArtist,
+      artist: priorityTarget.artist,
+    );
+    if (targetAlbumKey != null) {
+      final albumMatch = remainingGroups.indexWhere(
+        (group) => group.albumKey == targetAlbumKey,
+      );
+      if (albumMatch != -1) return albumMatch;
+    }
+    if (priorityTarget.path.isNotEmpty) {
+      final pathMatch = remainingGroups.indexWhere(
+        (group) => group.songs.any((song) => song.path == priorityTarget.path),
+      );
+      if (pathMatch != -1) return pathMatch;
+    }
+  }
+  return 0;
+}
+
+@immutable
 class LoudnessBackfillState {
   const LoudnessBackfillState({
     this.isRunning = false,
@@ -98,7 +201,10 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
     state = state.copyWith(isStopping: true);
   }
 
-  Future<void> startBackfill({bool Function()? isPlaying}) async {
+  Future<void> startBackfill({
+    bool Function()? isPlaying,
+    LoudnessPriorityTarget? Function()? currentTarget,
+  }) async {
     if (state.isRunning) return;
     _cancelRequested = false;
 
@@ -127,10 +233,17 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
         return;
       }
 
-      final groups = _groupSongsForAnalysis(pending);
+      final remainingGroups = groupSongsForLoudnessAnalysis(pending);
 
-      for (final group in groups) {
+      while (remainingGroups.isNotEmpty) {
         if (_cancelRequested) break;
+
+        final nextIndex = selectNextLoudnessGroupIndex(
+          remainingGroups,
+          currentTarget?.call(),
+        );
+        if (nextIndex < 0) break;
+        final group = remainingGroups.removeAt(nextIndex).songs;
 
         if (group.length == 1 || group.length > _maxAlbumGroupSize) {
           for (final song in group) {
@@ -160,30 +273,6 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
         clearCurrentFileName: true,
       );
     }
-  }
-
-  List<List<SongMetadata>> _groupSongsForAnalysis(List<SongMetadata> songs) {
-    final grouped = <String, List<SongMetadata>>{};
-    final singles = <List<SongMetadata>>[];
-
-    for (final song in songs) {
-      final album = song.album.trim();
-      final isUnknownAlbum = album.isEmpty ||
-          album.toLowerCase() == 'unknown album' ||
-          album.toLowerCase() == 'unknown';
-      if (isUnknownAlbum) {
-        singles.add([song]);
-        continue;
-      }
-      final artistKey = (song.albumArtist?.trim().isNotEmpty == true
-              ? song.albumArtist!.trim()
-              : song.artist.trim())
-          .toLowerCase();
-      final key = '$artistKey\u0000${album.toLowerCase()}';
-      grouped.putIfAbsent(key, () => []).add(song);
-    }
-
-    return [...grouped.values, ...singles];
   }
 
   Future<void> _analyzeSingleSong(SongMetadata song) async {
@@ -251,7 +340,8 @@ class LoudnessBackfillNotifier extends Notifier<LoudnessBackfillState> {
         accessibleSongs.map((s) => s.path).toList(growable: false),
         (resolvedPaths) => analyzeAlbumLoudness(paths: resolvedPaths),
       );
-      if (albumResult == null) {
+      if (albumResult == null ||
+          albumResult.tracks.length != accessibleSongs.length) {
         for (final song in accessibleSongs) {
           if (_cancelRequested) break;
           await _analyzeSingleSong(song);
