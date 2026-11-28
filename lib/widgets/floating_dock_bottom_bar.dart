@@ -14,6 +14,7 @@ import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
+import 'package:vynody/widgets/playback/playback_cover_flight.dart';
 import 'package:vynody/widgets/settled_view_insets_builder.dart';
 
 // ---------------------------------------------------------------------------
@@ -254,25 +255,19 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar>
         : scrollOffset;
     _lastRenderedOffset = effectiveScrollOffset;
 
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-      left: 16.0,
-      right: totalRightOffset,
-      bottom: isEffectivelyHidden
-          ? -(200.0 + bottomPadding + 600.0)
-          : totalBottomOffset,
-      child: Transform.translate(
-        offset: Offset(0.0, effectiveScrollOffset),
-        child: Center(
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            opacity: isEffectivelyHidden ? 0.0 : 1.0,
-            child: IgnorePointer(
-              ignoring: isEffectivelyHidden ||
-                  scrollOffset >= FloatingDockScrollHelper.maxScrollOffset,
-              child: AnimatedScale(
+    final flightController = ref.watch(playbackCoverFlightControllerProvider);
+
+    final Widget dockBody = Transform.translate(
+      offset: Offset(0.0, effectiveScrollOffset),
+      child: Center(
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          opacity: isEffectivelyHidden ? 0.0 : 1.0,
+          child: IgnorePointer(
+            ignoring: isEffectivelyHidden ||
+                scrollOffset >= FloatingDockScrollHelper.maxScrollOffset,
+            child: AnimatedScale(
               scale: prepScale,
               duration: const Duration(milliseconds: 160),
               curve: Curves.easeOutCubic,
@@ -460,8 +455,41 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar>
           ),
         ),
       ),
-    ),
-  );
+    );
+
+    final Widget flightAwareChild = widget.isPlayback
+        ? dockBody
+        : AnimatedBuilder(
+            animation: Listenable.merge([
+              flightController.isUnderlyingMiniBlockedNotifier,
+              flightController.isFullyOpenNotifier,
+            ]),
+            child: dockBody,
+            builder: (context, child) {
+              final bool blocked =
+                  flightController.isUnderlyingMiniBlockedNotifier.value;
+              final bool hidden = flightController.isFullyOpenNotifier.value;
+              Widget result = child!;
+              if (hidden) {
+                result = Opacity(opacity: 0.0, child: result);
+              }
+              if (blocked) {
+                result = IgnorePointer(child: result);
+              }
+              return result;
+            },
+          );
+
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      left: 16.0,
+      right: totalRightOffset,
+      bottom: isEffectivelyHidden
+          ? -(200.0 + bottomPadding + 600.0)
+          : totalBottomOffset,
+      child: flightAwareChild,
+    );
       },
     );
   }
@@ -622,67 +650,77 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar>
 
                         // ② 中间：封面 + 歌曲名/歌手（随左侧 Tab 展开平滑移动到收起目标位置）
                         Expanded(
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () =>
-                                  widget.onDestinationSelected(kMainTabPlayback),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4.0,
-                                  vertical: 2.0,
-                                ),
-                                child: Row(
-                                  children: [
-                                    MiniArtwork(
-                                      size: isTablet
-                                          ? (42.0 - 2.0 * collapseProgress)
-                                          : 36.0,
-                                      borderRadius: isTablet ? 8.0 : 6.0,
-                                    ),
-                                    SizedBox(width: isTablet ? 10.0 : 8.0),
-                                    Expanded(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            currentMusic.title,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: isTablet
-                                                  ? (15.0 -
-                                                        1.0 * collapseProgress)
-                                                  : 13.0,
-                                              fontWeight: FontWeight.w600,
-                                              color: isDark
-                                                  ? Colors.white
-                                                  : Colors.black87,
-                                              height: 1.2,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            currentMusic.artist ??
-                                                l10n.unknownArtist,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: isTablet ? 12.0 : 11.0,
-                                              color: isDark
-                                                  ? Colors.white60
-                                                  : Colors.black54,
-                                              height: 1.1,
-                                            ),
-                                          ),
-                                        ],
+                          child: Builder(
+                            builder: (miniContext) => Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () {
+                                  ref
+                                      .read(
+                                        playbackCoverFlightControllerProvider,
+                                      )
+                                      .captureOriginFromContext(miniContext);
+                                  widget.onDestinationSelected(
+                                    kMainTabPlayback,
+                                  );
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4.0,
+                                    vertical: 2.0,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      MiniArtwork(
+                                        size: isTablet
+                                            ? (42.0 - 2.0 * collapseProgress)
+                                            : 36.0,
+                                        borderRadius: isTablet ? 8.0 : 6.0,
                                       ),
-                                    ),
-                                  ],
+                                      SizedBox(width: isTablet ? 10.0 : 8.0),
+                                      Expanded(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              currentMusic.title,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: isTablet
+                                                    ? (15.0 -
+                                                          1.0 * collapseProgress)
+                                                    : 13.0,
+                                                fontWeight: FontWeight.w600,
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : Colors.black87,
+                                                height: 1.2,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              currentMusic.artist ??
+                                                  l10n.unknownArtist,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: isTablet ? 12.0 : 11.0,
+                                                color: isDark
+                                                    ? Colors.white60
+                                                    : Colors.black54,
+                                                height: 1.1,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

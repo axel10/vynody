@@ -18,6 +18,7 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import '../widgets/playback_hero_card.dart';
+import '../widgets/playback/playback_cover_flight.dart';
 import '../widgets/playback/playback_visualizer_layer.dart';
 import '../widgets/playback/blurred_artwork_rasterizer.dart';
 import '../widgets/volume_controls.dart';
@@ -64,8 +65,7 @@ class PlaybackPage extends ConsumerStatefulWidget {
   ConsumerState<PlaybackPage> createState() => _PlaybackPageState();
 }
 
-class _PlaybackPageState extends ConsumerState<PlaybackPage>
-    with SingleTickerProviderStateMixin {
+class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   final GlobalKey _coverKey = GlobalKey();
   final GlobalKey _lyricsKey = GlobalKey();
   bool _showVolumeSlider = false;
@@ -117,17 +117,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     return exists;
   }
 
-  late final AnimationController _dismissAnimController;
-  Animation<double>? _dismissAnimation;
-
-  /// 下拉收起时的纵向位移。
-  ///
-  /// 刻意不用 setState：拖动期间每个指针事件都会更新一次，收起动画期间每一帧
-  /// 也会更新一次，setState 会让整页（背景 / 封面轮播 / 歌词面板 / 可视化 /
-  /// Dock / 语义树）按指针频率全量重建。这里只让包住 [Transform] 的那一小块
-  /// 跟着动。
-  final ValueNotifier<double> _dragOffsetNotifier = ValueNotifier<double>(0.0);
-
   bool _isDraggingDown = false;
 
   void _startVolumeSliderTimer() {
@@ -158,17 +147,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     debugPrint('[PlaybackPage][Trace] $message');
   }
 
-  void _resetDismissDragOffset() {
-    if (_dismissAnimController.isAnimating) {
-      _dismissAnimController.stop();
-    }
-    _dismissAnimController.reset();
-    _dismissAnimation = null;
-    if (_dragOffsetNotifier.value != 0.0) {
-      _dragOffsetNotifier.value = 0.0;
-    }
-  }
-
   void _triggerCollapse({bool animated = true}) {
     if (widget.onCollapse != null) {
       widget.onCollapse!(animated: animated);
@@ -187,77 +165,32 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   }
 
   void _handleVerticalDragStart(DragStartDetails details) {
-    if (_dismissAnimController.isAnimating) {
-      _dismissAnimController.stop();
-    }
     _isDraggingDown = true;
+    ref.read(playbackCoverFlightControllerProvider).startInteractiveDrag();
   }
 
   void _handleVerticalDragUpdate(DragUpdateDetails details) {
     if (!_isDraggingDown) return;
     final delta = details.primaryDelta ?? 0.0;
-    final newOffset = _dragOffsetNotifier.value + delta;
-    if (newOffset >= 0) {
-      _dragOffsetNotifier.value = newOffset;
-    } else if (_dragOffsetNotifier.value > 0) {
-      _dragOffsetNotifier.value = 0.0;
-    }
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    ref
+        .read(playbackCoverFlightControllerProvider)
+        .updateInteractiveDrag(delta, screenHeight);
   }
 
   void _handleVerticalDragEnd(DragEndDetails details) {
     if (!_isDraggingDown) return;
     _isDraggingDown = false;
     final velocityY = details.primaryVelocity ?? 0.0;
-    // 当向下拖拽超过 80 像素或滑动手势速度达到 280 像素/秒以上时触发收起
-    if (_dragOffsetNotifier.value > 80.0 || velocityY > 280.0) {
-      final screenHeight = MediaQuery.sizeOf(context).height;
-      _dismissAnimation = Tween<double>(
-        begin: _dragOffsetNotifier.value,
-        end: screenHeight,
-      ).animate(
-        CurvedAnimation(
-          parent: _dismissAnimController,
-          curve: Curves.easeInQuad,
-        ),
-      );
-      _dismissAnimController.forward(from: 0.0).then((_) {
-        if (!mounted) return;
-        // 页面已在内部完全平移至屏幕下方，直接无动画收起外层抽屉，避免位移提前归零导致在顶部闪现
-        _triggerCollapse(animated: false);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          _resetDismissDragOffset();
-        });
-      });
-    } else {
-      _dismissAnimation = Tween<double>(
-        begin: _dragOffsetNotifier.value,
-        end: 0.0,
-      ).animate(
-        CurvedAnimation(
-          parent: _dismissAnimController,
-          curve: const Cubic(0.2, 0.0, 0.15, 1.0),
-        ),
-      );
-      _dismissAnimController.forward(from: 0.0);
-    }
+    ref
+        .read(playbackCoverFlightControllerProvider)
+        .endInteractiveDrag(velocityY);
   }
 
   void _handleVerticalDragCancel() {
     if (!_isDraggingDown) return;
     _isDraggingDown = false;
-    if (_dragOffsetNotifier.value > 0) {
-      _dismissAnimation = Tween<double>(
-        begin: _dragOffsetNotifier.value,
-        end: 0.0,
-      ).animate(
-        CurvedAnimation(
-          parent: _dismissAnimController,
-          curve: const Cubic(0.2, 0.0, 0.15, 1.0),
-        ),
-      );
-      _dismissAnimController.forward(from: 0.0);
-    }
+    ref.read(playbackCoverFlightControllerProvider).cancelInteractiveDrag();
   }
 
   Widget _buildTopDragHandle() {
@@ -332,14 +265,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   @override
   void initState() {
     super.initState();
-    _dismissAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 260),
-    )..addListener(() {
-        if (_dismissAnimation != null) {
-          _dragOffsetNotifier.value = _dismissAnimation!.value;
-        }
-      });
     _audioService = ref.read(audioServiceProvider);
     final initialMusic = ref.read(audioCurrentMusicProvider);
     _pendingArtworkBytes = initialMusic?.artworkBytes;
@@ -411,8 +336,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       });
     }
     _lyricsTransitionResetTimer?.cancel();
-    _dismissAnimController.dispose();
-    _dragOffsetNotifier.dispose();
     _scrubProgressNotifier.dispose();
     super.dispose();
   }
@@ -1115,9 +1038,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       isSmallWindowMode: settings.isSmallWindowMode,
     );
     ref.listen<bool>(isPlaybackDrawerOpenProvider, (previous, next) {
-      if (next && _dragOffsetNotifier.value != 0.0) {
-        _resetDismissDragOffset();
-      }
       if (next && previous != true) {
         _resetLyricsTransitionAnimation();
         if (ref.read(settingsServiceProvider).defaultToLyricsModeOnPlaybackOpen) {
@@ -1244,7 +1164,35 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
               isSmallWin &&
               smallWindowPanelMode != SmallWindowBottomPanelMode.collapsed;
 
-          Widget buildPlayerCard() {
+          final targetPlatform = Theme.of(context).platform;
+          final isDesktop = targetPlatform == TargetPlatform.windows ||
+              targetPlatform == TargetPlatform.macOS ||
+              targetPlatform == TargetPlatform.linux;
+          final isMobile = targetPlatform == TargetPlatform.android ||
+              targetPlatform == TargetPlatform.iOS;
+          final isTablet = size.shortestSide >=
+              AppOrientationManager.tabletShortestSideBreakpoint;
+          final isMobilePhone = isMobile && !isTablet;
+
+          final viewPadding = MediaQuery.paddingOf(context);
+          final resolvedContentPadding = PlaybackPageUiTuning.contentPadding(
+            isLandscape: isLandscape,
+            isLyricsMode: isLyricsMode,
+            bottomPadding: effectiveBottomPadding,
+            reserveBottomNavSpace: shouldReserveBottomNavSpace,
+            isSmallWin: isSmallWin,
+            isMobilePhone: isMobilePhone,
+          );
+          final double safeLeft = !isLandscape ? viewPadding.left : 0.0;
+          final double safeTop = !isLandscape ? viewPadding.top : 0.0;
+          final double topSpacer =
+              isDesktop ? PlaybackPageUiTuning.desktopTopSpacer : 0.0;
+          final Offset cardOriginOffset = Offset(
+            safeLeft + resolvedContentPadding.left,
+            safeTop + resolvedContentPadding.top + topSpacer,
+          );
+
+          Widget buildPlayerCardWithOrigin() {
             return Builder(
               builder: (context) {
                 final isNext = ref.watch(audioLastActionNextProvider) ?? true;
@@ -1257,6 +1205,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                 return PlaybackHeroCard(
                   coverKey: _coverKey,
                   lyricsKey: _lyricsKey,
+                  cardOriginOffset: cardOriginOffset,
                   isMini: false,
                   isLandscape: isLandscape,
                   isLyricsMode: isLyricsMode,
@@ -1271,8 +1220,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   onShowPlaylistModeSelector: () =>
                       _showPlaylistModeSelector(context, audio),
                   onScrubbing: (val) {
-                    // 只在手势开始那一下重置无操作计时器，
-                    // 否则每个指针事件都会重建一个 Timer。
                     if (_scrubProgressNotifier.value == null) {
                       _handleInteraction();
                     }
@@ -1282,8 +1229,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                     final target = Duration(
                       milliseconds: (val * duration.inMilliseconds).round(),
                     );
-                    // AudioService.seek() 会立刻把 _position 置为目标值并 notifyListeners，
-                    // 清空预览不会造成回跳。
                     _scrubProgressNotifier.value = null;
                     audio.seek(target);
                   },
@@ -1329,16 +1274,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
             );
           }
 
-          final targetPlatform = Theme.of(context).platform;
-          final isDesktop = targetPlatform == TargetPlatform.windows ||
-              targetPlatform == TargetPlatform.macOS ||
-              targetPlatform == TargetPlatform.linux;
-          final isMobile = targetPlatform == TargetPlatform.android ||
-              targetPlatform == TargetPlatform.iOS;
-          final isTablet = size.shortestSide >=
-              AppOrientationManager.tabletShortestSideBreakpoint;
-          final isMobilePhone = isMobile && !isTablet;
-
           final content = SafeArea(
             left: !isLandscape,
             top: !isLandscape,
@@ -1349,14 +1284,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   ? const Duration(milliseconds: 400)
                   : Duration.zero,
               curve: Curves.fastOutSlowIn,
-              padding: PlaybackPageUiTuning.contentPadding(
-                isLandscape: isLandscape,
-                isLyricsMode: isLyricsMode,
-                bottomPadding: effectiveBottomPadding,
-                reserveBottomNavSpace: shouldReserveBottomNavSpace,
-                isSmallWin: isSmallWin,
-                isMobilePhone: isMobilePhone,
-              ),
+              padding: resolvedContentPadding,
               child: Column(
                 children: [
                   if (isDesktop)
@@ -1368,7 +1296,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   if (showMiniPanel) ...[
                     SizedBox(
                       height: 360.0 - (isDesktop ? PlaybackPageUiTuning.desktopTopSpacer : 0.0),
-                      child: Center(child: buildPlayerCard()),
+                      child: Center(child: buildPlayerCardWithOrigin()),
                     ),
                     Expanded(
                       child: switch (smallWindowPanelMode) {
@@ -1381,7 +1309,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                       },
                     ),
                   ] else
-                    Expanded(child: Center(child: buildPlayerCard())),
+                    Expanded(child: Center(child: buildPlayerCardWithOrigin())),
                   if (isLandscape && isDesktop)
                     const SizedBox(
                       height: PlaybackPageUiTuning.desktopTopSpacer,
@@ -1417,167 +1345,44 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
             MediaQuery.paddingOf(context).left + 8.0,
           );
 
-          final pageContent = Container(
-            color: Colors.black,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.easeInOut,
-                      opacity: isSmallWin ? 0.0 : 1.0,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 800),
-                        child: _buildBackgroundWidget(
-                          context,
-                          backgroundType,
-                          settings,
-                          forceSmallWin: false,
-                          keySuffix: 'normal',
-                        ),
+          final Widget backgroundLayers = ClipRect(
+            child: RepaintBoundary(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  const ColoredBox(color: Colors.black),
+                IgnorePointer(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeInOut,
+                    opacity: isSmallWin ? 0.0 : 1.0,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 800),
+                      child: _buildBackgroundWidget(
+                        context,
+                        backgroundType,
+                        settings,
+                        forceSmallWin: false,
+                        keySuffix: 'normal',
                       ),
                     ),
                   ),
                 ),
-                Positioned.fill(
-                  child: IgnorePointer(
-                    ignoring: !isSmallWin,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.easeInOut,
-                      opacity: isSmallWin ? 1.0 : 0.0,
-                      // 小窗背景层是桌面端专属。移动端原本仅靠 opacity: 0
-                      // 隐藏，但 LayoutBuilder / ClipRect / BackdropFilter 仍
-                      // 参与每帧 build 与 layout，白白吃掉 UI 线程预算。
-                      child: isDesktop ? Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned.fill(
-                            child: ClipRect(
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 800),
-                                child: _buildBackgroundWidget(
-                                  context,
-                                  backgroundType,
-                                  settings,
-                                  forceSmallWin: true,
-                                  keySuffix: 'small_clear',
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned.fill(
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final progressBarStyle =
-                                    ref.watch(effectiveProgressBarStyleProvider);
-                                final showAudioInfo = ref.watch(
-                                  showPlaybackAudioInfoRowProvider,
-                                );
-                                final isScrollingWaveform =
-                                    progressBarStyle == ProgressBarStyle.scrollingWaveform;
-                                final isFullWaveform =
-                                    progressBarStyle == ProgressBarStyle.fullWaveform;
-                                final isOverlayStyle = isScrollingWaveform;
-                                const double scaleFactor = 0.82;
-
-                                final pNormalControlsBaseIdealHeight =
-                                    (PlaybackHeroCardUiTuning
-                                            .controlsTopButtonsHeight +
-                                        (isOverlayStyle
-                                            ? PlaybackHeroCardUiTuning
-                                                  .waveformStandardTimeRowSpacing
-                                            : PlaybackHeroCardUiTuning
-                                                  .controlsRowPortraitGap) +
-                                        (isOverlayStyle
-                                            ? PlaybackHeroCardUiTuning
-                                                  .waveformOverlayHeight
-                                            : (isFullWaveform
-                                                ? PlaybackHeroCardUiTuning
-                                                      .waveformStaticPortraitHeight
-                                                : 48.0)) +
-                                        (isOverlayStyle
-                                            ? 0.0
-                                            : (8.0 +
-                                                  PlaybackHeroCardUiTuning
-                                                      .controlsTimeRowHeight +
-                                                  PlaybackHeroCardUiTuning
-                                                      .controlsRowPortraitGap +
-                                                  PlaybackHeroCardUiTuning
-                                                      .controlsMainButtonsHeight)) +
-                                        (showAudioInfo
-                                            ? (PlaybackHeroCardUiTuning
-                                                    .audioInfoGap +
-                                                PlaybackHeroCardUiTuning
-                                                    .audioInfoHeight)
-                                            : 0.0)) *
-                                    scaleFactor;
-
-                                final pNormalScale =
-                                    PlaybackHeroCardUiTuning.portraitControlsScale(
-                                      size.width,
-                                      height: size.height,
-                                      isSmallWindow: isSmallWin,
-                                    );
-                                final double maxControlsHeightFactor =
-                                    isSmallWin
-                                    ? 0.85
-                                    : PlaybackHeroCardUiTuning
-                                          .pControlsHeightFactor;
-                                final pNormalControlsHeight =
-                                    (pNormalControlsBaseIdealHeight *
-                                            pNormalScale)
-                                        .clamp(
-                                          0.0,
-                                          size.height * maxControlsHeightFactor,
-                                        )
-                                        .ceilToDouble();
-                                final pNormalInfoHeight =
-                                    PlaybackHeroCardUiTuning.pInfoHeight *
-                                    pNormalScale;
-                                final pNormalBottomLimit =
-                                    size.height -
-                                    PlaybackHeroCardUiTuning
-                                        .portraitBottomReservedSpace;
-
-                                const double bottomPadding = 12.0;
-                                final pNormalControlsTop =
-                                    pNormalBottomLimit -
-                                    pNormalControlsHeight -
-                                    bottomPadding;
-                                final pNormalInfoTop =
-                                    pNormalControlsTop -
-                                    pNormalInfoHeight -
-                                    4.0;
-
-                                final double fadeStart =
-                                    (pNormalInfoTop - 48.0) / size.height;
-                                final double fadeEnd =
-                                    pNormalInfoTop / size.height;
-                                final double clampedStart = fadeStart.clamp(
-                                  0.0,
-                                  1.0,
-                                );
-                                final double clampedEnd = fadeEnd.clamp(
-                                  0.0,
-                                  1.0,
-                                );
-
-                                if (showMiniPanel) {
-                                  // 小窗队列 / 小窗歌词模式统一对整块小窗做模糊，
-                                  // 上下两个面板共享同一层背景，不再做分区处理。
-                                  return ClipRect(
-                                    child: AppBackdropFilter(
-                                      filter: AppBlur.heavyFilter,
-                                      child: const SizedBox.expand(),
-                                    ),
-                                  );
-                                }
-
-                                final Widget blurredBackground = ImageFiltered(
-                                  imageFilter: AppBlur.heavyFilter,
+                IgnorePointer(
+                  ignoring: !isSmallWin,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeInOut,
+                    opacity: isSmallWin ? 1.0 : 0.0,
+                    // 小窗背景层是桌面端专属。移动端原本仅靠 opacity: 0
+                    // 隐藏，但 LayoutBuilder / ClipRect / BackdropFilter 仍
+                    // 参与每帧 build 与 layout，白白吃掉 UI 线程预算。
+                    child: isDesktop
+                        ? Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Positioned.fill(
+                                child: ClipRect(
                                   child: AnimatedSwitcher(
                                     duration: const Duration(milliseconds: 800),
                                     child: _buildBackgroundWidget(
@@ -1585,35 +1390,164 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                                       backgroundType,
                                       settings,
                                       forceSmallWin: true,
-                                      keySuffix: 'small_blurred',
+                                      keySuffix: 'small_clear',
                                     ),
                                   ),
-                                );
+                                ),
+                              ),
+                              Positioned.fill(
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final progressBarStyle = ref.watch(
+                                      effectiveProgressBarStyleProvider,
+                                    );
+                                    final showAudioInfo = ref.watch(
+                                      showPlaybackAudioInfoRowProvider,
+                                    );
+                                    final isScrollingWaveform =
+                                        progressBarStyle ==
+                                        ProgressBarStyle.scrollingWaveform;
+                                    final isFullWaveform =
+                                        progressBarStyle ==
+                                        ProgressBarStyle.fullWaveform;
+                                    final isOverlayStyle = isScrollingWaveform;
+                                    const double scaleFactor = 0.82;
 
-                                return ClipRect(
-                                  child: ShaderMask(
-                                    shaderCallback: (rect) {
-                                      return LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: const [
-                                          Colors.transparent,
-                                          Colors.black,
-                                        ],
-                                        stops: [clampedStart, clampedEnd],
-                                      ).createShader(rect);
-                                    },
-                                    blendMode: BlendMode.dstIn,
-                                    child: blurredBackground,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      )
-                          : const SizedBox.shrink(),
-                    ),
+                                    final pNormalControlsBaseIdealHeight =
+                                        (PlaybackHeroCardUiTuning
+                                                .controlsTopButtonsHeight +
+                                            (isOverlayStyle
+                                                ? PlaybackHeroCardUiTuning
+                                                      .waveformStandardTimeRowSpacing
+                                                : PlaybackHeroCardUiTuning
+                                                      .controlsRowPortraitGap) +
+                                            (isOverlayStyle
+                                                ? PlaybackHeroCardUiTuning
+                                                      .waveformOverlayHeight
+                                                : (isFullWaveform
+                                                      ? PlaybackHeroCardUiTuning
+                                                            .waveformStaticPortraitHeight
+                                                      : 48.0)) +
+                                            (isOverlayStyle
+                                                ? 0.0
+                                                : (8.0 +
+                                                      PlaybackHeroCardUiTuning
+                                                          .controlsTimeRowHeight +
+                                                      PlaybackHeroCardUiTuning
+                                                          .controlsRowPortraitGap +
+                                                      PlaybackHeroCardUiTuning
+                                                          .controlsMainButtonsHeight)) +
+                                            (showAudioInfo
+                                                ? (PlaybackHeroCardUiTuning
+                                                          .audioInfoGap +
+                                                      PlaybackHeroCardUiTuning
+                                                          .audioInfoHeight)
+                                                : 0.0)) *
+                                        scaleFactor;
+
+                                    final pNormalScale =
+                                        PlaybackHeroCardUiTuning
+                                            .portraitControlsScale(
+                                              size.width,
+                                              height: size.height,
+                                              isSmallWindow: isSmallWin,
+                                            );
+                                    final double maxControlsHeightFactor =
+                                        isSmallWin
+                                        ? 0.85
+                                        : PlaybackHeroCardUiTuning
+                                              .pControlsHeightFactor;
+                                    final pNormalControlsHeight =
+                                        (pNormalControlsBaseIdealHeight *
+                                                pNormalScale)
+                                            .clamp(
+                                              0.0,
+                                              size.height *
+                                                  maxControlsHeightFactor,
+                                            )
+                                            .ceilToDouble();
+                                    final pNormalInfoHeight =
+                                        PlaybackHeroCardUiTuning.pInfoHeight *
+                                        pNormalScale;
+                                    final pNormalBottomLimit =
+                                        size.height -
+                                        PlaybackHeroCardUiTuning
+                                            .portraitBottomReservedSpace;
+
+                                    const double bottomPadding = 12.0;
+                                    final pNormalControlsTop =
+                                        pNormalBottomLimit -
+                                        pNormalControlsHeight -
+                                        bottomPadding;
+                                    final pNormalInfoTop =
+                                        pNormalControlsTop -
+                                        pNormalInfoHeight -
+                                        4.0;
+
+                                    final double fadeStart =
+                                        (pNormalInfoTop - 48.0) / size.height;
+                                    final double fadeEnd =
+                                        pNormalInfoTop / size.height;
+                                    final double clampedStart = fadeStart.clamp(
+                                      0.0,
+                                      1.0,
+                                    );
+                                    final double clampedEnd = fadeEnd.clamp(
+                                      0.0,
+                                      1.0,
+                                    );
+
+                                    if (showMiniPanel) {
+                                      // 小窗队列 / 小窗歌词模式统一对整块小窗做模糊，
+                                      // 上下两个面板共享同一层背景，不再做分区处理。
+                                      return ClipRect(
+                                        child: AppBackdropFilter(
+                                          filter: AppBlur.heavyFilter,
+                                          child: const SizedBox.expand(),
+                                        ),
+                                      );
+                                    }
+
+                                    final Widget blurredBackground =
+                                        ImageFiltered(
+                                          imageFilter: AppBlur.heavyFilter,
+                                          child: AnimatedSwitcher(
+                                            duration: const Duration(
+                                              milliseconds: 800,
+                                            ),
+                                            child: _buildBackgroundWidget(
+                                              context,
+                                              backgroundType,
+                                              settings,
+                                              forceSmallWin: true,
+                                              keySuffix: 'small_blurred',
+                                            ),
+                                          ),
+                                        );
+
+                                    return ClipRect(
+                                      child: ShaderMask(
+                                        shaderCallback: (rect) {
+                                          return LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: const [
+                                              Colors.transparent,
+                                              Colors.black,
+                                            ],
+                                            stops: [clampedStart, clampedEnd],
+                                          ).createShader(rect);
+                                        },
+                                        blendMode: BlendMode.dstIn,
+                                        child: blurredBackground,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
                   ),
                 ),
                 _buildBackgroundScrim(
@@ -1630,7 +1564,146 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   settings,
                   isSmallWin,
                 ),
-                RepaintBoundary(
+              ],
+            ),
+          ),
+          );
+
+          final Widget topOverlays = Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                top: PlaybackPageUiTuning.statusBannerTop,
+                child: SafeArea(
+                  bottom: false,
+                  child: LyricsTaskStatusBanner(
+                    key: const ValueKey('lyrics_task_status_banner'),
+                  ),
+                ),
+              ),
+              if (_showVolumeSlider)
+                Builder(
+                  builder: (context) {
+                    final volume = ref.watch(audioVolumeProvider);
+                    final isMuted = ref.watch(audioIsMutedProvider);
+                    return VolumeSliderOverlay(
+                      volume: volume,
+                      isMuted: isMuted,
+                      onToggleMute: () {
+                        _handleInteraction();
+                        _startVolumeSliderTimer();
+                        audio.toggleMute();
+                      },
+                      onVolumeChanged: (val) {
+                        _handleInteraction();
+                        _startVolumeSliderTimer();
+                        audio.setVolume(
+                          val.roundToDouble(),
+                          showVolumeHud: false,
+                        );
+                      },
+                      onDismiss: () {
+                        _cancelVolumeSliderTimer();
+                        setState(() => _showVolumeSlider = false);
+                      },
+                      isLandscape: isLandscape,
+                      getVolumeIcon: getVolumeIcon,
+                      onDrag: (delta) {
+                        _startVolumeSliderTimer();
+                        _adjustVolumeFromDrag(
+                          audio,
+                          delta,
+                          showVolumeHud: false,
+                        );
+                      },
+                      onScroll: (deltaY) {
+                        _startVolumeSliderTimer();
+                        _adjustVolumeFromScroll(
+                          audio,
+                          deltaY,
+                          showVolumeHud: false,
+                        );
+                      },
+                      onInteraction: () {
+                        _handleInteraction();
+                        _startVolumeSliderTimer();
+                      },
+                    );
+                  },
+                ),
+              if (showCoverTip)
+                _TipOverlay(
+                  targetKey: _coverKey,
+                  isLandscape: isLandscape,
+                  isLyricsMode: false,
+                  onDismiss: () {
+                    settings.hasShownCoverTapLyricTip = true;
+                  },
+                  tipCard: _buildTipCard(
+                    context,
+                    tipText: l10n.tapCoverToEnterLyricsMode,
+                    onDismiss: () {
+                      settings.hasShownCoverTapLyricTip = true;
+                    },
+                  ),
+                )
+              else if (showLyricsTip)
+                _TipOverlay(
+                  targetKey: _lyricsKey,
+                  isLandscape: isLandscape,
+                  isLyricsMode: true,
+                  onDismiss: () {
+                    settings.hasShownLyricsMenuTip = true;
+                  },
+                  tipCard: _buildTipCard(
+                    context,
+                    tipText: l10n.longPressLyricsPanelToOpenMenu,
+                    onDismiss: () {
+                      settings.hasShownLyricsMenuTip = true;
+                    },
+                  ),
+                ),
+              if (showTopDragHandle)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: _buildTopDragHandle(),
+                      ),
+                    ),
+                  ),
+                ),
+              if (!isSmallWin)
+                Positioned(
+                  top: collapseButtonTop,
+                  left: collapseButtonLeft,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: widget.isMouseActive ? 1.0 : 0.0,
+                    curve: Curves.easeInOut,
+                    child: IgnorePointer(
+                      ignoring: !widget.isMouseActive,
+                      child: _buildPlaybackCollapseButton(context),
+                    ),
+                  ),
+                ),
+            ],
+          );
+
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(child: backgroundLayers),
+              Positioned.fill(
+                child: RepaintBoundary(
                   child: GestureDetector(
                     behavior: HitTestBehavior.translucent,
                     onVerticalDragStart: (!isLyricsMode && enableDragDismiss)
@@ -1648,148 +1721,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                     child: content,
                   ),
                 ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  top: PlaybackPageUiTuning.statusBannerTop,
-                  child: SafeArea(
-                    bottom: false,
-                    child: LyricsTaskStatusBanner(
-                      key: const ValueKey('lyrics_task_status_banner'),
-                    ),
-                  ),
-                ),
-                if (_showVolumeSlider)
-                  Builder(
-                    builder: (context) {
-                      final volume = ref.watch(audioVolumeProvider);
-                      final isMuted = ref.watch(audioIsMutedProvider);
-                      return VolumeSliderOverlay(
-                        volume: volume,
-                        isMuted: isMuted,
-                        onToggleMute: () {
-                          _handleInteraction();
-                          _startVolumeSliderTimer();
-                          audio.toggleMute();
-                        },
-                        onVolumeChanged: (val) {
-                          _handleInteraction();
-                          _startVolumeSliderTimer();
-                          audio.setVolume(
-                            val.roundToDouble(),
-                            showVolumeHud: false,
-                          );
-                        },
-                        onDismiss: () {
-                          _cancelVolumeSliderTimer();
-                          setState(() => _showVolumeSlider = false);
-                        },
-                        isLandscape: isLandscape,
-                        getVolumeIcon: getVolumeIcon,
-                        onDrag: (delta) {
-                          _startVolumeSliderTimer();
-                          _adjustVolumeFromDrag(
-                            audio,
-                            delta,
-                            showVolumeHud: false,
-                          );
-                        },
-                        onScroll: (deltaY) {
-                          _startVolumeSliderTimer();
-                          _adjustVolumeFromScroll(
-                            audio,
-                            deltaY,
-                            showVolumeHud: false,
-                          );
-                        },
-                        onInteraction: () {
-                          _handleInteraction();
-                          _startVolumeSliderTimer();
-                        },
-                      );
-                    },
-                  ),
-                if (showCoverTip)
-                  _TipOverlay(
-                    targetKey: _coverKey,
-                    isLandscape: isLandscape,
-                    isLyricsMode: false,
-                    onDismiss: () {
-                      settings.hasShownCoverTapLyricTip = true;
-                    },
-                    tipCard: _buildTipCard(
-                      context,
-                      tipText: l10n.tapCoverToEnterLyricsMode,
-                      onDismiss: () {
-                        settings.hasShownCoverTapLyricTip = true;
-                      },
-                    ),
-                  )
-                else if (showLyricsTip)
-                  _TipOverlay(
-                    targetKey: _lyricsKey,
-                    isLandscape: isLandscape,
-                    isLyricsMode: true,
-                    onDismiss: () {
-                      settings.hasShownLyricsMenuTip = true;
-                    },
-                    tipCard: _buildTipCard(
-                      context,
-                      tipText: l10n.longPressLyricsPanelToOpenMenu,
-                      onDismiss: () {
-                        settings.hasShownLyricsMenuTip = true;
-                      },
-                    ),
-                  ),
-                if (showTopDragHandle)
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: SafeArea(
-                      bottom: false,
-                      child: Align(
-                        alignment: Alignment.topCenter,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: _buildTopDragHandle(),
-                        ),
-                      ),
-                    ),
-                  ),
-                if (!isSmallWin)
-                  Positioned(
-                    top: collapseButtonTop,
-                    left: collapseButtonLeft,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 200),
-                      opacity: widget.isMouseActive ? 1.0 : 0.0,
-                      curve: Curves.easeInOut,
-                      child: IgnorePointer(
-                        ignoring: !widget.isMouseActive,
-                        child: _buildPlaybackCollapseButton(context),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+              ),
+              Positioned.fill(child: topOverlays),
+            ],
           );
-
-          if (enableDragDismiss) {
-            // pageContent 作为 child 传入：拖动 / 收起动画只重建这一层 Transform，
-            // 不会再把整页（含背景与语义树）重建一遍。
-            return ValueListenableBuilder<double>(
-              valueListenable: _dragOffsetNotifier,
-              child: pageContent,
-              builder: (context, dragOffset, child) {
-                return Transform.translate(
-                  offset: Offset(0, dragOffset),
-                  child: child,
-                );
-              },
-            );
-          }
-          return pageContent;
         },
       ),
     );

@@ -15,6 +15,7 @@ import '../../l10n/app_localizations.dart';
 class PlaybackAlbumArt extends ConsumerWidget {
   final double currentSize;
   final double? cacheWidthSize;
+  final Rect? endRect;
   final bool isLandscape;
   final bool isNext;
   final VoidCallback? onCoverTap;
@@ -25,6 +26,7 @@ class PlaybackAlbumArt extends ConsumerWidget {
     super.key,
     required this.currentSize,
     this.cacheWidthSize,
+    this.endRect,
     this.isLandscape = false,
     this.isNext = true,
     this.onCoverTap,
@@ -194,6 +196,7 @@ class PlaybackAlbumArt extends ConsumerWidget {
           isNext: isNext,
           displaySize: currentSize,
           cacheWidthSize: cacheWidthSize,
+          endRect: endRect,
           onPageChanged: (page) {
             final audio = ref.read(audioServiceProvider);
             if (page >= 0 && page < playlist.length && page != currentIndex) {

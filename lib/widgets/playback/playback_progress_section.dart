@@ -13,6 +13,7 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
+import 'package:vynody/widgets/playback/playback_cover_flight.dart';
 import 'package:vynody/widgets/waveform_progress_bar.dart';
 import 'package:vynody/widgets/playback_ui_tuning.dart';
 import '../../l10n/app_localizations.dart';
@@ -955,7 +956,14 @@ class _MiniPlayerProgressInfoState
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: widget.onMiniTap,
+              onTap: widget.onMiniTap == null
+                  ? null
+                  : () {
+                      ref
+                          .read(playbackCoverFlightControllerProvider)
+                          .captureOriginFromContext(context);
+                      widget.onMiniTap!();
+                    },
               child: SizedBox(
                 height: 36,
                 child: Stack(

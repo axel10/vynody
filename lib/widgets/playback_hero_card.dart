@@ -19,6 +19,7 @@ import 'package:vynody/widgets/playback_ui_tuning.dart';
 import 'playback/playback_track_info.dart';
 import 'playback/playback_controls.dart';
 import 'playback/playback_album_art.dart';
+import 'playback/playback_cover_flight.dart';
 import 'playback/mini_player_card.dart';
 
 export 'playback/playback_progress_section.dart';
@@ -103,6 +104,7 @@ class PlaybackHeroCard extends ConsumerStatefulWidget {
     this.lyricsBottomTabBarHeight = 0.0,
     this.coverKey,
     this.lyricsKey,
+    this.cardOriginOffset = Offset.zero,
     this.enableHero = true,
     this.animateLyricsTransition = true,
   });
@@ -113,6 +115,7 @@ class PlaybackHeroCard extends ConsumerStatefulWidget {
   final bool isLandscape;
   final bool isNext;
   final bool enableHero;
+  final Offset cardOriginOffset;
   final bool showMiniVolumeSlider;
   final List<double>? overrideWaveform;
   final double? overrideProgress;
@@ -162,6 +165,8 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
 
   bool _isPortraitLyricsControlsExpanded = false;
   double _lyricsScrollDeltaAccumulator = 0.0;
+  bool _animateLandscapeTransition = false;
+  Timer? _landscapeTransitionTimer;
 
   /// 歌词面板「正处在转场中」的标记，交给 `_LyricsPanelTransitionWrapper`
   /// 决定要不要跟随 `audioPositionProvider`。
@@ -198,6 +203,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
 
   @override
   void dispose() {
+    _landscapeTransitionTimer?.cancel();
     _lyricsPanelTransitioning.dispose();
     _portraitControlsExpandAnimation.dispose();
     _portraitControlsExpandController.dispose();
@@ -207,6 +213,29 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
   @override
   void didUpdateWidget(PlaybackHeroCard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.isLandscape != widget.isLandscape) {
+      final flightProgress = ref
+          .read(playbackCoverFlightControllerProvider)
+          .progressNotifier
+          .value;
+      if (flightProgress > 0.95) {
+        _animateLandscapeTransition = true;
+        _landscapeTransitionTimer?.cancel();
+        _landscapeTransitionTimer = Timer(
+          PlaybackHeroCardUiTuning.transitionDuration,
+          () {
+            if (mounted) {
+              setState(() {
+                _animateLandscapeTransition = false;
+              });
+            }
+          },
+        );
+      } else {
+        _landscapeTransitionTimer?.cancel();
+        _animateLandscapeTransition = false;
+      }
+    }
     if (oldWidget.isLyricsMode && !widget.isLyricsMode) {
       Future.delayed(PlaybackHeroCardUiTuning.transitionDuration, () {
         if (mounted && !widget.isLyricsMode) {
@@ -504,12 +533,35 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
                   ),
             ));
 
+        final bool tickerEnabled = TickerMode.valuesOf(context).enabled;
+        final flightController = ref.watch(
+          playbackCoverFlightControllerProvider,
+        );
+        final Offset resolvedCardOrigin = Offset(
+          widget.cardOriginOffset.dx + (constraints.maxWidth - width) / 2.0,
+          widget.cardOriginOffset.dy + (constraints.maxHeight - height) / 2.0,
+        );
+        final landAnimDuration =
+            (_animateLandscapeTransition && tickerEnabled)
+            ? animDuration
+            : Duration.zero;
+        final double targetLand = effectiveIsLandscape ? 1.0 : 0.0;
+        final double targetLyrics = effectiveIsLyricsMode ? 1.0 : 0.0;
+
         return TweenAnimationBuilder<double>(
-          duration: animDuration,
+          duration: landAnimDuration,
           curve: animCurve,
-          tween: Tween<double>(end: effectiveIsLandscape ? 1.0 : 0.0),
+          tween: Tween<double>(
+            begin: (_animateLandscapeTransition && tickerEnabled)
+                ? null
+                : targetLand,
+            end: targetLand,
+          ),
           child: lyricsPanelWidget,
-          builder: (context, tLand, child) {
+          builder: (context, rawTLand, child) {
+            final double tLand = (_animateLandscapeTransition && tickerEnabled)
+                ? rawTLand
+                : targetLand;
             final coverNormalLayout = _buildPlaybackCardLayout(
               context,
               width: width,
@@ -542,13 +594,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
               showAudioInfo: showAudioInfo,
             );
 
-            // 竖屏歌词模式下的控制面板。整段展开动画里只有这里需要按帧重建
-            // （topButtonsCollapseT 驱动顶行按钮的交叉淡出），其余几何不变。
-            //
-            // 顶行按钮必须按「歌词模式 + 动画进度」判定，不能用
-            // _isPortraitLyricsControlsExpanded：收起的第一帧它就是 false，
-            // 会让顶行从「翻译歌词 / 逐字歌词」瞬间跳成普通模式的按钮，
-            // 整段交叉淡出也被跳过去。
             bool lyricsTopRowActive(double expandProgressValue) =>
                 effectiveIsLyricsMode &&
                 (_isPortraitLyricsControlsExpanded || expandProgressValue > 0.0);
@@ -568,9 +613,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
                         tLyrics: lyricsTopRowActive(expandProgressValue)
                             ? 1.0
                             : 0.0,
-                        // 收起时也要把进度交给控制栏，让它自己交叉淡出；
-                        // 之前门控在 _isPortraitLyricsControlsExpanded 上，
-                        // 收起第一帧就归零了。
                         topButtonsCollapseT: lyricsTopRowActive(
                           expandProgressValue,
                         )
@@ -618,13 +660,22 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
                   );
 
             return TweenAnimationBuilder<double>(
-              duration: lyricsAnimDuration,
+              duration: (widget.animateLyricsTransition && tickerEnabled)
+                  ? lyricsAnimDuration
+                  : Duration.zero,
               curve: animCurve,
               tween: Tween<double>(
-                end: effectiveIsLyricsMode ? 1.0 : 0.0,
+                begin: (widget.animateLyricsTransition && tickerEnabled)
+                    ? null
+                    : targetLyrics,
+                end: targetLyrics,
               ),
               child: child,
-              builder: (context, tLyrics, child) {
+              builder: (context, rawTLyrics, child) {
+                final double tLyrics =
+                    (widget.animateLyricsTransition && tickerEnabled)
+                        ? rawTLyrics
+                        : targetLyrics;
                 final bool isTransitioning =
                     (tLyrics > 0.0 && tLyrics < 1.0) ||
                     (tLand > 0.0 && tLand < 1.0);
@@ -717,9 +768,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
                                       builder: (context, ref, childWidget) {
                                         if (isTransitioningNotifier.value !=
                                             optimize) {
-                                          // 只在真正翻转的那一帧排一次，
-                                          // 且必须等这一帧画完再改（wrapper 的
-                                          // listener 里会 setState）。
                                           WidgetsBinding.instance
                                               .addPostFrameCallback((_) {
                                                 if (!mounted) return;
@@ -800,8 +848,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
                             height: coverNormalLayout.controls.height,
                             child: ExcludeSemantics(
                               excluding: isTransitioning,
-                              // 展开进度只在这里按帧生效：位移交给 Transform，
-                              // 只有控制面板子树跟着重建。
                               child: AnimatedBuilder(
                                 animation: expandProgress,
                                 builder: (context, _) {
@@ -818,15 +864,15 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
                                     ),
                                     child: RepaintBoundary(
                                       child: IgnorePointer(
-                                        // 折叠时面板在屏幕外，禁止命中；
-                                        // 展开进度起来后恢复交互。
                                         ignoring:
                                             layout.controls.opacity < 0.05 &&
                                             expandT < 0.05,
                                         child: FittedBox(
                                           fit: BoxFit.scaleDown,
                                           alignment: Alignment.topCenter,
-                                          child: buildPortraitControls(expandT),
+                                          child: buildPortraitControls(
+                                            expandT,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -922,53 +968,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
                               ),
                             ),
                           ),
-                        if (layout.cover.width > 0 && layout.cover.height > 0)
-                          Positioned(
-                            top: layout.cover.top,
-                            left: layout.cover.left,
-                            width: layout.cover.width,
-                            height: layout.cover.height,
-                            child: Consumer(
-                              builder: (context, ref, child) {
-                                final double currentSize = optimize
-                                    ? coverNormalLayout.cover.width
-                                    : layout.cover.width;
-                                final Widget coverWidget = RepaintBoundary(
-                                  child: SizeLogger(
-                                    name: 'Cover',
-                                    child: PlaybackAlbumArt(
-                                      currentSize: currentSize,
-                                      cacheWidthSize:
-                                          coverNormalLayout.cover.width,
-                                      isLandscape: effectiveIsLandscape,
-                                      isNext: widget.isNext,
-                                      onCoverTap: widget.onCoverTap,
-                                      onCarouselAnimationComplete:
-                                          widget.onCarouselAnimationComplete,
-                                    ),
-                                  ),
-                                );
-                                if (optimize) {
-                                  return KeyedSubtree(
-                                    key: widget.coverKey,
-                                    child: FittedBox(
-                                      fit: BoxFit.fill,
-                                      child: SizedBox(
-                                        width: coverNormalLayout.cover.width,
-                                        height:
-                                            coverNormalLayout.cover.height,
-                                        child: coverWidget,
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return KeyedSubtree(
-                                  key: widget.coverKey,
-                                  child: coverWidget,
-                                );
-                              },
-                            ),
-                          ),
                         Positioned(
                           top: layout.info.top,
                           left: layout.info.left,
@@ -1030,6 +1029,66 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard>
                             },
                           ),
                         ),
+                        if (layout.cover.width > 0 && layout.cover.height > 0)
+                          Positioned(
+                            top: layout.cover.top,
+                            left: layout.cover.left,
+                            width: layout.cover.width,
+                            height: layout.cover.height,
+                            child: Builder(
+                              builder: (context) {
+                                final Rect coverEndRect = Rect.fromLTWH(
+                                  resolvedCardOrigin.dx + layout.cover.left,
+                                  resolvedCardOrigin.dy + layout.cover.top,
+                                  layout.cover.width,
+                                  layout.cover.height,
+                                );
+                                final double currentSize = optimize
+                                    ? coverNormalLayout.cover.width
+                                    : layout.cover.width;
+                                final Widget coverWidget = RepaintBoundary(
+                                  child: SizeLogger(
+                                    name: 'Cover',
+                                    child: PlaybackAlbumArt(
+                                      currentSize: currentSize,
+                                      cacheWidthSize:
+                                          coverNormalLayout.cover.width,
+                                      endRect: coverEndRect,
+                                      isLandscape: effectiveIsLandscape,
+                                      isNext: widget.isNext,
+                                      onCoverTap: widget.onCoverTap,
+                                      onCarouselAnimationComplete:
+                                          widget.onCarouselAnimationComplete,
+                                    ),
+                                  ),
+                                );
+                                final Widget keyedCover = optimize
+                                    ? KeyedSubtree(
+                                        key: widget.coverKey,
+                                        child: FittedBox(
+                                          fit: BoxFit.fill,
+                                          child: SizedBox(
+                                            width:
+                                                coverNormalLayout.cover.width,
+                                            height:
+                                                coverNormalLayout.cover.height,
+                                            child: coverWidget,
+                                          ),
+                                        ),
+                                      )
+                                    : KeyedSubtree(
+                                        key: widget.coverKey,
+                                        child: coverWidget,
+                                      );
+                                return _CoverFlightTransformWrapper(
+                                  flightController: flightController,
+                                  endRect: coverEndRect,
+                                  enabled: !isSmallWindow && widget.enableHero,
+                                  child: keyedCover,
+                                );
+                              },
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -1770,6 +1829,55 @@ class _LyricsPanelTransitionWrapperState
           bottomReserveProgress: widget.lyricsBottomReserveProgress,
           bottomReserveDelta: widget.lyricsBottomReserveDelta,
           isTransitioning: _isTransitioning,
+        );
+      },
+    );
+  }
+}
+
+class _CoverFlightTransformWrapper extends StatelessWidget {
+  const _CoverFlightTransformWrapper({
+    required this.flightController,
+    required this.endRect,
+    required this.enabled,
+    required this.child,
+  });
+
+  final PlaybackCoverFlightController flightController;
+  final Rect endRect;
+  final bool enabled;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!enabled) return child;
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        flightController.progressNotifier,
+        flightController.originNotifier,
+      ]),
+      child: child,
+      builder: (context, childWidget) {
+        final double progress = flightController.progressNotifier.value;
+        final origin = flightController.originNotifier.value;
+        if (progress >= 0.9999 || origin == null) return childWidget!;
+
+        final double endRadius = math.min(24.0, endRect.width * 0.2);
+        final flight = PlaybackCoverFlightGeometry.computeCoverFlightTransform(
+          startRect: origin.rect,
+          startBorderRadius: origin.borderRadius,
+          endRect: endRect,
+          endBorderRadius: endRadius,
+          progress: progress,
+          sheetOffsetY: flightController.currentSheetOffsetY,
+        );
+        return IgnorePointer(
+          ignoring: progress < 0.95,
+          child: Transform(
+            alignment: Alignment.topLeft,
+            transform: flight.transform,
+            child: childWidget,
+          ),
         );
       },
     );

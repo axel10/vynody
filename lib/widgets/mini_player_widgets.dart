@@ -6,14 +6,16 @@ import 'package:flutter/material.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
+import 'package:vynody/pages/main_layout_riverpod.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/utils/playback_utils.dart';
+import 'package:vynody/widgets/playback/playback_cover_flight.dart';
 import '../l10n/app_localizations.dart';
 
 import 'song_thumbnail.dart';
 
-class MiniArtwork extends ConsumerWidget {
+class MiniArtwork extends ConsumerStatefulWidget {
   final double size;
   final double borderRadius;
 
@@ -24,48 +26,83 @@ class MiniArtwork extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MiniArtwork> createState() => _MiniArtworkState();
+}
+
+class _MiniArtworkState extends ConsumerState<MiniArtwork> {
+  VoidCallback? _unregisterAnchor;
+
+  @override
+  void initState() {
+    super.initState();
+    final flightController = ref.read(playbackCoverFlightControllerProvider);
+    _unregisterAnchor = flightController.registerMiniArtworkAnchor(
+      contextGetter: () => mounted ? context : null,
+      borderRadiusGetter: () => widget.borderRadius,
+    );
+  }
+
+  @override
+  void dispose() {
+    _unregisterAnchor?.call();
+    _unregisterAnchor = null;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final flightController = ref.watch(playbackCoverFlightControllerProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fallbackWidget = Container(
-      width: size,
-      height: size,
+      width: widget.size,
+      height: widget.size,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(borderRadius),
+        borderRadius: BorderRadius.circular(widget.borderRadius),
       ),
       child: Icon(
         Icons.music_note,
         color: isDark ? Colors.white : Colors.black54,
-        size: (size * 0.55).clamp(16.0, 32.0),
+        size: (widget.size * 0.55).clamp(16.0, 32.0),
       ),
     );
 
+    final Widget artworkChild;
     if (currentMusic == null) {
-      return fallbackWidget;
+      artworkChild = fallbackWidget;
+    } else {
+      final audioService = ref.watch(audioServiceProvider);
+      final memoryBytes = currentMusic.artworkBytes ??
+          audioService.getCachedArtwork(currentMusic.path);
+
+      final songForThumbnail = memoryBytes != null && memoryBytes.isNotEmpty
+          ? currentMusic.copyWith(artworkBytes: memoryBytes)
+          : currentMusic;
+
+      // 不要在这里按封面字节给 SongThumbnail 加 key：播放开始后
+      // _prepareCurrentPlaybackArtwork 会写入一个新的 artworkBytes 对象，
+      // key 一变就会把 State 整体重建，新 State 首帧没有旧画面 → 封面临时空白。
+      // SongThumbnail 内部 didUpdateWidget 已处理 path/artwork 变化，无需外部 key。
+      artworkChild = SongThumbnail.fromSong(
+        songForThumbnail,
+        size: widget.size,
+        width: widget.size,
+        height: widget.size,
+        borderRadius: BorderRadius.circular(widget.borderRadius),
+        fallbackWidget: fallbackWidget,
+        gaplessPlayback: true,
+      );
     }
 
-    final audioService = ref.watch(audioServiceProvider);
-    final memoryBytes = currentMusic.artworkBytes ??
-        audioService.getCachedArtwork(currentMusic.path);
-
-    final songForThumbnail = memoryBytes != null && memoryBytes.isNotEmpty
-        ? currentMusic.copyWith(artworkBytes: memoryBytes)
-        : currentMusic;
-
-    // 不要在这里按封面字节给 SongThumbnail 加 key：播放开始后
-    // _prepareCurrentPlaybackArtwork 会写入一个新的 artworkBytes 对象，
-    // key 一变就会把 State 整体重建，新 State 首帧没有旧画面 → 封面临时空白。
-    // SongThumbnail 内部 didUpdateWidget 已处理 path/artwork 变化，无需外部 key。
-    return SongThumbnail.fromSong(
-      songForThumbnail,
-      size: size,
-      width: size,
-      height: size,
-      borderRadius: BorderRadius.circular(borderRadius),
-      fallbackWidget: fallbackWidget,
-      gaplessPlayback: true,
+    return ValueListenableBuilder<bool>(
+      valueListenable: flightController.hideSourceArtworkNotifier,
+      child: artworkChild,
+      builder: (context, hideSource, child) {
+        if (!hideSource) return child!;
+        return Opacity(opacity: 0.0, child: child);
+      },
     );
   }
 }
@@ -268,8 +305,9 @@ class _MiniSpectrumBackgroundState
       settingsServiceProvider.select((s) => s.isMiniPlayerSpectrumEnabled),
     );
     final isPlaying = ref.watch(audioIsPlayingProvider);
+    final isPlaybackOpen = ref.watch(isPlaybackDrawerOpenProvider);
 
-    if (!spectrumEnabled || !isPlaying) {
+    if (!spectrumEnabled || !isPlaying || isPlaybackOpen) {
       if (_subscription != null) _stopSubscription();
       return const SizedBox.shrink();
     }

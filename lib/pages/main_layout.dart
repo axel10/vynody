@@ -49,6 +49,7 @@ import '../dialogs/music_folders_dialog.dart';
 import '../dialogs/trial_reset_notice_dialog.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/floating_dock_bottom_bar.dart';
+import '../widgets/playback/playback_cover_flight.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/global_drop_target.dart';
@@ -109,6 +110,14 @@ Future<void> navigateToMainTab(
 }) async {
   // 切页前先收起所有 tooltip，避免鼠标事件在切换期间继续驱动
   Tooltip.dismissAllToolTips();
+  if (index == kMainTabPlayback && context.mounted) {
+    ProviderScope.containerOf(
+      context,
+      listen: false,
+    ).read(playbackCoverFlightControllerProvider).captureOriginFromContext(
+      context,
+    );
+  }
 
   await Future<void>.delayed(Duration.zero);
   if (!context.mounted) return;
@@ -117,6 +126,9 @@ Future<void> navigateToMainTab(
   final container = ProviderScope.containerOf(context, listen: false);
 
   if (index == kMainTabPlayback) {
+    container
+        .read(playbackCoverFlightControllerProvider)
+        .captureOriginIfNeeded();
     // 目标是播放页：完全不产生路由跳转，若在二级页面则退回根页面后滑开抽屉
     if (navigator.canPop()) {
       navigator.popUntil((route) => route.isFirst);
@@ -172,7 +184,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   final FloatingDockScrollHelper _dockScrollHelper = FloatingDockScrollHelper();
 
   late final AnimationController _playbackDrawerAnimController;
+  late final PlaybackCoverFlightController _flightController;
   bool _isPlaybackDrawerOpen = false;
+  bool _isInteractivePlaybackDragging = false;
+  double _interactiveDragStartProgress = 1.0;
+  double _interactiveAccumulatedDy = 0.0;
 
   bool _isOnboardingDialogOpen = false;
   bool _isTrialResetNoticeDialogOpen = false;
@@ -182,8 +198,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   MainLayoutUiController get _ui => _uiController;
 
   Future<void> _checkAndShowTrialResetNotice() async {
-    if (_isTrialResetNoticeDialogOpen || _isOnboardingDialogOpen || !mounted)
+    if (_isTrialResetNoticeDialogOpen || _isOnboardingDialogOpen || !mounted) {
       return;
+    }
     final proService = ref.read(proLicenseServiceProvider);
     if (!proService.pendingTrialResetNotice) return;
 
@@ -267,49 +284,159 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     }
   }
 
+  void _syncPlaybackFlightProgress() {
+    if (!mounted) return;
+    final isSmallWin = PlaybackPageUiTuning.isSmallWindowModeActive(
+      isSmallWindowMode: ref.read(settingsServiceProvider).isSmallWindowMode,
+    );
+    final double? screenHeight = MediaQuery.maybeSizeOf(context)?.height;
+    _flightController.updateProgress(
+      _playbackDrawerAnimController.value,
+      isSmallWindow: isSmallWin,
+      screenHeight: screenHeight,
+      isDrawerOpen: _isPlaybackDrawerOpen,
+    );
+  }
+
+  void _handleInteractivePlaybackDragStart() {
+    if (_playbackDrawerAnimController.isAnimating) {
+      _playbackDrawerAnimController.stop();
+    }
+    _isInteractivePlaybackDragging = true;
+    _interactiveDragStartProgress = _playbackDrawerAnimController.value.clamp(
+      0.0,
+      1.0,
+    );
+    _interactiveAccumulatedDy = 0.0;
+    _flightController.refreshOriginFromLiveAnchor();
+  }
+
+  void _handleInteractivePlaybackDragUpdate(
+    double deltaDy,
+    double screenHeight,
+  ) {
+    if (!_isInteractivePlaybackDragging) return;
+    final double effectiveHeight = math.max(1.0, screenHeight);
+    _interactiveAccumulatedDy = (_interactiveAccumulatedDy + deltaDy).clamp(
+      0.0,
+      effectiveHeight,
+    );
+    final double nextProgress =
+        (_interactiveDragStartProgress -
+                _interactiveAccumulatedDy / effectiveHeight)
+            .clamp(0.0, 1.0);
+    _playbackDrawerAnimController.value = nextProgress;
+  }
+
+  void _handleInteractivePlaybackDragEnd(double velocityY) {
+    if (!_isInteractivePlaybackDragging) return;
+    _isInteractivePlaybackDragging = false;
+    final double currentProgress = _playbackDrawerAnimController.value;
+    if (_interactiveAccumulatedDy > 80.0 ||
+        velocityY > 280.0 ||
+        currentProgress < 0.78) {
+      _collapsePlayback(animated: true);
+    } else {
+      _playbackDrawerAnimController
+          .animateTo(
+            1.0,
+            duration: const Duration(milliseconds: 260),
+            curve: const Cubic(0.2, 0.0, 0.15, 1.0),
+          )
+          .then((_) {
+            if (!mounted) return;
+            if (_isPlaybackDrawerOpen &&
+                _playbackDrawerAnimController.value >= 0.999) {
+              _dockScrollHelper.reset(ref, animated: false);
+            }
+          });
+    }
+  }
+
+  void _handleInteractivePlaybackDragCancel() {
+    if (!_isInteractivePlaybackDragging) return;
+    _isInteractivePlaybackDragging = false;
+    _playbackDrawerAnimController.animateTo(
+      1.0,
+      duration: const Duration(milliseconds: 260),
+      curve: const Cubic(0.2, 0.0, 0.15, 1.0),
+    );
+  }
+
   void _expandPlayback({bool animated = true}) {
-    _dockScrollHelper.reset(ref);
-    if (_isPlaybackDrawerOpen && _playbackDrawerAnimController.value == 1.0) {
+    if (_isPlaybackDrawerOpen &&
+        _playbackDrawerAnimController.value >= 0.9999 &&
+        !_playbackDrawerAnimController.isAnimating) {
       return;
+    }
+    _isInteractivePlaybackDragging = false;
+    if (_playbackDrawerAnimController.value <= 0.0001) {
+      _flightController.captureOriginIfNeeded();
+    }
+    if (ref.read(settingsServiceProvider).defaultToLyricsModeOnPlaybackOpen) {
+      _audioService.setLyricsActive(true);
     }
     setState(() {
       _isPlaybackDrawerOpen = true;
     });
     ref.read(isPlaybackDrawerOpenProvider.notifier).setOpen(true);
     if (animated) {
-      _playbackDrawerAnimController.animateTo(
-        1.0,
-        duration: const Duration(milliseconds: 380),
-        curve: const Cubic(0.2, 0.0, 0.15, 1.0),
-      );
-    } else {
-      _playbackDrawerAnimController.value = 1.0;
-    }
-  }
-
-  void _collapsePlayback({bool animated = true}) {
-    ref.read(isPlaybackDrawerOpenProvider.notifier).setOpen(false);
-    if (animated) {
       _playbackDrawerAnimController
           .animateTo(
-            0.0,
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeInQuad,
+            1.0,
+            duration: const Duration(milliseconds: 380),
+            curve: const Cubic(0.2, 0.0, 0.15, 1.0),
           )
           .then((_) {
             if (!mounted) return;
-            setState(() {
-              _isPlaybackDrawerOpen = false;
-            });
+            if (_isPlaybackDrawerOpen &&
+                _playbackDrawerAnimController.value >= 0.999) {
+              _dockScrollHelper.reset(ref, animated: false);
+            }
+          });
+    } else {
+      _playbackDrawerAnimController.value = 1.0;
+      _dockScrollHelper.reset(ref, animated: false);
+    }
+    _syncPlaybackFlightProgress();
+  }
+
+  void _collapsePlayback({bool animated = true}) {
+    _isInteractivePlaybackDragging = false;
+    ref.read(isPlaybackDrawerOpenProvider.notifier).setOpen(false);
+    if (animated && _playbackDrawerAnimController.value > 0.0001) {
+      _flightController.refreshOriginFromLiveAnchor();
+      final double currentVal = _playbackDrawerAnimController.value.clamp(
+        0.0,
+        1.0,
+      );
+      final int durationMs = (340.0 * currentVal).round().clamp(160, 340);
+      _playbackDrawerAnimController
+          .animateTo(
+            0.0,
+            duration: Duration(milliseconds: durationMs),
+            curve: const Cubic(0.32, 0.72, 0.0, 1.0),
+          )
+          .then((_) {
+            if (!mounted) return;
+            if (!ref.read(isPlaybackDrawerOpenProvider) &&
+                _playbackDrawerAnimController.value <= 0.0001) {
+              _flightController.clearOrigin();
+              setState(() {
+                _isPlaybackDrawerOpen = false;
+              });
+            }
           });
     } else {
       _playbackDrawerAnimController.value = 0.0;
-      if (mounted) {
+      _flightController.clearOrigin();
+      if (mounted && _isPlaybackDrawerOpen) {
         setState(() {
           _isPlaybackDrawerOpen = false;
         });
       }
     }
+    _syncPlaybackFlightProgress();
   }
 
   Future<void> _handleBackPressed() async {
@@ -464,14 +591,28 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     final bool shouldOpenPlaybackInitially =
         !isStressTest && !needOnboarding && widget.initialIndex == kMainTabPlayback;
 
+    _flightController = ref.read(playbackCoverFlightControllerProvider);
     _playbackDrawerAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 380),
-      reverseDuration: const Duration(milliseconds: 280),
+      reverseDuration: const Duration(milliseconds: 340),
       value: shouldOpenPlaybackInitially ? 1.0 : 0.0,
-    );
+    )..addListener(_syncPlaybackFlightProgress);
 
     _isPlaybackDrawerOpen = shouldOpenPlaybackInitially;
+    _flightController.updateProgress(
+      shouldOpenPlaybackInitially ? 1.0 : 0.0,
+      isSmallWindow: PlaybackPageUiTuning.isSmallWindowModeActive(
+        isSmallWindowMode: settings.isSmallWindowMode,
+      ),
+      isDrawerOpen: _isPlaybackDrawerOpen,
+    );
+    _flightController.bindInteractiveDragCallbacks(
+      onDragStart: _handleInteractivePlaybackDragStart,
+      onDragUpdate: _handleInteractivePlaybackDragUpdate,
+      onDragEnd: _handleInteractivePlaybackDragEnd,
+      onDragCancel: _handleInteractivePlaybackDragCancel,
+    );
 
     final initialBaseIndex = widget.initialIndex == kMainTabPlayback
         ? kMainTabFolders
@@ -532,6 +673,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
   @override
   void dispose() {
+    _flightController.unbindInteractiveDragCallbacks();
+    _playbackDrawerAnimController.removeListener(_syncPlaybackFlightProgress);
     _dockScrollHelper.dispose();
     _playbackDrawerAnimController.dispose();
     _windowResizeDebounceTimer?.cancel();
@@ -1471,6 +1614,13 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       isWaveformEnabled: ref.watch(isEffectiveWaveformEnabledProvider),
       isSmallWindowMode: settings.isSmallWindowMode,
     );
+    _flightController.updateProgress(
+      _playbackDrawerAnimController.value,
+      isSmallWindow: isSmallWin,
+      screenHeight: size.height,
+      isDrawerOpen: _isPlaybackDrawerOpen,
+    );
+    _flightController.scheduleRefreshForWindowSizeChange(size);
     final bool isPlayback = isSmallWin || _isPlaybackDrawerOpen;
     final navBgBaseColor =
         theme.navigationBarTheme.backgroundColor ?? theme.colorScheme.surface;
@@ -1665,70 +1815,95 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                         extraLeft -
                                         rightDrawerWidth;
 
-                                    return Container(
-                                      key: const ValueKey('dynamic-island'),
-                                      constraints: BoxConstraints(
-                                        maxWidth: availableWidth * 0.9,
-                                      ),
-                                      child: PlaybackHeroCard(
-                                        isMini: true,
-                                        isLandscape: isLandscape,
-                                        showMiniVolumeSlider:
-                                            _showMiniVolumeSlider,
-                                        onMiniTap: () =>
-                                            _onDestinationSelected(kMainTabPlayback),
-                                        onPrevious: audio.previous,
-                                        onPlayPause: audio.togglePlay,
-                                        onNext: audio.next,
-                                        onScrubbing: (val) {
-                                          // 迷你播放器内部会处理局部 UI 状态
-                                        },
-                                        onSeek: (val) {
-                                          audio.seek(
-                                            Duration(
-                                              milliseconds:
-                                                  (audio
-                                                              .duration
-                                                              .inMilliseconds *
-                                                          val)
-                                                      .toInt(),
-                                            ),
-                                          );
-                                        },
-                                        onVolumeTap: () {
-                                          ref
-                                              .read(settingsServiceProvider)
-                                              .resetInactivity();
-                                          final nextVisible =
-                                              !_showMiniVolumeSlider;
-                                          setState(() {
-                                            _showMiniVolumeSlider = nextVisible;
-                                          });
-                                        },
-                                        onMiniMouseExit: () {
-                                          if (!_showMiniVolumeSlider) return;
-                                          setState(() {
-                                            _showMiniVolumeSlider = false;
-                                          });
-                                        },
-                                        onVolumeChanged: (value) {
-                                          ref
-                                              .read(settingsServiceProvider)
-                                              .resetInactivity();
-                                          _ui.setVolumeHudVisible(true);
-                                          audio.setVolume(
-                                            value.roundToDouble(),
-                                          );
-                                        },
-                                        onVolumeScroll: (deltaY) {
-                                          ref
-                                              .read(settingsServiceProvider)
-                                              .resetInactivity();
-                                          _ui.setVolumeHudVisible(true);
-                                          audio.setVolume(
-                                            (audio.volume - deltaY * 0.1)
-                                                .clamp(0.0, 100.0)
-                                                .roundToDouble(),
+                                    return IgnorePointer(
+                                      ignoring:
+                                          _isPlaybackDrawerOpen ||
+                                          _playbackDrawerAnimController.value >
+                                              0.0001,
+                                      child: ValueListenableBuilder<bool>(
+                                        valueListenable:
+                                            _flightController
+                                                .isFullyOpenNotifier,
+                                        child: Container(
+                                          key: const ValueKey('dynamic-island'),
+                                          constraints: BoxConstraints(
+                                            maxWidth: availableWidth * 0.9,
+                                          ),
+                                          child: PlaybackHeroCard(
+                                            isMini: true,
+                                            isLandscape: isLandscape,
+                                            showMiniVolumeSlider:
+                                                _showMiniVolumeSlider,
+                                            onMiniTap: () =>
+                                                _onDestinationSelected(
+                                                  kMainTabPlayback,
+                                                ),
+                                            onPrevious: audio.previous,
+                                            onPlayPause: audio.togglePlay,
+                                            onNext: audio.next,
+                                            onScrubbing: (val) {
+                                              // 迷你播放器内部会处理局部 UI 状态
+                                            },
+                                            onSeek: (val) {
+                                              audio.seek(
+                                                Duration(
+                                                  milliseconds:
+                                                      (audio
+                                                                  .duration
+                                                                  .inMilliseconds *
+                                                              val)
+                                                          .toInt(),
+                                                ),
+                                              );
+                                            },
+                                            onVolumeTap: () {
+                                              ref
+                                                  .read(settingsServiceProvider)
+                                                  .resetInactivity();
+                                              final nextVisible =
+                                                  !_showMiniVolumeSlider;
+                                              setState(() {
+                                                _showMiniVolumeSlider =
+                                                    nextVisible;
+                                              });
+                                            },
+                                            onMiniMouseExit: () {
+                                              if (!_showMiniVolumeSlider) {
+                                                return;
+                                              }
+                                              setState(() {
+                                                _showMiniVolumeSlider = false;
+                                              });
+                                            },
+                                            onVolumeChanged: (value) {
+                                              ref
+                                                  .read(settingsServiceProvider)
+                                                  .resetInactivity();
+                                              _ui.setVolumeHudVisible(true);
+                                              audio.setVolume(
+                                                value.roundToDouble(),
+                                              );
+                                            },
+                                            onVolumeScroll: (deltaY) {
+                                              ref
+                                                  .read(settingsServiceProvider)
+                                                  .resetInactivity();
+                                              _ui.setVolumeHudVisible(true);
+                                              audio.setVolume(
+                                                (audio.volume - deltaY * 0.1)
+                                                    .clamp(0.0, 100.0)
+                                                    .roundToDouble(),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                        builder: (context, isFullyOpen, child) {
+                                          if (!isFullyOpen || isSmallWin) {
+                                            return child!;
+                                          }
+                                          return Opacity(
+                                            opacity: 0.0,
+                                            child: child,
                                           );
                                         },
                                       ),
@@ -1743,9 +1918,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                 if (!useSidebar)
                   Builder(
                     builder: (context) {
-                      final bool isDrawerActive = isSmallWin ||
-                          _isPlaybackDrawerOpen ||
-                          _playbackDrawerAnimController.value > 0.0;
                       final secondaryAnimation = ModalRoute.of(
                         context,
                       )?.secondaryAnimation;
@@ -1753,14 +1925,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                         currentIndex: _currentIndex,
                         onDestinationSelected: _onDestinationSelected,
                         isPlayback: false,
-                        isHidden:
-                            isDrawerActive ||
-                            hideMiniPlayerForSelection,
-                        hideMiniPlayer:
-                            hideMiniPlayerForSelection,
+                        isHidden: hideMiniPlayerForSelection,
+                        hideMiniPlayer: hideMiniPlayerForSelection,
                         rightDrawerWidth: rightDrawerWidth,
-                        additionalBottomOffset:
-                            selectionBottomInset,
+                        additionalBottomOffset: selectionBottomInset,
                       );
                       if (secondaryAnimation == null) return dock;
                       return AnimatedBuilder(
@@ -1773,72 +1941,76 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                       );
                     },
                   ),
-                // 播放页抽屉（Sliding Bottom Sheet）：直接覆盖在底层页面与底层 Dock 之上
+                // 播放页抽屉（Sliding Bottom Sheet）：自底向上滑入覆盖在底层页面与底层 Dock 之上，
+                // 内部专辑封面反向抵消抽屉位移以沿屏幕坐标直接飞入轮播图槽位。
                 // 桌面端队列抽屉展开时需避让，只覆盖队列抽屉左侧区域
                 Builder(
                   builder: (context) {
                     final bool isDrawerActive = isSmallWin ||
                         _isPlaybackDrawerOpen ||
-                        _playbackDrawerAnimController.value > 0.0;
+                        _playbackDrawerAnimController.value > 0.0001;
                     return Positioned(
                       left: 0,
                       top: 0,
                       bottom: 0,
                       right: rightDrawerWidth,
-                      child: TickerMode(
-                        enabled: isDrawerActive,
-                        child: ClipRect(
-                          child: AnimatedBuilder(
-                            animation: _playbackDrawerAnimController,
-                            builder: (context, child) {
-                              final double progress = isSmallWin
-                                  ? 1.0
-                                  : _playbackDrawerAnimController.value;
-                              final double screenHeight = size.height;
-                              final double offsetY = isSmallWin
-                                  ? 0.0
-                                  : ((1.0 - progress) * screenHeight).clamp(
-                                      0.0,
-                                      screenHeight,
-                                    );
-
-                              return Transform.translate(
-                                offset: Offset(0, offsetY),
-                                child: child,
-                              );
-                            },
-                            child: RepaintBoundary(
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: PlaybackPage(
-                                      onCollapse: _collapsePlayback,
-                                      isMouseActive: _isMouseActive,
-                                    ),
+                      child: IgnorePointer(
+                        ignoring: !isDrawerActive,
+                        child: TickerMode(
+                          enabled: isDrawerActive,
+                          child: Opacity(
+                            opacity: isDrawerActive ? 1.0 : 0.0,
+                            alwaysIncludeSemantics: false,
+                            child: ClipRect(
+                              child: AnimatedBuilder(
+                                animation: _playbackDrawerAnimController,
+                                builder: (context, child) {
+                                  final double offsetY = isSmallWin
+                                      ? 0.0
+                                      : _flightController.currentSheetOffsetY;
+                                  return Transform.translate(
+                                    offset: Offset(0.0, offsetY),
+                                    child: child,
+                                  );
+                                },
+                                child: RepaintBoundary(
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Positioned.fill(
+                                        child: PlaybackPage(
+                                          onCollapse: _collapsePlayback,
+                                          isMouseActive: _isMouseActive,
+                                        ),
+                                      ),
+                                      if (!useSidebar && !isSmallWin)
+                                        FloatingDockBottomBar(
+                                          // 播放页是覆盖在底层 Tab 之上的抽屉，它自己不占
+                                          // 导航位。这里沿用底层 Tab 的索引，让 Dock 高亮
+                                          // 保持与「当前路由位置」一致，而不是全部熄掉。
+                                          currentIndex: _currentIndex,
+                                          onDestinationSelected: (index) {
+                                            if (index == kMainTabPlayback) {
+                                              return;
+                                            }
+                                            if (index == kMainTabSettings) {
+                                              _openSettingsPage();
+                                              return;
+                                            }
+                                            _selectTab(index);
+                                            _collapsePlayback();
+                                          },
+                                          isPlayback: true,
+                                          isHidden:
+                                              settings
+                                                  .isImmersiveTabBarEnabled &&
+                                              settings.isUserInactive,
+                                          hideMiniPlayer: true,
+                                          rightDrawerWidth: 0.0,
+                                        ),
+                                    ],
                                   ),
-                                  if (!useSidebar && !isSmallWin)
-                                    FloatingDockBottomBar(
-                                      // 播放页是覆盖在底层 Tab 之上的抽屉，它自己不占
-                                      // 导航位。这里沿用底层 Tab 的索引，让 Dock 高亮
-                                      // 保持与「当前路由位置」一致，而不是全部熄掉。
-                                      currentIndex: _currentIndex,
-                                      onDestinationSelected: (index) {
-                                        if (index == kMainTabPlayback) return;
-                                        if (index == kMainTabSettings) {
-                                          _openSettingsPage();
-                                          return;
-                                        }
-                                        _collapsePlayback();
-                                        _selectTab(index);
-                                      },
-                                      isPlayback: true,
-                                      isHidden:
-                                          settings.isImmersiveTabBarEnabled &&
-                                          settings.isUserInactive,
-                                      hideMiniPlayer: true,
-                                      rightDrawerWidth: 0.0,
-                                    ),
-                                ],
+                                ),
                               ),
                             ),
                           ),

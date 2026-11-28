@@ -14,10 +14,11 @@ import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/utils/memory_trace.dart';
+import 'package:vynody/widgets/playback/playback_cover_flight.dart';
 import 'package:vynody/widgets/playback/song_rating_overlay.dart';
 import 'package:vynody/widgets/playback_ui_tuning.dart';
 
-class CoverCarousel extends StatefulWidget {
+class CoverCarousel extends ConsumerStatefulWidget {
   const CoverCarousel({
     super.key,
     required this.playlist,
@@ -29,6 +30,7 @@ class CoverCarousel extends StatefulWidget {
     this.isNext,
     this.displaySize,
     this.cacheWidthSize,
+    this.endRect,
   });
 
   final List<MusicFile> playlist;
@@ -41,12 +43,13 @@ class CoverCarousel extends StatefulWidget {
   final bool? isNext;
   final double? displaySize;
   final double? cacheWidthSize;
+  final Rect? endRect;
 
   @override
-  State<CoverCarousel> createState() => _CoverCarouselState();
+  ConsumerState<CoverCarousel> createState() => _CoverCarouselState();
 }
 
-class _CoverCarouselState extends State<CoverCarousel>
+class _CoverCarouselState extends ConsumerState<CoverCarousel>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late int _currentPage;
@@ -95,7 +98,12 @@ class _CoverCarouselState extends State<CoverCarousel>
     final bool playlistChanged = !_isPlaylistSame(oldWidget.playlist, widget.playlist);
 
     if (widget.currentIndex != oldWidget.currentIndex || playlistChanged) {
-      if (playlistChanged) {
+      final bool tickerEnabled = TickerMode.valuesOf(context).enabled;
+      final double flightProgress = ref
+          .read(playbackCoverFlightControllerProvider)
+          .progressNotifier
+          .value;
+      if (playlistChanged || !tickerEnabled || flightProgress < 0.95) {
         _animationController.stop();
         _indexOverrides.clear();
         _currentPage = widget.currentIndex;
@@ -274,6 +282,11 @@ class _CoverCarouselState extends State<CoverCarousel>
 
         return GestureDetector(
           onHorizontalDragStart: (details) {
+            final flightProgress = ref
+                .read(playbackCoverFlightControllerProvider)
+                .progressNotifier
+                .value;
+            if (flightProgress < 0.98) return;
             _isDragging = true;
             if (_animationController.isAnimating || _indexOverrides.isNotEmpty) {
               _animationController.stop();
@@ -418,6 +431,7 @@ class _CoverCarouselState extends State<CoverCarousel>
             width: width,
             displaySize: widget.displaySize,
             cacheWidthSize: widget.cacheWidthSize,
+            endRect: widget.endRect,
             onArtworkLoaded: (bytes, path) {
               if (bytes != null) {
                 _loadedCoversByPath[musicFile.path] = (bytes: bytes, path: path);
@@ -466,6 +480,7 @@ class _CoverItem extends ConsumerStatefulWidget {
     required this.width,
     this.displaySize,
     this.cacheWidthSize,
+    this.endRect,
     this.onArtworkLoaded,
   });
 
@@ -476,6 +491,7 @@ class _CoverItem extends ConsumerStatefulWidget {
   final double width;
   final double? displaySize;
   final double? cacheWidthSize;
+  final Rect? endRect;
   final void Function(Uint8List? bytes, String? path)? onArtworkLoaded;
 
   @override
@@ -729,6 +745,13 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
   @override
   Widget build(BuildContext context) {
     final double devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final flightController = ref.watch(playbackCoverFlightControllerProvider);
+    final scanner = ref.read(scannerServiceProvider);
+    final meta = scanner.metadataMap[widget.musicFile.path];
+    final int? effectiveArtW =
+        widget.musicFile.artworkWidth ?? meta?.artworkWidth;
+    final int? effectiveArtH =
+        widget.musicFile.artworkHeight ?? meta?.artworkHeight;
     final coverImage = _buildCoverImage();
     final bool showRating =
         (widget.displaySize == null || widget.displaySize! >= 180) &&
@@ -737,25 +760,75 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
     final cardContent = Stack(
       fit: StackFit.expand,
       children: [
-        coverImage,
+        AnimatedBuilder(
+          animation: Listenable.merge([
+            flightController.progressNotifier,
+            flightController.originNotifier,
+          ]),
+          child: coverImage,
+          builder: (context, imgChild) {
+            final double fp = flightController.progressNotifier.value;
+            final origin = flightController.originNotifier.value;
+            if (origin == null || fp >= 0.9999) return imgChild!;
+            final double fitScale =
+                PlaybackCoverFlightGeometry.computeBoxFitCoverToContainScale(
+                  artworkWidth: effectiveArtW,
+                  artworkHeight: effectiveArtH,
+                  progress: fp,
+                );
+            if ((fitScale - 1.0).abs() <= 0.001) return imgChild!;
+            return Transform.scale(scale: fitScale, child: imgChild);
+          },
+        ),
         if (showRating)
-          Align(
-            alignment: Alignment.bottomLeft,
-            child: Padding(
-              padding: const EdgeInsets.all(14.0),
-              child: SongRatingOverlay(
-                songPath: widget.musicFile.path,
+          AnimatedBuilder(
+            animation: Listenable.merge([
+              flightController.progressNotifier,
+              flightController.originNotifier,
+            ]),
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: Padding(
+                padding: const EdgeInsets.all(14.0),
+                child: SongRatingOverlay(
+                  songPath: widget.musicFile.path,
+                ),
               ),
             ),
+            builder: (context, ratingChild) {
+              final double fp = flightController.progressNotifier.value;
+              final origin = flightController.originNotifier.value;
+              if (origin == null || fp >= 0.9999) return ratingChild!;
+              final double ratingOpacity = ((fp - 0.65) / 0.35).clamp(0.0, 1.0);
+              if (ratingOpacity <= 0.001) return const SizedBox.shrink();
+              return IgnorePointer(
+                ignoring: fp < 0.98,
+                child: Opacity(opacity: ratingOpacity, child: ratingChild),
+              );
+            },
           ),
       ],
     );
 
     return AnimatedBuilder(
-      animation: widget.animation,
+      animation: Listenable.merge([
+        widget.animation,
+        flightController.progressNotifier,
+        flightController.originNotifier,
+      ]),
       child: cardContent,
       builder: (context, child) {
         final double pageOffset = widget.animation.value - widget.itemIndex;
+        final bool isCentered = pageOffset.abs() < 0.001;
+        final double flightProgress = flightController.progressNotifier.value;
+        final origin = flightController.originNotifier.value;
+        final bool isFlyingWithOrigin =
+            origin != null && flightProgress < 0.9999;
+
+        if (isFlyingWithOrigin && !isCentered) {
+          return const SizedBox.shrink();
+        }
+
         final double opacity = (1 - pageOffset.abs() * 1.2).clamp(0.0, 1.0);
         final double scale = (1 - (pageOffset.abs() * 0.3)).clamp(0.8, 1.0);
         final double rotationY = pageOffset * -0.3;
@@ -766,13 +839,40 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
             (rawTranslateX * devicePixelRatio).round() / devicePixelRatio;
 
         // Snapping scale to 1.0 and rotation to 0.0 when very close to 0 to ensure pixel-perfect rendering
-        final bool isCentered = pageOffset.abs() < 0.001;
         final double effectiveScale = isCentered ? 1.0 : scale;
         final double effectiveRotationY = isCentered ? 0.0 : rotationY;
 
         // Only apply perspective if there is actual rotation
         final double perspective = effectiveRotationY != 0 ? 0.001 : 0.0;
         final bool isAnimating = widget.animation.isAnimating || !isCentered;
+
+        final double baseEndRadius = widget.displaySize != null
+            ? math.min(24.0, widget.displaySize! * 0.2)
+            : 24.0;
+        BorderRadius effectiveBorderRadius = BorderRadius.circular(
+          baseEndRadius,
+        );
+        double shadowAlphaScale = 1.0;
+        double cardBgAlpha = 0.26;
+
+        if (isFlyingWithOrigin) {
+          final Rect targetEndRect =
+              widget.endRect ??
+              Rect.fromLTWH(0.0, 0.0, widget.width, widget.width);
+          final flight =
+              PlaybackCoverFlightGeometry.computeCoverFlightTransform(
+                startRect: origin.rect,
+                startBorderRadius: origin.borderRadius,
+                endRect: targetEndRect,
+                endBorderRadius: baseEndRadius,
+                progress: flightProgress,
+              );
+          effectiveBorderRadius = BorderRadius.circular(
+            flight.localBorderRadius,
+          );
+          shadowAlphaScale = ((flightProgress - 0.15) / 0.85).clamp(0.0, 1.0);
+          cardBgAlpha = 0.26 * flightProgress.clamp(0.0, 1.0);
+        }
 
         return RepaintBoundary(
           child: Opacity(
@@ -794,38 +894,52 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
                   aspectRatio: 1,
                   child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: _cardBorderRadius,
-                      color: Colors.black26,
-                      boxShadow: isAnimating
-                          ? const [
-                              BoxShadow(
-                                color: Colors.black38,
-                                blurRadius: 12,
-                                offset: Offset(0, 4),
-                              ),
-                            ]
-                          : [
-                              // Deep soft ambient shadow
-                              BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: (0.07 + 0.12 * (1 - pageOffset.abs())),
-                                ),
-                                blurRadius: 3 * scale,
-                                spreadRadius: 2 * scale,
-                                offset: Offset(0, 2 * scale),
-                              ),
-                              // Crisp contact shadow
-                              BoxShadow(
-                                color: Colors.black.withValues(
-                                  alpha: (0.10 + 0.08 * (1 - pageOffset.abs())),
-                                ),
-                                blurRadius: 16 * scale,
-                                spreadRadius: -4 * scale,
-                                offset: Offset(0, 8 * scale),
-                              ),
-                            ],
+                      borderRadius: effectiveBorderRadius,
+                      color: Colors.black.withValues(alpha: cardBgAlpha),
+                      boxShadow: shadowAlphaScale <= 0.001
+                          ? const []
+                          : (isAnimating
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.38 * shadowAlphaScale,
+                                      ),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ]
+                                : [
+                                    // Deep soft ambient shadow
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha:
+                                            (0.07 +
+                                                0.12 *
+                                                    (1 - pageOffset.abs())) *
+                                            shadowAlphaScale,
+                                      ),
+                                      blurRadius: 3 * scale,
+                                      spreadRadius: 2 * scale,
+                                      offset: Offset(0, 2 * scale),
+                                    ),
+                                    // Crisp contact shadow
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha:
+                                            (0.10 +
+                                                0.08 *
+                                                    (1 - pageOffset.abs())) *
+                                            shadowAlphaScale,
+                                      ),
+                                      blurRadius: 16 * scale,
+                                      spreadRadius: -4 * scale,
+                                      offset: Offset(0, 8 * scale),
+                                    ),
+                                  ]),
                     ),
-                    clipBehavior: isAnimating ? Clip.hardEdge : Clip.antiAlias,
+                    clipBehavior: (isAnimating && !isFlyingWithOrigin)
+                        ? Clip.hardEdge
+                        : Clip.antiAlias,
                     child: child,
                   ),
                 ),
@@ -892,8 +1006,12 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
         filterQuality: FilterQuality.low,
       );
     } else {
+      final scanner = ref.read(scannerServiceProvider);
+      final meta = scanner.metadataMap[widget.musicFile.path];
       final rawImagePath =
-          _artworkFilePath ?? widget.musicFile.artworkPath;
+          _artworkFilePath ??
+          widget.musicFile.artworkPath ??
+          meta?.artworkPath;
       final imagePath = rawImagePath != null
           ? ScannerPathUtils.resolveIosSandboxPath(rawImagePath)
           : null;
@@ -909,12 +1027,18 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
             cacheWidth: finalCacheWidth,
             filterQuality: FilterQuality.low,
             // 路径存在但沙盒拒绝时不要露出红叉，回落默认图标。
-            errorBuilder: (_, __, ___) => _buildFallbackNote(),
+            errorBuilder: (_, _, _) => _buildFallbackNote(),
           );
         }
       }
 
-      final rawThumbPath = widget.musicFile.thumbnailPath;
+      final rawThumbPath =
+          widget.musicFile.thumbnailPath ??
+          meta?.thumbnailPath ??
+          ArtworkResolver.peekCachedThumbnail(
+            path: widget.musicFile.path,
+            thumbnailPath: meta?.thumbnailPath,
+          );
       final thumbPath = rawThumbPath != null
           ? ScannerPathUtils.resolveIosSandboxPath(rawThumbPath)
           : null;
@@ -929,7 +1053,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
             gaplessPlayback: true,
             cacheWidth: finalCacheWidth,
             filterQuality: FilterQuality.low,
-            errorBuilder: (_, __, ___) => _buildFallbackNote(),
+            errorBuilder: (_, _, _) => _buildFallbackNote(),
           );
         }
       }
